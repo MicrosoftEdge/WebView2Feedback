@@ -1,0 +1,22 @@
+name: Sync Issue to Azure DevOps work item
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    name: Testing workflow
+    steps:       
+    - uses: champnic/github-actions-issue-to-work-item@users/champnic/master
+      env:
+        github_token: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"  
+        ado_token: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
+        ado_organization: 'microsoft'
+        ado_project: 'Edge'
+        ado_area_path: 'Edge\Dev Experience\WebView'
+        ado_tags: 'WV2_GitHub'
+        ado_bypassrules: false
+        ado_set_labels: false
+        create_on_tagging: true
