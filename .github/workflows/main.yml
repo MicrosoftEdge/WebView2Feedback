@@ -2,7 +2,7 @@ name: Sync Issue to Azure DevOps work item
 
 on:
   issues:
-    types: [labeled]
+    types: [labeled, closed]
 
 jobs:
   alert:
@@ -17,6 +17,7 @@ jobs:
         ado_project: 'Edge'
         ado_area_path: 'Edge\Dev Experience\WebView'
         ado_tags: 'WV2_GitHub'
+        ado_tag_on_close: 'WV2_GitHub_Closed'
         ado_bypassrules: false
         ado_set_labels: false
         create_on_tagging: true
