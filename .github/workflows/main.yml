@@ -2,7 +2,7 @@ name: Sync Issue to Azure DevOps work item
 
 on:
   issues:
-    types: [labeled, closed]
+    types: [labeled]
 
 jobs:
   alert:
