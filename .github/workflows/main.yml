@@ -20,4 +20,4 @@ jobs:
         ado_tag_on_close: 'WV2_GitHub_Closed'
         ado_bypassrules: false
         ado_set_labels: false
-        create_on_tagging: true
+        create_on_tag: 'tracked'
