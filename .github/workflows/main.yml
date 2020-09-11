@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Testing workflow
     steps:       
-    - uses: champnic/github-actions-issue-to-work-item@master
+    - uses: champnic/github-actions-issue-to-work-item@development
       env:
         github_token: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"  
         ado_token: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
