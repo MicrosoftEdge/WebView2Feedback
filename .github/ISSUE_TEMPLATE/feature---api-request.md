@@ -2,7 +2,7 @@
 name: Feature / API request
 about: Suggest an idea for WebView2
 title: ''
-labels: ''
+labels: feature request
 assignees: ''
 
 ---
