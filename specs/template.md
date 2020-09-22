@@ -35,9 +35,6 @@
     For example, this section is a place to explain why you're adding this
     API rather than modifying an existing API.
 
-    If you're writing a "converged" API add links into docs.microsoft.com
-    for the existing Win32 or WinRT APIs that are being converged.
-        
     For example, this is a place to provide a brief explanation of some dependent
     area, just explanation enough to understand this new API, rather than telling
     the reader "go read 100 pages of background information posted at ...". 
@@ -49,6 +46,7 @@ In this document we describe the updated API. We'd appreciate your feedback.
 # Description
 <!-- TEMPLATE
     Use this section to provide a brief description of the feature.
+
     For an example, see the introduction to the PasswordBox control
     (http://docs.microsoft.com/windows/uwp/design/controls-and-patterns/password-box).
 -->
@@ -57,7 +55,10 @@ In this document we describe the updated API. We'd appreciate your feedback.
 # Examples
 <!-- TEMPLATE
     Use this section to explain the features of the API, showing
-    example code with each description. The general format is:
+    example code with each description in both C# (for our WinRT API or .NET API) and
+    in C++ for our COM API. Use snippets of the sample code you wrote for the sample apps.
+
+    The general format is:
 
     ## FirstFeatureName
 
@@ -65,9 +66,17 @@ In this document we describe the updated API. We'd appreciate your feedback.
     replaces or supplements existing functionality.
 
     ```c#
-    void SampleMethod() {
+    void SampleMethod()
+    {
         var show = new AnExampleOf();
         show.SomeMembers = AndWhyItMight(be, interesting)
+    }
+    ```
+    
+    ```cpp
+    void SampleClass::SampleMethod()
+    {
+        winrt::com_ptr<ICoreWebView2> webview2 = ...
     }
     ```
 
@@ -77,13 +86,19 @@ In this document we describe the updated API. We'd appreciate your feedback.
     replaces or supplements existing functionality.
 
     ```c#
-    void SampleMethod() {
+    void SampleMethod()
+    {
         var show = new AnExampleOf();
         show.SomeMembers = AndWhyItMight(be, interesting)
     }
     ```
-
-    Code samples should be in C# and/or C++/WinRT.
+    
+    ```cpp
+    void SampleClass::SampleMethod()
+    {
+        winrt::com_ptr<ICoreWebView2> webview2 = ...
+    }
+    ```
 
     As an example of this section, see the Examples section for the PasswordBox
     control (https://docs.microsoft.com/windows/uwp/design/controls-and-patterns/password-box#examples). 
@@ -116,28 +131,39 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 # API Details
 <!-- TEMPLATE
-    The exact API, in MIDL3 format (https://docs.microsoft.com/en-us/uwp/midl-3/)
-    when possible, or in C# if starting with an API sketch.  GitHub's markdown
-    syntax formatter does not (yet) know about MIDL3, so use ```c# instead even
-    when writing MIDL3.
+    The exact API, in IDL format for our COM API and
+    in MIDL3 format (https://docs.microsoft.com/en-us/uwp/midl-3/)
+    when possible, or in C# if starting with an API sketch for our .NET and WinRT API.
+
+    Include every new or modified type but use // ... to remove any methods,
+    properties, or events that are unchanged.
+
+    (GitHub's markdown syntax formatter does not (yet) know about MIDL3, so
+    use ```c# instead even when writing MIDL3.)
 
     Example:
+    
+    ```
+    /// Event args for the NewWindowRequested event. The event is fired when content
+    /// inside webview requested to open a new window (through window.open() and so on.)
+    [uuid(34acb11c-fc37-4418-9132-f9c21d1eafb9), object, pointer_default(unique)]
+    interface ICoreWebView2NewWindowRequestedEventArgs : IUnknown
+    {
+        // ...
+
+        /// Window features specified by the window.open call.
+        /// These features can be considered for positioning and sizing of
+        /// new webview windows.
+        [propget] HRESULT WindowFeatures([out, retval] ICoreWebView2WindowFeatures** windowFeatures);
+    }
+    ```
 
     ```c# (but really MIDL3)
-    namespace Microsoft.AppModel
+    public class CoreWebView2NewWindowRequestedEventArgs
     {
-        /// Represents a package on the host system. See Windows.ApplicationModel.Package for more details
-        runtimeclass Package
-        {
-            /// Returns the current package, or null if the current process is not packaged
-            static Package Current { get; };
+        // ...
 
-            /// Returns the package from the system store with this full name or null if not found
-            static Package GetFromFullName(String fullName);
-
-            /// Returns packages in the given family, by name
-            static Package[] FindByFamilyName(String familyName);
-        }
+	       public CoreWebView2WindowFeatures WindowFeatures { get; }
     }
     ```
 -->
