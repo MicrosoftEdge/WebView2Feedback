@@ -1,20 +1,25 @@
 # Background
 The WebView2 team has been asked for an API to get the response for a web
 resource as it was received and to provide request headers not available when
-`WebResourceRequested` event fires (such as Authentication headers). The
-`WebResourceResponseReceived` event provides such HTTP response representation
-and exposes the request as sent over the wire.
+`WebResourceRequested` event is raised (such as HTTP Authentication headers).
+The `WebResourceResponseReceived` event provides such response representation
+and exposes the request as committed.
 
 In this document we describe the new API. We'd appreciate your feedback.
 
 # Description
-The `WebResourceResponseReceived` event fires when the WebView receives the
-response for a request for a web resource. It provides access to both the
-response as it was received and the request as it was sent over the wire,
-including modifications made by the network stack (such as adding of
-Authorization headers). The app can use this event to view the actual request
-and response for a web resource, but modifications made to these objects are
-ignored.
+The `WebResourceResponseReceived` event allows developers to inspect the
+response object from URL requests (such as HTTP/HTTPS, file and data). A key
+scenario is to allow developers to get Auth headers from an HTTP response to
+authenticate other tools they're using, since the Auth headers are not exposed
+in the `WebResourceRequested` event.
+
+This event is raised when the WebView receives the response for a request for a
+web resource. It provides access to both the response as it was received and the
+request as it was committed, including modifications made by the network stack
+(such as the adding of HTTP Authorization headers). The app can use this event
+to view the actual request and response for a web resource, but modifications
+made to these objects are ignored.
 
 The host app registers for this event by providing a
 `WebResourceResponseReceivedEventHandler` (or delegate) to WebView's
@@ -22,10 +27,12 @@ The host app registers for this event by providing a
 the handler, the WebView will pass a `WebResourceResponseReceivedEventArgs`,
 which lets the app view the request and response. The additional
 `PopulateResponseContent` API is exposed from the event arguments so the app
-can get the response's body (if it has one).
+can get the response's body (if it has one). If the app tries to get the
+response content before calling `PopulateResponseContent`, the stream object
+returned will be null.
 
 # Examples
-The following code snippets demonstrates how the `WebResourceResponseReceived`
+The following code snippets demonstrate how the `WebResourceResponseReceived`
 event can be used:
 
 ## COM
@@ -36,7 +43,7 @@ m_webview->add_WebResourceResponseReceived(
     Callback<ICoreWebView2WebResourceResponseReceivedEventHandler>(
         [this](ICoreWebView2* webview, ICoreWebView2WebResourceResponseReceivedEventArgs* args)
             -> HRESULT {
-            // The request object as sent by the wire
+            // The request object as committed
             wil::com_ptr<ICoreWebView2WebResourceRequest> webResourceRequest;
             CHECK_FAILURE(args->get_Request(&webResourceRequest));
             // The response object as received
@@ -102,9 +109,10 @@ private async void WebView_WebResourceResponseReceived(object sender, CoreWebVie
         {
             await e.PopulateResponseContentAsync();
             DoSomethingWithResponseBody(e.Response.Content);
-        } catch (Exception ex)
+        }
+        catch (COMException ex)
         {
-            // An exception will be thrown if the request has no body.
+            // A COMException will be thrown if the request has no body.
         }
     }
 }
@@ -112,9 +120,8 @@ private async void WebView_WebResourceResponseReceived(object sender, CoreWebVie
 
 
 # Remarks
-Calling `PopulateResponseContent` will fail/throw an exception if the response
-has no body. An exception will also be thrown for redirect responses, for which
-the body (if any) is ignored.
+Calling `PopulateResponseContent` will fail/throw a COMException if the response
+has no body. Note the body for redirect responses is ignored.
 
 
 # API Notes
@@ -131,9 +138,9 @@ library WebView2
         // ...
 
         /// Add an event handler for the WebResourceResponseReceived event.
-        /// WebResourceResponseReceived event fires after the WebView has received
+        /// WebResourceResponseReceived event is raised after the WebView has received
         /// and processed the response for a WebResource request. The event args
-        /// include the WebResourceRequest as sent by the wire and WebResourceResponse
+        /// include the WebResourceRequest as committed and the WebResourceResponse
         /// received, including any additional headers added by the network stack that
         /// were not be included as part of the associated WebResourceRequested event,
         /// such as Authentication headers.
@@ -146,12 +153,12 @@ library WebView2
             [in] EventRegistrationToken token);
     }
 
-    /// Fires when a response for a request is received for a Web resource in the webview.
+    /// Raised when a response for a request is received for a Web resource in the webview.
     /// Host can use this event to view the actual request and response for a Web resource.
     /// This includes any request or response modifications made by the network stack (such as
-    /// adding of Authorization headers) after the WebResourceRequested event for
-    /// the associated request has fired. Modifications made to the request or response
-    /// objects are ignored.
+    /// the adding of Authorization headers) after the WebResourceRequested event for
+    /// the associated request has been raised. Modifications made to the request or
+    /// response objects are ignored.
     interface ICoreWebView2WebResourceResponseReceivedEventHandler : IUnknown
     {
         /// Called to provide the implementer with the event args for the
@@ -184,7 +191,9 @@ library WebView2
         /// will be ignored.
         [propget] HRESULT Response([out, retval] ICoreWebView2WebResourceResponse** response);
 
-        /// Async method to request the Content stream of the response.
+        /// Async method to ensure that the Content property of the response contains the actual response body content.
+        /// If this method is being called again before a first call has completed, all handlers are invoked at the same time.
+        /// If this method is being called after a first call has completed, the handler is invoked immediately.
         HRESULT PopulateResponseContent(ICoreWebView2WebResourceResponseReceivedEventArgsPopulateResponseContentCompletedHandler* handler);
     }
 }
@@ -198,11 +207,16 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
 
-        /// WebResourceResponseReceived event fires after the WebView has received and processed the response for a WebResource request.
+        /// WebResourceResponseReceived event is raised after the WebView has received and processed the response for a WebResource request.
+        /// The event args include the WebResourceRequest as committed and the WebResourceResponse received,
+        /// including any additional headers added by the network stack that were not be included as part of
+        /// the associated WebResourceRequested event, such as Authentication headers.
         event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2WebResourceResponseReceivedEventArgs> WebResourceResponseReceived;
     }
 
     /// Event args for the WebResourceResponseReceived event.
+    /// Note: To get the response content stream, first call PopulateResponseContentAsync and
+    /// wait for the call to complete, otherwise the content stream object returned will be null.
     runtimeclass CoreWebView2WebResourceResponseReceivedEventArgs
     {
         /// Web resource request object.
@@ -212,7 +226,9 @@ namespace Microsoft.Web.WebView2.Core
         /// Any modifications to this object will be ignored.
         CoreWebView2WebResourceResponse Response { get; };
 
-        /// Async method to request the Content stream of the response.
+        /// Async method to ensure that the Content property of the response contains the actual response body content.
+        /// If this method is being called again before a first call has completed, it will complete at the same time all prior calls do.
+        /// If this method is being called after a first call has completed, it will return immediately (asynchronously).
         Windows.Foundation.IAsyncAction PopulateResponseContentAsync();
     }
 }
