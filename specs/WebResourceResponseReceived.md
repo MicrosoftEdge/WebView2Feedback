@@ -21,15 +21,12 @@ request as it was committed, including modifications made by the network stack
 to view the actual request and response for a web resource, but modifications
 made to these objects are ignored.
 
-The host app registers for this event by providing a
-`WebResourceResponseReceivedEventHandler` (or delegate) to WebView's
-`add_WebResourceResponseReceived`/`WebResourceResponseReceived`. When invoking
-the handler, the WebView will pass a `WebResourceResponseReceivedEventArgs`,
-which lets the app view the request and response. The additional
-`PopulateResponseContent` API is exposed from the event arguments so the app
-can get the response's body (if it has one). If the app tries to get the
-response content before calling `PopulateResponseContent`, the stream object
-returned will be null.
+When the event is raised, the WebView will pass a
+`WebResourceResponseReceivedEventArgs`, which lets the app view the request and
+response. The additional `PopulateResponseContent` API is exposed from the event
+arguments so the app can get the response's body (if it has one). If the app
+tries to get the response content before the first call to
+`PopulateResponseContent` completes, the stream object returned will be null.
 
 # Examples
 The following code snippets demonstrate how the `WebResourceResponseReceived`
