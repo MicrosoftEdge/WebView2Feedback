@@ -85,7 +85,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
 }
 
 [uuid(1c11735a-d57d-4614-a9e1-8b48d81da38c), object, pointer_default(unique)]
-interface ICoreWebView2Environment_2 : IUnknown {
+interface ICoreWebView2Environment_2 : ICoreWebView2Environment {
   /// Create a new web resource request object.
   /// URI parameter must be absolute URI.
   /// The headers string is the raw request header string delimited by newline
