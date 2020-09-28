@@ -73,7 +73,7 @@ with a "///" comment above the member or type. -->
 [uuid(7fbad153-fb94-452e-acab-3cbb9ab341ec), object, pointer_default(unique)]
 interface ICoreWebView2_2 : ICoreWebView2 {
  ....
-  /// Navigate using a constructed WebResourceRequest object. This let's you
+  /// Navigate using a constructed WebResourceRequest object. This lets you
   /// provide post data or additional request headers during navigation.
   /// The headers in the WebResourceRequest override headers
   /// added by WebView2 runtime except for Cookie headers. To override cookies
