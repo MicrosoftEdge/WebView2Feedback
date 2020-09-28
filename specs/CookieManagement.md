@@ -10,6 +10,169 @@ One can create a `CookieManager` off a WebView to `GetCookies` via a `CookieList
 
 The following code snippet demonstrates how the cookie management APIs can be use:
 
+## Win32 C++
+
+```cpp
+ScenarioCookieManagement::ScenarioCookieManagement(AppWindow* appWindow)
+    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
+{
+    //! [CreateCookieManager]
+    CHECK_FAILURE(m_webView->CreateCookieManager(&m_cookieManager));
+    //! [CreateCookieManager]
+
+    CHECK_FAILURE(m_webView->add_WebMessageReceived(
+        Microsoft::WRL::Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+            [this](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args) {
+                wil::unique_cotaskmem_string uri;
+                CHECK_FAILURE(args->get_Source(&uri));
+
+                // Always validate that the origin of the message is what you expect.
+                if (uri.get() != m_sampleUri)
+                {
+                    return S_OK;
+                }
+                wil::unique_cotaskmem_string messageRaw;
+                CHECK_FAILURE(args->TryGetWebMessageAsString(&messageRaw));
+                std::wstring message = messageRaw.get();
+                std::wstring reply;
+
+                if (message.compare(0, 11, L"GetCookies ") == 0)
+                {
+                    GetCookiesHelper(message.substr(11));
+                    reply =
+                        L"{\"CookiesGot\":\"" + GetCookiesHelper(message.substr(11)) + L"\"}";
+                    CHECK_FAILURE(sender->PostWebMessageAsJson(reply.c_str()));
+                }
+                else if (message.compare(0, 10, L"SetCookie ") == 0)
+                {
+                    message = message.substr(10);
+                    std::wstring name = message.substr(0, message.find(' '));
+                    std::wstring value = message.substr(message.find(' ') + 1);
+
+                    //! [SetCookie]
+                    wil::com_ptr<ICoreWebView2Cookie> cookie;
+                    CHECK_FAILURE(m_cookieManager->CreateCookie(
+                        name.c_str(), value.c_str(), L".bing.com", L"/", &cookie));
+                    CHECK_FAILURE(m_cookieManager->SetCookie(cookie.get()));
+                    reply = L"{\"CookieSet\":\"Cookie set successfully.\"}";
+                    CHECK_FAILURE(sender->PostWebMessageAsJson(reply.c_str()));
+                    //! [SetCookie]
+                }
+                else if (message.compare(0, 16, L"ClearAllCookies ") == 0)
+                {
+                    CHECK_FAILURE(m_cookieManager->ClearAllCookies());
+                    reply = L"{\"CookiesCleared\":\"Cookies cleared.\"}";
+                    CHECK_FAILURE(sender->PostWebMessageAsJson(reply.c_str()));
+                }
+                return S_OK;
+            })
+            .Get(),
+        &m_webMessageReceivedToken));
+}
+
+static std::wstring CookieToJsonString(ICoreWebView2Cookie* cookie)
+{
+    //! [CookieObject]
+    wil::unique_cotaskmem_string name;
+    CHECK_FAILURE(cookie->get_Name(&name));
+    wil::unique_cotaskmem_string value;
+    CHECK_FAILURE(cookie->get_Value(&value));
+    wil::unique_cotaskmem_string domain;
+    CHECK_FAILURE(cookie->get_Domain(&domain));
+    wil::unique_cotaskmem_string path;
+    CHECK_FAILURE(cookie->get_Path(&path));
+    double expires;
+    CHECK_FAILURE(cookie->get_Expires(&expires));
+    BOOL httpOnly;
+    CHECK_FAILURE(cookie->get_HttpOnly(&httpOnly));
+    COREWEBVIEW2_COOKIE_SAME_SITE_KIND same_site;
+    std::wstring same_site_as_string;
+    CHECK_FAILURE(cookie->get_SameSite(&same_site));
+    switch (same_site)
+    {
+    case COREWEBVIEW2_COOKIE_SAME_SITE_KIND_NONE:
+        same_site_as_string = L"None";
+        break;
+    case COREWEBVIEW2_COOKIE_SAME_SITE_KIND_LAX:
+        same_site_as_string = L"Lax";
+        break;
+    case COREWEBVIEW2_COOKIE_SAME_SITE_KIND_STRICT:
+        same_site_as_string = L"Strict";
+        break;
+    }
+    BOOL secure;
+    CHECK_FAILURE(cookie->get_Secure(&secure));
+
+    std::wstring result = L"{";
+    result += L"\"Name\": " + EncodeQuote(name.get()) + L", " + L"\"Value\": " +
+              EncodeQuote(value.get()) + L", " + L"\"Domain\": " + EncodeQuote(domain.get()) +
+              L", " + L"\"Path\": " + EncodeQuote(path.get()) + L", " + L"\"HttpOnly\": " +
+              BoolToString(httpOnly) + L", " + L"\"Secure\": " + BoolToString(secure) + L", " +
+              L"\"SameSite\": " + EncodeQuote(same_site_as_string) + L", " + L"\"Expires\": ";
+    if (expires == -1)
+    {
+        result += L"This is a session cookie.";
+    }
+    else
+    {
+        result += std::to_wstring(expires);
+    }
+
+    return result + L"\"}";
+    //! [CookieObject]
+}
+
+void ScenarioCookieManagement::GetCookiesHelper(std::wstring uri)
+{
+    //! [GetCookies]
+    if (m_cookieManager)
+    {
+        CHECK_FAILURE(m_cookieManager->GetCookies(
+            uri.c_str(),
+            Callback<ICoreWebView2GetCookiesCompletedHandler>(
+                [this, uri](HRESULT error_code, ICoreWebView2CookieList* list) -> HRESULT {
+                    CHECK_FAILURE(error_code);
+
+                    std::wstring result;
+                    UINT cookie_list_size;
+                    CHECK_FAILURE(list->get_Size(&cookie_list_size));
+
+                    if (cookie_list_size == 0)
+                    {
+                        result += L"No cookies found.";
+                    }
+                    else
+                    {
+                        result += std::to_wstring(cookie_list_size) + L" cookie(s) found on " +
+                                  uri + L".";
+                        result += L"\n\n[";
+                        for (int i = 0; i < cookie_list_size; ++i)
+                        {
+                            wil::com_ptr<ICoreWebView2Cookie> cookie;
+                            CHECK_FAILURE(list->GetValueAtIndex(i, &cookie));
+
+                            if (cookie.get())
+                            {
+                                result += CookieToJsonString(cookie.get());
+                                if (i != cookie_list_size - 1)
+                                {
+                                    result += L",\n";
+                                }
+                            }
+                        }
+                        result += L"]";
+                    }
+                    MessageBox(nullptr, result.c_str(), L"GetCookies Result", MB_OK);
+                    return S_OK;
+                })
+                .Get()));
+    }
+    //! [GetCookies]
+}
+```
+
+## .NET and WinRT
+
 ```c#
 CoreWebView2CookieManager _cookieManager;
 
