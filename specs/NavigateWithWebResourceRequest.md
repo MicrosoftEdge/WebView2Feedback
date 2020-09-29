@@ -22,7 +22,7 @@ We also propose adding a CreateWebResourceRequest API to [CoreWebView2Environmen
 
     wil::com_ptr<ICoreWebView2WebResourceRequest> webResourceRequest;
     wil::com_ptr<IStream> postDataStream = SHCreateMemStream(
-        reinterpret_cast<const BYTE*>(postDataString), postData.length());
+            reinterpret_cast<const BYTE*>(postDataBytes.get()), sizeNeededForMultiByte);
 
     // This acts as a HTML form submit to https://www.w3schools.com/action_page.php
     CHECK_FAILURE(webviewEnvironment->CreateWebResourceRequest(
