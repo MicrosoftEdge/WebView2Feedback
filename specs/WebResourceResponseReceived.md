@@ -18,8 +18,8 @@ This event is raised when the WebView receives the response for a request for a
 web resource. It provides access to both the response as it was received and the
 request as it was committed, including modifications made by the network stack
 (such as the adding of HTTP Authorization headers). The app can use this event
-to view the actual request and response for a web resource, but modifications
-made to these objects are ignored.
+to view the actual request and response for a web resource. Modifications to
+these objects are set but have no effect on WebView processing them.
 
 When the event is raised, the WebView will pass a
 `WebResourceResponseReceivedEventArgs`, which lets the app view the request and
@@ -83,8 +83,8 @@ m_webview->add_WebResourceResponseReceived(
 ```c#
 WebView.WebResourceResponseReceived += WebView_WebResourceResponseReceived;
 
-// Note: modifications made to request and response are ignored
-private async void WebView_WebResourceResponseReceived(object sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
+// Note: modifications made to request and response are set but have no effect on WebView processing the objects.
+private async void WebView_WebResourceResponseReceived(CoreWebView2 sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
 {
     // Actual headers sent with request
     foreach (var current in e.Request.Headers)
@@ -138,9 +138,9 @@ library WebView2
         /// WebResourceResponseReceived event is raised after the WebView has received
         /// and processed the response for a WebResource request. The event args
         /// include the WebResourceRequest as committed and the WebResourceResponse
-        /// received, including any additional headers added by the network stack that
-        /// were not be included as part of the associated WebResourceRequested event,
-        /// such as Authentication headers.
+        /// received, not including the Content, but including any additional headers
+        /// added by the network stack that were not be included as part of the
+        /// associated WebResourceRequested event, such as Authentication headers.
         HRESULT add_WebResourceResponseReceived(
             [in] ICoreWebView2WebResourceResponseReceivedEventHandler* eventHandler,
             [out] EventRegistrationToken* token);
@@ -155,7 +155,7 @@ library WebView2
     /// This includes any request or response modifications made by the network stack (such as
     /// the adding of Authorization headers) after the WebResourceRequested event for
     /// the associated request has been raised. Modifications made to the request or
-    /// response objects are ignored.
+    /// response objects are set but have no effect on WebView processing them.
     interface ICoreWebView2WebResourceResponseReceivedEventHandler : IUnknown
     {
         /// Called to provide the implementer with the event args for the
