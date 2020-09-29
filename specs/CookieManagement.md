@@ -135,7 +135,7 @@ void ScenarioCookieManagement::GetCookiesHelper(std::wstring uri)
 
                     std::wstring result;
                     UINT cookie_list_size;
-                    CHECK_FAILURE(list->get_Size(&cookie_list_size));
+                    CHECK_FAILURE(list->get_Count(&cookie_list_size));
 
                     if (cookie_list_size == 0)
                     {
@@ -189,7 +189,7 @@ void AddOrUpdateCookieCmdExecuted(object target, ExecutedRoutedEventArgs e)
 async void GetCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
     CoreWebView2CookieList cookieList = await webView.CoreWebView2.CookieManager.GetCookiesAsync("https://www.bing.com");
-    for (uint i = 0; i < cookieList.Size; ++i)
+    for (uint i = 0; i < cookieList.Count; ++i)
     {
         CoreWebView2Cookie cookie = cookieList.GetValueAtIndex(i);
         System.Net.Cookie dotNetCookie = CoreWebView2Cookie.CoreWebView2ToDotNetCookie(cookie);
@@ -321,6 +321,9 @@ interface ICoreWebView2CookieManager : IUnknown {
   /// equivalent cookies if they exist.
   HRESULT AddOrUpdateCookie([in] ICoreWebView2Cookie* cookie);
 
+  /// Deletes a cookie whose params matching those of the specified cookie.
+  HRESULT DeleteCookie([in] ICoreWebView2StagingCookie* cookie);
+
   /// Deletes browser cookies with matching name and uri or domain/path pair.
   /// Cookie name is required.
   /// If uri is specified, deletes all cookies with the given name where domain
@@ -338,7 +341,7 @@ interface ICoreWebView2CookieManager : IUnknown {
 [uuid(02F758AF-2F1C-4263-A5F8-37CA875B40D1), object, pointer_default(unique)]
 interface ICoreWebView2CookieList : IUnknown {
   /// The number of cookies contained in the ICoreWebView2CookieList.
-  [propget] HRESULT Size([out, retval] UINT* size);
+  [propget] HRESULT Count([out, retval] UINT* count);
 
   /// Get the cookie object at the given index.
   HRESULT GetValueAtIndex([in] UINT index, [out, retval] ICoreWebView2Cookie** cookie);
@@ -404,6 +407,9 @@ namespace Microsoft.Web.WebView2.Core
         /// equivalent cookies if they exist.
         void AddOrUpdateCookie(CoreWebView2Cookie cookie);
 
+        /// Deletes a cookie whose params matching those of the specified cookie.
+        void DeleteCookie(CoreWebView2Cookie cookie);
+
         /// Deletes browser cookies with matching name and uri or domain/path pair.
         /// Cookie name is required.
         /// If uri is specified, deletes all cookies with the given name where domain
@@ -421,7 +427,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2CookieList
     {
         /// The number of cookies contained in the CoreWebView2CookieList.
-        UInt32 Size { get; };
+        UInt32 Count { get; };
 
         /// Get the cookie object at the given index.
         CoreWebView2Cookie GetValueAtIndex(UInt32 index);
