@@ -182,10 +182,11 @@ library WebView2
     /// returned will be null.
     interface ICoreWebView2WebResourceResponseReceivedEventArgs : IUnknown
     {
-        /// Web resource request object. Any modifications to this object will be ignored.
+        /// Web resource request object. Modifications to this object have no effect
+        /// on how the request is processed as it has already been sent.
         [propget] HRESULT Request([out, retval] ICoreWebView2WebResourceRequest** request);
-        /// Web resource response object. Any modifications to this object
-        /// will be ignored.
+        /// Web resource response object. Modifications to this object have no effect
+        /// on how the response is processed.
         [propget] HRESULT Response([out, retval] ICoreWebView2WebResourceResponse** response);
 
         /// Async method to ensure that the Content property of the response contains the actual response body content.
@@ -217,10 +218,10 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2WebResourceResponseReceivedEventArgs
     {
         /// Web resource request object.
-        /// Any modifications to this object will be ignored.
+        /// Modifications to this object have no effect on how the request is processed as it has already been sent.
         CoreWebView2WebResourceRequest Request { get; };
         /// Web resource response object.
-        /// Any modifications to this object will be ignored.
+        /// Modifications to this object have no effect on how the response is processed.
         CoreWebView2WebResourceResponse Response { get; };
 
         /// Async method to ensure that the Content property of the response contains the actual response body content.
