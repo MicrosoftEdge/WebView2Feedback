@@ -1,9 +1,8 @@
 # Background
-When the WebView2 team was making design changes to the [WebResourceRequested API](https://github.com/MicrosoftEdge/WebView2Feedback/wiki/WebResourceRequested-API-Review-Spec) for .NET, we realized it was not intutive to create the WebView2 Environment. Thus it was not straightforward to use the CreateWebResourceResponse off the WebView2 Environment.
-WebView2 team plans to introduce an easier way to get the Environment variable and CreateWebResourceResponse.
+When the WebView2 team was making design changes to the [WebResourceRequested API](https://github.com/MicrosoftEdge/WebView2Feedback/wiki/WebResourceRequested-API-Review-Spec) for .NET, we realized several caveats. It was not ideal to force all end developers to keep references back to the CoreWebView2Environment from their CoreWebView2 event handlers, and also in the case of WPF, WinForms and WinUI3.0 the UI framework can create the CoreWebView2Environment internally with no easy way for the end developers to obtain a reference to it. Thus providing a reference to the CoreWebView2Environment off of the CoreWebView2 solves both of those problems.
 
 # Description
-One can get WebView2 Environment from `Environment`. 
+Get the `CoreWebView2Environment` used to create the `CoreWebView2` from that `CoreWebView2`'s `CoreWebView2Environment` property
 
 
 # Examples
@@ -64,7 +63,6 @@ void SettingsComponent::SetBlockImages(bool blockImages)
 ```c#
     private void CoreWebView2_WebResourceRequested(object sender, CoreWebView2WebResourceRequestedEventArgs e)
     {
-        CoreWebView2Environment environment = webView2Control.CoreWebView2.Environment;
         // Create response object for custom response and set it
         var environment = webView2Control.CoreWebView2.Environment;
         CoreWebView2WebResourceResponse response = environment.CreateWebResourceResponse(null, 403, "Blocked", "");
@@ -85,9 +83,11 @@ See [API Details](#api-details) section below for API reference.
 
 ```IDL
 interface ICoreWebView2;
+interface ICoreWebView2_2;
 
 [uuid(76eceacb-0462-4d94-ac83-423a6793775e), object, pointer_default(unique)]
-interface ICoreWebView2 : IUnknown {
+interface ICoreWebView2_2 : ICoreWebView2 {
+    /// Exposes the CoreWebView2Environment used to create this CoreWebView2.
     [propget] HRESULT Environment([out, retval] ICoreWebView2Environment** environment);
 }
 ```
@@ -99,6 +99,7 @@ namespace Microsoft.Web.WebView2.Core
 {
     public partial class CoreWebView2
     {
+        // There are other API in this interface that we are not showing 
         public CoreWebView2Environment Environment { get; };
     }
 }
