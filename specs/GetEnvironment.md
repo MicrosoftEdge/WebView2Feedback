@@ -40,10 +40,8 @@ void SettingsComponent::SetBlockImages(bool blockImages)
                         // If put_Response is not called, the request will continue as normal.
                         wil::com_ptr<ICoreWebView2WebResourceResponse> response;
                         // Environment Usage
-                        wil::com_ptr<ICoreWebView2Staging> m_webViewstaging =
-                            m_webView.try_query<ICoreWebView2Staging>();
                         wil::com_ptr<ICoreWebView2Environment> environment;
-                        CHECK_FAILURE(m_webViewstaging->get_Environment(&environment));
+                        CHECK_FAILURE(m_webView->get_Environment(&environment));
                         CHECK_FAILURE(environment->CreateWebResourceResponse(
                             nullptr, 403 /*NoContent*/, L"Blocked", L"", &response));
                         CHECK_FAILURE(args->put_Response(response.get()));
