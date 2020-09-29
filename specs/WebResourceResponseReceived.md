@@ -3,7 +3,10 @@ The WebView2 team has been asked for an API to get the response for a web
 resource as it was received and to provide request headers not available when
 `WebResourceRequested` event is raised (such as HTTP Authentication headers).
 The `WebResourceResponseReceived` event provides such response representation
-and exposes the request as committed.
+and exposes the request as committed. A web request is any URI resolution the
+WebView performs. This includes declarative `<img src="...">` from HTML,
+implicit `favicon.ico` lookups, and JavaScript in the document calling the
+`fetch(...)` API.
 
 In this document we describe the new API. We'd appreciate your feedback.
 
@@ -19,7 +22,9 @@ web resource. It provides access to both the response as it was received and the
 request as it was committed, including modifications made by the network stack
 (such as the adding of HTTP Authorization headers). The app can use this event
 to view the actual request and response for a web resource. Modifications to
-these objects are set but have no effect on WebView processing them.
+these objects are set but have no effect on WebView processing them. There is no
+ordering guarantee between WebView processing the response and the host app's
+event handler running.
 
 When the event is raised, the WebView will pass a
 `WebResourceResponseReceivedEventArgs`, which lets the app view the request and
@@ -136,11 +141,13 @@ library WebView2
 
         /// Add an event handler for the WebResourceResponseReceived event.
         /// WebResourceResponseReceived event is raised after the WebView has received
-        /// and processed the response for a WebResource request. The event args
-        /// include the WebResourceRequest as committed and the WebResourceResponse
-        /// received, not including the Content, but including any additional headers
-        /// added by the network stack that were not be included as part of the
-        /// associated WebResourceRequested event, such as Authentication headers.
+        /// the response for a WebResource request. The event args include the
+        /// WebResourceRequest as committed and the WebResourceResponse received,
+        /// not including the Content, but including any additional headers added by
+        /// the network stack that were not be included as part of the associated
+        /// WebResourceRequested event, such as Authentication headers. There is no
+        /// ordering guarantee between WebView processing the response and the host
+        /// app's event handler running.
         HRESULT add_WebResourceResponseReceived(
             [in] ICoreWebView2WebResourceResponseReceivedEventHandler* eventHandler,
             [out] EventRegistrationToken* token);
@@ -166,7 +173,7 @@ library WebView2
     }
 
     /// Completion handler for PopulateResponseContent async method. It's invoked
-    /// when the Content stream of the Response of a WebResourceResponseReceieved
+    /// when the Content stream of the Response of a WebResourceResponseReceived
     /// event is available.
     interface ICoreWebView2WebResourceResponseReceivedEventArgsPopulateResponseContentCompletedHandler : IUnknown
     {
