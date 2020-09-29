@@ -12,14 +12,13 @@ We also propose adding a CreateWebResourceRequest API to [CoreWebView2Environmen
     // Need to convert post data to UTF-8 as required by the application/x-www-form-urlencoded Content-Type 
     std::wstring postData = std::wstring(L"input=Hello");
     int sizeNeededForMultiByte = WideCharToMultiByte(
-        CP_UTF8, 0, postData.c_str(), -1, nullptr,
-        0,
-        nullptr, nullptr);
+        CP_UTF8, 0, postData.c_str(), postData.size(), nullptr,
+        0, nullptr, nullptr);
 
-    char* postDataString = new char[sizeNeededForMultiByte];
+    std::unique_ptr<char[]> postDataBytes = std::make_unique<char[]>(sizeNeededForMultiByte);
     WideCharToMultiByte(
-        CP_UTF8, 0, postData.c_str(), -1, postDataString, sizeNeededForMultiByte, nullptr,
-        nullptr);
+        CP_UTF8, 0, postData.c_str(), postData.size(), postDataBytes.get(),
+        sizeNeededForMultiByte, nullptr, nullptr);
 
     wil::com_ptr<ICoreWebView2WebResourceRequest> webResourceRequest;
     wil::com_ptr<IStream> postDataStream = SHCreateMemStream(
@@ -76,8 +75,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   /// Navigate using a constructed WebResourceRequest object. This lets you
   /// provide post data or additional request headers during navigation.
   /// The headers in the WebResourceRequest override headers
-  /// added by WebView2 runtime except for Cookie headers. To override cookies
-  /// please use the Cookie API.
+  /// added by WebView2 runtime except for Cookie headers.
   /// Method can only be either "GET" or "POST". Provided post data will only
   /// be sent only if the method is "POST" and the uri scheme is HTTP(S).
   /// \snippet ScenarioNavigateWithWebResourceRequest.cpp NavigateWithWebResourceRequest
@@ -88,8 +86,9 @@ interface ICoreWebView2_2 : ICoreWebView2 {
 interface ICoreWebView2Environment_2 : ICoreWebView2Environment {
   /// Create a new web resource request object.
   /// URI parameter must be absolute URI.
-  /// The headers string is the raw request header string delimited by newline
-  /// (\r\n). It's also possible to create this object with null headers string
+  /// The headers string is the raw request header string delimited by CRLF
+  /// (optional in last header).
+  /// It's also possible to create this object with null headers string
   /// and then use the ICoreWebView2HttpRequestHeaders to construct the headers
   /// line by line.
   /// For information on other parameters see ICoreWebView2WebResourceRequest.
@@ -111,9 +110,10 @@ namespace Microsoft.Web.WebView2.Core
         ...
         /// Create a new web resource request object.
         /// URI parameter must be absolute URI.
-        /// The headers string is the raw request header string delimited by newline
-        /// (\r\n). It's also possible to create this object with null headers string
-        /// and then use the ICoreWebView2HttpRequestHeaders to construct the headers
+        /// The headers string is the raw request header string delimited by CRLF
+        /// (optional in last header).
+        /// It's also possible to create this object with null headers string
+        /// and then use the CoreWebView2HttpRequestHeaders to construct the headers
         /// line by line.
         /// For information on other parameters see ICoreWebView2WebResourceRequest.
         ///
@@ -128,8 +128,7 @@ namespace Microsoft.Web.WebView2.Core
         /// Navigate using a constructed WebResourceRequest object. This let's you
         /// provide post data or additional request headers during navigation.
         /// The headers in the WebResourceRequest override headers
-        /// added by WebView2 runtime except for Cookie headers. To override cookies
-        /// please use the Cookie API.
+        /// added by WebView2 runtime except for Cookie headers.
         /// Method can only be either "GET" or "POST". Provided post data will only
         /// be sent only if the method is "POST" and the uri scheme is HTTP(S).
         public void NavigateWithWebResourceRequest(CoreWebView2WebResourceRequest request);
