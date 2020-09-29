@@ -192,7 +192,8 @@ async void GetCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
     for (uint i = 0; i < cookieList.Size; ++i)
     {
         CoreWebView2Cookie cookie = cookieList.GetValueAtIndex(i);
-        Console.WriteLine(CookieAsString(cookie));
+        System.Net.Cookie dotNetCookie = CoreWebView2Cookie.CoreWebView2ToDotNetCookie(cookie);
+        Console.WriteLine(dotNetCookie.ToString());
     }
 }
 
@@ -462,6 +463,12 @@ namespace Microsoft.Web.WebView2.Core
         /// Note that cookie that requests CoreWebView2CookieSameSiteKind.None but
         /// is not marked Secure will be rejected.
         Boolean IsSecure { get; set; };
+
+        /// Converts a System.Net.Cookie to a CoreWebView2Cookie.
+        static CoreWebView2Cookie DotNetToCoreWebView2Cookie(System.Net.Cookie dotNetCookie);
+
+        /// Converts a CoreWebView2Cookie to a System.Net.Cookie.
+        static System.Net.Cookie CoreWebView2ToDotNetCookie(CoreWebView2Cookie coreWebView2Cookie);
     }
 
     // ...
