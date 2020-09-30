@@ -94,7 +94,7 @@ namespace Microsoft.Web.WebView2.Core
     // Summary:
     //     This class is an extension of the CoreWebView2CompositionController class to support composition
     //     hosting.
-    public class CoreWebView2CompositionController2 : CoreWebView2CompositionController
+    public class CoreWebView2CompositionController2
     {
         //
         // Summary:
