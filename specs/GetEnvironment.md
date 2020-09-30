@@ -2,7 +2,7 @@
 When the WebView2 team was making design changes to the [WebResourceRequested API](https://github.com/MicrosoftEdge/WebView2Feedback/wiki/WebResourceRequested-API-Review-Spec) for .NET, we realized several caveats. It was not ideal to force all end developers to keep references back to the CoreWebView2Environment from their CoreWebView2 event handlers, and also in the case of WPF, WinForms and WinUI3.0 the UI framework can create the CoreWebView2Environment internally with no easy way for the end developers to obtain a reference to it. Thus providing a reference to the CoreWebView2Environment off of the CoreWebView2 solves both of those problems.
 
 # Description
-Get the `CoreWebView2Environment` used to create the `CoreWebView2` from that `CoreWebView2`'s `CoreWebView2Environment` property
+Get the `CoreWebView2Environment` used to create the `CoreWebView2` from that `CoreWebView2`'s `Environment` property
 
 
 # Examples
