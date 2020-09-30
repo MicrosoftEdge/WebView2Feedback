@@ -51,7 +51,7 @@ ScenarioCookieManagement::ScenarioCookieManagement(AppWindow* appWindow)
 
                     //! [AddOrUpdateCookie]
                     wil::com_ptr<ICoreWebView2Cookie> cookie;
-                    CHECK_FAILURE(m_cookieManager->CreateCookie(
+                    CHECK_FAILURE(m_cookieManager->CreateCookieWithDetails(
                         name.c_str(), value.c_str(), L".bing.com", L"/", &cookie));
                     CHECK_FAILURE(m_cookieManager->AddOrUpdateCookie(cookie.get()));
                     reply = L"{\"CookieAddedOrUpdated\":\"Cookie added or updated successfully.\"}";
@@ -181,7 +181,7 @@ void CookieManagementCmdsCanExecute(object sender, CanExecuteRoutedEventArgs e)
 
 void AddOrUpdateCookieCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    CoreWebView2Cookie cookie = webView.CoreWebView2.CookieManager.CreateCookie("CookieName", "CookieValue", ".bing.com", "/");
+    CoreWebView2Cookie cookie = webView.CoreWebView2.CookieManager.CreateCookieWithDetails("CookieName", "CookieValue", ".bing.com", "/");
     cookie.SameSite = CoreWebView2CookieSameSiteKind.None;
     webView.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
 }
@@ -302,12 +302,18 @@ interface ICoreWebView2CookieManager : IUnknown {
   /// This only creates a cookie object and it is not added to the cookie
   /// manager until you call AddOrUpdateCookie.
   /// See ICoreWebView2Cookie for more details.
-  HRESULT CreateCookie(
+  HRESULT CreateCookieWithDetails(
     [in] LPCWSTR name,
     [in] LPCWSTR value,
     [in] LPCWSTR domain,
     [in] LPCWSTR path,
     [out, retval] ICoreWebView2Cookie** cookie);
+
+  
+  /// Creates a cookie whose params matches those of the specified cookie.
+  HRESULT CreateCookie(
+    [in] ICoreWebView2StagingCookie cookieParam,
+    [out, retval] ICoreWebView2StagingCookie** cookie);
 
   /// Gets a list of cookies matching the specific URI.
   /// You can modify the cookie objects, call
@@ -321,7 +327,7 @@ interface ICoreWebView2CookieManager : IUnknown {
   /// equivalent cookies if they exist.
   HRESULT AddOrUpdateCookie([in] ICoreWebView2Cookie* cookie);
 
-  /// Deletes a cookie whose params matching those of the specified cookie.
+  /// Deletes a cookie whose params matches those of the specified cookie.
   HRESULT DeleteCookie([in] ICoreWebView2StagingCookie* cookie);
 
   /// Deletes browser cookies with matching name and uri or domain/path pair.
@@ -395,7 +401,10 @@ namespace Microsoft.Web.WebView2.Core
         /// One can set other optional properties after cookie creation.
         /// This only creates a cookie object and it is not added to the cookie
         /// manager until you call AddOrUpdateCookie.
-        CoreWebView2Cookie CreateCookie(String name, String value, String Domain, String Path);
+        CoreWebView2Cookie CreateCookieWithDetails(String name, String value, String Domain, String Path);
+
+        /// Creates a cookie whose params matches those of the specified cookie.
+        CoreWebView2Cookie CreateCookie(CoreWebView2 cookie);
 
         /// Gets a list of cookies matching the specific URI.
         /// You can modify the cookie objects, call
@@ -407,7 +416,7 @@ namespace Microsoft.Web.WebView2.Core
         /// equivalent cookies if they exist.
         void AddOrUpdateCookie(CoreWebView2Cookie cookie);
 
-        /// Deletes a cookie whose params matching those of the specified cookie.
+        /// Deletes a cookie whose params matches those of the specified cookie.
         void DeleteCookie(CoreWebView2Cookie cookie);
 
         /// Deletes browser cookies with matching name and uri or domain/path pair.
