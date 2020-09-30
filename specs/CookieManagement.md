@@ -189,9 +189,9 @@ void AddOrUpdateCookieCmdExecuted(object target, ExecutedRoutedEventArgs e)
 async void GetCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
     CoreWebView2CookieList cookieList = await webView.CoreWebView2.CookieManager.GetCookiesAsync("https://www.bing.com");
-    for (uint i = 0; i < cookieList.Count; ++i)
+    for (int i = 0; i < cookieList.Count; ++i)
     {
-        CoreWebView2Cookie cookie = cookieList.GetValueAtIndex(i);
+        CoreWebView2Cookie cookie = cookieList[i];
         System.Net.Cookie dotNetCookie = CoreWebView2Cookie.CoreWebView2ToDotNetCookie(cookie);
         Console.WriteLine(dotNetCookie.ToString());
     }
@@ -312,7 +312,7 @@ interface ICoreWebView2CookieManager : IUnknown {
   
   /// Creates a cookie whose params matches those of the specified cookie.
   HRESULT CreateCookie(
-    [in] ICoreWebView2StagingCookie cookieParam,
+    [in] ICoreWebView2StagingCookie* cookieParam,
     [out, retval] ICoreWebView2StagingCookie** cookie);
 
   /// Gets a list of cookies matching the specific URI.
@@ -433,13 +433,13 @@ namespace Microsoft.Web.WebView2.Core
     }
 
     /// A list of cookie objects.
-    runtimeclass CoreWebView2CookieList
+    runtimeclass CoreWebView2CookieList : Windows.Foundation.Collections.IVector<CoreWebView2Cookie>
     {
         /// The number of cookies contained in the CoreWebView2CookieList.
-        UInt32 Count { get; };
+        uint Size { get; };
 
         /// Get the cookie object at the given index.
-        CoreWebView2Cookie GetValueAtIndex(UInt32 index);
+        CoreWebView2Cookie GetAt(uint index);
     }
 
     /// Provides a set of properties that are used to manage a CoreWebView2Cookie.
