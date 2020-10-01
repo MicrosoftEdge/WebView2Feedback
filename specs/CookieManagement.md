@@ -17,7 +17,7 @@ ScenarioCookieManagement::ScenarioCookieManagement(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
     //! [CookieManager]
-    CHECK_FAILURE(m_webViewstaging->get_CookieManager(&m_cookieManager));
+    CHECK_FAILURE(m_webView->get_CookieManager(&m_cookieManager));
     //! [CookieManager]
 
     CHECK_FAILURE(m_webView->add_WebMessageReceived(
@@ -51,7 +51,7 @@ ScenarioCookieManagement::ScenarioCookieManagement(AppWindow* appWindow)
 
                     //! [AddOrUpdateCookie]
                     wil::com_ptr<ICoreWebView2Cookie> cookie;
-                    CHECK_FAILURE(m_cookieManager->CreateCookieWithDetails(
+                    CHECK_FAILURE(m_cookieManager->CreateCookie(
                         name.c_str(), value.c_str(), L".bing.com", L"/", &cookie));
                     CHECK_FAILURE(m_cookieManager->AddOrUpdateCookie(cookie.get()));
                     reply = L"{\"CookieAddedOrUpdated\":\"Cookie added or updated successfully.\"}";
@@ -174,14 +174,9 @@ void ScenarioCookieManagement::GetCookiesHelper(std::wstring uri)
 ## .NET and WinRT
 
 ```c#
-void CookieManagementCmdsCanExecute(object sender, CanExecuteRoutedEventArgs e)
-{
-    e.CanExecute = webView != null && webView.CoreWebView2 != null && webView.CoreWebView2.CookieManager != null;
-}
-
 void AddOrUpdateCookieCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    CoreWebView2Cookie cookie = webView.CoreWebView2.CookieManager.CreateCookieWithDetails("CookieName", "CookieValue", ".bing.com", "/");
+    CoreWebView2Cookie cookie = webView.CoreWebView2.CookieManager.CreateCookie("CookieName", "CookieValue", ".bing.com", "/");
     cookie.SameSite = CoreWebView2CookieSameSiteKind.None;
     webView.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
 }
@@ -204,7 +199,7 @@ void DeleteAllCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
 
 void DeleteCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    webView.CoreWebView2.CookieManager.DeleteCookies("CookieName", "https://www.bing.com", "", "");
+    webView.CoreWebView2.CookieManager.DeleteCookies("CookieName", "https://www.bing.com");
 }
 ```
 
@@ -217,7 +212,7 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
 
 ```IDL
-interface ICoreWebView2;
+interface ICoreWebView2_2;
 interface ICoreWebView2Cookie;
 interface ICoreWebView2CookieList;
 interface ICoreWebView2CookieManager;
@@ -237,7 +232,9 @@ typedef enum COREWEBVIEW2_COOKIE_SAME_SITE_KIND {
 } COREWEBVIEW2_COOKIE_SAME_SITE_KIND;
 
 [uuid(20113081-93BD-4F2A-86B9-ADF92DEAAF10), object, pointer_default(unique)]
-interface ICoreWebView2 : IUnknown {
+interface ICoreWebView2_2 : ICoreWebView2 {
+  // ...
+
   /// Gets the cookie manager object associated with this ICoreWebView2.
   [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
 }
@@ -309,11 +306,10 @@ interface ICoreWebView2CookieManager : IUnknown {
     [in] LPCWSTR path,
     [out, retval] ICoreWebView2Cookie** cookie);
 
-  
   /// Creates a cookie whose params matches those of the specified cookie.
   HRESULT CreateCookie(
-    [in] ICoreWebView2StagingCookie* cookieParam,
-    [out, retval] ICoreWebView2StagingCookie** cookie);
+    [in] ICoreWebView2Cookie* cookieParam,
+    [out, retval] ICoreWebView2Cookie** cookie);
 
   /// Gets a list of cookies matching the specific URI.
   /// You can modify the cookie objects, call
@@ -328,15 +324,19 @@ interface ICoreWebView2CookieManager : IUnknown {
   HRESULT AddOrUpdateCookie([in] ICoreWebView2Cookie* cookie);
 
   /// Deletes a cookie whose params matches those of the specified cookie.
-  HRESULT DeleteCookie([in] ICoreWebView2StagingCookie* cookie);
+  HRESULT DeleteCookie([in] ICoreWebView2Cookie* cookie);
 
-  /// Deletes browser cookies with matching name and uri or domain/path pair.
+  /// Deletes cookies with matching name and uri.
   /// Cookie name is required.
   /// If uri is specified, deletes all cookies with the given name where domain
   /// and path match provided URI.
+  HRESULT DeleteCookies([in] LPCWSTR name, [in] LPCWSTR uri);
+
+  /// Deletes cookies with matching name and domain/path pair.
+  /// Cookie name is required.
   /// If domain is specified, deletes only cookies with the exact domain.
   /// If path is specified, deletes only cookies with the exact path.
-  HRESULT DeleteCookies([in] LPCWSTR name, [in] LPCWSTR uri, [in] LPCWSTR domain, [in] LPCWSTR path);
+  HRESULT DeleteCookiesWithDomainAndPath([in] LPCWSTR name, [in] LPCWSTR domain, [in] LPCWSTR path);
 
   /// Deletes all cookies under the same profile.
   /// This could affect other WebViews under the same user profile.
@@ -419,13 +419,17 @@ namespace Microsoft.Web.WebView2.Core
         /// Deletes a cookie whose params matches those of the specified cookie.
         void DeleteCookie(CoreWebView2Cookie cookie);
 
-        /// Deletes browser cookies with matching name and uri or domain/path pair.
+        /// Deletes cookies with matching name and uri.
         /// Cookie name is required.
         /// If uri is specified, deletes all cookies with the given name where domain
         /// and path match provided URI.
+        void DeleteCookies(String name, String uri);
+
+        /// Deletes cookies with matching name and domain/path pair.
+        /// Cookie name is required.
         /// If domain is specified, deletes only cookies with the exact domain.
         /// If path is specified, deletes only cookies with the exact path.
-        void DeleteCookies(String name, String uri, String Domain, String Path);
+        void DeleteCookiesWithDomainAndPath(String name, String Domain, String Path);
 
         /// Deletes all cookies under the same profile.
         /// This could affect other WebViews under the same user profile.
@@ -461,7 +465,7 @@ namespace Microsoft.Web.WebView2.Core
 
         /// The expiration date and time for the cookie as the number of seconds since the UNIX epoch.
         /// The default is -1.0, which means cookies are session cookies by default.
-        Double Expires { get; set; };
+        Windows.Foundation.DateTime Expires { get; set; };
 
         /// Whether this cookie is http-only.
         /// True if a page script or other active content cannot access this
@@ -480,9 +484,11 @@ namespace Microsoft.Web.WebView2.Core
         Boolean IsSecure { get; set; };
 
         /// Converts a System.Net.Cookie to a CoreWebView2Cookie.
+        /// This is only for the .NET API, not the WinRT API.
         static CoreWebView2Cookie DotNetToCoreWebView2Cookie(System.Net.Cookie dotNetCookie);
 
         /// Converts a CoreWebView2Cookie to a System.Net.Cookie.
+        /// This is only for the .NET API, not the WinRT API.
         static System.Net.Cookie CoreWebView2ToDotNetCookie(CoreWebView2Cookie coreWebView2Cookie);
     }
 
