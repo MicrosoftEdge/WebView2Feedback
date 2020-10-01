@@ -253,6 +253,8 @@ interface ICoreWebView2Cookie : IUnknown {
 
   /// The domain for which the cookie is valid.
   /// The default is the host that this cookie has been received from.
+  /// Note that, for instance, ".bing.com", "bing.com", and "www.bing.com" are
+  /// considered different domains.
   [propget] HRESULT Domain([out, retval] LPWSTR* domain);
 
   /// The path for which the cookie is valid. The default is "/", which means
@@ -312,6 +314,8 @@ interface ICoreWebView2CookieManager : IUnknown {
     [out, retval] ICoreWebView2Cookie** cookie);
 
   /// Gets a list of cookies matching the specific URI.
+  /// If uri is empty string or null, all cookies under the same profile are
+  /// returned.
   /// You can modify the cookie objects, call
   /// ICoreWebView2CookieManager::AddOrUpdateCookie, and the changes
   /// will be applied to the webview.
@@ -408,6 +412,8 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2Cookie CreateCookie(CoreWebView2 cookie);
 
         /// Gets a list of cookies matching the specific URI.
+        /// If uri is empty string or null, all cookies under the same profile are
+        /// returned.
         /// You can modify the cookie objects, call
         /// CoreWebView2CookieManager.AddOrUpdateCookie, and the changes
         /// will be applied to the webview.
@@ -459,6 +465,8 @@ namespace Microsoft.Web.WebView2.Core
 
         /// The domain for which the cookie is valid.
         /// The default is the host that this cookie has been received from.
+        /// Note that, for instance, ".bing.com", "bing.com", and "www.bing.com" are
+        /// considered different domains.
         String Domain { get; };
 
         /// The path for which the cookie is valid. The default is "/", which means
