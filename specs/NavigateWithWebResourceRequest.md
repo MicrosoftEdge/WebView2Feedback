@@ -37,6 +37,7 @@ We also propose adding a CreateWebResourceRequest API to [CoreWebView2Environmen
 
     MemoryStream postDataStream = new MemoryStream(postData.Length);
     postDataStream.Write(postData, 0, postData.Length);
+    postDataStream.Seek(0, SeekOrigin.Begin);
     CoreWebView2WebResourceRequest webResourceRequest = 
       environment.CreateWebResourceRequest(
         "https://www.w3schools.com/action_page.php",
