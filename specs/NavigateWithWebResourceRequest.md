@@ -35,17 +35,16 @@ We also propose adding a CreateWebResourceRequest API to [CoreWebView2Environmen
     UTF8Encoding utfEncoding = new UTF8Encoding();
     byte[] postData = utfEncoding.GetBytes("input=Hello");
 
-    using (MemoryStream postDataStream = new MemoryStream(postData.Length))
-    {
-      postDataStream.Write(postData, 0, postData.Length);
-      CoreWebView2WebResourceRequest webResourceRequest = 
-        environment.CreateWebResourceRequest(
-          "https://www.w3schools.com/action_page.php",
-          "POST",
-          postDataStream,
-          "Content-Type: application/x-www-form-urlencoded");
-      webView.CoreWebView2.NavigateWithWebResourceRequest(webResourceRequest);
-    }
+    MemoryStream postDataStream = new MemoryStream(postData.Length);
+    postDataStream.Write(postData, 0, postData.Length);
+    CoreWebView2WebResourceRequest webResourceRequest = 
+      environment.CreateWebResourceRequest(
+        "https://www.w3schools.com/action_page.php",
+        "POST",
+        postDataStream,
+        "Content-Type: application/x-www-form-urlencoded");
+    webView.CoreWebView2.NavigateWithWebResourceRequest(webResourceRequest);
+
 ```
 
 # Remarks
