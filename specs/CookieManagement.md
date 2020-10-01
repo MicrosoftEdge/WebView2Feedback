@@ -255,8 +255,8 @@ interface ICoreWebView2Cookie : IUnknown {
   /// The default is the host that this cookie has been received from.
   [propget] HRESULT Domain([out, retval] LPWSTR* domain);
 
-  /// The path for which the cookie is valid. If not specified, this cookie
-  /// will be sent to all pages on the Domain.
+  /// The path for which the cookie is valid. The default is "/", which means
+  /// this cookie will be sent to all pages on the Domain.
   [propget] HRESULT Path([out, retval] LPWSTR* path);
 
   /// The expiration date and time for the cookie as the number of seconds since the UNIX epoch.
@@ -320,10 +320,11 @@ interface ICoreWebView2CookieManager : IUnknown {
     [in] ICoreWebView2GetCookiesCompletedHandler* handler);
 
   /// Adds or updates a cookie with the given cookie data; may overwrite
-  /// equivalent cookies if they exist.
+  /// cookies with matching name, domain, and path if they exist.
   HRESULT AddOrUpdateCookie([in] ICoreWebView2Cookie* cookie);
 
-  /// Deletes a cookie whose params matches those of the specified cookie.
+  /// Deletes a cookie whose name and domain/path pair
+  /// match those of the specified cookie.
   HRESULT DeleteCookie([in] ICoreWebView2Cookie* cookie);
 
   /// Deletes cookies with matching name and uri.
@@ -410,13 +411,14 @@ namespace Microsoft.Web.WebView2.Core
         /// You can modify the cookie objects, call
         /// CoreWebView2CookieManager.AddOrUpdateCookie, and the changes
         /// will be applied to the webview.
-        Windows.Foundation.IAsyncOperation<CoreWebView2CookieList> GetCookiesAsync(String uri);
+        Windows.Foundation.IAsyncOperation<IVectorView> GetCookiesAsync(String uri);
 
         /// Adds or updates a cookie with the given cookie data; may overwrite
-        /// equivalent cookies if they exist.
+        /// cookies with matching name, domain, and path if they exist.
         void AddOrUpdateCookie(CoreWebView2Cookie cookie);
 
-        /// Deletes a cookie whose params matches those of the specified cookie.
+        /// Deletes a cookie whose name and domain/path pair
+        /// match those of the specified cookie.
         void DeleteCookie(CoreWebView2Cookie cookie);
 
         /// Deletes cookies with matching name and uri.
@@ -459,8 +461,8 @@ namespace Microsoft.Web.WebView2.Core
         /// The default is the host that this cookie has been received from.
         String Domain { get; };
 
-        /// The path for which the cookie is valid. If not specified, this cookie
-        /// will be sent to all pages on the Domain.
+        /// The path for which the cookie is valid. The default is "/", which means
+        /// this cookie will be sent to all pages on the Domain.
         String Path { get; };
 
         /// The expiration date and time for the cookie as the number of seconds since the UNIX epoch.
