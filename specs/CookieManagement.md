@@ -83,7 +83,7 @@ static std::wstring CookieToJsonString(ICoreWebView2Cookie* cookie)
     CHECK_FAILURE(cookie->get_Path(&path));
     double expires;
     CHECK_FAILURE(cookie->get_Expires(&expires));
-    BOOL httpOnly;
+    BOOL httpOnly = FALSE;
     CHECK_FAILURE(cookie->get_IsHttpOnly(&httpOnly));
     COREWEBVIEW2_COOKIE_SAME_SITE_KIND same_site;
     std::wstring same_site_as_string;
@@ -100,8 +100,10 @@ static std::wstring CookieToJsonString(ICoreWebView2Cookie* cookie)
         same_site_as_string = L"Strict";
         break;
     }
-    BOOL secure;
+    BOOL secure = FALSE;
     CHECK_FAILURE(cookie->get_IsSecure(&secure));
+    BOOL isSession = FALSE;
+    CHECK_FAILURE(cookie->get_IsSession(&isSession));
 
     std::wstring result = L"{";
     result += L"\"Name\": " + EncodeQuote(name.get()) + L", " + L"\"Value\": " +
@@ -109,7 +111,7 @@ static std::wstring CookieToJsonString(ICoreWebView2Cookie* cookie)
               L", " + L"\"Path\": " + EncodeQuote(path.get()) + L", " + L"\"HttpOnly\": " +
               BoolToString(httpOnly) + L", " + L"\"Secure\": " + BoolToString(secure) + L", " +
               L"\"SameSite\": " + EncodeQuote(same_site_as_string) + L", " + L"\"Expires\": ";
-    if (expires == -1)
+    if (!!isSession)
     {
         result += L"This is a session cookie.";
     }
@@ -183,12 +185,12 @@ void AddOrUpdateCookieCmdExecuted(object target, ExecutedRoutedEventArgs e)
 
 async void GetCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    CoreWebView2CookieList cookieList = await webView.CoreWebView2.CookieManager.GetCookiesAsync("https://www.bing.com");
-    for (int i = 0; i < cookieList.Count; ++i)
+    IList<CoreWebView2Cookie> cookieList = await webView.CoreWebView2.CookieManager.GetCookiesAsync("https://www.bing.com");
+    for (uint i = 0; i < cookieList.Count; ++i)
     {
         CoreWebView2Cookie cookie = cookieList[i];
-        System.Net.Cookie dotNetCookie = CoreWebView2Cookie.CoreWebView2ToDotNetCookie(cookie);
-        Console.WriteLine(dotNetCookie.ToString());
+        Cookie systemNetCookie = cookie.ToSystemNetCookie();
+        Console.WriteLine(systemNetCookie.ToString());
     }
 }
 
@@ -271,9 +273,9 @@ interface ICoreWebView2Cookie : IUnknown {
   /// Whether this cookie is http-only.
   /// True if a page script or other active content cannot access this
   /// cookie. The default is false.
-  [propget] HRESULT IsHttpOnly([out, retval] BOOL* httpOnly);
-  /// Set the HttpOnly property.
-  [propput] HRESULT IsHttpOnly([in] BOOL httpOnly);
+  [propget] HRESULT IsHttpOnly([out, retval] BOOL* isHttpOnly);
+  /// Set the IsHttpOnly property.
+  [propput] HRESULT IsHttpOnly([in] BOOL isHttpOnly);
 
   /// SameSite status of the cookie which represents the enforcement mode of the cookie.
   /// The default is COREWEBVIEW2_COOKIE_SAME_SITE_KIND_LAX.
@@ -286,9 +288,12 @@ interface ICoreWebView2Cookie : IUnknown {
   /// The default is false.
   /// Note that cookie that requests COREWEBVIEW2_COOKIE_SAME_SITE_KIND_NONE but
   /// is not marked Secure will be rejected.
-  [propget] HRESULT IsSecure([out, retval] BOOL* secure);
-  /// Set the Secure property.
-  [propput] HRESULT IsSecure([in] BOOL secure);
+  [propget] HRESULT IsSecure([out, retval] BOOL* isSecure);
+  /// Set the IsSecure property.
+  [propput] HRESULT IsSecure([in] BOOL isSecure);
+
+  /// Whether this is a session cookie. The default is false.
+  [propget] HRESULT IsSession([out, retval] BOOL* isSession);
 }
 
 /// Creates, adds or updates, gets, or or view the cookies. The changes would
@@ -444,16 +449,6 @@ namespace Microsoft.Web.WebView2.Core
         void DeleteAllCookies();
     }
 
-    /// A list of cookie objects.
-    runtimeclass CoreWebView2CookieList : Windows.Foundation.Collections.IVector<CoreWebView2Cookie>
-    {
-        /// The number of cookies contained in the CoreWebView2CookieList.
-        uint Size { get; };
-
-        /// Get the cookie object at the given index.
-        CoreWebView2Cookie GetAt(uint index);
-    }
-
     /// Provides a set of properties that are used to manage a CoreWebView2Cookie.
     runtimeclass CoreWebView2Cookie
     {
@@ -493,13 +488,16 @@ namespace Microsoft.Web.WebView2.Core
         /// is not marked Secure will be rejected.
         Boolean IsSecure { get; set; };
 
+        /// Whether this is a session cookie. The default is false.
+        Boolean IsSession { get; };
+
         /// Converts a System.Net.Cookie to a CoreWebView2Cookie.
         /// This is only for the .NET API, not the WinRT API.
-        static CoreWebView2Cookie DotNetToCoreWebView2Cookie(System.Net.Cookie dotNetCookie);
+        static CoreWebView2Cookie FromSystemNetCookie(System.Net.Cookie dotNetCookie);
 
         /// Converts a CoreWebView2Cookie to a System.Net.Cookie.
         /// This is only for the .NET API, not the WinRT API.
-        static System.Net.Cookie CoreWebView2ToDotNetCookie(CoreWebView2Cookie coreWebView2Cookie);
+        System.Net.Cookie ToSystemNetCookie(CoreWebView2Cookie coreWebView2Cookie);
     }
 
     // ...
