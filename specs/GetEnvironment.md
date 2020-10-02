@@ -61,7 +61,7 @@ void SettingsComponent::SetBlockImages(bool blockImages)
 ## .NET and WinRT
 
 ```c#
-    private void CoreWebView2_WebResourceRequested(object sender, CoreWebView2WebResourceRequestedEventArgs e)
+    private void CoreWebView2_WebResourceRequested(CoreWebView2 sender, CoreWebView2WebResourceRequestedEventArgs e)
     {
         // Create response object for custom response and set it
         var environment = webView2Control.CoreWebView2.Environment;
