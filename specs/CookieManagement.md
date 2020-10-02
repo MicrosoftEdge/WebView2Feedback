@@ -493,9 +493,9 @@ namespace Microsoft.Web.WebView2.Core
 
         /// Converts a System.Net.Cookie to a CoreWebView2Cookie.
         /// This is only for the .NET API, not the WinRT API.
-        static CoreWebView2Cookie FromSystemNetCookie(System.Net.Cookie dotNetCookie);
+        static CoreWebView2Cookie FromSystemNetCookie(System.Net.Cookie systemNetCookie);
 
-        /// Converts a CoreWebView2Cookie to a System.Net.Cookie.
+        /// Converts this to a System.Net.Cookie.
         /// This is only for the .NET API, not the WinRT API.
         System.Net.Cookie ToSystemNetCookie(CoreWebView2Cookie coreWebView2Cookie);
     }
