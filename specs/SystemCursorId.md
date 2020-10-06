@@ -4,9 +4,9 @@ When an app is using composition hosting to host WebView, the current cursor
 image cannot be determined easily by the hosting application. For example, if
 the cursor over the WebView is also over a textbox inside of the WebView, the
 cursor should usually be IDC_IBEAM. And by default, the cursor is IDC_ARROW.
-Currently, we return the what the cursor should be as an HCURSOR object (After
-calling LoadCursor on those IDC values). The hosting application can then use
-the HCURSOR object to change the current cursor to the correct image.
+Currently, the `ICoreWebView2CompositionController.Cursor` property returns what
+the cursor should be as an HCURSOR object, which the hosting application can
+then use the to change the current cursor to the correct image.
 
 However, Office already has a well established way of using cursors internally
 by using IDC_* values and there is no easy way to convert the HCURSOR object we
@@ -35,25 +35,28 @@ where there may be custom cursors.
 
 ```cpp
 CHECK_FAILURE(m_compositionController->add_CursorChanged(
-    Callback<ICoreWebView2ExperimentalCursorChangedEventHandler>(
-        [this](ICoreWebView2ExperimentalCompositionController* sender, IUnknown* args)
+    Callback<ICoreWebView2CursorChangedEventHandler>(
+        [this](ICoreWebView2CompositionController* sender, IUnknown* args)
             -> HRESULT {
             HRESULT hr = S_OK;
             HCURSOR cursor;
             UINT32 cursorId;
-            wil::com_ptr<ICoreWebView2ExperimentalCompositionController2> compositionController2 =
-                m_controller.query<ICoreWebView2ExperimentalCompositionController2>();
+            wil::com_ptr<ICoreWebView2CompositionController2> compositionController2 =
+                sender.query<ICoreWebView2CompositionController2>();
             CHECK_FAILURE(compositionController2->get_SystemCursorId(&cursorId));
-            cursor = ::LoadCursor(nullptr, MAKEINTRESOURCE(cursorId));
-            if (cursor == nullptr)
+            if (cursorId != 0)
             {
-                hr = HRESULT_FROM_WIN32(GetLastError());
-            }
-
-            if (SUCCEEDED(hr))
-            {
-                SetClassLongPtr(
-                    m_appWindow->GetMainWindow() /* HWND */, GCLP_HCURSOR, (LONG_PTR)cursor);
+                cursor = ::LoadCursor(nullptr, MAKEINTRESOURCE(cursorId));
+                if (cursor == nullptr)
+                {
+                    hr = HRESULT_FROM_WIN32(GetLastError());
+                }
+                
+                if (SUCCEEDED(hr))
+                {
+                    SetClassLongPtr(
+                        m_appWindow->GetMainWindow() /* HWND */, GCLP_HCURSOR, (LONG_PTR)cursor);
+                }
             }
             return hr;
         })
@@ -82,10 +85,13 @@ interface ICoreWebView2CompositionController2 : ICoreWebView2CompositionControll
   /// Otherwise, if custom CSS cursors are being used, this will return 0.
   /// To actually use systemCursorId in LoadCursor or LoadImage,
   /// MAKEINTRESOURCE must be called on it first.
+  /// If possible, use the Cursor property rather than the SystemCursorId
+  /// property because the Cursor property can express custom CSS cursors.
   ///
   /// \snippet ViewComponent.cpp SystemCursorId
   [propget] HRESULT SystemCursorId([out, retval] UINT32* systemCursorId);
 }
+```
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
@@ -110,9 +116,12 @@ namespace Microsoft.Web.WebView2.Core
         //     Otherwise, if custom CSS cursors are being used, this will return 0.
         //     To create a Cursor object, create an IntPtr from the returned uint to
         //     pass into the constructor
+        //     If possible, use the Cursor property rather than the SystemCursorId
+        //     property because the Cursor property can express custom CSS cursors.
         public Uint32 SystemCursorId { get; }
     }
 }
+```
 
 # Appendix
 
