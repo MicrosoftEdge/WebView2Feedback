@@ -28,8 +28,8 @@ event handler running.
 
 When the event is raised, the WebView will pass a
 `WebResourceResponseReceivedEventArgs`, which lets the app view the request and
-response. To get the response content, call `TryGetContent` on the
-`CoreWebView2WebResourceResponseView` object from the event args.
+response. To get the response content, call `GetContent`/`GetContentAsync` on
+the `CoreWebView2WebResourceResponseView` object from the event args.
 
 # Examples
 The following code snippets demonstrate how the `WebResourceResponseReceived`
@@ -50,14 +50,18 @@ m_webview->add_WebResourceResponseReceived(
             wil::com_ptr<ICoreWebView2WebResourceResponseView> webResourceResponse;
             CHECK_FAILURE(args->get_Response(&webResourceResponse));
             
-            // Get body content for the response. Redirect responses will
-            // return an error HRESULT as their body (if any) is ignored.
-            HRESULT getContentCallResult = webResourceResponse->TryGetContent(
+            // Get body content for the response
+            webResourceResponse->GetContent(
                 Callback<
-                    ICoreWebView2WebResourceResponseViewTryGetContentCompletedHandler>(
+                    ICoreWebView2WebResourceResponseViewGetContentCompletedHandler>(
                     [this, webResourceRequest, webResourceResponse](HRESULT result, IStream* content) {
-                        // The response might not have content, or it might have failed loading.
-                        bool gotContent = SUCCEEDED(result);
+                        // The response content might have failed to load.
+                        bool getContentSucceeded = SUCCEEDED(result);
+
+                        // The stream will be null if no content was found for the response.
+                        if (content) {
+                            DoSomethingWithContent(content);
+                        }
                         
                         std::wstring message =
                             L"{ \"kind\": \"event\", \"name\": "
@@ -111,13 +115,16 @@ private async void WebView_WebResourceResponseReceived(CoreWebView2 sender, Core
         // Get response body
         try
         {
-            System.IO.Stream content = await e.Response.TryGetContentAsync();
-            DoSomethingWithResponseContent(content);
+            System.IO.Stream content = await e.Response.GetContentAsync();
+            // Null will be returned if no content was found for the response.
+            if (content)
+            {
+                DoSomethingWithResponseContent(content);
+            }
         }
         catch (COMException ex)
         {
-            // A COMException will be thrown if no content was found for the
-            // response, or if it failed to load.
+            // A COMException will be thrown if the content failed to load.
         }
     }
 }
@@ -125,14 +132,10 @@ private async void WebView_WebResourceResponseReceived(CoreWebView2 sender, Core
 
 
 # Remarks
-Calling `ICoreWebView2WebResourceResponseView::TryGetContent` will return an
-error HRESULT for redirect responses, as their content (if any) is ignored.
-`ICoreWebView2WebResourceResponseViewTryGetContentCompletedHandler` will be
-invoked with a failure errorCode if no content was found for the response, or if
-the content failed to load.
-Calling `CoreWebView2WebResourceResponseView.TryGetContentAsync` will throw a
-`COMException` if the response has no body. As noted, the body for redirect
-responses is ignored.
+`ICoreWebView2WebResourceResponseViewGetContentCompletedHandler` will be
+invoked with a failure errorCode if the content failed to load.
+Calling `CoreWebView2WebResourceResponseView.GetContentAsync` will throw a
+`COMException` if the content failed to load.
 
 
 # API Notes
@@ -209,25 +212,24 @@ interface ICoreWebView2WebResourceResponseView : IUnknown
   [propget] HRESULT ReasonPhrase([out, retval] LPWSTR* reasonPhrase);
 
   /// Get the response content asynchronously. The handler will receive the
-  /// the response content stream. Calling this method will return an error
-  /// HRESULT for redirect responses, as their content (if any) is ignored.
+  /// response content stream.
   /// If this method is being called again before a first call has completed,
   /// the handler will be invoked at the same time the handlers from prior calls
   /// are invoked.
   /// If this method is being called after a first call has completed, the
   /// handler will be invoked immediately.
-  HRESULT TryGetContent(
-      [in] ICoreWebView2WebResourceResponseViewTryGetContentCompletedHandler* handler);
+  HRESULT GetContent(
+      [in] ICoreWebView2WebResourceResponseViewGetContentCompletedHandler* handler);
 }
 
 /// The caller implements this interface to receive the result of the
-/// ICoreWebView2WebResourceResponseView::TryGetContent method.
-interface ICoreWebView2WebResourceResponseViewTryGetContentCompletedHandler : IUnknown
+/// ICoreWebView2WebResourceResponseView::GetContent method.
+interface ICoreWebView2WebResourceResponseViewGetContentCompletedHandler : IUnknown
 {
   /// Called to provide the implementer with the completion status and result of
-  /// the corresponding asynchronous method call. A failure errorCode indicates
-  /// no content was found for the response, or the content failed to load. Null
-  /// means empty content data.
+  /// the corresponding asynchronous method call. A failure errorCode will be
+  /// passed if the content failed to load. Null means no content was found.
+  /// Note content (if any) for redirect responses is ignored.
   HRESULT Invoke([in] HRESULT errorCode, [in] IStream* content);
 }
 
@@ -281,14 +283,14 @@ namespace Microsoft.Web.WebView2.Core
         /// The HTTP response reason phrase.
         String ReasonPhrase { get; };
         /// Get the response content stream asynchronously.
-        /// This method will throw a COM exception if no content was found for the
-        /// response, or the content failed to load. Note the content (if any) for
-        /// redirect responses is ignored. A null stream means empty data content.
+        /// This method will throw a COM exception if the content failed to load.
+        /// A null stream means no content was found. Note content (if any) for
+        /// redirect responses is ignored.
         /// If this method is being called again before a first call has completed,
         /// it will complete at the same time all prior calls do.
         /// If this method is being called after a first call has completed, it will
         /// return immediately (asynchronously).
-        Windows.Foundation.IAsyncOperation<Windows.Storage.Streams.IRandomAccessStream> TryGetContentAsync();
+        Windows.Foundation.IAsyncOperation<Windows.Storage.Streams.IRandomAccessStream> GetContentAsync();
     }
 }
 ```
