@@ -34,31 +34,42 @@ where there may be custom cursors.
 # Examples
 
 ```cpp
+// Handler for WM_SETCURSOR window message.
+bool OnSetCursor()
+{
+    POINT point;
+    if (m_compositionController && GetCursorPos(&point))
+    {
+        // Calculate if the point lies in the WebView visual for composition hosting
+        // as it may not cover the whole HWND it's under.
+        if (PtInRect(&m_webViewBounds, point))
+        {
+            HCURSOR cursor;
+            UINT32 cursorId;
+            wil::com_ptr<ICoreWebView2CompositionController2> compositionController2 =
+                m_compositionController.query<ICoreWebView2CompositionController2>();
+            CHECK_FAILURE(compositionController2->get_SystemCursorId(&cursorId));
+            cursor = ::LoadCursor(nullptr, MAKEINTRESOURCE(cursorId));
+
+            if (cursor)
+            {
+                ::SetCursor(cursor);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 CHECK_FAILURE(m_compositionController->add_CursorChanged(
     Callback<ICoreWebView2CursorChangedEventHandler>(
         [this](ICoreWebView2CompositionController* sender, IUnknown* args)
             -> HRESULT {
-            HRESULT hr = S_OK;
-            HCURSOR cursor;
-            UINT32 cursorId;
-            wil::com_ptr<ICoreWebView2CompositionController2> compositionController2 =
-                sender.query<ICoreWebView2CompositionController2>();
-            CHECK_FAILURE(compositionController2->get_SystemCursorId(&cursorId));
-            if (cursorId != 0)
-            {
-                cursor = ::LoadCursor(nullptr, MAKEINTRESOURCE(cursorId));
-                if (cursor == nullptr)
-                {
-                    hr = HRESULT_FROM_WIN32(GetLastError());
-                }
-                
-                if (SUCCEEDED(hr))
-                {
-                    SetClassLongPtr(
-                        m_appWindow->GetMainWindow() /* HWND */, GCLP_HCURSOR, (LONG_PTR)cursor);
-                }
-            }
-            return hr;
+            // No need to do hit testing here as the WM_SETCURSOR handler will have
+            // to calculate if the point is within the WebView anyways.
+            SendMessage(m_appWindow->GetMainWindow(), WM_SETCURSOR,
+                (WPARAM)m_appWindow->GetMainWindow(), MAKELPARAM(HTCLIENT, WM_MOUSEMOVE));
+            return S_OK;
         })
         .Get(),
     &m_cursorChangedToken));
