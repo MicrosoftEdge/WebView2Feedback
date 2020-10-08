@@ -27,11 +27,11 @@ webView.Navigate("https://app-file.invalid/index.html");
 # Remarks
 Choose a virtual host name that will not be used by real sites.  
 If you own a domain (like example.com), an option is to use a sub domain reserved for the app (like my-app.example.com).  
-If you don't own a domain, [RFC 2606](https://tools.ietf.org/html/rfc2606#section-2) has reserved several top level domain that would
+If you don't own a domain, [RFC 6761](https://tools.ietf.org/html/rfc6761) has reserved several special-use domain names that would
 not be used by real sites, like .example, .test, and .invalid.
 
 Give only minimal cross orign access neccessary to run the app. If there is no need to access local resources
-from other sites, use COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY.
+from other origins, use COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY.
 
 # API Notes
 See [API Details](#api-details) section below for API reference.
@@ -39,7 +39,11 @@ See [API Details](#api-details) section below for API reference.
 # API Details
 
 ## Win32 C++
-
+The follow table illustrates the host resource cross origin access according to access context and `COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND`.  
+Cross Origin Access Context | DENY | ALLOW | DENY_CORS
+--- | --- | --- | ---
+From DOM like src of img or script element| Deny | Allow | Allow
+From Script like Fetch or XMLHttpRequest| Deny | Allow | Deny
 ```IDL
 /// Kind of cross origin resource access allowed for host resources during download.
 /// Note that other normal access checks like same origin DOM access check and [Content
@@ -68,6 +72,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   /// Add a host name mapping for host resources in a folder.
   /// After adding the mapping, the app can then use http or https urls with the specified hostName as host name
   /// of the urls to access files in the local folder specified by folderPath.
+  /// This applies to top level document and iframe navigations as well as sub resource references from a document.
   /// accessKind specifies the kind of access control to the host resources from other sites.
   /// Relative folderPath is supported and interpreted as relative to the exe path of the app.
   /// For example, after calling AddVirtualHostNameToFolderMapping(L"app-file.invalid", L".",
