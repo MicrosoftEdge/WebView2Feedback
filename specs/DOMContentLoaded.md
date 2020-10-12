@@ -14,16 +14,18 @@ ScenarioDOMContentLoaded::ScenarioDOMContentLoaded(AppWindow* appWindow)
 {
     //! [DOMContentLoaded]
     // Register a handler for the DOMContentLoaded event.
-    // Check whether the DOM content loaded
+    // Event is raised when the DOM content is loaded
     CHECK_FAILURE(m_webView->add_DOMContentLoaded(
         Callback<ICoreWebView2DOMContentLoadedEventHandler>(
             [this](ICoreWebView2* sender, ICoreWebView2DOMContentLoadedEventArgs* args)
                 -> HRESULT {
                 m_webView->ExecuteScript(
-                    L"let "
-                    L"content=document.createElement(\"h2\");content.style.color='blue';"
-                    L"content.textContent=\"This text was added by the host "
-                    L"app\";document.body.appendChild(content);",
+                    LR"~(
+                    let content=document.createElement("h2");
+                    content.style.color='blue';
+                    content.textContent="This text was added by the host app";
+                    document.body.appendChild(content);
+                    )~",
                     Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
                         [](HRESULT error, PCWSTR result) -> HRESULT { return S_OK; })
                         .Get());
@@ -38,9 +40,9 @@ ScenarioDOMContentLoaded::ScenarioDOMContentLoaded(AppWindow* appWindow)
 ```
 webView.CoreWebView2.DOMContentLoaded += (object sender, CoreWebView2DOMContentLoadedEventArgs arg) =>
 {
-    webView.ExecuteScriptAsync("let "
-                              "content=document.createElement(\"h2\");content.style.color="
-                              "'blue';content.textContent= \"This text was added by the "
+    webView.ExecuteScriptAsync("let " +
+                              "content=document.createElement(\"h2\");content.style.color=" +
+                              "'blue';content.textContent= \"This text was added by the " +
                               "host app\";document.body.appendChild(content);");
 };
 webView.NavigateToString(@"<!DOCTYPE html><h1>DOMContentLoaded sample page</h1><h2>The content below will be added after DOM content is loaded </h2>");
@@ -62,7 +64,7 @@ interface ICoreWebView2DOMContentLoadedEventHandler;
 [uuid(9810c82b-8483-4f1c-b2f4-6244f1010c05), object, pointer_default(unique)]
 interface ICoreWebView2_2 : ICoreWebView2 {
   /// Add an event handler for the DOMContentLoaded event.
-  /// DOMContentLoaded fires when the initial html document has been parsed.
+  /// DOMContentLoaded is raised when the initial html document has been parsed.
   /// This aligns with the the document's DOMContentLoaded event in html
   ///
   /// \snippet ScenarioDOMContentLoaded-Staging.cpp
