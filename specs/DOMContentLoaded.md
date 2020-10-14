@@ -40,7 +40,7 @@ ScenarioDOMContentLoaded::ScenarioDOMContentLoaded(AppWindow* appWindow)
 ```
 webView.CoreWebView2.DOMContentLoaded += (object sender, CoreWebView2DOMContentLoadedEventArgs arg) =>
 {
-    webView.ExecuteScriptAsync("let " +
+    _ = webView.ExecuteScriptAsync("let " +
                               "content=document.createElement(\"h2\");content.style.color=" +
                               "'blue';content.textContent= \"This text was added by the " +
                               "host app\";document.body.appendChild(content);");
@@ -79,8 +79,8 @@ interface ICoreWebView2_2 : ICoreWebView2 {
 /// Event args for the DOMContentLoaded event.
 [uuid(E8BA4206-D6F8-42F1-9A6D-43C8A99C1F39), object, pointer_default(unique)]
 interface ICoreWebView2DOMContentLoadedEventArgs : IUnknown {
-  /// The ID of the navigation.
-  [propget] HRESULT NavigationId([out, retval] UINT64* navigation_id);
+  /// The ID of the navigation which corresponds to other navigation ID properties on other navigation events.
+  [propget] HRESULT NavigationId([out, retval] UINT64* navigationId);
 }
 
 /// The caller implements this interface to receive the DOMContentLoaded
