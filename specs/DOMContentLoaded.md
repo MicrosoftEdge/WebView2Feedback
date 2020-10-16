@@ -9,8 +9,8 @@ We propose adding DOMContentLoaded to CoreWebView2. This allows the developer to
 # Examples
 ## Win32 C++
 ```
-ScenarioDOMContentLoaded::ScenarioDOMContentLoaded(AppWindow* appWindow)
-    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
+ScenarioDOMContentLoaded::ScenarioDOMContentLoaded(SampleAppWindow* sampleAppWindow)
+    : m_sampleAppWindow(sampleAppWindow), m_webView(sampleAppWindow->GetWebView())
 {
     //! [DOMContentLoaded]
     // Register a handler for the DOMContentLoaded event.
