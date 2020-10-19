@@ -33,7 +33,7 @@ for `book1.example` host name so that it can be accessed using normal http/https
 Windows.Storage.StorageFolder localFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
 string book1Path = localFolder.Path + @"\book1";
 webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-    new Windows.Networking.HostName("book1.example"),
+    "book1.example",
     book1Path, CoreWebView2HostResourceAccessKind.DenyCors);
 webView.Source = new Uri("https://book1.example/index.html");
 ```
@@ -170,7 +170,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
 }
 ```
 
-## .Net
+## .Net WinRT
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
@@ -186,27 +186,6 @@ namespace Microsoft.Web.WebView2.Core
     {
         // There are other API in this interface that we are not showing 
         public void SetVirtualHostNameToFolderMapping(string hostName, string folderPath, CoreWebView2HostResourceAccessKind accessKind);
-        public void ClearVirtualHostNameToFolderMapping(string hostName);
-    }
-}
-```
-
-## WinRT
-
-```c#
-namespace Microsoft.Web.WebView2.Core
-{
-    public enum CoreWebView2HostResourceAccessKind
-    {
-        Deny = 0,
-        Allow = 1,
-        DenyCors = 2
-    }
-
-    public partial class CoreWebView2
-    {
-        // There are other API in this interface that we are not showing 
-        public void SetVirtualHostNameToFolderMapping(Windows.Networking.HostName hostName, string folderPath, CoreWebView2HostResourceAccessKind accessKind);
         public void ClearVirtualHostNameToFolderMapping(string hostName);
     }
 }
