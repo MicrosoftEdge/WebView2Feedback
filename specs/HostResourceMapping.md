@@ -7,52 +7,61 @@ To access local files in WebView2, define a virtual host name to local folder ma
 and then refer to local files under the folder with a normal http/https url with the virtual host name.
 
 # Examples
-Suppose the app has index.html file in `asset` sub folder in the folder where its exe file is. The following code snippet demonstrates how to define a mapping
-for `appassets.webview2.microsoft.com` host name so that it can be accessed using normal http/https url like https://appassets.webview2.microsoft.com/index.html.
+Suppose the app has index.html file in `asset` subfolder located on disk under the same path as the app's executable file.
+The following code snippet demonstrates how to define a mapping for `appassets.example` host name so that it can be accessed
+using normal http/https url like https://appassets.example/index.html.
 
 ## Win32 C++
 ```cpp
 webview2->SetVirtualHostNameToFolderMapping(
-    L"appassets.webview2.microsoft.com", L"assets", COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS);
-webview2->Navigate(L"https://appassets.webview2.microsoft.com/index.html");
+    L"appassets.example", L"assets", COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY_CORS);
+webview2->Navigate(L"https://appassets.example/index.html");
 ```
 
 ## .Net
 ```c#
 webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-    "appassets.webview2.microsoft.com",
+    "appassets.example",
     "assets", CoreWebView2HostResourceAccessKind.DenyCors);
-webView.Source = new Uri("https://appassets.webview2.microsoft.com/index.html");
+webView.Source = new Uri("https://appassets.example/index.html");
 ```
 
 ## WinRT
-Suppose the app has index.html file in a `book1` sub folder of the app's LocalFolder folder. The following code snippet demonstrates how to define a mapping
-for `book1.appassets.webview2.microsoft.com` host name so that it can be accessed using normal http/https url like https://book1.appassets.webview2.microsoft.com/index.html.
+Suppose the app has index.html file in a `book1` subfolder under the app's LocalFolder folder. The following code snippet demonstrates how to define a mapping
+for `book1.example` host name so that it can be accessed using normal http/https url like https://book1.example/index.html.
 ```c#
 Windows.Storage.StorageFolder localFolder = Windows.Storage.ApplicationData.Current.LocalFolder;
-string book1_path = localFolder.Path + @"\book1";
+string book1Path = localFolder.Path + @"\book1";
 webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-    new Windows.Networking.HostName("book1.appassets.webview2.microsoft.com"),
-    book1_path, CoreWebView2HostResourceAccessKind.DenyCors);
-webView.Source = new Uri("https://book1.appassets.webview2.microsoft.com/index.html");
+    new Windows.Networking.HostName("book1.example"),
+    book1Path, CoreWebView2HostResourceAccessKind.DenyCors);
+webView.Source = new Uri("https://book1.example/index.html");
 ```
 
 
 # Remarks
-Choose a virtual host name that will not be used by real sites.  
-If you own a domain (like example.com), an option is to use a sub domain reserved for the app (like my-app.example.com).  
-We have also reserved a special domain appassets.webview2.microsoft.com for this usage.
-
+You should typically choose virtual host names that are never used by real sites.
+If you own a domain such as example.com, another option is to use a subdomain reserved for the app (like my-app.example.com).   
+[RFC 6761](https://tools.ietf.org/html/rfc6761) has reserved several special-use domain
+names that are guaranteed to not be used by real sites (for example, .example, .test, and
+.invalid.)   
+Apps should use distinct domain names when mapping folder from different sources that
+should be isolated from each other. For instance, the app might use app-file.example for
+files that ship as part of the app, and book1.example might be used for files containing
+books from a less trusted source that were previously downloaded and saved to the disk by
+the app.   
 The host name used in the APIs is canonicalized using Chromium's host name parsing logic
 before being used internally.   
-All host names that are canonicalized to the same string are considered identical.   
-For example, `EXAMPLE.COM` and `example.com` are considered the same host name.
-An international host name and its puny coded host name are considered the same host name.   
-There is no DSN resolution for host name and trailing '.' is not normalized as part of canonicalization.
-Therefore `example.com` and `example.com.` are treated as different host names. So are `virtual-host-name` and `virtual-host-name.example.com` when the DNS suffix of the machine is `example.com`.
-
-Give only minimal cross origin access necessary to run the app. If there is no need to access local resources
-from other origins, use COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY.
+All host names that are canonicalized to the same string are considered identical.
+For example, `EXAMPLE.COM` and `example.com` are treated as the same host name.
+An international host name and its Punycode-encoded host name are considered the same host
+name. There is no DNS resolution for host name and the trailing '.' is not normalized as
+part of canonicalization.   
+Therefore `example.com` and `example.com.` are treated as different host names. Similarly,
+`virtual-host-name` and `virtual-host-name.example.com` are treated as different host names
+even if the machine has a DNS suffix of `example.com`.   
+Specify the minimal cross-origin access necessary to run the app. If there is not a need to
+access local resources from other origins, use COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY.
 
 # API Notes
 See [API Details](#api-details) section below for API reference.
@@ -97,35 +106,60 @@ typedef enum COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND {
 
 interface ICoreWebView2_2 : ICoreWebView2 {
 
-  /// Set a mapping between a virtual host name and host resources in a folder.
-  /// After setting the mapping, the app can then use http or https urls with the specified hostName as host name
-  /// of the urls to access files in the local folder specified by folderPath.
-  /// This applies to top level document and iframe navigations as well as sub resource references from a document.
-  /// This also applies to dedicated and shared worker scripts, but does not apply to service worker scripts.
-  /// accessKind specifies the kind of access control to the host resources from other sites.
-  /// Both absolute and relative path are supported for folderPath. Relative path is interpreted as relative
-  /// to the folder where the exe of the app is in.
-  /// For example, after calling AddVirtualHostNameToFolderMapping(L"appassets.webview2.microsoft.com", L"assets",
-  /// COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY), navigating to https://appassets.webview2.microsoft.com/my-local-file.html
-  /// will show content from my-local-file.html in the assets sub folder of the folder that has the app's exe file.
+  /// Set a mapping between a virtual host name and a folder path to make available to web sites
+  /// via that host name.
   ///
-  /// Choose a virtual host name that will not be used by real sites.
-  /// If you own a domain (like example.com), an option is to use a sub domain reserved for
+  /// After setting the mapping, documents loaded in the WebView can use HTTP or HTTPS URLs at
+  /// the specified host name specified by hostName to access files in the local folder specified
+  /// by folderPath.
+  ///
+  /// This mapping applies to both top-level document and iframe navigations as well as subresource
+  /// references from a document. This also applies to dedicated and shared worker scripts but does
+  /// not apply to service worker scripts.
+  ///
+  /// accessKind specifies the level of access to resources under the virtual host from other sites.
+  /// Both absolute and relative paths are supported for folderPath. Relative paths are interpreted
+  /// as relative to the folder where the exe of the app is in.
+  ///
+  /// For example, after calling
+  /// ```
+  ///    SetVirtualHostNameToFolderMapping(
+  ///        L"appassets.example", L"assets",
+  ///        COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY);
+  /// ```
+  /// navigating to `https://appassets.example/my-local-file.html` will
+  /// show content from my-local-file.html in the assets subfolder located on disk under the same
+  /// path as the app's executable file.
+  ///
+  /// You should typically choose virtual host names that are never used by real sites.
+  /// If you own a domain such as example.com, another option is to use a subdomain reserved for
   /// the app (like my-app.example.com).
-  /// We have also reserved a special domain appassets.webview2.microsoft.com for this usage.
+  ///
+  /// [RFC 6761](https://tools.ietf.org/html/rfc6761) has reserved several special-use domain
+  /// names that are guaranteed to not be used by real sites (for example, .example, .test, and
+  /// .invalid.)
+  ///
+  /// Apps should use distinct domain names when mapping folder from different sources that
+  /// should be isolated from each other. For instance, the app might use app-file.example for
+  /// files that ship as part of the app, and book1.example might be used for files containing
+  /// books from a less trusted source that were previously downloaded and saved to the disk by
+  /// the app.
   ///
   /// The host name used in the APIs is canonicalized using Chromium's host name parsing logic
   /// before being used internally.
+  ///
   /// All host names that are canonicalized to the same string are considered identical.
-  /// For example, `EXAMPLE.COM` and `example.com` are considered the same host name.
-  /// An international host name and its puny coded host name are considered the same host name.
-  /// There is no DSN resolution for host name and trailing '.' is not normalized as part of canonicalization.
-  /// Therefore `example.com` and `example.com.` are treated as different host names. So are
-  /// `virtual-host-name` and `virtual-host-name.example.com` when the DNS suffix of the machine is `example.com`.
+  /// For example, `EXAMPLE.COM` and `example.com` are treated as the same host name.
+  /// An international host name and its Punycode-encoded host name are considered the same host
+  /// name. There is no DNS resolution for host name and the trailing '.' is not normalized as
+  /// part of canonicalization.
   ///
-  /// Give only minimal cross origin access necessary to run the app. If there is no need to
+  /// Therefore `example.com` and `example.com.` are treated as different host names. Similarly,
+  /// `virtual-host-name` and `virtual-host-name.example.com` are treated as different host names
+  /// even if the machine has a DNS suffix of `example.com`.
+  ///
+  /// Specify the minimal cross-origin access necessary to run the app. If there is not a need to
   /// access local resources from other origins, use COREWEBVIEW2_HOST_RESOURCE_ACCESS_KIND_DENY.
-  ///
   HRESULT SetVirtualHostNameToFolderMapping(
       [in] LPCWSTR hostName,
       [in] LPCWSTR folderPath,
