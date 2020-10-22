@@ -266,8 +266,9 @@ interface ICoreWebView2Cookie : IUnknown {
   /// The expiration date and time for the cookie as the number of seconds since the UNIX epoch.
   /// The default is -1.0, which means cookies are session cookies by default.
   [propget] HRESULT Expires([out, retval] double* expires);
-  /// Set the Expires property. Cookies are session cookies
-  /// and will not be persistent if Expires is negative.
+  /// Set the Expires property. Cookies are session cookies and will not be
+  /// persistent if Expires is set to -1.0. NaN, infinity, and any negative
+  /// value set other than -1.0 is disallowed.
   [propput] HRESULT Expires([in] double expires);
 
   /// Whether this cookie is http-only.
@@ -305,8 +306,9 @@ interface ICoreWebView2CookieManager : IUnknown {
   /// One can set other optional properties after cookie creation.
   /// This only creates a cookie object and it is not added to the cookie
   /// manager until you call AddOrUpdateCookie.
+  /// name that starts with whitespace(s) is not allowed.
   /// See ICoreWebView2Cookie for more details.
-  HRESULT CreateCookieWithDetails(
+  HRESULT CreateCookie(
     [in] LPCWSTR name,
     [in] LPCWSTR value,
     [in] LPCWSTR domain,
@@ -422,7 +424,7 @@ namespace Microsoft.Web.WebView2.Core
         /// You can modify the cookie objects, call
         /// CoreWebView2CookieManager.AddOrUpdateCookie, and the changes
         /// will be applied to the webview.
-        Windows.Foundation.IAsyncOperation<IVectorView> GetCookiesAsync(String uri);
+        Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2Cookie>> GetCookiesAsync(String uri);
 
         /// Adds or updates a cookie with the given cookie data; may overwrite
         /// cookies with matching name, domain, and path if they exist.
@@ -468,8 +470,9 @@ namespace Microsoft.Web.WebView2.Core
         /// this cookie will be sent to all pages on the Domain.
         String Path { get; };
 
-        /// The expiration date and time for the cookie as the number of seconds since the UNIX epoch.
-        /// The default is -1.0, which means cookies are session cookies by default.
+        /// The expiration date and time for the cookie.
+        /// For .NET API, setting the Expires property to <see cref="System.DateTime.MinValue"/> makes this a session cookie, which is its default value.
+        /// For WinRT API, setting the Expires property to <c>null</c> makes this a Cookie that is only good for the current HTTP session and will not be persisted.
         Windows.Foundation.DateTime Expires { get; set; };
 
         /// Whether this cookie is http-only.
