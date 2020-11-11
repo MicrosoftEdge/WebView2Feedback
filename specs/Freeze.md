@@ -13,8 +13,14 @@ For an Universal Windows Platform app, the app calls the API in suspended event 
 async protected void OnSuspending(object sender, SuspendingEventArgs args)
 {
     SuspendingDeferral deferral = args.SuspendingOperation.GetDeferral();
+    webView.Visibility = false;
     await webView.CoreWebView2.TryFreezeAsync();
     deferral.Complete();
+}
+async protected void OnSuspending(object sender, Object args)
+{
+    webView.CoreWebView2.Unfreeze();
+    webView.Visibility = true;
 }
 ```
 ## Win32 C++
