@@ -1,5 +1,5 @@
 # Background
-The User Agent (UA) is a client-side piece of information that the browser/webcontrol sends to the server or website a user visits. It contains information about user’s system and is modifiable by the user.  
+
 
 Currently, a developer can pass the --user-agent browser args to the CreateWebView2EnvironmentWithDetails function. 
 	Ex. CreateWebView2EnvironmentWithDetails(nullptr, nullptr, L"--user-agent=\"myUA\"", ...);
@@ -7,8 +7,16 @@ Currently, a developer can pass the --user-agent browser args to the CreateWebVi
 
 However, there are a couple limitations to this workaround-- you cannot modify a command line switch at runtime, nor can you change the user agent per webview. In this document we describe the new API. We'd appreciate your feedback.
 
-# Description
+--
+
 The Settings component will change the UA per WebView2 via Chrome Developer Protocol command (CDP). A key scenario is to allow end developers to get the current user agent from the webview and modify it based on some sort of event, such as navigating to a specific website and setting the user agent to emulate a different browser version.
+
+
+# Description
+
+The User Agent (UA) is a client-side piece of information that the browser/webcontrol sends to the server or website a user visits. It contains information about user’s system and is modifiable by the user.
+
+The User Agent String API allows developers to modify WebView's user agent string via Chrome Developer Protocol (CDP). The user agent can be changed based on different events such as navigation to a specific website. 
 
 # Examples
 
