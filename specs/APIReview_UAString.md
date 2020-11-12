@@ -1,9 +1,9 @@
 # Background
-The User Agent is a client-side piece of information that the browser/webcontrol sends to the server/website a user visits. It contains information about user’s system and is modifiable by the user.  
+The User Agent (UA) is a client-side piece of information that the browser/webcontrol sends to the server or website a user visits. It contains information about user’s system and is modifiable by the user.  
 
 Currently, a developer can pass the --user-agent browser args to the CreateWebView2EnvironmentWithDetails function. 
 	Ex. CreateWebView2EnvironmentWithDetails(nullptr, nullptr, L"--user-agent=\"myUA\"", ...);
-For more info about the ‘—user - agent’ flag visit: https://peter.sh/experiments/chromium-command-line-switches/#user-agent.
+	For more info about the ‘—user - agent’ flag visit: https://peter.sh/experiments/chromium-command-line-switches/#user-agent.
 
 However, there are a couple limitations to this workaround-- you cannot modify a command line switch at runtime, nor can you change the user agent per webview. In this document we describe the new API. We'd appreciate your feedback.
 
