@@ -1,22 +1,18 @@
 # Background
 
-
 Currently, a developer can pass the --user-agent browser args to the CreateWebView2EnvironmentWithDetails function. 
 	Ex. CreateWebView2EnvironmentWithDetails(nullptr, nullptr, L"--user-agent=\"myUA\"", ...);
 	For more info about the ‘—user - agent’ flag visit: https://peter.sh/experiments/chromium-command-line-switches/#user-agent.
 
 However, there are a couple limitations to this workaround-- you cannot modify a command line switch at runtime, nor can you change the user agent per webview. In this document we describe the new API. We'd appreciate your feedback.
 
---
-
-The Settings component will change the UA per WebView2 via Chrome Developer Protocol command (CDP). A key scenario is to allow end developers to get the current user agent from the webview and modify it based on some sort of event, such as navigating to a specific website and setting the user agent to emulate a different browser version.
-
-
 # Description
 
 The User Agent (UA) is a client-side piece of information that the browser/webcontrol sends to the server or website a user visits. It contains information about user’s system and is modifiable by the user.
 
 The User Agent String API allows developers to modify WebView's user agent string via Chrome Developer Protocol (CDP). The user agent can be changed based on different events such as navigation to a specific website. 
+
+The Settings component will change the UA per WebView2 via Chrome Developer Protocol command (CDP). A key scenario is to allow end developers to get the current user agent from the webview and modify it based on some sort of event, such as navigating to a specific website and setting the user agent to emulate a different browser version.
 
 # Examples
 
@@ -45,7 +41,7 @@ m_webView->add_NavigationStarting(
                 CHECK_FAILURE(settings->put_UserAgent(mobile_ua));
                 LPCWSTR received_ua;
                 CHECK_FAILURE(settings->get_UserAgent(&received_ua));
-                EXPECT_EQ(base::Value(received_ua), base::Value(mobile_ua))
+                EXPECT_STREQ(received_ua, mobile_ua);
             }
             return S_OK;
         })
@@ -76,7 +72,7 @@ See [API Details](#api-details) section below for API reference.
 interface ICoreWebView2StagingSettings : IUnknown {
     /// `UserAgent` .  Returns the User Agent. The default value is the
     /// default User Agent.
-    [propget] HRESULT UserAgent([ out, retval ] LPCWSTR * userAgent);
+    [propget] HRESULT UserAgent([ out, retval ] LPWSTR * userAgent);
     /// Sets the `UserAgentString` property. This property may be overriden if
     /// the User-Agent header is set in a request.
     [propput] HRESULT UserAgent([in] LPCWSTR userAgent);
