@@ -1,7 +1,9 @@
 # Background
 
 Currently, a developer can pass the --user-agent browser args to the CreateWebView2EnvironmentWithDetails function. 
+
 	Ex. CreateWebView2EnvironmentWithDetails(nullptr, nullptr, L"--user-agent=\\"myUA\\"", ...);
+    
 	For more info about the ‘--user-agent’ flag visit: https://peter.sh/experiments/chromium-command-line-switches/#user-agent.
 
 However, there are a couple limitations to this workaround-- it is not an API that is easy to use or discover, you cannot modify a command line switch at runtime, and you cannot change the User Agent per WebView. In this document we describe the new API. We'd appreciate your feedback.
