@@ -35,11 +35,11 @@ m_webView->add_NavigationStarting(
                 wil::com_ptr<ICoreWebView2Settings> settings;
                 CHECK_FAILURE(m_webView->get_Settings(&m_settings));
                 LPCWSTR mobile_ua =
-                    "Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) "
+                    L"Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) "
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/62.0.3202.84 Mobile Safari/537.36";
                 CHECK_FAILURE(settings->put_UserAgent(mobile_ua));
-                LPCWSTR received_ua;
+                LPWSTR received_ua;
                 CHECK_FAILURE(settings->get_UserAgent(&received_ua));
                 EXPECT_STREQ(received_ua, mobile_ua);
             }
