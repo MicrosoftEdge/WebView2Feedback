@@ -10,11 +10,9 @@ However, there are a couple limitations to this workaround-- it is not an API th
 
 # Description
 
-The User Agent (UA) is a client-side piece of information regarding the user's OS, application, and version. The browser/webcontrol sends the User Agent to the HTTP server and can be modified by the user.
+The User Agent (UA) is a client-side piece of information regarding the user's OS, application, and version. The browser/webcontrol sends the User Agent to the HTTP server.
 
-The User Agent API allows developers to modify WebView2's User Agent and can be changed based on different events. 
-
-The Settings component will change the User Agent per WebView via Chrome Developer Protocol command (CDP). A key scenario is to allow end developers to get the current User Agent from WebView and modify it based on some sort of event, such as navigating to a specific website and setting the user agent to emulate a different browser version.
+The User Agent property lets developers modify WebView2's User Agent. A key scenario is to allow end developers to get the current User Agent from the WebView and modify it based on an event, such as navigating to a specific website and setting the user agent to emulate a different browser version.
 
 # Examples
 
