@@ -1,23 +1,22 @@
 # Background
 
 Currently, a developer can pass the --user-agent browser args to the CreateWebView2EnvironmentWithDetails function. 
-	Ex. CreateWebView2EnvironmentWithDetails(nullptr, nullptr, L"--user-agent=\"myUA\"", ...);
-	For more info about the ‘—user - agent’ flag visit: https://peter.sh/experiments/chromium-command-line-switches/#user-agent.
+	Ex. CreateWebView2EnvironmentWithDetails(nullptr, nullptr, L"--user-agent=\\"myUA\\"", ...);
+	For more info about the ‘--user-agent’ flag visit: https://peter.sh/experiments/chromium-command-line-switches/#user-agent.
 
-However, there are a couple limitations to this workaround-- you cannot modify a command line switch at runtime, nor can you change the user agent per webview. In this document we describe the new API. We'd appreciate your feedback.
+However, there are a couple limitations to this workaround-- it is not an API that is easy to use or discover, you cannot modify a command line switch at runtime, and you cannot change the User Agent per WebView. In this document we describe the new API. We'd appreciate your feedback.
 
 # Description
 
-The User Agent (UA) is a client-side piece of information that the browser/webcontrol sends to the server or website a user visits. It contains information about user’s system and is modifiable by the user.
+The User Agent (UA) is a client-side piece of information regarding the user's OS, application, and version. The browser/webcontrol sends the User Agent to the HTTP server and can be modified by the user.
 
-The User Agent String API allows developers to modify WebView's user agent string via Chrome Developer Protocol (CDP). The user agent can be changed based on different events such as navigation to a specific website. 
+The User Agent API allows developers to modify WebView2's User Agent and can be changed based on different events. 
 
-The Settings component will change the UA per WebView2 via Chrome Developer Protocol command (CDP). A key scenario is to allow end developers to get the current user agent from the webview and modify it based on some sort of event, such as navigating to a specific website and setting the user agent to emulate a different browser version.
+The Settings component will change the User Agent per WebView via Chrome Developer Protocol command (CDP). A key scenario is to allow end developers to get the current User Agent from WebView and modify it based on some sort of event, such as navigating to a specific website and setting the user agent to emulate a different browser version.
 
 # Examples
 
-The following code snippet demonstrates how the environment APIs can be used
-:
+The following code snippet demonstrates how the User Agent API can be used:
 
 ## Win32 C++
     
@@ -29,19 +28,23 @@ m_webView->add_NavigationStarting(
             static const PCWSTR url_compare_example = L"foo.org";
             wil::unique_bstr domain = GetDomainOfUri(uri.get());
             const wchar_t *domains = domain.get();
+            wil::com_ptr<ICoreWebView2Settings> settings;
+            CHECK_FAILURE(m_webView->get_Settings(&m_settings));
             if (wcscmp(url_compare_example, domains) == 0) {
                 // Upon navigation to a specified url 
-                // Change the user agent to emulate a mobile device 
-                wil::com_ptr<ICoreWebView2Settings> settings;
-                CHECK_FAILURE(m_webView->get_Settings(&m_settings));
+                // Change the user agent to emulate a mobile device
                 LPCWSTR mobile_ua =
                     L"Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) "
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/62.0.3202.84 Mobile Safari/537.36";
-                CHECK_FAILURE(settings->put_UserAgent(mobile_ua));
-                LPWSTR received_ua;
-                CHECK_FAILURE(settings->get_UserAgent(&received_ua));
-                EXPECT_STREQ(received_ua, mobile_ua);
+                CHECK_FAILURE(settings->put_UserAgent(mobile_ua)); 
+            } else {
+                // Change the user agent back to desktop
+                LPCWSTR desktop_ua =
+                    L"Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/62.0.3202.84 Safari/537.36";
+                CHECK_FAILURE(settings->put_UserAgent(desktop_ua));
             }
             return S_OK;
         })
@@ -53,8 +56,9 @@ m_webView->add_NavigationStarting(
 
 ```c #
 private void SetUserAgent(CoreWebView2 sender, CoreWebView2UserAgentArgs e) {
+    static const std::string updatedUA;
     var settings = webView2Control.CoreWebView2.Settings;
-    settings.UserAgent = "Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.84 Mobile Safari/537.36";
+    settings.UserAgent = updatedUA;
 }
 ```
 
@@ -71,22 +75,22 @@ See [API Details](#api-details) section below for API reference.
 [uuid(c79ba37e-9bd6-4b9e-b460-2ced163f231f), object, pointer_default(unique)]
 interface ICoreWebView2StagingSettings : IUnknown {
     /// `UserAgent` .  Returns the User Agent. The default value is the
-    /// default User Agent.
+    /// default User Agent of the Edge browser.
     [propget] HRESULT UserAgent([ out, retval ] LPWSTR * userAgent);
     /// Sets the `UserAgentString` property. This property may be overriden if
-    /// the User-Agent header is set in a request.
+  /// the User-Agent header is set in a request. If the parameter is empty 
+  /// the User Agent will not be updated and the current User Agent will remain. 
     [propput] HRESULT UserAgent([in] LPCWSTR userAgent);
 }
 ``` 
 ## .NET and WinRT
 
 ```c#
-namespace Microsoft.Web.WebView2.Core {
-public
-    partial class CoreWebView2 {
-    // There are other API in this interface that we are not showing
-    public
-        CoreWebView2Settings UserAgent {get ; set; };
+namespace Microsoft.Web.WebView2.Core
+{
+    public partial class CoreWebView2Settings
+    {
+        public string UserAgent { get; set; };
     }
 }
 ```
