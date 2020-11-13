@@ -84,6 +84,9 @@ Freezing is similar to putting a tab to sleep in the Edge browser. Freezing paus
 WebView script timers and animations, minimizes CPU usage for the associated
 browser renderer process and allows the operating system to reuse the memory that was
 used by the renderer process for other processes.   
+Note that the freeze is best effort and considered completed successfully once the request
+is sent to browser renderer process. If there is a running script, the script will continue
+to run and the renderer process will be frozen after that script is done.
 See [Sleeping Tabs FAQ](https://techcommunity.microsoft.com/t5/articles/sleeping-tabs-faq/m-p/1705434)
 for conditions that might prevent WebView from being frozen. In those situations,
 The TryFreeze operation will fail and the completed handler will be invoked with isSuccessful as false.   
@@ -105,14 +108,17 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   /// Platform app is suspended, during the suspended event handler before completing
   /// the suspended event.
   /// The CoreWebView2Controller must be invisible when the API is called. Otherwise, the
-  /// API fails with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.   
+  /// API fails with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// Freezing is similar to putting a tab to sleep in the Edge browser. Freezing pauses
   /// WebView script timers and animations, minimizes CPU usage for the associated
   /// browser renderer process and allows the operating system to reuse the memory that was
-  /// used by the renderer process for other processes.   
+  /// used by the renderer process for other processes.
+  /// Note that the freeze is best effort and considered completed successfully once the request
+  /// is sent to browser renderer process. If there is a running script, the script will continue
+  /// to run and the renderer process will be frozen after that script is done.
   /// See [Sleeping Tabs FAQ](https://techcommunity.microsoft.com/t5/articles/sleeping-tabs-faq/m-p/1705434)
   /// for conditions that might prevent WebView from being frozen. In those situations,
-  /// The TryFreeze operation will fail and the completed handler will be invoked with isSuccessful as false.   
+  /// The TryFreeze operation will fail and the completed handler will be invoked with isSuccessful as false.
   /// The WebView will be automatically unfrozen when it becomes visible. Therefore, the
   /// app normally doesn't have to call Unfreeze.
   /// The app can call `Unfreeze` and then `TryFreeze` periodically for an invisibile WebView so that
