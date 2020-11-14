@@ -33,18 +33,10 @@ m_webView->add_NavigationStarting(
             if (wcscmp(url_compare_example, domains) == 0) {
                 // Upon navigation to a specified url 
                 // Change the user agent to emulate a mobile device
-                LPCWSTR mobile_ua =
-                    L"Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/62.0.3202.84 Mobile Safari/537.36";
-                CHECK_FAILURE(settings->put_UserAgent(mobile_ua)); 
+                CHECK_FAILURE(settings->put_UserAgent(GetMobileUserAgent())); 
             } else {
                 // Change the user agent back to desktop
-                LPCWSTR desktop_ua =
-                    L"Mozilla/5.0 (Linux; Android 8.0.0; SM-G960F Build/R16NW) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/62.0.3202.84 Safari/537.36";
-                CHECK_FAILURE(settings->put_UserAgent(desktop_ua));
+                CHECK_FAILURE(settings->put_UserAgent(GetDesktopUserAgent()));
             }
             return S_OK;
         })
@@ -56,9 +48,8 @@ m_webView->add_NavigationStarting(
 
 ```c #
 private void SetUserAgent(CoreWebView2 sender, CoreWebView2UserAgentArgs e) {
-    static const std::string updatedUA;
     var settings = webView2Control.CoreWebView2.Settings;
-    settings.UserAgent = updatedUA;
+    settings.UserAgent = GetUserAgent();
 }
 ```
 
