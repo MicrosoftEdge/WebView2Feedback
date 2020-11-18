@@ -25,7 +25,9 @@ m_webView->add_NavigationStarting(
     Callback<ICoreWebView2NavigationStartingEventHandler>(
         [this](ICoreWebView2 *sender,
                 ICoreWebView2NavigationStartingEventArgs *args) -> HRESULT {
-            static const PCWSTR url_compare_example = L"foo.org";
+            static const PCWSTR url_compare_example = L"fourthcoffee.com";
+            wil::unique_cotaskmem_string uri;
+            CHECK_FAILURE(args->get_Uri(&uri));
             wil::unique_bstr domain = GetDomainOfUri(uri.get());
             const wchar_t *domains = domain.get();
             wil::com_ptr<ICoreWebView2Settings> settings;
@@ -38,6 +40,7 @@ m_webView->add_NavigationStarting(
                 // Change the user agent back to desktop
                 CHECK_FAILURE(settings->put_UserAgent(GetDesktopUserAgent()));
             }
+            CoTaskMemFree(temp_uri);
             return S_OK;
         })
         .Get(),
@@ -47,9 +50,19 @@ m_webView->add_NavigationStarting(
 ## .NET and WinRT
 
 ```c #
-private void SetUserAgent(CoreWebView2 sender, CoreWebView2UserAgentArgs e) {
+webView2Control.NavigationStarting += SetUserAgent;
+private void SetUserAgent(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
+{
     var settings = webView2Control.CoreWebView2.Settings;
-    settings.UserAgent = GetUserAgent();
+    // Note: Oversimplified test. Need to support idn, case-insensitivity, etc.
+   if (new Uri(e.Uri).Host == "contoso.com")
+   {
+      settings.UserAgent = GetMobileUserAgent();
+   }
+   else
+   {
+      settings.UserAgent = GetDesktopUserAgent();
+   }
 }
 ```
 
@@ -62,15 +75,15 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
     
 ```IDL
-// This is the ICoreWebView2Settings Staging interface.
+// This is the ICoreWebView2Settings interface.
 [uuid(c79ba37e-9bd6-4b9e-b460-2ced163f231f), object, pointer_default(unique)]
-interface ICoreWebView2StagingSettings : IUnknown {
+interface ICoreWebView2Settings2 : ICoreWebView2Settings {
     /// `UserAgent` .  Returns the User Agent. The default value is the
     /// default User Agent of the Edge browser.
     [propget] HRESULT UserAgent([ out, retval ] LPWSTR * userAgent);
     /// Sets the `UserAgentString` property. This property may be overriden if
-  /// the User-Agent header is set in a request. If the parameter is empty 
-  /// the User Agent will not be updated and the current User Agent will remain. 
+    /// the User-Agent header is set in a request. If the parameter is empty 
+    /// the User Agent will not be updated and the current User Agent will remain. 
     [propput] HRESULT UserAgent([in] LPCWSTR userAgent);
 }
 ``` 
