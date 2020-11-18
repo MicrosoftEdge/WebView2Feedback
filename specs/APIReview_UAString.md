@@ -40,7 +40,6 @@ m_webView->add_NavigationStarting(
                 // Change the user agent back to desktop
                 CHECK_FAILURE(settings->put_UserAgent(GetDesktopUserAgent()));
             }
-            CoTaskMemFree(temp_uri);
             return S_OK;
         })
         .Get(),
