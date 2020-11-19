@@ -10,9 +10,11 @@ However, there are a couple limitations to this workaround-- it is not an API th
 
 # Description
 
-The User Agent (UA) is a client-side piece of information regarding the user's OS, application, and version. The browser/webcontrol sends the User Agent to the HTTP server.
+The User Agent (UA) is a piece of information regarding the user's OS, application, and version. The browser/webcontrol sends the User Agent to the HTTP server.
 
-The User Agent property lets developers modify WebView2's User Agent. A key scenario is to allow end developers to get the current User Agent from the WebView and modify it based on an event, such as navigating to a specific website and setting the User Agent to emulate a different browser version.
+The User Agent property lets developers modify WebView2's User Agent. A key scenario is to allow end developers to get the current User Agent from the WebView and modify it based on an event. 
+
+Ex. Update the User Agent to emulate a different browser version upon navigation to a specific website.
 
 # Examples
 
