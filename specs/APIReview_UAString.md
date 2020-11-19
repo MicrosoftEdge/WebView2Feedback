@@ -57,14 +57,11 @@ private void SetUserAgent(CoreWebView2 sender, CoreWebView2NavigationStartingEve
 {
     var settings = webView2Control.CoreWebView2.Settings;
     // Note: Oversimplified test. Need to support idn, case-insensitivity, etc.
-   if (new Uri(e.Uri).Host == "fourthcoffee.com")
-   {
-      settings.UserAgent = GetMobileUserAgent();
-   }
-   else
-   {
-      settings.UserAgent = GetDesktopUserAgent();
-   }
+    if (new Uri(e.Uri).Host == "fourthcoffee.com") {
+        settings.UserAgent = GetMobileUserAgent();
+    } else {
+        settings.UserAgent = GetDesktopUserAgent();
+    }
 }
 ```
 
