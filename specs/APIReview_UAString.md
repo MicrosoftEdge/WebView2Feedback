@@ -52,11 +52,12 @@ m_webView->add_NavigationStarting(
 
 ```c #
 webView2Control.NavigationStarting += SetUserAgent;
+
 private void SetUserAgent(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
 {
     var settings = webView2Control.CoreWebView2.Settings;
     // Note: Oversimplified test. Need to support idn, case-insensitivity, etc.
-   if (new Uri(e.Uri).Host == "contoso.com")
+   if (new Uri(e.Uri).Host == "fourthcoffee.com")
    {
       settings.UserAgent = GetMobileUserAgent();
    }
@@ -77,7 +78,7 @@ See [API Details](#api-details) section below for API reference.
     
 ```IDL
 // This is the ICoreWebView2Settings interface.
-[uuid(c79ba37e-9bd6-4b9e-b460-2ced163f231f), object, pointer_default(unique)]
+[uuid(684cbeef-47ba-4d4a-99f4-976113f9f10a), object, pointer_default(unique)]
 interface ICoreWebView2Settings2 : ICoreWebView2Settings {
     /// `UserAgent` .  Returns the User Agent. The default value is the
     /// default User Agent of the Edge browser.
