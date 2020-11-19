@@ -10,9 +10,11 @@ However, there are a couple limitations to this workaround-- it is not an API th
 
 # Description
 
-The User Agent (UA) is a client-side piece of information regarding the user's OS, application, and version. The browser/webcontrol sends the User Agent to the HTTP server.
+The User Agent (UA) is a piece of information regarding the user's OS, application, and version. The browser/webcontrol sends the User Agent to the HTTP server.
 
-The User Agent property lets developers modify WebView2's User Agent. A key scenario is to allow end developers to get the current User Agent from the WebView and modify it based on an event, such as navigating to a specific website and setting the User Agent to emulate a different browser version.
+The User Agent property lets developers modify WebView2's User Agent. A key scenario is to allow end developers to get the current User Agent from the WebView and modify it based on an event. 
+
+Ex. Update the User Agent to emulate a different browser version upon navigation to a specific website.
 
 # Examples
 
@@ -25,7 +27,9 @@ m_webView->add_NavigationStarting(
     Callback<ICoreWebView2NavigationStartingEventHandler>(
         [this](ICoreWebView2 *sender,
                 ICoreWebView2NavigationStartingEventArgs *args) -> HRESULT {
-            static const PCWSTR url_compare_example = L"foo.org";
+            static const PCWSTR url_compare_example = L"fourthcoffee.com";
+            wil::unique_cotaskmem_string uri;
+            CHECK_FAILURE(args->get_Uri(&uri));
             wil::unique_bstr domain = GetDomainOfUri(uri.get());
             const wchar_t *domains = domain.get();
             wil::com_ptr<ICoreWebView2Settings> settings;
@@ -47,9 +51,17 @@ m_webView->add_NavigationStarting(
 ## .NET and WinRT
 
 ```c #
-private void SetUserAgent(CoreWebView2 sender, CoreWebView2UserAgentArgs e) {
+webView2Control.NavigationStarting += SetUserAgent;
+
+private void SetUserAgent(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs e)
+{
     var settings = webView2Control.CoreWebView2.Settings;
-    settings.UserAgent = GetUserAgent();
+    // Note: Oversimplified test. Need to support idn, case-insensitivity, etc.
+    if (new Uri(e.Uri).Host == "fourthcoffee.com") {
+        settings.UserAgent = GetMobileUserAgent();
+    } else {
+        settings.UserAgent = GetDesktopUserAgent();
+    }
 }
 ```
 
@@ -62,15 +74,15 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
     
 ```IDL
-// This is the ICoreWebView2Settings Staging interface.
-[uuid(c79ba37e-9bd6-4b9e-b460-2ced163f231f), object, pointer_default(unique)]
-interface ICoreWebView2StagingSettings : IUnknown {
+// This is the ICoreWebView2Settings interface.
+[uuid(684cbeef-47ba-4d4a-99f4-976113f9f10a), object, pointer_default(unique)]
+interface ICoreWebView2Settings2 : ICoreWebView2Settings {
     /// `UserAgent` .  Returns the User Agent. The default value is the
     /// default User Agent of the Edge browser.
     [propget] HRESULT UserAgent([ out, retval ] LPWSTR * userAgent);
     /// Sets the `UserAgentString` property. This property may be overriden if
-  /// the User-Agent header is set in a request. If the parameter is empty 
-  /// the User Agent will not be updated and the current User Agent will remain. 
+    /// the User-Agent header is set in a request. If the parameter is empty 
+    /// the User Agent will not be updated and the current User Agent will remain. 
     [propput] HRESULT UserAgent([in] LPCWSTR userAgent);
 }
 ``` 
