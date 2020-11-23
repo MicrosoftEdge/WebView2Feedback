@@ -108,7 +108,7 @@ typedef enum COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND {
   COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_FAILED_EXIT
 } COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND;
 
-interface ICoreWebView2Environment3 : IUnknown
+interface ICoreWebView2Environment3 : ICoreWebView2Environment2
 {
   // ...
 
