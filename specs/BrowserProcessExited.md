@@ -181,6 +181,14 @@ namespace Microsoft.Web.WebView2.Core
         /// `WebView2 Runtime` associated to this `CoreWebView2Environment`
         /// terminates due to an error or normal shutdown (e.g., when all its
         /// WebViews are closed).
+        ///
+        /// Note this is an event from `CoreWebView2Environment`, not the
+        /// `CoreWebView2`. The difference between this `BrowserProcessExited` event and
+        /// the `CoreWebView2`'s `ProcessFailed` event is that `BrowserProcessExited` is
+        /// raised for any (expected and unexpected) **browser process** exits, while
+        /// `ProcessFailed` is raised only for **unexpected** browser process exits, or for
+        /// **render process** exits/unresponsiveness. To learn more about the WebView2
+        /// Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
         event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, CoreWebView2BrowserProcessExitedEventArgs> BrowserProcessExited;
     }
 
