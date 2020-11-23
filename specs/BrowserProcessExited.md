@@ -120,6 +120,14 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// A handler added with this method is called until removed with
   /// `remove_BrowserProcessExited`, even if a new browser process is bound to
   /// this environment after earlier `BrowserProcessExited` events are raised.
+  ///
+  /// Note this is an event from the `ICoreWebView2Environment3` interface, not the
+  /// `ICoreWebView2`. The difference between this `BrowserProcessExited` event and
+  /// the `CoreWebView2`'s `ProcessFailed` event is that `BrowserProcessExited` is
+  /// raised for any (expected and unexpected) **browser process** exits, while
+  /// `ProcessFailed` is raised only for **unexpected** browser process exits, or for
+  /// **render process** exits/unresponsiveness. To learn more about the WebView2
+  /// Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
   HRESULT add_BrowserProcessExited(
 		  [in] ICoreWebView2BrowserProcessExitedEventHandler* eventHandler,
 		  [out] EventRegistrationToken* token);
