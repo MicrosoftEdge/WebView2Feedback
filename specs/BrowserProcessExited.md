@@ -184,3 +184,17 @@ namespace Microsoft.Web.WebView2.Core
     }
 }
 ```
+
+# Appendix
+We expect that for the two scenarios this API is designed for, namely cleanup of
+the user data folder and upgrading the `WebView2 Runtime`, an app adding a
+handler for `BrowserProcessExited` will only be interested in the next single
+time the browser process exits (even if there could be more browser processes
+being created and exiting throughout the lifetime of a
+`CoreWebView2Environment`). For this reason, we also consider making this event
+an async method instead (e.g., `RegisterWaitForBrowserProcessExit`).
+
+While there would be no operation started on calling the async method, a handler
+would be a added to be run (only) the next time the browser process associated
+to the `CoreWebView2Environment` exits, which in turn would make API usage
+easier for the two expected scenarios.
