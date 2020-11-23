@@ -4,7 +4,7 @@ browser process exit. Manually waiting for the process to exit requires
 additional work on the host app, so we are proposing the `BrowserProcessExited`
 event. The `ProcessFailed` already lets app developers handle unexpected browser
 process exits for a WebView, this new API lets you listen to both expected and
-unexpected process termination from the `ICoreWebView2Environment` interface so
+unexpected process termination from the `ICoreWebView2Environment3` interface so
 you can, e.g., cleanup the user data folder when it's no longer in use. In this
 document we describe the new API. We'd appreciate your feedback.
 
@@ -75,7 +75,7 @@ void Environment_BrowserProcessExited(object sender, CoreWebView2BrowserProcessE
 
 
 # Remarks
-Note this is an event from the `ICoreWebView2Environment` interface, not the
+Note this is an event from the `ICoreWebView2Environment3` interface, not the
 `ICoreWebView2`. The difference between this `BrowserProcessExited` event and
 the `CoreWebView2`'s `ProcessFailed` event is that `BrowserProcessExited` is
 raised for any (expected and unexpected) **browser process** exits, while
@@ -97,7 +97,7 @@ library WebView2
 // ...
 
 /// Specifies the browser process exit type used in the
-/// `ICoreWebView2StagingBrowserProcessExitedEventArgs` interface.
+/// `ICoreWebView2BrowserProcessExitedEventArgs` interface.
 typedef enum COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND {
   /// Indicates that the browser process ended normally.
   COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL_EXIT,
@@ -108,7 +108,7 @@ typedef enum COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND {
   COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_FAILED_EXIT
 } COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND;
 
-interface ICoreWebView2Environment : IUnknown
+interface ICoreWebView2Environment3 : IUnknown
 {
   // ...
 
@@ -121,7 +121,7 @@ interface ICoreWebView2Environment : IUnknown
   /// `remove_BrowserProcessExited`, even if a new browser process is bound to
   /// this environment after earlier `BrowserProcessExited` events are raised.
   HRESULT add_BrowserProcessExited(
-		  [in] ICoreWebView2StagingBrowserProcessExitedEventHandler* eventHandler,
+		  [in] ICoreWebView2BrowserProcessExitedEventHandler* eventHandler,
 		  [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_BrowserProcessExited`.
@@ -129,16 +129,16 @@ interface ICoreWebView2Environment : IUnknown
 }
 
 /// Receives `BrowserProcessExited` events.
-interface ICoreWebView2StagingBrowserProcessExitedEventHandler : IUnknown
+interface ICoreWebView2BrowserProcessExitedEventHandler : IUnknown
 {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
 		  [in] ICoreWebView2Environment* sender,
-		  [in] ICoreWebView2StagingBrowserProcessExitedEventArgs* args);
+		  [in] ICoreWebView2BrowserProcessExitedEventArgs* args);
 }
 
 /// Event args for the `BrowserProcessExited` event.
-interface ICoreWebView2StagingBrowserProcessExitedEventArgs : IUnknown
+interface ICoreWebView2BrowserProcessExitedEventArgs : IUnknown
 {
   /// The kind of browser process exit that has occurred.
   [propget] HRESULT BrowserProcessExitKind(
