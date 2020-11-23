@@ -81,7 +81,7 @@ the `CoreWebView2`'s `ProcessFailed` event is that `BrowserProcessExited` is
 raised for any (expected and unexpected) **browser process** exits, while
 `ProcessFailed` is raised only for **unexpected** browser process exits, or for
 **render process** exits/unresponsiveness. To learn more about the WebView2
-Process Model, go to (Process model)[https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model].
+Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
 
 
 # API Notes
