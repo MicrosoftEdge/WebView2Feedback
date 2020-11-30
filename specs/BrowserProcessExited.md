@@ -12,16 +12,29 @@ document we describe the new API. We'd appreciate your feedback.
 # Description
 The `BrowserProcessExited` event allows developers to subscribe event handlers
 to be run when the `WebView2 Runtime`'s browser process associated to a
-`CoreWebView2Environment` terminates. A key scenario is cleanup of the use data
+`CoreWebView2Environment` terminates. Key scenarios are cleanup of the use data
 folder used by the `WebView2 Runtime`, which is locked while the runtime's
-browser process is active.
+browser process is active, and moving to a new `WebView2 Runtime` version after
+a `NewBrowserVersionAvailable` event.
 
 This event is raised for both expected and unexpected browser process
-termination. The `ICoreWebView2BrowserProcessExitedEventArgs` interfaces lets
-app developers get the `BrowserProcessExitKind` so they can decide how to handle
-different exit kinds or bypass handling if an event handler for the
-`CoreWebView2`s `ProcessFailed` event (for
-`CoreWebView2ProcessFailedKind.BrowserProcessFailed`) is already registered.
+termination, after all resources, including the user data folder, used by the
+browser process (and related processes) have been released. The
+`ICoreWebView2BrowserProcessExitedEventArgs` interface lets app developers get
+the `BrowserProcessExitKind` so they can decide how to handle different exit
+kinds or bypass handling if an event handler for the `CoreWebView2`s
+`ProcessFailed` event (for `CoreWebView2ProcessFailedKind.BrowserProcessFailed`)
+is already registered. In case of a browser process crash, both
+`BrowserProcessExited` and `ProcessFailed` events are raised, but the order is
+not guaranteed.
+
+All `CoreWebView2Environment` objects across different app processes that use
+the same browser process receive this event when the browser process exits.
+If the browser process (and therefore the user data folder) in use by the app
+process (through the `CoreWebView2Environment` options used) is shared with
+other processes, these processes need to coordinate to handle the potential race
+condition on the use of the resources. E.g., if one app process tries to clear
+the user data folder, while other tries to recreate its WebViews on crash.
 
 
 # Examples
@@ -62,14 +75,68 @@ CHECK_FAILURE(m_webViewEnvironment->add_BrowserProcessExited(
 
 ## .NET C#
 ```c#
-// Get the environment from the CoreWebView2 and add a handler.
-webView.CoreWebView2.Environment.BrowserProcessExited += Environment_BrowserProcessExited;
+// URI or other state to save/restore when the WebView is recreated.
+private Uri _uriToRestore;
 
-// Check and report browser process exit kind.
+async void RegisterForNewVersion()
+{
+    // We need to make sure the CoreWebView2 property is not null, so we can get
+    // the environment from it. Alternatively, if the WebView was created from
+    // an environment provided to the control, we can use that environment
+    // object directly.
+    await webView.EnsureCoreWebView2Async();
+    _coreWebView2Environment = webView.CoreWebView2.Environment;
+    _coreWebView2Environment.NewBrowserVersionAvailable += Environment_NewBrowserVersionAvailable;
+}
+
+// A new version of the WebView2 Runtime is available, our handler gets called.
+// We close our WebView and set a handler to reinitialize it once the browser
+// process is gone, so we get the new version of the WebView2 Runtime.
+void Environment_NewBrowserVersionAvailable(object sender, object e)
+{
+    StringBuilder messageBuilder = new StringBuilder(256);
+    messageBuilder.Append("We detected there is a new version of the WebView2 Runtime installed. ");
+    messageBuilder.Append("Do you want to switch to it now? This will re-create the WebView.");
+    var selection = MessageBox.Show(this, messageBuilder.ToString(), "New WebView2 Runtime detected", MessageBoxButton.YesNo);
+    if (selection == MessageBoxResult.Yes)
+    {
+        // Save URI or other state you want to restore when the WebView is recreated.
+        _uriToRestore = webView.Source;
+        _coreWebView2Environment.BrowserProcessExited += Environment_BrowserProcessExited;
+        // We dispose of the control so the internal WebView objects are released
+        // and the associated browser process exits. If there are any other WebViews
+        // from the same environment configuration, they need to be closed too.
+        webView.Dispose();
+        webView = null;
+    }
+}
+
 void Environment_BrowserProcessExited(object sender, CoreWebView2BrowserProcessExitedEventArgs e)
 {
-    var exitKind = (e.BrowserProcessExitKind == CoreWebView2BrowserProcessExitKind.NormalExit) ? "normally" : "unexpectedly";
-    MessageBox.Show(this, $"The browser process has exited {exitKind}.", "Browser Process Exited");
+    ((CoreWebView2Environment)sender).BrowserProcessExited -= Environment_BrowserProcessExited;
+    ReinitializeWebView();
+}
+
+void ReinitializeWebView()
+{
+    webView = new WebView2();
+
+    // Restore URI and other WebView state/setup.
+    webView.CreationProperties = (CoreWebView2CreationProperties)this.FindResource("EvergreenWebView2CreationProperties");
+    webView.NavigationStarting += WebView_NavigationStarting;
+    webView.NavigationCompleted += WebView_NavigationCompleted;
+
+    Binding urlBinding = new Binding()
+    {
+        Source = webView,
+        Path = new PropertyPath("Source"),
+        Mode = BindingMode.OneWay
+    };
+    url.SetBinding(TextBox.TextProperty, urlBinding);
+
+    MyWindow.MyDockPanel.Children.Add(webView);
+    webView.Source = (_uriToRestore != null) ? _uriToRestore : new Uri("https://www.bing.com");
+    RegisterForNewVersion();
 }
 ```
 
@@ -82,6 +149,9 @@ raised for any (expected and unexpected) **browser process** exits, while
 `ProcessFailed` is raised only for **unexpected** browser process exits, or for
 **render process** exits/unresponsiveness. To learn more about the WebView2
 Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+
+In the case the browser process crashes, both `BrowserProcessExited` and
+`ProcessFailed` events are raised, but the order is not guaranteed.
 
 
 # API Notes
@@ -115,11 +185,21 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// Add an event handler for the `BrowserProcessExited` event.
   /// The `BrowserProcessExited` event is raised when the browser process of the
   /// WebView2 Runtime associated to this environment terminates due to an error
-  /// or normal shutdown (e.g., when all its WebViews are closed).
+  /// or normal shutdown (e.g., when all its WebViews are closed), after all
+  /// resources (including the user data folder) used by the browser process
+  /// (and related processes) have been released.
   ///
   /// A handler added with this method is called until removed with
   /// `remove_BrowserProcessExited`, even if a new browser process is bound to
   /// this environment after earlier `BrowserProcessExited` events are raised.
+  ///
+  /// All `CoreWebView2Environment` objects across different app processes that use
+  /// the same browser process receive this event when the browser process exits.
+  /// If the browser process (and therefore the user data folder) in use by the app
+  /// process (through the `CoreWebView2Environment` options used) is shared with
+  /// other processes, these processes need to coordinate to handle the potential race
+  /// condition on the use of the resources. E.g., if one app process tries to clear
+  /// the user data folder, while other tries to recreate its WebViews on crash.
   ///
   /// Note this is an event from the `ICoreWebView2Environment3` interface, not the
   /// `ICoreWebView2`. The difference between this `BrowserProcessExited` event and
@@ -128,6 +208,9 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// `ProcessFailed` is raised only for **unexpected** browser process exits, or for
   /// **render process** exits/unresponsiveness. To learn more about the WebView2
   /// Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+  ///
+  /// In the case the browser process crashes, both `BrowserProcessExited` and
+  /// `ProcessFailed` events are raised, but the order is not guaranteed.
   HRESULT add_BrowserProcessExited(
 		  [in] ICoreWebView2BrowserProcessExitedEventHandler* eventHandler,
 		  [out] EventRegistrationToken* token);
@@ -180,7 +263,17 @@ namespace Microsoft.Web.WebView2.Core
         /// `BrowserProcessExited` is raised when the browser process of the
         /// `WebView2 Runtime` associated to this `CoreWebView2Environment`
         /// terminates due to an error or normal shutdown (e.g., when all its
-        /// WebViews are closed).
+        /// WebViews are closed), after all resources (including the user data
+        /// folder) used by the browser process (and related processes) have
+        /// been released.
+        ///
+        /// All `CoreWebView2Environment` objects across different app processes that use
+        /// the same browser process receive this event when the browser process exits.
+        /// If the browser process (and therefore the user data folder) in use by the app
+        /// process (through the `CoreWebView2Environment` options used) is shared with
+        /// other processes, these processes need to coordinate to handle the potential race
+        /// condition on the use of the resources. E.g., if one app process tries to clear
+        /// the user data folder, while other tries to recreate its WebViews on crash.
         ///
         /// Note this is an event from `CoreWebView2Environment`, not the
         /// `CoreWebView2`. The difference between this `BrowserProcessExited` event and
@@ -189,6 +282,9 @@ namespace Microsoft.Web.WebView2.Core
         /// `ProcessFailed` is raised only for **unexpected** browser process exits, or for
         /// **render process** exits/unresponsiveness. To learn more about the WebView2
         /// Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+        ///
+        /// In the case the browser process crashes, both `BrowserProcessExited` and
+        /// `ProcessFailed` events are raised, but the order is not guaranteed.
         event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, CoreWebView2BrowserProcessExitedEventArgs> BrowserProcessExited;
     }
 
