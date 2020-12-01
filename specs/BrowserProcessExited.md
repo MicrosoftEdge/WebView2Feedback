@@ -57,7 +57,7 @@ CHECK_FAILURE(m_webViewEnvironment->add_BrowserProcessExited(
 
         // Watch for graceful browser process exit. Let ProcessFailed event
         // handler take care of failed browser process termination.
-        if (kind == COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL_EXIT)
+        if (kind == COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL)
         {
           CHECK_FAILURE(
               m_webViewEnvironment->remove_BrowserProcessExited(browserExitedEventToken));
@@ -170,12 +170,12 @@ library WebView2
 /// `ICoreWebView2BrowserProcessExitedEventArgs` interface.
 typedef enum COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND {
   /// Indicates that the browser process ended normally.
-  COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL_EXIT,
+  COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL,
 
   /// Indicates that the browser process ended unexpectedly.
   /// A `ProcessFailed` event will also be sent to listening WebViews from the
   /// `ICoreWebView2Environment` associated to the failed process.
-  COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_FAILED_EXIT
+  COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_FAILED
 } COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND;
 
 interface ICoreWebView2Environment3 : ICoreWebView2Environment2
@@ -248,12 +248,12 @@ namespace Microsoft.Web.WebView2.Core
     enum CoreWebView2BrowserProcessExitKind
     {
         /// Indicates that the browser process ended normally.
-        NormalExit,
+        Normal,
         /// Indicates that the browser process ended unexpectedly.
         /// A `CoreWebView2.ProcessFailed` event will also be raised to
         /// listening WebViews from the `CoreWebView2Environment` associated to
         /// the failed process.
-        FailedExit
+        Failed
     };
 
     runtimeclass CoreWebView2Environment
