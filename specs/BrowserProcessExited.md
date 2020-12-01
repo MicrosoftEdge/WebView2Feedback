@@ -310,3 +310,6 @@ While there would be no operation started on calling the async method, a handler
 would be a added to be run (only) the next time the browser process associated
 to the `CoreWebView2Environment` exits, which in turn would make API usage
 easier for the two expected scenarios.
+
+Alternatively, this could be kept an event and the registered handlers be
+automatically removed the next time the event is raised.
