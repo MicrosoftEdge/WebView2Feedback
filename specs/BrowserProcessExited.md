@@ -1,5 +1,5 @@
 # Background
-We have heard asks for a WebView2 API to easily track the `WebView2 Runtime`'s
+We have heard asks for a WebView2 API to easily track the WebView2 Runtime's
 browser process exit. Manually waiting for the process to exit requires
 additional work on the host app, so we are proposing the `BrowserProcessExited`
 event. The `ProcessFailed` already lets app developers handle unexpected browser
@@ -11,10 +11,10 @@ document we describe the new API. We'd appreciate your feedback.
 
 # Description
 The `BrowserProcessExited` event allows developers to subscribe event handlers
-to be run when the `WebView2 Runtime`'s browser process associated to a
+to be run when the WebView2 Runtime's browser process associated to a
 `CoreWebView2Environment` terminates. Key scenarios are cleanup of the use data
-folder used by the `WebView2 Runtime`, which is locked while the runtime's
-browser process is active, and moving to a new `WebView2 Runtime` version after
+folder used by the WebView2 Runtime, which is locked while the runtime's
+browser process is active, and moving to a new WebView2 Runtime version after
 a `NewBrowserVersionAvailable` event.
 
 This event is raised for both expected and unexpected browser process
@@ -261,7 +261,7 @@ namespace Microsoft.Web.WebView2.Core
         // ...
 
         /// `BrowserProcessExited` is raised when the browser process of the
-        /// `WebView2 Runtime` associated to this `CoreWebView2Environment`
+        /// WebView2 Runtime associated to this `CoreWebView2Environment`
         /// terminates due to an error or normal shutdown (e.g., when all its
         /// WebViews are closed), after all resources (including the user data
         /// folder) used by the browser process (and related processes) have
@@ -299,7 +299,7 @@ namespace Microsoft.Web.WebView2.Core
 
 # Appendix
 We expect that for the two scenarios this API is designed for, namely cleanup of
-the user data folder and upgrading the `WebView2 Runtime`, an app adding a
+the user data folder and upgrading the WebView2 Runtime, an app adding a
 handler for `BrowserProcessExited` will only be interested in the next single
 time the browser process exits (even if there could be more browser processes
 being created and exiting throughout the lifetime of a
