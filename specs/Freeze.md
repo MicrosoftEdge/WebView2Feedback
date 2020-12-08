@@ -121,7 +121,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   /// The TryFreeze operation will fail and the completed handler will be invoked with isSuccessful as false.
   /// The WebView will be automatically unfrozen when it becomes visible. Therefore, the
   /// app normally doesn't have to call Unfreeze.
-  /// The app can call `Unfreeze` and then `TryFreeze` periodically for an invisibile WebView so that
+  /// The app can call `Unfreeze` and then `TryFreeze` periodically for an invisible WebView so that
   /// the invisible WebView can sync up with latest data and the page ready to show fresh content
   /// when it becomes visible.
   HRESULT TryFreeze([in] ICoreWebView2StagingTryFreezeCompletedHandler* handler);
