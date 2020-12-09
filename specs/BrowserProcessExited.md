@@ -4,7 +4,7 @@ browser process exit. Manually waiting for the process to exit requires
 additional work on the host app, so we are proposing the `BrowserProcessExited`
 event. The `ProcessFailed` event already lets app developers handle unexpected
 browser process exits for a WebView, this new API lets you listen to both
-expected and unexpected termination of the browser process associated to an
+expected and unexpected termination of the processes associated to an
 environment from the `ICoreWebView2Environment3` interface so you can, e.g.,
 cleanup the user data folder when it's no longer in use. In this document we
 describe the new API. We'd appreciate your feedback.
@@ -12,33 +12,31 @@ describe the new API. We'd appreciate your feedback.
 
 # Description
 The `BrowserProcessExited` event allows developers to subscribe event handlers
-to be run when the WebView2 Runtime browser process associated to the
-`CoreWebView2Environment` terminates. If the browser process terminates before
-its associated processes, the `BrowserProcessExited` event is not raised until
-all the associated processes have also terminated. Key scenarios for this event
-are cleanup of the user data folder used by the WebView2 Runtime, which is
-locked while the runtime's browser process is active, and moving to a new
-WebView2 Runtime version after a `NewBrowserVersionAvailable` event.
+to be run when the WebView2 Runtime processes (including the browser process)
+associated to a `CoreWebView2Environment` terminate. Key scenarios are cleanup
+of the user data folder used by the WebView2 Runtime, which is locked while the
+runtime's browser process is active, and moving to a new WebView2 Runtime
+version after a `NewBrowserVersionAvailable` event.
 
 This event is raised for both expected and unexpected browser process
 termination, after all resources, including the user data folder, used by the
 browser process (and related processes) have been released. The
 `ICoreWebView2BrowserProcessExitedEventArgs` interface lets app developers get
 the `BrowserProcessExitKind` so they can decide how to handle different exit
-kinds. For example, you might want to bypass handling if an event handler for
-the `CoreWebView2`s `ProcessFailed` event
-(for `CoreWebView2ProcessFailedKind.BrowserProcessFailed`) is already
-registered. In case of a browser process crash, both `BrowserProcessExited` and
-`ProcessFailed` events are raised, but the order is not guaranteed.
+kinds or bypass handling if an event handler for the `CoreWebView2`s
+`ProcessFailed` event (for `CoreWebView2ProcessFailedKind.BrowserProcessFailed`)
+is already registered. In case of a browser process crash, both
+`BrowserProcessExited` and `ProcessFailed` events are raised, but the order is
+not guaranteed.
 
-Multiple app processes can share a single browser process by creating their
-`CoreWebView2Environment` with the same user data folder. When that shared
-browser process (and its associated processes) exits, all associated
-`CoreWebview2Environment` objects receive the `BrowserProcessExited` event.
-Multiple processes sharing the same browser process need to coordinate their use
-of the shared user data folder to avoid race conditions. For example, one
-process should not clear the user data folder at the same time that another
-process recovers from the crash by recreating its WebView controls.
+All `CoreWebView2Environment` objects across different app processes that use
+the same browser process receive this event when the browser process (and
+associated processes) exits. If the browser process (and therefore the user data
+folder) in use by the app process (through the `CoreWebView2Environment` options
+used) is shared with other processes, these processes need to coordinate to
+handle the potential race condition on the use of the resources. E.g., if one
+app process tries to clear the user data folder, while other tries to recreate
+its WebViews on crash.
 
 
 # Examples
@@ -47,44 +45,34 @@ be used:
 
 ## Win32 C++
 ```cpp
-class MyApp {
-  // ...
-  EventRegistrationToken m_browserExitedEventToken = {};
-}
+// Before closing the WebView, register a handler with code to run once the
+// browser process is terminated.
+EventRegistrationToken browserExitedEventToken;
 
-void MyApp::CloseWebViewAndCleanup {
-  // Before closing the WebView, register a handler with code to run once the
-  // browser process is terminated.
-  CHECK_FAILURE(m_webViewEnvironment->add_BrowserProcessExited(
-      Callback<ICoreWebView2BrowserProcessExitedEventHandler>(
-          [this](
-              ICoreWebView2Environment* sender,
-              ICoreWebView2BrowserProcessExitedEventArgs* args) {
-          COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND kind;
-          CHECK_FAILURE(args->get_BrowserProcessExitKind(&kind));
+CHECK_FAILURE(m_webViewEnvironment->add_BrowserProcessExited(
+    Callback<ICoreWebView2BrowserProcessExitedEventHandler>(
+        [browserExitedEventToken, this](
+            ICoreWebView2Environment* sender,
+            ICoreWebView2BrowserProcessExitedEventArgs* args) {
+        COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND kind;
+        CHECK_FAILURE(args->get_BrowserProcessExitKind(&kind));
 
-          // Watch for graceful browser process exit. Let ProcessFailed event
-          // handler take care of failed browser process termination.
-          if (kind == COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL)
-          {
-            CHECK_FAILURE(
-                m_webViewEnvironment->remove_BrowserProcessExited(m_browserExitedEventToken));
-            // Release the environment only after the handler is invoked.
-            // Otherwise, there will be no environment to raise the event when
-            // the process exits.
-            m_webViewEnvironment = nullptr;
-            CleanupUserDataFolder();
-          }
+        // Watch for graceful browser process exit. Let ProcessFailed event
+        // handler take care of failed browser process termination.
+        if (kind == COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL)
+        {
+          CHECK_FAILURE(
+              m_webViewEnvironment->remove_BrowserProcessExited(browserExitedEventToken));
+          // Release the environment only after the handler is invoked.
+          // Otherwise, there will be no environment to raise the event when
+          // the process exits.
+          m_webViewEnvironment = nullptr;
+          CleanupUserDataFolder();
+        }
 
-          return S_OK;
-      }).Get(),
-      &m_browserExitedEventToken));
-
-  // Close the WebView through ICoreWebView2Controller
-  CHECK_FAILURE(m_controller->Close());
-
-  // Other app state cleanup...
-}
+        return S_OK;
+    }).Get(),
+    &browserExitedEventToken));
 ```
 
 ## .NET C#
@@ -94,19 +82,19 @@ private Uri _uriToRestore;
 
 async void RegisterForNewVersion()
 {
-    // We call `EnsureCoreWebiew2Async` so the `CoreWebView2` property is
-    // initialized and not null as we will access the environment from it.
-    // Alternatively, if the WebView was created from an environment provided to
-    // the control, we can use that environment object directly.
+    // We need to make sure the CoreWebView2 property is not null, so we can get
+    // the environment from it. Alternatively, if the WebView was created from
+    // an environment provided to the control, we can use that environment
+    // object directly.
     await webView.EnsureCoreWebView2Async();
     _coreWebView2Environment = webView.CoreWebView2.Environment;
     _coreWebView2Environment.NewBrowserVersionAvailable += Environment_NewBrowserVersionAvailable;
 }
 
 // A new version of the WebView2 Runtime is available, our handler gets called.
-// We close all app WebViews and set handlers to reinitialize them once the
-// browser process is gone, so we get the new version of the WebView2 Runtime.
-async void Environment_NewBrowserVersionAvailable(CoreWebView2Environment sender, object e)
+// We close our WebView and set a handler to reinitialize it once the browser
+// process is gone, so we get the new version of the WebView2 Runtime.
+void Environment_NewBrowserVersionAvailable(object sender, object e)
 {
     StringBuilder messageBuilder = new StringBuilder(256);
     messageBuilder.Append("We detected there is a new version of the WebView2 Runtime installed. ");
@@ -114,39 +102,20 @@ async void Environment_NewBrowserVersionAvailable(CoreWebView2Environment sender
     var selection = MessageBox.Show(this, messageBuilder.ToString(), "New WebView2 Runtime detected", MessageBoxButton.YesNo);
     if (selection == MessageBoxResult.Yes)
     {
-        // If this or any other application creates additional WebViews from the same
-        // environment configuration, all those WebViews need to be closed before
-        // the browser process will exit. This sample creates a single WebView per
-        // MainWindow, we let each MainWindow prepare to recreate and close its WebView.
-        CloseAppWebViewsForUpdate();
+        // Save URI or other state you want to restore when the WebView is recreated.
+        _uriToRestore = webView.Source;
+        _coreWebView2Environment.BrowserProcessExited += Environment_BrowserProcessExited;
+        // We dispose of the control so the internal WebView objects are released
+        // and the associated browser process exits. If there are any other WebViews
+        // from the same environment configuration, they need to be closed too.
+        webView.Dispose();
+        webView = null;
     }
 }
 
-void CloseAppWebViewsForUpdate()
+void Environment_BrowserProcessExited(object sender, CoreWebView2BrowserProcessExitedEventArgs e)
 {
-    foreach (Window window in Application.Current.Windows)
-    {
-        if (window is MainWindow mainWindow)
-        {
-            mainWindow.CloseWebViewForUpdate();
-        }
-    }
-}
-
-void CloseWebViewForUpdate()
-{
-    // Save URI or other state you want to restore when the WebView is recreated.
-    _uriToRestore = webView.Source;
-    _coreWebView2Environment.BrowserProcessExited += Environment_BrowserProcessExited;
-    // We dispose of the control so the internal WebView objects are released
-    // and the associated browser process exits.
-    webView.Dispose();
-    webView = null;
-}
-
-void Environment_BrowserProcessExited(CoreWebView2Environment sender, CoreWebView2BrowserProcessExitedEventArgs e)
-{
-    sender.BrowserProcessExited -= Environment_BrowserProcessExited;
+    ((CoreWebView2Environment)sender).BrowserProcessExited -= Environment_BrowserProcessExited;
     ReinitializeWebView();
 }
 
@@ -168,7 +137,7 @@ void ReinitializeWebView()
     url.SetBinding(TextBox.TextProperty, urlBinding);
 
     MyWindow.MyDockPanel.Children.Add(webView);
-    webView.Source = _uriToRestore ?? new Uri("https://www.bing.com");
+    webView.Source = (_uriToRestore != null) ? _uriToRestore : new Uri("https://www.bing.com");
     RegisterForNewVersion();
 }
 ```
@@ -228,17 +197,13 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// this environment after earlier `BrowserProcessExited` events are raised.
   ///
   /// All `CoreWebView2Environment` objects across different app processes that use
-  /// the same browser process receive this event when the browser process exits.
-  /// If the browser process terminates before its associated processes, the
-  /// `BrowserProcessExited` event is not raised until all the associated processes
-  /// have also terminated.
-  ///
-  /// Multiple app processes can share a single browser process by creating their
-  /// `CoreWebView2Environment` with the same user data folder. These processes
-  /// sharing the same browser process need to coordinate their use of the shared
-  /// user data folder to avoid race conditions. For example, one process should
-  /// not clear the user data folder at the same time that another process recovers
-  /// from the crash by recreating its WebView controls.
+  /// the same browser process receive this event when the browser process (and
+  /// associated processes) exits. If the browser process (and therefore the user data
+  /// folder) in use by the app process (through the `CoreWebView2Environment` options
+  /// used) is shared with other processes, these processes need to coordinate to
+  /// handle the potential race condition on the use of the resources. E.g., if one
+  /// app process tries to clear the user data folder, while other tries to recreate
+  /// its WebViews on crash.
   ///
   /// Note this is an event from the `ICoreWebView2Environment3` interface, not the
   /// `ICoreWebView2`. The difference between this `BrowserProcessExited` event and
@@ -308,17 +273,13 @@ namespace Microsoft.Web.WebView2.Core
         /// been released.
         ///
         /// All `CoreWebView2Environment` objects across different app processes that use
-        /// the same browser process receive this event when the browser process exits.
-        /// If the browser process terminates before its associated processes, the
-        /// `BrowserProcessExited` event is not raised until all the associated processes
-        /// have also terminated.
-        ///
-        /// Multiple app processes can share a single browser process by creating their
-        /// `CoreWebView2Environment` with the same user data folder. These processes
-        /// sharing the same browser process need to coordinate their use of the shared
-        /// user data folder to avoid race conditions. For example, one process should
-        /// not clear the user data folder at the same time that another process recovers
-        /// from the crash by recreating its WebView controls.
+        /// the same browser process receive this event when the browser process (and
+        /// associated processes) exits. If the browser process (and therefore the user data
+        /// folder) in use by the app process (through the `CoreWebView2Environment` options
+        /// used) is shared with other processes, these processes need to coordinate to
+        /// handle the potential race condition on the use of the resources. E.g., if one
+        /// app process tries to clear the user data folder, while other tries to recreate
+        /// its WebViews on crash.
         ///
         /// Note this is an event from the `ICoreWebView2Environment3` interface, not the
         /// `ICoreWebView2`. The difference between this `BrowserProcessExited` event and
