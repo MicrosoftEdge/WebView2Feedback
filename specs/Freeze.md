@@ -78,7 +78,7 @@ void ViewComponent::Resume()
 ```
 
 # Remarks
-The CoreWebView2Controller must be invisible when the API is called. Otherwise, the
+The CoreWebView2Controller's IsVisible property must be false when the API is called. Otherwise, the
 API fails with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.   
 Suspending is similar to putting a tab to sleep in the Edge browser. Suspending pauses
 WebView script timers and animations, minimizes CPU usage for the associated
@@ -112,8 +112,8 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   /// This is useful when a Win32 app becomes invisible, or when a Universal Windows
   /// Platform app is being suspended, during the suspended event handler before completing
   /// the suspended event.
-  /// The CoreWebView2Controller must be invisible when the API is called. Otherwise, the
-  /// API fails with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// The CoreWebView2Controller's IsVisible property must be false when the API is called.
+  /// Otherwise, the API fails with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// Suspending is similar to putting a tab to sleep in the Edge browser. Suspending pauses
   /// WebView script timers and animations, minimizes CPU usage for the associated
   /// browser renderer process and allows the operating system to reuse the memory that was
