@@ -13,8 +13,9 @@ async protected void OnSuspending(object sender, SuspendingEventArgs args)
 {
     SuspendingDeferral deferral = args.SuspendingOperation.GetDeferral();
     // Ensure that CoreWebView2Controller is invisible, it must be invisible for TrySuspendAsync to succeed.
-    // webView here is Microsoft.Web.WebView2.Wpf.WebView2.
-    webView.Visibility = false;
+    // webView here is WinUI WebView2 control.
+    // For WPF and Winforms WebView2 control, do webView.Visibility = false;
+    webView.Visibility = Visibility.Collapsed;
     await webView.CoreWebView2.TrySuspendAsync();
     deferral.Complete();
 }
