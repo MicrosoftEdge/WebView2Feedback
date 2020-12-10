@@ -96,9 +96,9 @@ app normally does not have to call Resume.
 The app can call `Resume` and then `TrySuspend` periodically for an invisible WebView so that
 the invisible WebView can sync up with latest data and the page ready to show fresh content
 when it becomes visible.   
-When WebView is suspended, While WebView properties can still be accessed, WebView methods are generally not accessible.
-After `TrySuspend` is called and until WebView is resumed or `TrySuspend` resulted in not being successfully suspended,
-calling WebView methods will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+All WebView APIs can still be accessed when a WebView is suspended. Some APIs like Navigate will auto resume
+the WebView. To avoid unexpected auto resume, check `IsSuspended` property before calling APIs that might
+change WebView state.
 
 # API Notes
 See [API Details](#api-details) section below for API reference.
@@ -130,10 +130,9 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   /// The app can call `Resume` and then `TrySuspend` periodically for an invisible WebView so that
   /// the invisible WebView can sync up with latest data and the page ready to show fresh content
   /// when it becomes visible.
-  /// When WebView is suspended, while WebView properties can still be accessed, WebView methods are
-  /// generally not accessible. After `TrySuspend` is called and until WebView is resumed or `TrySuspend`
-  /// resulted in not being successfully suspended, calling WebView methods will fail with
-  /// `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// All WebView APIs can still be accessed when a WebView is suspended. Some APIs like Navigate
+  /// will auto resume the WebView. To avoid unexpected auto resume, check `IsSuspended` property
+  /// before calling APIs that might change WebView state.
   HRESULT TrySuspend([in] ICoreWebView2StagingTrySuspendCompletedHandler* handler);
 
   /// Resume the WebView so that it would resume activities on the web page.
