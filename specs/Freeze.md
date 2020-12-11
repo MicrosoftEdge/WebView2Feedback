@@ -161,7 +161,7 @@ interface ICoreWebView2StagingTrySuspendCompletedHandler : IUnknown {
 
 }
 ```
-## .Net WinRT
+## .NET WinRT
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
