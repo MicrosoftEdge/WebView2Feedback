@@ -146,7 +146,8 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   ///
   HRESULT Resume();
 
-  /// `TRUE` when WebView is suspended.
+  /// `TRUE` when WebView is suspended, from the time when TrySuspend has completed
+  ///  successfully until WebView is resumed.
   [propget] HRESULT IsSuspended([out, retval] BOOL* isSuspended);
 }
 
