@@ -7,7 +7,7 @@ to access this feature so that invisible WebView can use less resources. We'd ap
 You may call the `TrySuspendAsync` API to have the WebView2 consume less memory. This is useful when your Win32 app becomes invisible, or when your Universal Windows Platform app is being suspended, during the suspended event handler before completing the suspended event.
 
 # Examples
-## .Net, WinRT
+## .NET, WinRT
 ```c#
 async protected void OnSuspending(object sender, SuspendingEventArgs args)
 {
