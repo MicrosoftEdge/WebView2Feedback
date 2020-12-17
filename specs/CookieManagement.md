@@ -194,7 +194,7 @@ Task<bool> IsUserSignedInToContoso()
         if (cookie.Name == "is_signed_in")
         {
             return cookie.Value == "1";
-}
+        }
     }
     return false;
 }
@@ -222,7 +222,7 @@ In this scenario, the host application clears the remembered user ID because the
 
 ```csharp
 void ClearRememberedUserId()
-    {
+{
     CoreWebView2CookieManager cookieManager = webView.CoreWebView2.CookieManager;
     cookieManager.DeleteCookiesWithNameAndPath("last_userid", "https://contoso.com", "/");
 }
@@ -239,7 +239,7 @@ Task ClearNonContosoCookies()
     List<CoreWebView2Cookie> cookieList =
         await webView.CoreWebView2.CookieManager.GetCookiesAsync(null);
     foreach (CoreWebView2Cookie cookie in cookieList)
-{
+    {
         if (cookie.Domain != "contoso.com") cookieManager.DeleteCookie(cookie);
     }
 }
@@ -359,7 +359,7 @@ interface ICoreWebView2CookieManager : IUnknown {
   /// One can set other optional properties after cookie creation.
   /// This only creates a cookie object and it is not added to the cookie
   /// manager until you call AddOrUpdateCookie.
-  /// name that starts with whitespace(s) is not allowed.
+  /// Leading or trailing whitespace(s), empty string, and special characters are not allowed for name.
   /// See ICoreWebView2Cookie for more details.
   HRESULT CreateCookie(
     [in] LPCWSTR name,
@@ -393,8 +393,8 @@ interface ICoreWebView2CookieManager : IUnknown {
 
   /// Deletes cookies with matching name and uri.
   /// Cookie name is required.
-  /// If uri is specified, deletes all cookies with the given name where domain
-  /// and path match provided URI.
+  /// All cookies with the given name where domain
+  /// and path match provided URI are deleted.
   HRESULT DeleteCookies([in] LPCWSTR name, [in] LPCWSTR uri);
 
   /// Deletes cookies with matching name and domain/path pair.
