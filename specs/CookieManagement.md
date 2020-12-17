@@ -179,33 +179,82 @@ void ScenarioCookieManagement::GetCookiesHelper(std::wstring uri)
 
 ## .NET and WinRT
 
-```c#
-void AddOrUpdateCookieCmdExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    CoreWebView2Cookie cookie = webView.CoreWebView2.CookieManager.CreateCookie("CookieName", "CookieValue", ".bing.com", "/");
-    cookie.SameSite = CoreWebView2CookieSameSiteKind.None;
-    webView.CoreWebView2.CookieManager.AddOrUpdateCookie(cookie);
-}
+### Scenario 1
 
-async void GetCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
+In this scenario, the host application reads contoso.com cookies from the WebView to see if the user is logged in.
+
+```csharp
+Task<bool> IsUserSignedInToContoso()
 {
-    IList<CoreWebView2Cookie> cookieList = await webView.CoreWebView2.CookieManager.GetCookiesAsync("https://www.bing.com");
-    for (uint i = 0; i < cookieList.Count; ++i)
+    CoreWebView2CookieManager cookieManager = webView.CoreWebView2.CookieManager;
+    List<CoreWebView2Cookie> cookieList =
+        await webView.CoreWebView2.CookieManager.GetCookiesAsync("https://contoso.com");
+    foreach (CoreWebView2Cookie cookie in cookieList)
     {
-        CoreWebView2Cookie cookie = cookieList[i];
-        Cookie systemNetCookie = cookie.ToSystemNetCookie();
-        Console.WriteLine(systemNetCookie.ToString());
+        if (cookie.Name == "is_signed_in")
+        {
+            return cookie.Value == "1";
+}
+    }
+    return false;
+}
+```
+
+### Scenario 2
+
+In this scenario, the host application sets the remembered user ID, so that when the user goes to contoso, their userid is pre-filled by the site.
+
+```csharp
+void SetRememberedUserId(string id)
+{
+    CoreWebView2CookieManager cookieManager = webView.CoreWebView2.CookieManager;
+    CoreWebView2Cookie cookie =
+        cookieManager.CreateCookieWithDetails(
+            "last_userid", id, "contoso.com", "/");
+    cookie.IsSecure = true; // disallow http://contoso.com/
+    cookieManager.AddOrUpdateCookie(cookie);
+}
+```
+
+### Scenario 3
+
+In this scenario, the host application clears the remembered user ID because the user signed out of the host app.
+
+```csharp
+void ClearRememberedUserId()
+    {
+    CoreWebView2CookieManager cookieManager = webView.CoreWebView2.CookieManager;
+    cookieManager.DeleteCookiesWithNameAndPath("last_userid", "https://contoso.com", "/");
+}
+```
+
+### Scenario 4
+
+In this scenario, the host application clears all cookies not belonging to contoso. Note that `List<CoreWebView2Cookie>` returned by the `GetCookiesAsync` call is just a snapshot of the cookies and one should call `DeleteCookies` to remove cookies.
+
+```csharp
+Task ClearNonContosoCookies()
+{
+    CoreWebView2CookieManager cookieManager = webView.CoreWebView2.CookieManager;
+    List<CoreWebView2Cookie> cookieList =
+        await webView.CoreWebView2.CookieManager.GetCookiesAsync(null);
+    foreach (CoreWebView2Cookie cookie in cookieList)
+{
+        if (cookie.Domain != "contoso.com") cookieManager.DeleteCookie(cookie);
     }
 }
+```
 
-void DeleteAllCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    webView.CoreWebView2.CookieManager.DeleteAllCookies();
-}
+### Scenario 5
 
-void DeleteCookiesCmdExecuted(object target, ExecutedRoutedEventArgs e)
+In this scenario, the host application clears all cookies as part of a troubleshooter.
+
+```csharp
+void ClearCookiesTroubleshooter()
 {
-    webView.CoreWebView2.CookieManager.DeleteCookies("CookieName", "https://www.bing.com");
+    CoreWebView2CookieManager cookieManager = webView.CoreWebView2.CookieManager;
+    cookieManager.DeleteAllCookies();
+
 }
 ```
 
