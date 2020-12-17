@@ -12,19 +12,25 @@ The following code snippet demonstrates how the cookie management APIs can be us
 
 ## Win32 C++
 
+This sample is meant to be used in conjunction with a script that calls `window.chrome.webview.postMessage("GetCookies cookiename")` and related methods. This sample is implementing the host half of the ad-hoc protocol.
+
 ```cpp
 ScenarioCookieManagement::ScenarioCookieManagement(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
+    std::wstring m_sampleUri;
+
+    // CHECK_FAILURE_AND_MESSAGE_CLIENT macro is used to signal the HTML in case of failures.    
+
     //! [CookieManager]
-    CHECK_FAILURE(m_webView->get_CookieManager(&m_cookieManager));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(m_webView->get_CookieManager(&m_cookieManager));
     //! [CookieManager]
 
-    CHECK_FAILURE(m_webView->add_WebMessageReceived(
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(m_webView->add_WebMessageReceived(
         Microsoft::WRL::Callback<ICoreWebView2WebMessageReceivedEventHandler>(
             [this](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args) {
                 wil::unique_cotaskmem_string uri;
-                CHECK_FAILURE(args->get_Source(&uri));
+                CHECK_FAILURE_AND_MESSAGE_CLIENT(args->get_Source(&uri));
 
                 // Always validate that the origin of the message is what you expect.
                 if (uri.get() != m_sampleUri)
@@ -32,37 +38,34 @@ ScenarioCookieManagement::ScenarioCookieManagement(AppWindow* appWindow)
                     return S_OK;
                 }
                 wil::unique_cotaskmem_string messageRaw;
-                CHECK_FAILURE(args->TryGetWebMessageAsString(&messageRaw));
+                CHECK_FAILURE_AND_MESSAGE_CLIENT(args->TryGetWebMessageAsString(&messageRaw));
                 std::wstring message = messageRaw.get();
                 std::wstring reply;
 
                 if (message.compare(0, 11, L"GetCookies ") == 0)
                 {
                     GetCookiesHelper(message.substr(11));
-                    reply =
-                        L"{\"CookiesGot\":\"" + GetCookiesHelper(message.substr(11)) + L"\"}";
-                    CHECK_FAILURE(sender->PostWebMessageAsJson(reply.c_str()));
                 }
                 else if (message.compare(0, 10, L"AddOrUpdateCookie ") == 0)
                 {
                     message = message.substr(10);
-                    std::wstring name = message.substr(0, message.find(' '));
-                    std::wstring value = message.substr(message.find(' ') + 1);
+                    std::wstring name = message.substr(0, message.find('='));
+                    std::wstring value = message.substr(message.find('=') + 1);
 
                     //! [AddOrUpdateCookie]
                     wil::com_ptr<ICoreWebView2Cookie> cookie;
-                    CHECK_FAILURE(m_cookieManager->CreateCookie(
+                    CHECK_FAILURE_AND_MESSAGE_CLIENT(m_cookieManager->CreateCookie(
                         name.c_str(), value.c_str(), L".bing.com", L"/", &cookie));
-                    CHECK_FAILURE(m_cookieManager->AddOrUpdateCookie(cookie.get()));
+                    CHECK_FAILURE_AND_MESSAGE_CLIENT(m_cookieManager->AddOrUpdateCookie(cookie.get()));
                     reply = L"{\"CookieAddedOrUpdated\":\"Cookie added or updated successfully.\"}";
-                    CHECK_FAILURE(sender->PostWebMessageAsJson(reply.c_str()));
+                    CHECK_FAILURE_AND_MESSAGE_CLIENT(sender->PostWebMessageAsJson(reply.c_str()));
                     //! [AddOrUpdateCookie]
                 }
                 else if (message.compare(0, 16, L"ClearAllCookies ") == 0)
                 {
-                    CHECK_FAILURE(m_cookieManager->DeleteAllCookies());
+                    CHECK_FAILURE_AND_MESSAGE_CLIENT(m_cookieManager->DeleteAllCookies());
                     reply = L"{\"CookiesDeleted\":\"Cookies all deleted.\"}";
-                    CHECK_FAILURE(sender->PostWebMessageAsJson(reply.c_str()));
+                    CHECK_FAILURE_AND_MESSAGE_CLIENT(sender->PostWebMessageAsJson(reply.c_str()));
                 }
                 return S_OK;
             })
@@ -70,40 +73,41 @@ ScenarioCookieManagement::ScenarioCookieManagement(AppWindow* appWindow)
         &m_webMessageReceivedToken));
 }
 
-static std::wstring CookieToJsonString(ICoreWebView2Cookie* cookie)
+static std::wstring CookieToString(ICoreWebView2Cookie* cookie)
 {
     //! [CookieObject]
     wil::unique_cotaskmem_string name;
-    CHECK_FAILURE(cookie->get_Name(&name));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_Name(&name));
     wil::unique_cotaskmem_string value;
-    CHECK_FAILURE(cookie->get_Value(&value));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_Value(&value));
     wil::unique_cotaskmem_string domain;
-    CHECK_FAILURE(cookie->get_Domain(&domain));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_Domain(&domain));
     wil::unique_cotaskmem_string path;
-    CHECK_FAILURE(cookie->get_Path(&path));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_Path(&path));
     double expires;
-    CHECK_FAILURE(cookie->get_Expires(&expires));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_Expires(&expires));
     BOOL httpOnly = FALSE;
-    CHECK_FAILURE(cookie->get_IsHttpOnly(&httpOnly));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_IsHttpOnly(&httpOnly));
     COREWEBVIEW2_COOKIE_SAME_SITE_KIND same_site;
     std::wstring same_site_as_string;
-    CHECK_FAILURE(cookie->get_SameSite(&same_site));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_SameSite(&same_site));
     switch (same_site)
     {
     case COREWEBVIEW2_COOKIE_SAME_SITE_KIND_NONE:
         same_site_as_string = L"None";
         break;
-    case COREWEBVIEW2_COOKIE_SAME_SITE_KIND_LAX:
-        same_site_as_string = L"Lax";
-        break;
     case COREWEBVIEW2_COOKIE_SAME_SITE_KIND_STRICT:
         same_site_as_string = L"Strict";
         break;
+    case COREWEBVIEW2_COOKIE_SAME_SITE_KIND_LAX:
+    default:
+        same_site_as_string = L"Lax";
+        break;
     }
     BOOL secure = FALSE;
-    CHECK_FAILURE(cookie->get_IsSecure(&secure));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_IsSecure(&secure));
     BOOL isSession = FALSE;
-    CHECK_FAILURE(cookie->get_IsSession(&isSession));
+    CHECK_FAILURE_AND_MESSAGE_CLIENT(cookie->get_IsSession(&isSession));
 
     std::wstring result = L"{";
     result += L"\"Name\": " + EncodeQuote(name.get()) + L", " + L"\"Value\": " +
@@ -129,15 +133,15 @@ void ScenarioCookieManagement::GetCookiesHelper(std::wstring uri)
     //! [GetCookies]
     if (m_cookieManager)
     {
-        CHECK_FAILURE(m_cookieManager->GetCookies(
+        CHECK_FAILURE_AND_MESSAGE_CLIENT(m_cookieManager->GetCookies(
             uri.c_str(),
             Callback<ICoreWebView2GetCookiesCompletedHandler>(
                 [this, uri](HRESULT error_code, ICoreWebView2CookieList* list) -> HRESULT {
-                    CHECK_FAILURE(error_code);
+                    CHECK_FAILURE_AND_MESSAGE_CLIENT(error_code);
 
                     std::wstring result;
                     UINT cookie_list_size;
-                    CHECK_FAILURE(list->get_Count(&cookie_list_size));
+                    CHECK_FAILURE_AND_MESSAGE_CLIENT(list->get_Count(&cookie_list_size));
 
                     if (cookie_list_size == 0)
                     {
@@ -151,11 +155,11 @@ void ScenarioCookieManagement::GetCookiesHelper(std::wstring uri)
                         for (int i = 0; i < cookie_list_size; ++i)
                         {
                             wil::com_ptr<ICoreWebView2Cookie> cookie;
-                            CHECK_FAILURE(list->GetValueAtIndex(i, &cookie));
+                            CHECK_FAILURE_AND_MESSAGE_CLIENT(list->GetValueAtIndex(i, &cookie));
 
                             if (cookie.get())
                             {
-                                result += CookieToJsonString(cookie.get());
+                                result += CookieToString(cookie.get());
                                 if (i != cookie_list_size - 1)
                                 {
                                     result += L",\n";
