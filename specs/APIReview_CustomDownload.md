@@ -1,5 +1,3 @@
-  The purpose of this spec is to describe the WebView2 Custom Download API - comprised of a DownloadStarted Handler and associated args.
-
 # Background
 <!-- TEMPLATE
     Use this section to provide background context for the new API(s)
