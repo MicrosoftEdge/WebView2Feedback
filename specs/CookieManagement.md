@@ -209,7 +209,7 @@ void SetRememberedUserId(string id)
 {
     CoreWebView2CookieManager cookieManager = webView.CoreWebView2.CookieManager;
     CoreWebView2Cookie cookie =
-        cookieManager.CreateCookieWithDetails(
+        cookieManager.CreateCookie(
             "last_userid", id, "contoso.com", "/");
     cookie.IsSecure = true; // disallow http://contoso.com/
     cookieManager.AddOrUpdateCookie(cookie);
@@ -369,7 +369,7 @@ interface ICoreWebView2CookieManager : IUnknown {
     [out, retval] ICoreWebView2Cookie** cookie);
 
   /// Creates a cookie whose params matches those of the specified cookie.
-  HRESULT CreateCookie(
+  HRESULT CopyCookie(
     [in] ICoreWebView2Cookie* cookieParam,
     [out, retval] ICoreWebView2Cookie** cookie);
 
@@ -466,10 +466,10 @@ namespace Microsoft.Web.WebView2.Core
         /// One can set other optional properties after cookie creation.
         /// This only creates a cookie object and it is not added to the cookie
         /// manager until you call AddOrUpdateCookie.
-        CoreWebView2Cookie CreateCookieWithDetails(String name, String value, String Domain, String Path);
+        CoreWebView2Cookie CreateCookie(String name, String value, String Domain, String Path);
 
         /// Creates a cookie whose params matches those of the specified cookie.
-        CoreWebView2Cookie CreateCookie(CoreWebView2 cookie);
+        CoreWebView2Cookie CopyCookie(CoreWebView2 cookie);
 
         /// Gets a list of cookies matching the specific URI.
         /// If uri is empty string or null, all cookies under the same profile are
