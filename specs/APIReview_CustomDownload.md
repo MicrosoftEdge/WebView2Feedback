@@ -93,70 +93,81 @@ header.
     As an example of this section, see the Examples section for the PasswordBox
     control (https://docs.microsoft.com/windows/uwp/design/controls-and-patterns/password-box#examples).
 -->
-
+## Win32 C++
 ```cpp
-ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* appWindow)
-    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
+// Register a handler for the `DownloadStarting` event.
+// This example hides the default downloads UI and shows a dialog box instead.
+// The dialog box displays the default save path and allows the user to specify a different path.
+// Selecting `OK` will save the download to the chosen path.
+// Selecting `CANCEL` will cancel the download.
+m_webViewStaging = m_webView.query<ICoreWebView2Staging2>();
+m_demoUri = L"https://demo.smartscreen.msft.net/";
+CHECK_FAILURE(m_webViewStaging->add_DownloadStarting(
+    Callback<ICoreWebView2StagingDownloadStartingEventHandler>(
+        [this](
+            ICoreWebView2Staging2* sender,
+            ICoreWebView2StagingDownloadStartingEventArgs* args) -> HRESULT {
+            // Hide the default downloads UI.
+            CHECK_FAILURE(args->put_HideUI(TRUE));
+
+            UINT64 totalBytes = 0;
+            CHECK_FAILURE(args->get_TotalBytes(&totalBytes));
+
+            wil::unique_cotaskmem_string uri;
+            CHECK_FAILURE(args->get_Uri(&uri));
+
+            wil::unique_cotaskmem_string mimeType;
+            CHECK_FAILURE(args->get_MimeType(&mimeType));
+
+            wil::unique_cotaskmem_string contentDisposition;
+            CHECK_FAILURE(args->get_ContentDisposition(&contentDisposition));
+
+            wil::unique_cotaskmem_string savePath;
+            CHECK_FAILURE(args->get_SavePath(&savePath));
+
+            std::wstring prompt =
+                std::wstring(L"Enter save path or select `OK` to use default path. ") +
+                L"Select `Cancel` to cancel the download.";
+
+            // Display the uri, mime type, and total bytes of the download.
+            std::wstring description = std::wstring(L"Uri: ") + uri.get() + L"\r\n" +
+                                        L"Mime type: " + mimeType.get() + L"\r\n" +
+                                        L"Total bytes: " + std::to_wstring(totalBytes) +
+                                        L"\r\n";
+
+            TextInputDialog dialog(
+                m_appWindow->GetMainWindow(), L"Download Starting", prompt.c_str(),
+                description.c_str(), savePath.get());
+            if (dialog.confirmed)
+            {
+                // If user selects `OK`, the download will complete normally.
+                // Save path will be updated if a new one was provided.
+                CHECK_FAILURE(args->put_SavePath(dialog.input.c_str()));
+            } else {
+                // If user selects `Cancel`, the download will be cancelled.
+                CHECK_FAILURE(args->put_Cancel(TRUE));
+            }
+            return S_OK;
+        })
+        .Get(),
+    &m_DownloadStartingToken));
+```
+## .NET/ WinRT
+```c#
+webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2DownloadStartingEventArgs args)
 {
-    //! [DownloadStarting]
-    // Register a handler for the `DownloadStarting` event.
-    // This example hides the default downloads UI and shows a dialog box instead.
-    // The dialog box displays the default save path and allows the user to specify a different path.
-    // Selecting `OK` will save the download to the chosen path.
-    // Selecting `Cancel` will cancel the download.
-
-    m_demoUri = L"https://demo.smartscreen.msft.net/";
-     CHECK_FAILURE(m_webView->add_DownloadStarting(
-         Callback<ICoreWebView2DownloadStartingEventHandler>(
-             [this](ICoreWebView2* sender, ICoreWebView2DownloadStartingEventArgs* args)
-                 -> HRESULT {
-
-                   // Hide the default downloads UI.
-                   CHECK_FAILURE(args->put_HideUI(TRUE));
-
-                   UINT64 totalBytes = 0;
-                   CHECK_FAILURE(args->get_TotalBytes(&totalBytes));
-
-                   wil::unique_cotaskmem_string url;
-                   CHECK_FAILURE(args->get_Url(&url));
-
-                   wil::unique_cotaskmem_string mimeType;
-                   CHECK_FAILURE(args->get_MimeType(&mimeType));
-
-                   wil::unique_cotaskmem_string contentDisposition;
-                   CHECK_FAILURE(args->get_ContentDisposition(&contentDisposition));
-
-                   wil::unique_cotaskmem_string savePath;
-                   CHECK_FAILURE(args->get_SavePath(&savePath));
-
-                  std::wstring prompt =
-                    std::wstring(L"Enter save path or select `OK` to use default path. ") +
-                    L"Select `Cancel` to cancel the download.";
-
-                  // Display the url, mime type, and total bytes of the download.
-                  std::wstring description = std::wstring(L"Url: ") + url.get() + L"\r\n" +
-                    L"Mime type: " + mimeType.get() + L"\r\n" +
-                    L"Total bytes: " + std::to_wstring(totalBytes) + L"\r\n";
-
-                   TextInputDialog dialog(
-                       m_appWindow->GetMainWindow(), L"Download Starting", prompt.c_str(),
-                       description.c_str(), savePath.get());
-                   if (dialog.confirmed)
-                   {
-                       // If user selects `OK`, the download will complete normally.
-                       // Save path will be updated if a new one was provided.
-                       CHECK_FAILURE(args->put_SavePath(dialog.input.c_str()));
-                   }
-                   else if (dialog.canceled) {
-                       // If user selects `Cancel`, the download will be cancelled.
-                       CHECK_FAILURE(args->put_Cancel(TRUE));
-                   }
-                 return S_OK;
-             })
-             .Get(),
-         &m_DownloadStartingToken));
-    //! [DownloadStarting]
-}
+    args.HideUI = 1;
+    var dialog = new TextInputDialog(
+        title: "Download Starting",
+        description: "Enter new save path or select OK to keep default path. Select cancel to cancel the download.",
+        defaultInput: args.SavePath);
+    if (dialog.ShowDialog() == true)
+    {
+        args.SavePath = dialog.Input.Text;
+    }
+    else args.Cancel = true;
+};
+webView.CoreWebView2.Navigate("https://demo.smartscreen.msft.net/");
 ```
 # Remarks
 <!-- TEMPLATE
@@ -180,7 +191,7 @@ ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* ap
     Option 2: Put these descriptions in the below API Details section,
         with a "///" comment above the member or type.
 -->
-
+See [API Details](#api-details) section below for API reference.
 
 # API Details
 <!-- TEMPLATE
@@ -220,15 +231,31 @@ ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* ap
     }
     ```
 -->
-```
-/// Add an event handler for the DownloadStarting event.
-HRESULT add_DownloadStarting(
-  [in] ICoreWebView2StagingDownloadStartingEventHandler* eventHandler,
-  [out] EventRegistrationToken* token);
+## Win32 C++
+```c#
+[uuid(9EAFB7D0-88C3-4450-BBFB-C05A46C40C72), object, pointer_default(unique)]
+interface ICoreWebView2Staging2 : IUnknown {
 
-/// Remove an event handler previously added with `add_DownloadStarting`.
-HRESULT remove_DownloadStarting(
-    [in] EventRegistrationToken token);
+  /// Add an event handler for the `DownloadStarting` event. This event fires
+  /// when a download has begun, blocking the default download UI.
+  ///
+  /// The host can choose to cancel a download, change the save path, and hide
+  /// the default download UI. If the host chooses to cancel the download, the
+  /// download is not saved and no UI is shown. Otherwise, the download is saved
+  /// once the event completes, and default download UI is shown if the host
+  /// did not choose to hide it.
+  ///
+  /// If the event is not handled, downloads will complete normally with the
+  /// default UI shown.
+  ///
+  HRESULT add_DownloadStarting(
+    [in] ICoreWebView2StagingDownloadStartingEventHandler* eventHandler,
+    [out] EventRegistrationToken* token);
+
+  /// Remove an event handler previously added with `add_DownloadStarting`.
+  HRESULT remove_DownloadStarting(
+      [in] EventRegistrationToken token);
+}
 
 [uuid(53b676ec-c3b1-4804-996a-c72c16b09efb), object, pointer_default(unique)]
 interface ICoreWebView2StagingDownloadStartingEventHandler : IUnknown
@@ -243,8 +270,8 @@ interface ICoreWebView2StagingDownloadStartingEventHandler : IUnknown
 [uuid(c7e95e2f-f789-44e6-b372-3141469240e4), object, pointer_default(unique)]
 interface ICoreWebView2StagingDownloadStartingEventArgs : IUnknown
 {
-  /// The url of the download.
-  [propget] HRESULT Url([out, retval] LPWSTR* url);
+  /// The uri of the download.
+  [propget] HRESULT Uri([out, retval] LPWSTR* uri);
 
   /// The Content-Disposition header value from HTTP response.
   [propget] HRESULT ContentDisposition([out, retval] LPWSTR* contentDisposition);
@@ -272,9 +299,45 @@ interface ICoreWebView2StagingDownloadStartingEventArgs : IUnknown
 
   /// Sets the `HideUI` property.
   [propput] HRESULT HideUI([in] BOOL hideUI);
+
+  /// Returns an `ICoreWebView2Deferral` object.  Use this operation to
+  /// complete the event at a later time.
+  HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 }
 ```
+## .NET/ WinRT
+```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    runtimeclass CoreWebView2DownloadStartingEventArgs;
 
+    runtimeclass CoreWebView2DownloadStartingEventArgs
+    {
+        // CoreWebView2DownloadStartingEventArgs
+        String Uri { get; };
+
+        String ContentDisposition { get; };
+
+        String MimeType { get; };
+
+        UInt64 TotalBytes { get; };
+
+        Boolean Cancel { get; set; };
+
+        String SavePath { get; set; };
+
+        Int32 HideUI { get; set; };
+
+        Windows.Foundation.Deferral GetDeferral();
+    }
+
+    runtimeclass CoreWebView2
+    {
+        // There are other API in this interface that we are not showing
+        event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2DownloadStartingEventArgs> DownloadStarting;
+    }
+}
+```
 # Appendix
 <!-- TEMPLATE
     Anything else that you want to write down for posterity, but
