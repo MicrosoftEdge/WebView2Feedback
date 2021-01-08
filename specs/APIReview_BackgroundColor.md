@@ -3,7 +3,7 @@ WebView2 developers have provided feedback that there is a 'white flicker' when 
 
 
 # Description
-The `BackgroundColor` property allows users to set the color that shows before WebView loads any web content - the default is white. This API uses the `CoreWebView2Color` value which is used to specify an RGBA color. Important to note is the A value which allows users to set transparency. Semi-transparent colors are not currently supported, but the work is pending. The `BackgroundColor` property enables a seamless UI experience. Developers can choose a color to show between loading pages that matches the scheme of the hosting application. Or do away with the color entirely and just show the hosting app's content.
+The `BackgroundColor` property allows developers to set the color that shows before WebView loads any web content - the default is white. This API uses the `CoreWebView2Color` value which is used to specify an RGBA color. Important to note is the A value which allows developers to set transparency. Semi-transparent colors are not currently supported, but the work is pending. The `BackgroundColor` property enables a seamless UI experience. Developers can choose a color to show between loading pages that matches the scheme of the hosting application. Or do away with the color entirely and just show the hosting app's content.
 
 # Examples
 The fields of CoreWebView2Color can be set with plain old integer values between 0 and 255. In the following example, we see the app reading color values from a COLORREF (which are integers under the covers) into a CoreWebView2Color. It then sets the CoreWebView2Color.A value to 0 or 255. Once the CoreWebView2Color value is filled out, it is passed to the controller's put_BackgroundColor API.  
