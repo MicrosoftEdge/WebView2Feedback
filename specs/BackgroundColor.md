@@ -24,8 +24,6 @@ void ViewComponent::SetBackgroundColor(COLORREF color, bool transparent)
 Currently translucent colors are not supported by the API. This work is being tracked and will be added later. Passing a CoreWebView2Color value with an A value greater than 0 or less than 255 will result in an error.
 
 
-# API Notes
-
 
 # API Details
 ```cpp
@@ -49,5 +47,3 @@ typedef struct CoreWebView2Color {
   BYTE B;
 } CoreWebView2Color;
 ```
-
-# Appendix
