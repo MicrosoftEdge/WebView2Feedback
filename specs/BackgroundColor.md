@@ -3,14 +3,15 @@ WebView2 developers have provided feedback that there is a 'white flicker' when 
 
 
 # Description
-The `BackgroundColor` property allows developers to set the color that shows before WebView loads any web content.  The default color is white. This API uses the `COREWEBVIEW2_COLOR` value which is used to specify an RGBA color. The 4 fields of `COREWEBVIEW2_COLOR` have intensity values from 0 to 255 with 0 being the least intense. Important to note is the A value which allows developers to set transparency. An alpha value of 0 is entirely transparent and 255 is opaque. Semi-transparent colors are not currently supported, but the work is pending. The `BackgroundColor` property enables a seamless UI experience. Developers can choose a color to show between loading pages that matches the color scheme of the hosting application. Or do away with the color entirely and just show the hosting app's content.
+The `BackgroundColor` property allows developers to set the color that shows when WebView has not loaded any web content and when a webpage does not specify a background color. Color is specified by the COREWEBVIEW2_COLOR value meaning the background color can also be transparent. The WebView background color will show before the initial navigation, between navigations before the next page has rendered, and for pages with no `background` style properties set. To clarify the latter case, WebView will always honor a webpage's background content. `BackgroundColor` will only show in the absence of css `background` style properties. In that case, WebView will render web content over the `BackgroundColor` color. For a transparent background, web content will render over hosting app content. WebView's default background color is white to match the browser experience. It is important to note that while COREWEBVIEW2_COLOR has `A` an alpha value, semi-transparent colors are not supported by this API and setting `BackgroundColor` to a semi-transparent color will fail with E_INVALIDARG. Any alpha value above 0 and below 255 will result in an E_INVALIDARG error. `BackgroundColor` can only be an opaque color or transparent.  The `BackgroundColor` property enables a seamless UI experience. Developers can replace the 'white flash' between loading pages with a color better suited to their application. For websites with no specified background color, developers can display web contents over a color of their choosing. They can also do away with the background color entirely with transparency and have the 'in between pages color' just be hosting content, or have hosting app content be the backdrop for webpages without a background color specified.
 
 # Examples
-The fields of CoreWebView2Color can be set with plain old integer values between 0 and 255. In the following example, we see the app reading color values from a COLORREF (which are integers under the covers) into a CoreWebView2Color. It then sets the CoreWebView2Color.A value to 0 or 255. Once the CoreWebView2Color value is filled out, it is passed to the controller's put_BackgroundColor API.  
+## Win32 C++
+The fields of COREWEBVIEW2_COLOR can be set with plain old integer values between 0 and 255. In the following example, we see the app reading color values from a COLORREF (which are integers under the covers) into a COREWEBVIEW2_COLOR. It then sets the COREWEBVIEW2_COLOR.A value to 0 or 255. Once the COREWEBVIEW2_COLOR value is filled out, it is passed to the controller's put_BackgroundColor API. 
 ```cpp
 void ViewComponent::SetBackgroundColor(COLORREF color, bool transparent)
 {
-    CoreWebView2Color wvColor;
+    COREWEBVIEW2_COLOR wvColor;
     wvColor.R = GetRValue(color);
     wvColor.G = GetGValue(color);
     wvColor.B = GetBValue(color);
@@ -18,32 +19,78 @@ void ViewComponent::SetBackgroundColor(COLORREF color, bool transparent)
     m_controller->put_BackgroundColor(wvColor);
 }
 ```
+## .WinForms
+Set the background color of the WinForms WebView control with the BackColor property on every WinForms control.
+```c#
+private void backgroundColorMenuItem_Click(object sender, EventArgs e)
+{
+    System.Drawing.KnownColor backgroundColor;
+    var menuItem = (System.Windows.Forms.ToolStripMenuItem)sender;
+    if (menuItem.Text == "Red")
+    {
+        backgroundColor = System.Drawing.KnownColor.Red;
+    }
+    else if (menuItem.Text == "Blue")
+    {
+        backgroundColor = System.Drawing.KnownColor.Blue;
+    }
+    else if (menuItem.Text == "Transparent")
+    {
+        backgroundColor = System.Drawing.KnownColor.Transparent;
+    }
+    else
+    {
+        // Default to white
+        backgroundColor = System.Drawing.KnownColor.White;
+    }
+    this.webView2Control.BackColor = System.Drawing.Color.FromKnownColor(backgroundColor);
+}
+```
 
 
 # Remarks
-Currently translucent colors are not supported by the API. This work is being tracked and will be added later. Passing a CoreWebView2Color value with an A value greater than 0 or less than 255 will result in an error.
+Currently translucent colors are not supported by the API. This work is being tracked and will be added later.
 
+
+# API Notes
 
 
 # API Details
+## Win32 C++
 ```cpp
 [uuid(4d00c0d1-9434-4eb6-8078-8697a560334f), object, pointer_default(unique)]
-interface ICoreWebView2Controller : IUnknown {
+interface ICoreWebView2Controller2 : ICoreWebView2Controller {
 
   // ...
 
   /// This property can be modified to get and set the color that shows before the WebView
   /// has loaded any web content.
-  [propget] HRESULT BackgroundColor([out, retval] CoreWebView2Color* backgroundColor);
-  [propput] HRESULT BackgroundColor([in] CoreWebView2Color backgroundColor);
+  [propget] HRESULT BackgroundColor([out, retval] COREWEBVIEW2_COLOR* backgroundColor);
+  [propput] HRESULT BackgroundColor([in] COREWEBVIEW2_COLOR backgroundColor);
+
+  // ...
 }
 
 
 /// A value representing color for WebView2
-typedef struct CoreWebView2Color {
+typedef struct COREWEBVIEW2_COLOR {
   BYTE A;
   BYTE R;
   BYTE G;
   BYTE B;
-} CoreWebView2Color;
+} COREWEBVIEW2_COLOR;
 ```
+## .NET
+```c#
+    public partial class CoreWebView2Controller
+    {
+        public Color BackgroundColor { get; set; }
+    }
+```
+## WinRT C++
+```cpp
+    winrt::Windows::UI::Color BackgroundColor();
+    void BackgroundColor(winrt::Windows::UI::Color  valueIn);
+```
+
+# Appendix
