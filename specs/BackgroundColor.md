@@ -7,7 +7,7 @@ The `BackgroundColor` property enables a seamless UI experience. Developers can 
 
 # Examples
 ## Win32 C++
-The fields of COREWEBVIEW2_COLOR can be set with plain old integer values between 0 and 255. In the following example, we see the app reading color values from a COLORREF (which are integers under the covers) into a COREWEBVIEW2_COLOR. It then sets the COREWEBVIEW2_COLOR.A value to 0 or 255. Once the COREWEBVIEW2_COLOR value is filled out, it is passed to the controller's put_BackgroundColor API. 
+The fields of COREWEBVIEW2_COLOR can be set with integer values between 0 and 255. In the following example, we see the app reading color values from a COLORREF (which are integers under the covers) into a COREWEBVIEW2_COLOR. It then sets the COREWEBVIEW2_COLOR.A value to 0 or 255. Once the COREWEBVIEW2_COLOR value is filled out, it is passed to the controller's put_BackgroundColor API. 
 ```cpp
 void ViewComponent::SetBackgroundColor(COLORREF color, bool transparent)
 {
@@ -19,7 +19,7 @@ void ViewComponent::SetBackgroundColor(COLORREF color, bool transparent)
     m_controller->put_BackgroundColor(wvColor);
 }
 ```
-## C#
+## WinRT
 ```c#
 private void SetBackgroundColor(Windows.UI.Color color)
 {
@@ -101,7 +101,7 @@ typedef struct COREWEBVIEW2_COLOR {
   BYTE B;
 } COREWEBVIEW2_COLOR;
 ```
-## .NET and WinRT
+## WinRT
 ```c#
 unsealed runtimeclass CoreWebView2Controller
 {
