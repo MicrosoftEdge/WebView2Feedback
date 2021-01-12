@@ -180,7 +180,10 @@ webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2Do
       {
         args.SavePath = dialog.Input.Text;
       }
-      else args.Cancel = true;
+      else
+      {
+        args.Cancel = true;
+      }
   }
 };
 ```
