@@ -171,14 +171,14 @@ webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2Do
   CoreWebView2Deferral deferral = args.GetDeferral();
   using (deferral)
   {
-      args.HideUI = 1;
+      args.ShouldDisplayDefaultDownloadDialog = 0;
       var dialog = new TextInputDialog(
           title: "Download Starting",
           description: "Enter new save path or select OK to keep default path. Select cancel to cancel the download.",
           defaultInput: args.SavePath);
       if (dialog.ShowDialog() == true)
       {
-        args.SavePath = dialog.Input.Text;
+        args.ResultFilePath = dialog.Input.Text;
       }
       else
       {
