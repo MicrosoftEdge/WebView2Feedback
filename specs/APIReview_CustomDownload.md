@@ -175,7 +175,7 @@ webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2Do
       var dialog = new TextInputDialog(
           title: "Download Starting",
           description: "Enter new save path or select OK to keep default path. Select cancel to cancel the download.",
-          defaultInput: args.SavePath);
+          defaultInput: args.ResultFilePath);
       if (dialog.ShowDialog() == true)
       {
         args.ResultFilePath = dialog.Input.Text;
