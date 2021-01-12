@@ -22,10 +22,9 @@ There have been multiple requests by WebView Developers to be able to customize/
 Some of the requests we've heard, and want to solve with this API are:
 - Developers want to be able to disable downloads for the entire environment.
 - Developers want to be able to disable downloads on a per-case basis. For example, based on the content type, or user.
-- Developers want to have access to downloaded file’s metadata, and be able to prevent downloads based on this information.
-   Ex. Dev wants to block downloads above 1GB.
+- Developers want to have access to downloaded file’s metadata.
 - Developers want to modify the download path.
-- Developer don’t want to see edge download UI if download is cancelled.
+- Developers don’t want to see edge download UI if download is cancelled.
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
@@ -169,22 +168,25 @@ m_demoUri = L"https://demo.smartscreen.msft.net/";
 webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2DownloadStartingEventArgs args)
 {
   CoreWebView2Deferral deferral = args.GetDeferral();
-  using (deferral)
+  _completeDeferredDownload = new Action(() =>
   {
-      args.ShouldDisplayDefaultDownloadDialog = 0;
-      var dialog = new TextInputDialog(
-          title: "Download Starting",
-          description: "Enter new save path or select OK to keep default path. Select cancel to cancel the download.",
-          defaultInput: args.ResultFilePath);
-      if (dialog.ShowDialog() == true)
+      using (deferral)
       {
-        args.ResultFilePath = dialog.Input.Text;
+          args.ShouldDisplayDefaultDownloadDialog = false;
+          var dialog = new TextInputDialog(
+              title: "Download Starting",
+              description: "Enter new save path or select OK to keep default path. Select cancel to cancel the download.",
+              defaultInput: args.ResultFilePath);
+          if (dialog.ShowDialog() == true)
+          {
+            args.ResultFilePath = dialog.Input.Text;
+          }
+          else
+          {
+            args.Cancel = true;
+          }
       }
-      else
-      {
-        args.Cancel = true;
-      }
-  }
+  });
 };
 ```
 # Remarks
