@@ -37,7 +37,7 @@ The DownloadStarting event will be raised when a download has begun.
 The host can then choose to cancel a download, change the save path, and hide the default download dialog.
 If the event is not handled, downloads will complete normally with the default download dialog shown.
 
-Additionally, the developer will have access to the url, size, mime type, and content disposition
+Additionally, the developer will have access to the URI, size, mime type, and content disposition
 header.
 
 
@@ -95,7 +95,7 @@ header.
 ## Win32 C++
 ```cpp
 // Register a handler for the `DownloadStarting` event.
-// This example hides the default downloads UI and shows a dialog box instead.
+// This example hides the default download dialog and shows a dialog box instead.
 // The dialog box displays the default save path and allows the user to specify a different path.
 // Selecting `OK` will save the download to the chosen path.
 // Selecting `CANCEL` will cancel the download.
@@ -175,7 +175,7 @@ webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2Do
           args.ShouldDisplayDefaultDownloadDialog = false;
           var dialog = new TextInputDialog(
               title: "Download Starting",
-              description: "Enter new save path or select OK to keep default path. Select cancel to cancel the download.",
+              description: "Enter new result file path or select OK to keep default path. Select cancel to cancel the download.",
               defaultInput: args.ResultFilePath);
           if (dialog.ShowDialog() == true)
           {
@@ -260,7 +260,7 @@ interface ICoreWebView2_3 : ICoreWebView2_2 {
   /// raised when a download has begun, blocking the default download dialog,
   /// but not blocking the progress of the download.
   ///
-  /// The host can choose to cancel a download, change the save path, and hide
+  /// The host can choose to cancel a download, change the result file path, and hide
   /// the default download dialog. If the host chooses to cancel the download, the
   /// download is not saved and no dialog is shown. Otherwise, the download is saved
   /// once the event completes, and default download dialog is shown if the host
