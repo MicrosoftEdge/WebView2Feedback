@@ -153,7 +153,10 @@ m_demoUri = L"https://demo.smartscreen.msft.net/";
                 wil::com_ptr<ICoreWebView2Deferral> deferral;
                 CHECK_FAILURE(args->GetDeferral(&deferral));
 
-                m_completeDefferedDownloadEvent = [showDialog, deferral] {
+                // This function can be called to show the download dialog and
+                // complete the event at a later time, allowing the developer to
+                // perform async work before the event completes.
+                m_completeDeferredDownloadEvent = [showDialog, deferral] {
                     showDialog();
                     CHECK_FAILURE(deferral->Complete());
                 };
@@ -167,26 +170,26 @@ m_demoUri = L"https://demo.smartscreen.msft.net/";
 ```c#
 webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2DownloadStartingEventArgs args)
 {
-  CoreWebView2Deferral deferral = args.GetDeferral();
-  _completeDeferredDownload = new Action(() =>
-  {
-      using (deferral)
-      {
-          args.ShouldDisplayDefaultDownloadDialog = false;
-          var dialog = new TextInputDialog(
-              title: "Download Starting",
-              description: "Enter new result file path or select OK to keep default path. Select cancel to cancel the download.",
-              defaultInput: args.ResultFilePath);
-          if (dialog.ShowDialog() == true)
-          {
-            args.ResultFilePath = dialog.Input.Text;
-          }
-          else
-          {
-            args.Cancel = true;
-          }
-      }
-  });
+    CoreWebView2Deferral deferral = args.GetDeferral();
+    System.Threading.SynchronizationContext.Current.Post((_) =>
+    {
+        using (deferral)
+        {
+            args.ShouldDisplayDefaultDownloadDialog = false;
+            var dialog = new TextInputDialog(
+                title: "Download Starting",
+                description: "Enter new result file path or select OK to keep default path. Select cancel to cancel the download.",
+                defaultInput: args.ResultFilePath);
+            if (dialog.ShowDialog() == true)
+            {
+              args.ResultFilePath = dialog.Input.Text;
+            }
+            else
+            {
+              args.Cancel = true;
+            }
+        }
+    }, null);
 };
 ```
 # Remarks
@@ -311,7 +314,9 @@ interface ICoreWebView2DownloadStartingEventArgs : IUnknown
   /// Sets the `Cancel` property.
   [propput] HRESULT Cancel([in] BOOL cancel);
 
-  /// The result file path of the download.
+  /// The path to the file. If setting the path, the host should ensure that it
+  /// is an absolute path, including the file name. If the directory does not
+  /// exist, it will be created.
   [propget] HRESULT ResultFilePath([out, retval] LPWSTR* resultFilePath);
 
   /// Sets the `ResultFilePath` property.
