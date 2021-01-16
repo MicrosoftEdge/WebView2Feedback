@@ -53,6 +53,18 @@ class AppWindow {
 
   wil::com_ptr<ICoreWebView2Controller> m_controller;
   EventRegistrationToken m_browserExitedEventToken = {};
+  UINT32 m_newestBrowserPid = 0;
+}
+
+HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICoreWebView2Controller* controller)
+{
+  // ...
+
+  // Save PID of the browser process serving last WebView created from our
+  // CoreWebView2Environment.
+  CHECK_FAILURE(m_webView->get_BrowserProcessId(&m_newestBrowserPid));
+
+  // ...
 }
 
 void AppWindow::CloseWebView(/* ... */) {
@@ -66,19 +78,33 @@ void AppWindow::CloseWebView(/* ... */) {
               ICoreWebView2Environment* sender,
               ICoreWebView2BrowserProcessExitedEventArgs* args) {
           COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND kind;
+          UINT32 pid;
           CHECK_FAILURE(args->get_BrowserProcessExitKind(&kind));
+          CHECK_FAILURE(args->get_BrowserProcessId(&pid));
 
-          // Watch for graceful browser process exit. Let ProcessFailed event
-          // handler take care of failed browser process termination.
-          if (kind == COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL)
+          // If a new WebView is created from this CoreWebView2Environment after
+          // the browser has exited but before our handler gets to run, a new
+          // browser process will be created and lock the user data folder
+          // again. Do not attempt to cleanup the user data folder in these
+          // cases. We check the PID of the exited browser process against the
+          // PID of the browser process to which our last CoreWebView2 attached.
+          if (pid == m_newestBrowserPid)
           {
-            CHECK_FAILURE(
-                m_webViewEnvironment->remove_BrowserProcessExited(m_browserExitedEventToken));
-            // Release the environment only after the handler is invoked.
-            // Otherwise, there will be no environment to raise the event when
-            // the collection of WebView2 Runtime processes exit.
-            m_webViewEnvironment = nullptr;
-            CleanupUserDataFolder();
+            // Watch for graceful browser process exit. Let ProcessFailed event
+            // handler take care of failed browser process termination.
+            if (kind == COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND_NORMAL)
+            {
+              CHECK_FAILURE(
+                  m_webViewEnvironment->remove_BrowserProcessExited(m_browserExitedEventToken));
+              // Release the environment only after the handler is invoked.
+              // Otherwise, there will be no environment to raise the event when
+              // the collection of WebView2 Runtime processes exit.
+              m_webViewEnvironment = nullptr;
+              CleanupUserDataFolder();
+            }
+          } else {
+            MessageBox(m_mainWindow, L"A new browser process prevented cleanup of "
+                            L"the user data folder.", L"Cleanup User Data Folder", MB_OK);
           }
 
           return S_OK;
@@ -324,6 +350,8 @@ interface ICoreWebView2BrowserProcessExitedEventArgs : IUnknown
   /// The kind of browser process exit that has occurred.
   [propget] HRESULT BrowserProcessExitKind(
       [out, retval] COREWEBVIEW2_BROWSER_PROCESS_EXIT_KIND* browserProcessExitKind);
+  /// The process ID of the browser process that has exited.
+  [propget] HRESULT BrowserProcessId([out, retval] UINT32* value);
 }
 ```
 
@@ -387,6 +415,9 @@ namespace Microsoft.Web.WebView2.Core
     {
         /// The kind of browser process exit that has occurred.
         CoreWebView2BrowserProcessExitKind BrowserProcessExitKind { get; };
+
+        /// The process ID of the browser process that has exited.
+        UInt32 BrowserProcessId { get; };
     }
 }
 ```
