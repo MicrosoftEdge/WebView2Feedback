@@ -17,29 +17,36 @@
     area, just explanation enough to understand this new API, rather than telling
     the reader "go read 100 pages of background information posted at ...".
 -->
-There have been multiple requests by WebView Developers to be able to customize/control the download experience within WebView2.
+We are redesigning the download experience by providing a DownloadStarting event, and exposing a downloadItem object with all associated download metadata. With this you will be able to block downloads, save to a different path, and have access to the required metadata to build your own download UI.
 
-Some of the requests we've heard, and want to solve with this API are:
-- Developers want to be able to disable downloads for the entire environment.
-- Developers want to be able to disable downloads on a per-case basis. For example, based on the content type, or user.
-- Developers want to have access to downloaded file’s metadata.
-- Developers want to modify the download path.
-- Developers don’t want to see edge download UI if download is cancelled.
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
 
-Our proposed solution is to give developers an API to control the download experience.
-We will do this by exposing a DownloadStarting event.
+There are 3 parts to this API.
 
-The DownloadStarting event will be raised when a download has begun.
-The host can then choose to cancel a download, change the save path, and hide the default download dialog.
-If the event is not handled, downloads will complete normally with the default download dialog shown.
+1. DownloadStarting Event - used to intercept a download.
+    - DownloadItem: 
+    - Cancel
+    - Result file path (set)
+2. WebView Setting: Default Download Dialogue - used to disable the default download UI (bottom dock)
+3. DownloadItem: This will give you all the metadata that you might need to block a download, and build UI.
+    - Url
+    - Mime type
+    - Content disposition
+    - Total bytes
+    - Result file path (get)
+    - Danger
+    - Received bytes
+    - Estimated time
+    - State (in progress, completed, etc.)
+    - Error 
+    - Id
+    - Pause/resume/cancel
+    - Deferral`
 
-Additionally, the developer will have access to the URI, size, mime type, and content disposition
-header.
-
+We beleive with these 3 parts of a redesigned Download API, should enable your app have an elegant download experience.
 
 # Examples
 <!-- TEMPLATE
