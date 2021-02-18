@@ -300,7 +300,6 @@ async void WebView_ProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedE
 
     string message;
     string caption;
-    Debug.WriteLine(e.ProcessFailedKind);
     switch (e.ProcessFailedKind)
     {
         case CoreWebView2ProcessFailedKind.BrowserProcessExited:
