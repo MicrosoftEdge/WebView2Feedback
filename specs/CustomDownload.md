@@ -99,81 +99,125 @@ header.
 // The dialog box displays the default save path and allows the user to specify a different path.
 // Selecting `OK` will save the download to the chosen path.
 // Selecting `CANCEL` will cancel the download.
-m_webViewStaging = m_webView.query<ICoreWebView2Staging2>();
-m_demoUri = L"https://demo.smartscreen.msft.net/";
-    CHECK_FAILURE(m_webViewStaging->add_DownloadStarting(
-        Callback<ICoreWebView2StagingDownloadStartingEventHandler>(
-            [this](
-                ICoreWebView2Staging2* sender,
-                ICoreWebView2StagingDownloadStartingEventArgs* args) -> HRESULT {
-                auto showDialog = [this, args] {
-                    // Hide the default download dialog.
-                    wil::com_ptr<ICoreWebView2Settings> m_settings;
-                    CHECK_FAILURE(m_webView->get_Settings(&m_settings));
-                    wil::com_ptr<ICoreWebView2StagingSettings> m_settingsStaging =
-                        m_settings.try_query<ICoreWebView2StagingSettings>();
-                    CHECK_FAILURE(
-                        m_settingsStaging->put_ShouldDisplayDefaultDownloadDialog(FALSE));
+CHECK_FAILURE(m_webView->add_DownloadStarting(
+    Callback<ICoreWebView2DownloadStartingEventHandler>(
+        [this](
+            ICoreWebView2_3* sender,
+            ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT {
+            auto showDialog = [this, args] {
 
-                    wil::com_ptr<ICoreWebView2StagingDownloadItem> downloadItem;
-                    CHECK_FAILURE(args->DownloadItem(&downloadItem));
+                // Hide the default download dialog.
+                wil::com_ptr<ICoreWebView2Settings> m_settings;
+                CHECK_FAILURE(m_webView->get_Settings(&m_settings));
+                CHECK_FAILURE(
+                    m_settings->put_ShouldDisplayDefaultDownloadDialog(FALSE));
 
-                    UINT64 downloadSizeInBytes = 0;
-                    CHECK_FAILURE(downloadItem->get_DownloadSizeInBytes(&downloadSizeInBytes));
+                wil::com_ptr<ICoreWebView2Download> download;
+                CHECK_FAILURE(args->Download(&download));
 
-                    wil::unique_cotaskmem_string uri;
-                    CHECK_FAILURE(downloadItem->get_Uri(&uri));
+                UINT64 downloadSizeInBytes = 0;
+                CHECK_FAILURE(download->get_DownloadSizeInBytes(&downloadSizeInBytes));
 
-                    wil::unique_cotaskmem_string mimeType;
-                    CHECK_FAILURE(downloadItem->get_MimeType(&mimeType));
+                wil::unique_cotaskmem_string uri;
+                CHECK_FAILURE(download->get_Uri(&uri));
 
-                    wil::unique_cotaskmem_string contentDisposition;
-                    CHECK_FAILURE(downloadItem->get_ContentDisposition(&contentDisposition));
+                wil::unique_cotaskmem_string mimeType;
+                CHECK_FAILURE(download->get_MimeType(&mimeType));
 
-                    // Get the suggested path from the event args.
-                    wil::unique_cotaskmem_string resultFilePath;
-                    CHECK_FAILURE(args->get_ResultFilePath(&resultFilePath));
+                wil::unique_cotaskmem_string contentDisposition;
+                CHECK_FAILURE(download->get_ContentDisposition(&contentDisposition));
 
-                    std::wstring prompt =
-                        std::wstring(L"Enter result file path or select `OK` to use default path. ") +
-                        L"Select `Cancel` to cancel the download.";
+                // Get the suggested path from the event args.
+                wil::unique_cotaskmem_string resultFilePath;
+                CHECK_FAILURE(args->get_ResultFilePath(&resultFilePath));
 
-                    std::wstring description = std::wstring(L"URI: ") + uri.get() + L"\r\n" +
-                                               L"Mime type: " + mimeType.get() + L"\r\n" +
-                                               L"Download size in bytes: " + std::to_wstring(downloadSizeInBytes) +
-                                               L"\r\n";
+                std::wstring prompt =
+                    std::wstring(L"Enter result file path or select `OK` to use default path. ") +
+                    L"Select `Cancel` to cancel the download.";
 
-                    TextInputDialog dialog(
-                        m_appWindow->GetMainWindow(), L"Download Starting", prompt.c_str(),
-                        description.c_str(), resultFilePath.get());
-                    if (dialog.confirmed)
-                    {
-                        // If user selects `OK`, the download will complete normally.
-                        // Result file path will be updated if a new one was provided.
-                        CHECK_FAILURE(args->put_ResultFilePath(dialog.input.c_str()));
-                    }
-                    else
-                    {
-                        // If user selects `Cancel`, the download will be canceled.
-                        CHECK_FAILURE(args->put_Cancel(TRUE));
-                    }
-                };
+                std::wstring description = std::wstring(L"URI: ") + uri.get() + L"\r\n" +
+                                            L"Mime type: " + mimeType.get() + L"\r\n" +
+                                            L"Download size in bytes: " + std::to_wstring(downloadSizeInBytes) +
+                                            L"\r\n";
 
-                wil::com_ptr<ICoreWebView2Deferral> deferral;
-                CHECK_FAILURE(args->GetDeferral(&deferral));
+                TextInputDialog dialog(
+                    m_appWindow->GetMainWindow(), L"Download Starting", prompt.c_str(),
+                    description.c_str(), resultFilePath.get());
+                if (dialog.confirmed)
+                {
+                    // If user selects `OK`, the download will complete normally.
+                    // Result file path will be updated if a new one was provided.
+                    CHECK_FAILURE(args->put_ResultFilePath(dialog.input.c_str()));
+                    UpdateProgress(download.get());
+                }
+                else
+                {
+                    // If user selects `Cancel`, the download will be canceled.
+                    CHECK_FAILURE(args->put_Cancel(TRUE));
+                }
+            };
 
-                // This function can be called to show the download dialog and
-                // complete the event at a later time, allowing the developer to
-                // perform async work before the event completes.
-                m_completeDeferredDownloadEvent = [showDialog, deferral] {
-                    showDialog();
-                    CHECK_FAILURE(deferral->Complete());
-                };
+            wil::com_ptr<ICoreWebView2Deferral> deferral;
+            CHECK_FAILURE(args->GetDeferral(&deferral));
 
-                return S_OK;
-            })
-            .Get(),
-        &m_DownloadStartingToken));
+            // This function can be called to show the download dialog and
+            // complete the event at a later time, allowing the developer to
+            // perform async work before the event completes.
+            m_completeDeferredDownloadEvent = [showDialog, deferral] {
+                showDialog();
+                CHECK_FAILURE(deferral->Complete());
+            };
+
+            return S_OK;
+        })
+    .Get(),
+&m_downloadStartingToken));
+
+// Update download progress
+// Register a handler for the `DownloadProgressSizeInBytesChanged` event.
+CHECK_FAILURE(download->add_DownloadProgressSizeInBytesChanged(
+    Callback<ICoreWebView2DownloadProgressSizeInBytesChangedEventHandler>(
+        [this](ICoreWebView2Download* download, IUnknown* args) -> HRESULT {
+            // Here developer can update UI to show progress of a download using
+            // `download->get_DownloadProgressSizeInBytes` and `download->get_DownloadSizeInBytes`.
+            return S_OK;
+        })
+    .Get(),
+&m_downloadProgressSizeInBytesChangedToken));
+
+// Register a handler for the `DownloadStateChanged` event.
+CHECK_FAILURE(download->add_DownloadStateChanged(
+    Callback<ICoreWebView2DownloadStateChangedEventHandler>(
+        [this](ICoreWebView2Download* download,
+        ICoreWebView2DownloadStateChangedEventArgs* args) -> HRESULT {
+            BOOL canResume = FALSE;
+            COREWEBVIEW2_DOWNLOAD_STATE downloadState;
+            CHECK_FAILURE(download->get_State(&downloadState));
+            switch (downloadState)
+            {
+            case DOWNLOAD_IN_PROGRESS:
+                break;
+            case DOWNLOAD_INTERRUPTED:
+                // Here developer can take different actions based on `args->InterruptReason`.
+                MessageBox(nullptr, L"Connection with file host was broken.", nullptr, MB_OK);
+                CHECK_FAILURE(download->get_CanResume(&canResume));
+                if (canResume)
+                {
+                    download->Resume();
+                }
+                else
+                {
+                    CompleteDownload(download);
+                }
+                break;
+            case DOWNLOAD_COMPLETE:
+                CompleteDownload(download);
+                break;
+            }
+            return S_OK;
+        })
+    .Get(),
+&m_downloadStateChangedToken));
 ```
 ## .NET/ WinRT
 ```c#
@@ -184,7 +228,6 @@ webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2Do
     {
         using (deferral)
         {
-        
             if (_coreWebView2Settings == null)
             {
                 _coreWebView2Settings = webView.CoreWebView2.Settings;
@@ -197,15 +240,45 @@ webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2Do
                 defaultInput: args.ResultFilePath);
             if (dialog.ShowDialog() == true)
             {
-            args.ResultFilePath = dialog.Input.Text;
+                args.ResultFilePath = dialog.Input.Text;
+                UpdateProgress(args.Download());
             }
             else
             {
-            args.Cancel = true;
+                args.Cancel = true;
             }
         }
     }, null);
 };
+
+// Update download progress
+void UpdateProgress(CoreWebView2Download download)
+{
+    download.DownloadProgressSizeInBytesChanged += delegate (object sender, Object e)
+    {
+        // Here developer can update download dialog to show progress of a download using
+        // `download.DownloadProgressSizeInBytes` and `download.DownloadSizeInBytes`
+    };
+
+    download.DownloadStateChanged += delegate (object sender, CoreWebView2DownloadStateChangedEventArgs args)
+    {
+        switch (download.State)
+        {
+        case CoreWebView2DownloadState.DownloadInProgress:
+            break;
+        case CoreWebView2DownloadState.DownloadInterrupted:
+            // Here developer can take different actions based on `args.InterruptReason`.
+            MessageBox.Show(this, "Connecton with file host broken.", "Download Interrupted");
+            if (download.CanResume == true)
+            {
+                download.Resume();
+            }
+            break;
+        case CoreWebView2DownloadState.DownloadComplete:
+            break;
+        }
+    };
+}
 ```
 # Remarks
 <!-- TEMPLATE
@@ -273,32 +346,95 @@ See [API Details](#api-details) section below for API reference.
 ```c#
 // Enums and structs
 
-typedef enum COREWEBVIEW2_DOWNLOAD_DANGER_TYPE {
-  // The download is safe.
-  DANGER_TYPE_NONE,
-  // The download file is dangerous.
-  DANGER_TYPE_FILE,
-  // The URI leads to a malicious file download.
-  DANGER_TYPE_URI,
-  // The content of the file is dangerous.
-  DANGER_TYPE_CONTENT,
-  // Not enough data to know whether download is dangerous.
-  DANGER_TYPE_UNCOMMON,
-  // The host is known to serve dangerous content.
-  DANGER_TYPE_HOST,
-  // The download is an application or extension that modifies browser or
-  // computer settings.
-  DANGER_TYPE_POTENTIALLY_UNWANTED,
-} COREWEBVIEW2_DOWNLOAD_DANGER_TYPE;
-
 typedef enum COREWEBVIEW2_DOWNLOAD_STATE {
-  /// The download is in progress.
+  /// The download is in progress. Includes downloads paused by user.
   DOWNLOAD_IN_PROGRESS,
-  /// The download has been interrupted.
+  /// The connection with the file host was broken. The `InterruptReason` property
+  /// can be accessed from `ICoreWebView2DownloadStateChangedEventArgs`. See
+  /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON` for descriptions of kinds of
+  /// interrupt reasons. Host can check whether an interrupted download can be
+  /// resumed with the `CanResume` method on the `ICoreWebView2Download`. Once
+  /// resumed, a download is in the `DOWNLOAD_IN_PROGRESS` state.
   DOWNLOAD_INTERRUPTED,
-  /// The download is complete.
+  /// The download completed successfully.
   DOWNLOAD_COMPLETE,
 } COREWEBVIEW2_DOWNLOAD_STATE;
+
+typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
+  DOWNLOAD_INTERRUPT_REASON_NONE,
+
+  /// File errors
+  /// Generic file error.
+  FILE_FAILED,
+  /// Access denied due to security restrictions.
+  FILE_ACCESS_DENIED,
+  /// Disk full.
+  FILE_NO_SPACE,
+  /// Result file path with file name is too long.
+  FILE_NAME_TOO_LONG,
+  /// File is too large for file system.
+  FILE_TOO_LARGE,
+  /// File contains a virus.
+  FILE_VIRUS_INFECTED,
+  /// File was in use, too many files opened, or out of memory.
+  FILE_TRANSIENT_ERROR,
+  /// File blocked by local policy.
+  FILE_BLOCKED,
+  /// Security check failed unexpectedly.
+  FILE_SECURITY_CHECK_FAILED,
+  /// Seeking past the end of a file in opening a file, as part of resuming an
+  /// interrupted download.
+  FILE_TOO_SHORT,
+  /// Partial file did not match the expected hash.
+  FILE_HASH_MISMATCH,
+  /// Source and target of download were the same.
+  FILE_SAME_AS_SOURCE,
+
+  /// Network errors
+  /// Generic network error.
+  NETWORK_FAILED,
+  /// Network operation timed out.
+  NETWORK_TIMEOUT,
+  /// Network connection lost.
+  NETWORK_DISCONNECTED,
+  /// Server has gone down.
+  NETWORK_SERVER_DOWN,
+  /// Network request invalid because original or redirected URI is invalid, has
+  /// an unsupported scheme, or is disallowed by policy.
+  NETWORK_INVALID_REQUEST,
+
+  /// Server responses
+  /// Generic server error.
+  SERVER_FAILED,
+  /// Server does not support range requests.
+  SERVER_NO_RANGE,
+  /// Server does not have the requested data.
+  SERVER_BAD_CONTENT,
+  /// Server did not authorize access to resource.
+  SERVER_UNAUTHORIZED,
+  /// Server certificate problem.
+  SERVER_CERT_PROBLEM,
+  /// Server access forbidden.
+  SERVER_FORBIDDEN,
+  /// Unexpected server response. Responding server may not be intended server.
+  SERVER_UNREACHABLE,
+  /// Server sent fewer bytes than the content-length header. Content-length
+  /// header may be invalid or connection may have closed. Download is treated
+  /// as complete unless there are strong validators present to interrupt the
+  /// download.
+  SERVER_CONTENT_LENGTH_MISMATCH,
+  /// Unexpected cross-origin redirect.
+  SERVER_CROSS_ORIGIN_REDIRECT,
+
+  /// User input
+  /// User canceled the download.
+  USER_CANCELED,
+  /// User shut down the WebView.
+  USER_SHUTDOWN,
+
+  /// WebView crashed.
+  CRASH,
+} COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON;
 
 [uuid(9aab8652-d89f-408d-8b2c-1ade3ab51d6d), object, pointer_default(unique)]
 interface ICoreWebView2Settings : IUnknown {
@@ -321,7 +457,7 @@ interface ICoreWebView2_3 : ICoreWebView2_2 {
   ///
   /// The host can choose to cancel a download and change the result file path.
   /// If the host chooses to cancel the download, the download is not saved and
-  /// no dialog is shown. Otherwise, the download is saved after the event completes, 
+  /// no dialog is shown. Otherwise, the download is saved after the event completes,
   /// and default download dialog is shown if the host did not choose to hide it.
   /// The host can change the visibility of the download dialog using the
   /// `ShouldDisplayDefaultDownloadDialog` property on `ICoreWebView2Settings`.
@@ -331,13 +467,15 @@ interface ICoreWebView2_3 : ICoreWebView2_2 {
   ///
   /// \snippet ScenarioCustomDownloadExperience.cpp CustomDownloadExperience
   HRESULT add_DownloadStarting(
-    [in] ICoreWebView2StagingDownloadStartingEventHandler* eventHandler,
+    [in] ICoreWebView2DownloadStartingEventHandler* eventHandler,
     [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_DownloadStarting`.
   HRESULT remove_DownloadStarting(
       [in] EventRegistrationToken token);
 }
+
+
 
 [uuid(53b676ec-c3b1-4804-996a-c72c16b09efb), object, pointer_default(unique)]
 interface ICoreWebView2DownloadStartingEventHandler : IUnknown
@@ -352,8 +490,8 @@ interface ICoreWebView2DownloadStartingEventHandler : IUnknown
 [uuid(c7e95e2f-f789-44e6-b372-3141469240e4), object, pointer_default(unique)]
 interface ICoreWebView2DownloadStartingEventArgs : IUnknown
 {
-  /// Returns the `ICoreWebView2DownloadItem` for the download that has started.
-  HRESULT DownloadItem([out, retval] ICoreWebView2DownloadItem** downloadItem);
+  /// Returns the `ICoreWebView2Download` for the download that has started.
+  HRESULT Download([out, retval] ICoreWebView2Download** download);
 
   /// The host may set this flag to cancel the download. If canceled, the
   /// download save dialog will not be displayed regardless of the
@@ -365,7 +503,8 @@ interface ICoreWebView2DownloadStartingEventArgs : IUnknown
 
   /// The path to the file. If setting the path, the host should ensure that it
   /// is an absolute path, including the file name. If the directory does not
-  /// exist, it will be created.
+  /// exist, it will be created. If the path points to an existing file, the
+  /// file name will receive a suffix.
   [propget] HRESULT ResultFilePath([out, retval] LPWSTR* resultFilePath);
 
   /// Sets the `ResultFilePath` property.
@@ -376,13 +515,85 @@ interface ICoreWebView2DownloadStartingEventArgs : IUnknown
   HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 }
 
+/// Implements the interface to receive `DownloadProgressSizeInBytesChanged`
+/// event.  Use the `ICoreWebView2Download.DownloadProgressSizeInBytes` property
+/// to get the received bytes count.
+
+[uuid(D98F73CE-D94D-4576-A1E0-EB8989A9DBEF), object, pointer_default(unique)]
+interface ICoreWebView2DownloadProgressSizeInBytesChangedEventHandler : IUnknown
+{
+  /// Provides the event args for the corresponding event. No event args exist
+  /// and the `args` parameter is set to `null`.
+  HRESULT Invoke(
+      [in] ICoreWebView2Download* sender, [in] IUnknown* args);
+}
+
+/// Implements the interface to receive `DownloadEstimatedEndTimeChanged` event. Use the
+/// `ICoreWebView2Download.EstimatedEndTime` property to get the new estimated
+/// end time.
+
+[uuid(D46CD703-958B-4100-9F84-4E6C2FC32D57), object, pointer_default(unique)]
+interface ICoreWebView2DownloadEstimatedEndTimeChangedEventHandler : IUnknown
+{
+  /// Provides the event args for the corresponding event. No event args exist
+  /// and the `args` parameter is set to `null`.
+  HRESULT Invoke(
+      [in] ICoreWebView2Download* sender, [in] IUnknown* args);
+}
+
+/// Implements the interface to receive `DownloadStateChanged` event. Use the
+/// `ICoreWebView2Download.State` property to get the current state, which can
+/// be in progress, interrupted, or complete. Find the `InterruptReason` property
+/// on 'ICoreWebView2DownloadStateChangedEventArgs`.
+[uuid(74EEBAA9-704B-4A9A-8331-AEBD541CB62C), object, pointer_default(unique)]
+interface ICoreWebView2DownloadStateChangedEventHandler : IUnknown
+{
+  /// Provides the event args for the corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2Download* sender,
+      [in] ICoreWebView2DownloadStateChangedEventArgs* args);
+}
+
+/// Event args for the `DownloadStateChanged` event.
+[uuid(28E3F13A-4DB1-4738-A0A7-FC4B6F6765AD), object, pointer_default(unique)]
+interface ICoreWebView2DownloadStateChangedEventArgs : IUnknown
+{
+  /// The reason why connection with file host was broken.
+  [propget] HRESULT InterruptReason(
+      [out, retval] COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON* interruptReason);
+}
+
 /// Represents a download process. Gives access to the download's metadata
 /// and supports a user canceling, pausing, or resuming the download.
 [uuid(0C4A07B1-B610-459F-A574-EC253D5EC40D), object, pointer_default(unique)]
-interface ICoreWebView2DownloadItem : IUnknown
+interface ICoreWebView2Download : IUnknown
 {
-  /// The unique ID of the download.
-  [propget] HRESULT Id([out, retval] UINT32* id);
+  /// Add an event handler for the `DownloadProgressSizeInBytesChanged` event.
+  HRESULT add_DownloadProgressSizeInBytesChanged(
+    [in] ICoreWebView2DownloadProgressSizeInBytesChangedEventHandler* eventHandler,
+    [out] EventRegistrationToken* token);
+
+  /// Remove an event handler previously added with `add_DownloadProgressSizeInBytesChanged`.
+  HRESULT remove_DownloadProgressSizeInBytesChanged(
+      [in] EventRegistrationToken token);
+
+  /// Add an event handler for the `DownloadEstimatedEndTimeChanged` event.
+  HRESULT add_DownloadEstimatedEndTimeChanged(
+    [in] ICoreWebView2DownloadEstimatedEndTimeChangedEventHandler* eventHandler,
+    [out] EventRegistrationToken* token);
+
+  /// Remove an event handler previously added with `add_DownloadEstimatedEndTimeChanged`.
+  HRESULT remove_DownloadEstimatedEndTimeChanged(
+      [in] EventRegistrationToken token);
+
+  /// Add an event handler for the `DownloadStateChanged` event.
+  HRESULT add_DownloadStateChanged(
+    [in] ICoreWebView2DownloadStateChangedEventHandler* eventHandler,
+    [out] EventRegistrationToken* token);
+
+  /// Remove an event handler previously added with `add_DownloadStateChanged`.
+  HRESULT remove_DownloadStateChanged(
+      [in] EventRegistrationToken token);
 
   /// The URI of the download.
   [propget] HRESULT Uri([out, retval] LPWSTR* uri);
@@ -393,11 +604,12 @@ interface ICoreWebView2DownloadItem : IUnknown
   /// MIME type of the downloaded content.
   [propget] HRESULT MimeType([out, retval] LPWSTR* mimeType);
 
-  /// The size of the download in total number of expected bytes.
+  /// The size of the download in total number of bytes before file compression.
+  /// Returns -1 if the size is unknown.
   [propget] HRESULT DownloadSizeInBytes([out, retval] UINT64* downloadSizeInBytes);
-  
+
   /// The number of bytes that have been written to the download file.
-  [propget] HRESULT ReceivedBytes([out, retval] UINT64* receivedBytes);
+  [propget] HRESULT DownloadProgressSizeInBytes([out, retval] UINT64* downloadProgressSizeInBytes);
 
   /// The estimated end time in ISO 8601 format.
   [propget] HRESULT EstimatedEndTime([out, retval] LPWSTR* estimatedEndTime);
@@ -406,29 +618,30 @@ interface ICoreWebView2DownloadItem : IUnknown
   /// this from `ICoreWebView2DownloadStartingEventArgs`.
   [propget] HRESULT ResultFilePath([out, retval] LPWSTR* resultFilePath);
 
-  /// The danger type of the download. The danger type can be none, file, content,
-  /// uncommon, host, or potentially unwanted. See `COREWEBVIEW2_DOWNLOAD_DANGER_TYPE`
-  /// for more details.
-  [propget] HRESULT DangerType([out, retval] COREWEBVIEW2_DOWNLOAD_DANGER_TYPE* dangerType);
-
   /// The state of the download. A download can be in progress, interrupted, or
-  /// complete.
+  /// complete. See `COREWEBVIEW2_DOWNLOAD_STATE` for descriptions of states.
   [propget] HRESULT State([out, retval] COREWEBVIEW2_DOWNLOAD_STATE* downloadState);
 
-  /// The reason why a download was interrupted.
-  [propget] HRESULT InterruptReason([out, retval] LPWSTR* interruptReason);
-
-  /// Cancels the download. If canceled, the default download dialog will show that the
-  /// download was canceled. Host should set `Cancel` from `ICoreWebView2SDownloadStartingEventArgs`
-  /// if cancellation should be hidden from default download dialog.
+  /// Cancels the download. If canceled, the default download dialog will show
+  /// that the download was canceled. Host should set the `Cancel` property from
+  /// `ICoreWebView2SDownloadStartingEventArgs` if the download should be
+  /// cancelled without displaying the default download dialog.
   HRESULT Cancel();
 
   /// Pauses the download. If paused, the default download dialog will
   /// show that the download is paused. No effect if download is already paused.
+  /// A paused download is in the `DOWNLOAD_IN_PROGRESS` state.
   HRESULT Pause();
 
   /// Resumes a paused download. No effect if download is not paused.
   HRESULT Resume();
+
+  /// Returns whether user has paused the download.
+  [propget] HRESULT IsPaused([out, retval] BOOL* isPaused);
+
+  /// Returns true if download is paused by user or if download is interrupted
+  /// and can be resumed.
+  [propget] HRESULT CanResume([out, retval] BOOL* canResume);
 }
 ```
 ## .NET/ WinRT
@@ -437,6 +650,7 @@ namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2DownloadItem;
     runtimeclass CoreWebView2DownloadStartingEventArgs;
+    runtimeclass CoreWebView2DownloadStateChangedEventArgs;
 
     enum CoreWebView2DownloadState
     {
@@ -444,15 +658,38 @@ namespace Microsoft.Web.WebView2.Core
         DownloadInterrupted = 1,
         DownloadComplete = 2,
     };
-    enum CoreWebView2DownloadDangerType
+    enum CoreWebView2DownloadInterruptReason
     {
-        DangerTypeNone = 0,
-        DangerTypeFile = 1,
-        DangerTypeUri = 2,
-        DangerTypeContent = 3,
-        DangerTypeUncommon = 4,
-        DangerTypeHost = 5,
-        DangerTypePotentiallyUnwanted = 6,
+        DownloadInterruptReasonNone = 0,
+        FileFailed = 1,
+        FileAccessDenied = 2,
+        FileNoSpace = 3,
+        FileNameTooLong = 4,
+        FileTooLarge = 5,
+        FileVirusInfected = 6,
+        FileTransientError = 7,
+        FileBlocked = 8,
+        FileSecurityCheckFailed = 9,
+        FileTooShort = 10,
+        FileHashMismatch = 11,
+        FileSameAsSource = 12,
+        NetworkFailed = 13,
+        NetworkTimeout = 14,
+        NetworkDisconnected = 15,
+        NetworkServerDown = 16,
+        NetworkInvalidRequest = 17,
+        ServerFailed = 18,
+        ServerNoRange = 19,
+        ServerBadContent = 20,
+        ServerUnauthorized = 21,
+        ServerCertProblem = 22,
+        ServerForbidden = 23,
+        ServerUnreachable = 24,
+        ServerContentLengthMismatch = 25,
+        ServerCrossOriginRedirect = 26,
+        UserCanceled = 27,
+        UserShutdown = 28,
+        Crash = 29,
     };
 
     runtimeclass CoreWebView2Settings
@@ -462,14 +699,20 @@ namespace Microsoft.Web.WebView2.Core
         Boolean ShouldDisplayDefaultDownloadDialog { get; set; };
     }
 
-     runtimeclass CoreWebView2DownloadStartingEventArgs
+    runtimeclass CoreWebView2DownloadStateChangedEventArgs
+    {
+        // CoreWebView2DownloadStateChangedEventArgs
+        CoreWebView2DownloadInterruptReason InterruptReason { get; };
+    }
+
+    runtimeclass CoreWebView2DownloadStartingEventArgs
     {
         // CoreWebView2DownloadStartingEventArgs
         Boolean Cancel { get; set; };
 
         String ResultFilePath { get; set; };
 
-        CoreWebView2DownloadItem DownloadItem();
+        CoreWebView2Download Download();
 
         Windows.Foundation.Deferral GetDeferral();
     }
@@ -480,11 +723,9 @@ namespace Microsoft.Web.WebView2.Core
         event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2DownloadStartingEventArgs> DownloadStarting;
     }
 
-     runtimeclass CoreWebView2DownloadItem
+    runtimeclass CoreWebView2Download
     {
-        // CoreWebView2DownloadItem
-        UInt32 id { get; };
-
+        // CoreWebView2Download
         String Uri { get; };
 
         String ContentDisposition { get; };
@@ -493,22 +734,26 @@ namespace Microsoft.Web.WebView2.Core
 
         UInt64 DownloadSizeInBytes { get; };
 
-        UInt64 ReceivedBytes { get; };
+        UInt64 DownloadProgressSizeInBytes { get; };
 
         String EstimatedEndTime { get; };
 
         String ResultFilePath { get; };
 
-        CoreWebView2DownloadDangerType DangerType { get; };
-
         CoreWebView2DownloadState State { get; };
 
-        String InterruptReason { get; };
+        Boolean IsPaused { get; };
+
+        Boolean CanResume { get; };
+
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Download, Object> DownloadProgressSizeInBytesChanged;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Download, Object> DownloadEstimatedEndTimeChanged;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Download, CoreWebView2DownloadStateChangedEventArgs> DownloadStateChanged;
 
         void Cancel();
 
         void Pause();
-        
+
         void Resume();
     }
 }
