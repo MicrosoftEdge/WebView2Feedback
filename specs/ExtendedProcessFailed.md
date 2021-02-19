@@ -8,7 +8,7 @@ The updated API is detailed below. We'd appreciate your feedback.
 
 # Description
 We propose to add new cases for which the `ProcessFailed` event is raised:
-  1. When a frame-only render process fails. Only subframes within the `CoreWebView2` are impacted in this case (the content is gone and replaced with a "sad face" layer).
+  1. When a frame-only render process fails. Only subframes within the `CoreWebView2` are impacted in this case (the content is gone and replaced with an error page).
   2. When a WebView2 Runtime child process other than the browser process or a render process fails. The app can use these process failures for logging and telemetry purposes.
 
 We also propose extending the `ProcessFailedEventArgs` to provide additional information about the process failure:
@@ -398,8 +398,8 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_KIND {
   
   /// Indicates that a frame-only render process ended unexpectedly. The process
   /// exit does not impact the top-level document, only a subset of the
-  /// subframes within it. The content in these frames is replaced with a "sad
-  /// face" layer.
+  /// subframes within it. The content in these frames is replaced with an error
+  /// page in the frame.
   COREWEBVIEW2_PROCESS_FAILED_KIND_FRAME_RENDER_PROCESS_EXITED,
 
   /// Indicates that a utility process ended unexpectedly.
@@ -490,8 +490,7 @@ interface ICoreWebView2ProcessFailedEventArgs2 : IUnknown {
       [out, retval] LPWSTR* processDescription);
 
   /// The list of frames in the `CoreWebView2` that were being rendered by the
-  /// failed process. The content in these frames is replaced with a "sad face"
-  /// layer.
+  /// failed process. The content in these frames is replaced with an error page.
   /// This is only available when `ProcessFailedKind` is
   /// `COREWEBVIEW2_PROCESS_FAILED_KIND_FRAME_RENDER_PROCESS_EXITED`;
   /// `frames` is `null` for all other process failure kinds, including the case
@@ -574,8 +573,8 @@ namespace Microsoft.Web.WebView2.Core
 
         /// Indicates that a frame-only render process ended unexpectedly. The process
         /// exit does not impact the top-level document, only a subset of the
-        /// subframes within it. The content in these frames is replaced with a "sad
-        /// face" layer.
+        /// subframes within it. The content in these frames is replaced with an
+        /// error page in the frame.
         FrameRenderProcessExited,
         /// Indicates that a utility process ended unexpectedly.
         UtilityProcessExited,
@@ -647,8 +646,7 @@ namespace Microsoft.Web.WebView2.Core
         String ProcessDescription { get; };
 
         /// The list of frames in the `CoreWebView2` that were being rendered by the
-        /// failed process. The content in these frames is replaced with a "sad face"
-        /// layer.
+        /// failed process. The content in these frames is replaced with an error page.
         /// This is only available when `ProcessFailedKind` is
         /// `CoreWebView2ProcessFailedKind.FrameRenderProcessExited`;
         /// it is `null` for all other process failure kinds, including the case
