@@ -508,7 +508,7 @@ interface ICoreWebView2ProcessFailedEventArgs2 : IUnknown {
 interface ICoreWebView2FrameInfoCollection : IUnknown {
   /// Gets an iterator over the collection of frames' info.
   HRESULT GetIterator(
-      [out, retval] ICoreWebView2FrameInfoCollection** iterator);
+      [out, retval] ICoreWebView2FrameInfoCollectionIterator** iterator);
 }
 
 /// Iterator for a collection of frames' info. For more info, see
