@@ -379,12 +379,19 @@ library WebView2
 [v1_enum]
 typedef enum COREWEBVIEW2_PROCESS_FAILED_KIND {
   // Existing stable values.
+
+  // Note: docs for this enum value remain unchanged.
+  /// Indicates that the browser process ended unexpectedly.  The WebView
+  /// automatically moves to the Closed state.  The app has to recreate a new
+  /// WebView to recover from this failure.
   COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED,
 
   /// Indicates that the main frame's render process ended unexpectedly.  A new
   /// render process is created automatically and navigated to an error page.
   /// The app runs `Reload()` to try to recover from the failure.
   COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
+
+  /// Indicates that the main frame's render process is unresponsive.
   COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE,
 
   // New values.
@@ -550,11 +557,17 @@ namespace Microsoft.Web.WebView2.Core
     enum CoreWebView2ProcessFailedKind
     {
         // Existing stable values
+
+        // Note: docs for this enum value remain unchaged.
+        /// Indicates that the browser process ended unexpectedly.  The WebView
+        /// automatically moves to the Closed state.  The app has to recreate a new
+        /// WebView to recover from this failure.
         BrowserProcessExited,
         /// Indicates that the main frame's render process ended unexpectedly.  A new
         /// render process is created automatically and navigated to an error page.
         /// The app runs `Reload()` to try to recover from the failure.
         RenderProcessExited,
+        /// Indicates that the main frame's render process is unresponsive.
         RenderProcessUnresponsive,
 
         // New values.
