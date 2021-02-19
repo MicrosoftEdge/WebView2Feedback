@@ -388,7 +388,7 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_KIND {
 
   /// Indicates that the main frame's render process ended unexpectedly.  A new
   /// render process is created automatically and navigated to an error page.
-  /// The app runs `Reload()` to try to recover from the failure.
+  /// You can use the Reload method to try to reload the page that failed.
   COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
 
   /// Indicates that the main frame's render process is unresponsive.
