@@ -653,33 +653,7 @@ namespace Microsoft.Web.WebView2.Core
         /// in which the failed process was the renderer for the main frame and
         /// subframes within it, for which the failure kind is
         /// `CoreWebView2ProcessFailedKind.RenderProcessExited`.
-        CoreWebView2FrameInfoCollection ImpactedFramesInfo { get; };
-    }
-
-    /// Collection of frame details (name and source). Used to list the impacted
-    /// frames' info when a frame-only render process failure occurs in the
-    /// `CoreWebView2`.
-    runtimeclass CoreWebView2FrameInfoCollection
-    {
-        /// Gets an iterator over the collection of frames' info.
-        CoreWebView2FrameInfoCollection GetIterator();
-    }
-
-    /// Iterator for a collection of frames' info. For more info, see
-    /// `CoreWebView2ProcessFailedEventArgs` and
-    /// ICoreWebView2FrameInfoCollection`.
-    runtimeclass CoreWebView2FrameInfoCollectionIterator
-    {
-        /// `true` when the iterator has not run out of frames' info.  If the
-        /// collection over which the iterator is iterating is empty or if the
-        /// iterator has gone past the end of the collection, then this is `false`.
-        Boolean HasCurrentFrameInfo { get; };
-
-        /// Get the current `CoreWebView2FrameInfo` of the iterator.
-        CoreWebView2FrameInfo GetCurrentFrameInfo();
-
-        /// Move the iterator to the next frame's info in the collection.
-        Boolean MoveNext();
+        IVectorView<CoreWebView2FrameInfo> ImpactedFramesInfo { get; };
     }
 
     /// Provides a set of properties for a frame in the `CoreWebView2`.
