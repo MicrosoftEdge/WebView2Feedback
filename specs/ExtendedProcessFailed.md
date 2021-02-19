@@ -564,7 +564,7 @@ namespace Microsoft.Web.WebView2.Core
         BrowserProcessExited,
         /// Indicates that the main frame's render process ended unexpectedly.  A new
         /// render process is created automatically and navigated to an error page.
-        /// The app runs `Reload()` to try to recover from the failure.
+        /// You can use the Reload method to try to reload the page that failed.
         RenderProcessExited,
         /// Indicates that the main frame's render process is unresponsive.
         RenderProcessUnresponsive,
