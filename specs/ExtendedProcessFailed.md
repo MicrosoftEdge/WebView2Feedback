@@ -522,7 +522,7 @@ interface ICoreWebView2FrameInfoCollectionIterator : IUnknown {
   /// `TRUE` when the iterator has not run out of frames' info.  If the
   /// collection over which the iterator is iterating is empty or if the
   /// iterator has gone past the end of the collection, then this is `FALSE`.
-  HRESULT HasCurrentFrameInfo([out, retval] BOOL* hasCurrent);
+  [propget] HRESULT HasCurrentFrameInfo([out, retval] BOOL* hasCurrent);
 
   /// Move the iterator to the next frame's info in the collection.
   HRESULT MoveNext([out, retval] BOOL* hasNext);
@@ -622,9 +622,9 @@ namespace Microsoft.Web.WebView2.Core
 
 
         /// The reason for the process failure. The reason is always
-        /// `CoreWebView2ProcessFailedReason..Unexpected` when `ProcessFailedKind`
+        /// `CoreWebView2ProcessFailedReason.Unexpected` when `ProcessFailedKind`
         /// is `CoreWebView2ProcessFailedKind.BrowserProcessExited`, and
-        /// `CoreWebView2ProcessFailedReason..Unresponsive` when `ProcessFailedKind`
+        /// `CoreWebView2ProcessFailedReason.Unresponsive` when `ProcessFailedKind`
         /// is `CoreWebView2ProcessFailedKind.RenderProcessUnresponsive`.
         /// For other process failure kinds, the reason may be any of the reason
         /// values.
@@ -670,13 +670,13 @@ namespace Microsoft.Web.WebView2.Core
     /// ICoreWebView2FrameInfoCollection`.
     runtimeclass CoreWebView2FrameInfoCollectionIterator
     {
-        /// Get the current `CoreWebView2FrameInfo` of the iterator.
-        CoreWebView2FrameInfo GetCurrentFrameInfo();
-
         /// `true` when the iterator has not run out of frames' info.  If the
         /// collection over which the iterator is iterating is empty or if the
         /// iterator has gone past the end of the collection, then this is `false`.
-        Int32 HasCurrentFrameInfo();
+        Boolean HasCurrentFrameInfo { get; };
+
+        /// Get the current `CoreWebView2FrameInfo` of the iterator.
+        CoreWebView2FrameInfo GetCurrentFrameInfo();
 
         /// Move the iterator to the next frame's info in the collection.
         Boolean MoveNext();
