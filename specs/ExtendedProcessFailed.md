@@ -433,7 +433,7 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_REASON {
   /// This only applies to the main frame's render process.
   COREWEBVIEW2_PROCESS_FAILED_REASON_UNRESPONSIVE,
 
-  /// The process was killed. E.g., from Task Manager.
+  /// The process was killed. For example, from Task Manager.
   COREWEBVIEW2_PROCESS_FAILED_REASON_KILLED,
 
   /// The process crashed.
@@ -482,8 +482,8 @@ interface ICoreWebView2ProcessFailedEventArgs2 : IUnknown {
 
   /// Description of the process assigned by the WebView2 Runtime. This is a
   /// technical English term appropriate for logging or development purposes,
-  /// and not localized for the end user. It applies to utility processes (e.g.,
-  /// "Audio Service", "Video Capture") and plugin processes (e.g., "Flash").
+  /// and not localized for the end user. It applies to utility processes (for example,
+  /// "Audio Service" or "Video Capture") and plugin processes (for example, "Flash").
   /// The returned `processDescription` is `null` if the WebView2 Runtime did
   /// not assign a description to the process.
   [propget] HRESULT ProcessDescription(
@@ -599,7 +599,7 @@ namespace Microsoft.Web.WebView2.Core
         /// The process became unresponsive.
         /// This only applies to the main frame's render process.
         Unresponsive,
-        /// The process was killed. E.g., from Task Manager.
+        /// The process was killed. For example, from Task Manager.
         Killed,
         /// The process crashed.
         Crashed,
@@ -639,8 +639,8 @@ namespace Microsoft.Web.WebView2.Core
 
         /// Description of the process assigned by the WebView2 Runtime. This is a
         /// technical English term appropriate for logging or development purposes,
-        /// and not localized for the end user. It applies to utility processes (e.g.,
-        /// "Audio Service", "Video Capture") and plugin processes (e.g., "Flash").
+        /// and not localized for the end user. It applies to utility processes (for example,
+        /// "Audio Service" or "Video Capture") and plugin processes (for example, "Flash").
         /// The returned string is `null` if the WebView2 Runtime did
         /// not assign a description to the process.
         String ProcessDescription { get; };
