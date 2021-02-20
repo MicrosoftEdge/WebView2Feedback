@@ -48,9 +48,11 @@ Callback<ICoreWebView2RasterizationScaleChangedEventHandler>(
 ```
 ## .Net
 ```c#
-public void SetRasterizationScale(double rasterizaitonScale)
+public void SetRasterizationScale(double additionalScale)
 {
     CoreWebView2Controller.ShouldDetectMonitorScaleChanges = false;
+    m_webviewAdditionalRasterizationScale = additionalScale;
+    double rasterizationScale = additionalScale * GetDpiScale() * GetTextScale();
     CoreWebView2Controller.RasterizationScale = rasterizationScale;
 }
 ```
@@ -76,8 +78,9 @@ interface ICoreWebView2Controller2 : ICoreWebView2Controller {
   /// \snippet AppWindow.cpp TextScaleChanged2
   ///
   /// Rasterization scale applies to the WebView content, as well as
-  /// popups, context menus, scroll bars, etc. Normal app scaling scenarios
-  /// should use the ZoomFactor property or SetBoundsAndZoomFactor API.
+  /// popups, context menus, scroll bars, and so on. Normal app scaling scenarios
+  /// should use the ZoomFactor property or SetBoundsAndZoomFactor API which
+  /// only scale the rendered HTML content and not popups, context menus, scroll bars and so on.
   ///
   /// \snippet ViewComponent.cpp RasterizationScale
   [propget] HRESULT RasterizationScale([out, retval] double* scale);
@@ -130,7 +133,7 @@ public partial class CoreWebView2Controller
         /// </summary>
         /// <remarks>
         /// The rasterization scale is the combination of the monitor DPI scale and text scaling set by the user. This value shoud be updated when the DPI scale of the app's top level window changes (i.e. monitor DPI scale changes or the window changes monitor) or when the text scale factor of the system changes.
-        /// Rasterization scale applies to the WebView content, as well as popups, context menus, scroll bars, etc. Normal app scaling scenarios should use the <see cref="CoreWebView2.ZoomFactor"/> property or <see cref="CoreWebView2.SetBoundsAndZoomFactor"/> method.
+        /// Rasterization scale applies to the WebView content, as well as popups, context menus, scroll bars, and so on. Normal app scaling scenarios should use the <see cref="CoreWebView2.ZoomFactor"/> property or <see cref="CoreWebView2.SetBoundsAndZoomFactor"/> method.
         /// </remarks>
         public double RasterizationScale { get; set;};
 
@@ -140,7 +143,7 @@ public partial class CoreWebView2Controller
         /// <remarks>
         /// ShouldDetectMonitorScaleChanges property determines whether the WebView attempts to track monitor DPI scale schanges. When true, the WebView will track monitor DPI scale changes, update the <see cref="CoreWebView2.RasterizationScale"/> property, and fire <see cref="CoreWebView2.RasterizationScaleChanged"/> event. When false, the WebView will not track monitor DPI scale changes, and the app must update the <see cref="CoreWebView2.RasterizationScale"/> property itself. <see cref="CoreWebView2.RasterizationScaleChanged"/> event will never fire when ShouldDetectMonitorScaleChanges is false.
         /// </remarks>
-        public int ShouldDetectMonitorScaleChanges {get; set;};
+        public bool ShouldDetectMonitorScaleChanges {get; set;};
 
         /// <summary>
         /// RasterizationScalechanged is raised when the <see cref="CoreWebView2Controller.RasterizationScale"/> property changes.
