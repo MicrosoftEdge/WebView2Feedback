@@ -75,11 +75,11 @@ interface ICoreWebView2Settings2 : ICoreWebView2Settings {
     /// When this setting is set to false, it disables all accelerator keys
     /// that access features specific to the browser, including but not limited to:
     ///  - Ctrl-F and F3 for Find on Page
-    /// - Ctrl-P for Print
-    /// - Ctrl-R and F5 for Reload
-    /// - Ctrl-Plus and Ctrl-Minus for zooming
-    /// - Ctrl-Shift-C and F12 for DevTools
-    /// - Special keys for browser functions, such as Back, Forward, and Search
+    ///  - Ctrl-P for Print
+    ///  - Ctrl-R and F5 for Reload
+    ///  - Ctrl-Plus and Ctrl-Minus for zooming
+    ///  - Ctrl-Shift-C and F12 for DevTools
+    ///  - Special keys for browser functions, such as Back, Forward, and Search
     ///
     /// It does not disable accelerator keys related to movement and text editing,
     /// such as:
@@ -101,7 +101,7 @@ interface ICoreWebView2Settings2 : ICoreWebView2Settings {
 ```
 
 ```c#
-public class ICoreWebViewSettings2 : ICoreWebView2Settings {
-    public bool AreBrowserAcceleratorKeysEnabled { get; set; }
+runtimeclass ICoreWebViewSettings2 : ICoreWebView2Settings {
+    Boolean AreBrowserAcceleratorKeysEnabled { get; set; }
 }
 ```
