@@ -39,8 +39,9 @@ See [API Details](#api_details) section below for API reference.
 ## Win32 C++
 ``` c#
 interface ICoreWebView2Environment4 : ICoreWebView2Environment3 {
-  /// Returns the UI Automation Provider for the
-  /// ICoreWebView2CompositionController that corresponds with the given HWND.
+  /// Returns the UI Automation Provider in cases where automation APIs are asking
+  /// about an HWND that may belong to the WebView but the app doesn't have context
+  /// to know which CoreWebView2Controller is being referenced.
   HRESULT GetProviderForHwnd([in] HWND hwnd,
                              [out, retval] IUnknown** provider);
 }
