@@ -100,8 +100,10 @@ interface ICoreWebView2Settings2 : ICoreWebView2Settings {
 }
 ```
 
-```c#
-runtimeclass ICoreWebViewSettings2 : ICoreWebView2Settings {
+```c# (but actually midl3)
+runtimeclass ICoreWebView2Settings {
+    // ...
+    
     Boolean AreBrowserAcceleratorKeysEnabled { get; set; };
 }
 ```
