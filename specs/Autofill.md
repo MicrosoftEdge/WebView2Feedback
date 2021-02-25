@@ -1,5 +1,5 @@
 # Background
-The WebView2 team has been asked for an API to allow end developers to set the autofill preferences.  We are exposing two of the autofill preferences that will allow toggling between enable and disable autofill for addresses and passwords.  Addresses includes things like email addresses, shipping addresses, phone numbers, and names.  Passwords includes things like username and passwords for login. 
+The WebView2 team has been asked for an API to allow end developers to set the autofill preferences.  We are exposing two of the autofill preferences that will allow enabling and disabling autofill for addresses and passwords.  Addresses includes things like email addresses, shipping addresses, phone numbers, and names.  Passwords includes things like usernames and passwords for login. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
@@ -7,7 +7,7 @@ In this document we describe the updated API. We'd appreciate your feedback.
 # Description
 
 Autofilling has three components
-* Auto-stuffing - filling the corresponding form fields automatically on page load.
+* Autostuffing - Filling the corresponding form fields automatically on page load.
 * Suggesting - When the user clicks on the form field, drop down suggestions of previously saved forms will be displayed.  
 * Populating - When clicking on one of the suggestions, the form data will populate the respective fields. 
 
@@ -60,19 +60,22 @@ If address autofill is enabled:
 * Address data will be saved
 * Upon clicking on the form field, suggestions will appear
 * Clicking on one of the suggestions will populate the corresponding fields
+
 If address autofill is disabled
 * No new address data will be saved
 * Upon clicking on the form field, suggestions will not appear
+
 If password autofill is enabled
 * Password data will be autostuffed
 * Upon clicking on the form field, suggestions will appear
 * Clicking on one of the suggestions will populate the corresponding fields
-* Upon submitting the password data, a save password prompt will be displayed that will give the user the option to save or update the password data. If the user selects `Yes`, the new password data will be saved or updated depending on if they have previously entered password data while password autofill is enabled.  
+* Upon submitting the password data, a save password prompt will be displayed that will give the user the option to save or update the password data. If the user selects `Yes`, the new password data will be saved or updated depending on if they have previously entered password data while password autofill is enabled  
+
 If password autofill is disabled
 * The password data will be autostuffed
 * Upon clicking on the form field, suggestions will appear
-* Clicking on one of the suggestions will populate the corresponding fields. 
-* Upon submitting the password data, no save password prompt will be displayed and no password information is saved or updated. 
+* Clicking on one of the suggestions will populate the corresponding fields 
+* Upon submitting the password data, no save password prompt will be displayed and no password information is saved or updated
 
 
 # API Notes
