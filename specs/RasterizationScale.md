@@ -15,7 +15,7 @@ To allow the app to control the DPI scale of WebView, we are adding a `Rasteriza
 The RasterizationScale property controls the DPI scaling for all UI in WebView.
 
 In order to maintain compatibility with apps developed before this API existed,
-WebView2 continues to detect monitor scale changes be default and will update the RasterizationScale property.
+WebView2 continues to detect monitor scale changes by default and will update the RasterizationScale property.
 When the RasterizationScale property is updated, the `RasterizationScaleChanged` event is raised.
 The app can tell WebView2 to stop updating the RasterizationScale property by changing
 `ShouldDetectMonitorDpiScaleChanges` from the default value of true, to false.
@@ -29,6 +29,8 @@ void ViewComponent::SetRasterizationScale(float additionalScale)
 {
     CHECK_FAILURE(m_controller->put_ShouldDetectMonitorScaleChanges(FALSE));
     m_webviewAdditionalRasterizationScale = additionalScale;
+    // RasterizationScale is typically the monitor DPI scale and text scaling, but
+    // the app could add an additional scale for its own scenarios.
     double rasterizationScale =
         additionalScale * m_appWindow->GetDpiScale() * m_appWindow->GetTextScale();
     CHECK_FAILURE(m_controller->put_RasterizationScale(rasterizationScale));
@@ -52,6 +54,9 @@ public void SetRasterizationScale(double additionalScale)
 {
     CoreWebView2Controller.ShouldDetectMonitorScaleChanges = false;
     m_webviewAdditionalRasterizationScale = additionalScale;
+    
+    // RasterizationScale is typically the monitor DPI scale and text scaling, but
+    // the app could add an additional scale for its own scenarios.
     double rasterizationScale = additionalScale * GetDpiScale() * GetTextScale();
     CoreWebView2Controller.RasterizationScale = rasterizationScale;
 }
@@ -90,10 +95,12 @@ interface ICoreWebView2Controller2 : ICoreWebView2Controller {
   /// ShouldDetectMonitorScaleChanges property determines whether the WebView
   /// attempts to track monitor DPI scale changes. When true, the WebView will
   /// track monitor DPI scale changes, update the RasterizationScale property,
-  /// and raises RasterizationScaleChanged event. When false, the WebView will
-  /// not track monitor DPI scale changes, and the app must update the
-  /// RasterizationScale property itself. RasterizationScaleChanged event will
-  /// never raise when ShouldDetectMonitorScaleChanges is false.
+  /// and raises RasterizationScaleChanged event. Attempting to set RasterizationScale
+  /// while ShouldDetectMonitorScaleChanges is true will result in RasterizationScaleChanged
+  /// being raised and the value restored to match the monitor DPI scale.
+  /// When false, the WebView will not track monitor DPI scale changes, and the app
+  /// must update the RasterizationScale property itself. RasterizationScaleChanged
+  /// event will never raise when ShouldDetectMonitorScaleChanges is false.
   [propget] HRESULT ShouldDetectMonitorScaleChanges([out, retval] BOOL* value);
   /// Set the ShouldDetectMonitorScaleChanges property.
   [propput] HRESULT ShouldDetectMonitorScaleChanges([in] BOOL value);
