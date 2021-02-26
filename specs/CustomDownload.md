@@ -17,7 +17,7 @@
     area, just explanation enough to understand this new API, rather than telling
     the reader "go read 100 pages of background information posted at ...".
 -->
-We are redesigning the download experience by providing a DownloadStarting event, and exposing a DownloadItem object with all associated download metadata. With this you will be able to block downloads, save to a different path, and have access to the required metadata to build your own download UI.
+We are redesigning the download experience by providing a DownloadStarting event, and exposing a Download object with all associated download metadata. With this you will be able to block downloads, save to a different path, and have access to the required metadata to build your own download UI.
 
 
 In this document we describe the updated API. We'd appreciate your feedback.
@@ -37,18 +37,18 @@ There are 3 parts to this API.
     - Download size in bytes
     - Result file path (get)
     - Progress size in bytes
-    - Estimated time
+    - Estimated end time
     - State (in progress, completed, interrupted)
     - Pause/resume/cancel
-    - Deferral`
+    - Deferral
     - Events:
         - DownloadStateChanged
             - InterruptReason
         - DownloadProgressSizeInBytesChanged
         - DownloadEstimatedEndTimeChanged
-3. WebView Setting: Default Download Dialogue - used to disable the default download UI (bottom dock)
+3. WebView Setting: Default Download Dialog - used to disable the default download UI (bottom dock)
 
-We beleive these 3 parts of a redesigned Download API, should enable your app have a customizable & complete download experience.
+We believe these 3 parts of a redesigned Download API, should enable your app have a customizable & complete download experience.
 
 # Examples
 <!-- TEMPLATE
