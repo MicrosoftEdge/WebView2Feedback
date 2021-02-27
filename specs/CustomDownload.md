@@ -48,7 +48,7 @@ There are 3 parts to this API.
         - DownloadEstimatedEndTimeChanged
 3. WebView Setting: Default Download Dialog - used to disable the default download UI (bottom dock)
 
-We believe these 3 parts of a redesigned Download API, should enable your app have a customizable & complete download experience.
+We believe these 3 parts of a redesigned Download API, should enable your app to have a customizable & complete download experience.
 
 # Examples
 <!-- TEMPLATE
@@ -103,6 +103,11 @@ We believe these 3 parts of a redesigned Download API, should enable your app ha
 -->
 ## Win32 C++
 ```cpp
+// Hide the default download dialog.
+wil::com_ptr<ICoreWebView2Settings> m_settings;
+CHECK_FAILURE(m_webView->get_Settings(&m_settings));
+CHECK_FAILURE(m_settings->put_ShouldDisplayDefaultDownloadDialog(FALSE));
+
 // Register a handler for the `DownloadStarting` event.
 // This example hides the default download dialog and shows a dialog box instead.
 // The dialog box displays the default save path and allows the user to specify a different path.
@@ -115,14 +120,8 @@ CHECK_FAILURE(m_webView->add_DownloadStarting(
             ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT {
             auto showDialog = [this, args] {
 
-                // Hide the default download dialog.
-                wil::com_ptr<ICoreWebView2Settings> m_settings;
-                CHECK_FAILURE(m_webView->get_Settings(&m_settings));
-                CHECK_FAILURE(
-                    m_settings->put_ShouldDisplayDefaultDownloadDialog(FALSE));
-
                 wil::com_ptr<ICoreWebView2Download> download;
-                CHECK_FAILURE(args->Download(&download));
+                CHECK_FAILURE(args->get_Download(&download));
 
                 UINT64 downloadSizeInBytes = 0;
                 CHECK_FAILURE(download->get_DownloadSizeInBytes(&downloadSizeInBytes));
@@ -183,53 +182,52 @@ CHECK_FAILURE(m_webView->add_DownloadStarting(
 &m_downloadStartingToken));
 
 // Update download progress
-// Register a handler for the `DownloadProgressSizeInBytesChanged` event.
-CHECK_FAILURE(download->add_DownloadProgressSizeInBytesChanged(
-    Callback<ICoreWebView2DownloadProgressSizeInBytesChangedEventHandler>(
-        [this](ICoreWebView2Download* download, IUnknown* args) -> HRESULT {
-            // Here developer can update UI to show progress of a download using
-            // `download->get_DownloadProgressSizeInBytes` and `download->get_DownloadSizeInBytes`.
-            return S_OK;
-        })
-    .Get(),
-&m_downloadProgressSizeInBytesChangedToken));
+void ScenarioCustomDownloadExperience::UpdateProgress(ICoreWebView2Download* download)
+{
+    // Register a handler for the `DownloadProgressSizeInBytesChanged` event.
+    CHECK_FAILURE(download->add_DownloadProgressSizeInBytesChanged(
+        Callback<ICoreWebView2DownloadProgressSizeInBytesChangedEventHandler>(
+            [this](ICoreWebView2Download* download, IUnknown* args) -> HRESULT {
+                // Here developer can update UI to show progress of a download using
+                // `download->get_DownloadProgressSizeInBytes` and `download->get_DownloadSizeInBytes`.
+                return S_OK;
+            })
+        .Get(),
+    &m_downloadProgressSizeInBytesChangedToken));
 
-// Register a handler for the `DownloadStateChanged` event.
-CHECK_FAILURE(download->add_DownloadStateChanged(
-    Callback<ICoreWebView2DownloadStateChangedEventHandler>(
-        [this](ICoreWebView2Download* download,
-        ICoreWebView2DownloadStateChangedEventArgs* args) -> HRESULT {
-            BOOL canResume = FALSE;
-            COREWEBVIEW2_DOWNLOAD_STATE downloadState;
-            CHECK_FAILURE(download->get_State(&downloadState));
-            switch (downloadState)
-            {
-            case DOWNLOAD_IN_PROGRESS:
-                break;
-            case DOWNLOAD_INTERRUPTED:
-                // Here developer can take different actions based on `args->InterruptReason`.
-                MessageBox(nullptr, L"Connection with file host was broken.", nullptr, MB_OK);
-                CHECK_FAILURE(download->get_CanResume(&canResume));
-                if (canResume)
+    // Register a handler for the `DownloadStateChanged` event.
+    CHECK_FAILURE(download->add_DownloadStateChanged(
+        Callback<ICoreWebView2DownloadStateChangedEventHandler>(
+            [this](ICoreWebView2Download* download,
+            ICoreWebView2DownloadStateChangedEventArgs* args) -> HRESULT {
+                COREWEBVIEW2_DOWNLOAD_STATE downloadState;
+                CHECK_FAILURE(download->get_State(&downloadState));
+                switch (downloadState)
                 {
-                    download->Resume();
-                }
-                else
-                {
+                case COREWEBVIEW2_DOWNLOAD_STATE_IN_PROGRESS:
+                    break;
+                case COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED:
+                    // Here developer can take different actions based on `args->InterruptReason`.
                     CompleteDownload(download);
+                    break;
+                case COREWEBVIEW2_DOWNLOAD_STATE_COMPLETED:
+                    CompleteDownload(download);
+                    break;
                 }
-                break;
-            case DOWNLOAD_COMPLETE:
-                CompleteDownload(download);
-                break;
-            }
-            return S_OK;
-        })
-    .Get(),
-&m_downloadStateChangedToken));
+                return S_OK;
+            })
+        .Get(),
+    &m_downloadStateChangedToken));
+}
 ```
 ## .NET/ WinRT
 ```c#
+if (_coreWebView2Settings == null)
+{
+    _coreWebView2Settings = webView.CoreWebView2.Settings;
+}
+_coreWebView2Settings.ShouldDisplayDefaultDownloadDialog = false;
+
 webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2DownloadStartingEventArgs args)
 {
     CoreWebView2Deferral deferral = args.GetDeferral();
@@ -237,12 +235,6 @@ webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2Do
     {
         using (deferral)
         {
-            if (_coreWebView2Settings == null)
-            {
-                _coreWebView2Settings = webView.CoreWebView2.Settings;
-            }
-            _coreWebView2Settings.ShouldDisplayDefaultDownloadDialog = false;
-
             var dialog = new TextInputDialog(
                 title: "Download Starting",
                 description: "Enter new result file path or select OK to keep default path. Select cancel to cancel the download.",
@@ -250,7 +242,7 @@ webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2Do
             if (dialog.ShowDialog() == true)
             {
                 args.ResultFilePath = dialog.Input.Text;
-                UpdateProgress(args.Download());
+                UpdateProgress(args.Download);
             }
             else
             {
@@ -273,17 +265,12 @@ void UpdateProgress(CoreWebView2Download download)
     {
         switch (download.State)
         {
-        case CoreWebView2DownloadState.DownloadInProgress:
+          case CoreWebView2DownloadState.InProgress:
             break;
-        case CoreWebView2DownloadState.DownloadInterrupted:
+          case CoreWebView2DownloadState.Interrupted:
             // Here developer can take different actions based on `args.InterruptReason`.
-            MessageBox.Show(this, "Connecton with file host broken.", "Download Interrupted");
-            if (download.CanResume == true)
-            {
-                download.Resume();
-            }
             break;
-        case CoreWebView2DownloadState.DownloadComplete:
+          case CoreWebView2DownloadState.Completed:
             break;
         }
     };
@@ -357,96 +344,96 @@ See [API Details](#api-details) section below for API reference.
 
 typedef enum COREWEBVIEW2_DOWNLOAD_STATE {
   /// The download is in progress. Includes downloads paused by user.
-  DOWNLOAD_IN_PROGRESS,
+  COREWEBVIEW2_DOWNLOAD_STATE_IN_PROGRESS,
   /// The connection with the file host was broken. The `InterruptReason` property
   /// can be accessed from `ICoreWebView2DownloadStateChangedEventArgs`. See
   /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON` for descriptions of kinds of
   /// interrupt reasons. Host can check whether an interrupted download can be
-  /// resumed with the `CanResume` method on the `ICoreWebView2Download`. Once
+  /// resumed with the `CanResume` property on the `ICoreWebView2Download`. Once
   /// resumed, a download is in the `DOWNLOAD_IN_PROGRESS` state.
-  DOWNLOAD_INTERRUPTED,
+  COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED,
   /// The download completed successfully.
-  DOWNLOAD_COMPLETE,
+  COREWEBVIEW2_DOWNLOAD_STATE_COMPLETED,
 } COREWEBVIEW2_DOWNLOAD_STATE;
 
 typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
-  DOWNLOAD_INTERRUPT_REASON_NONE,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NONE,
 
   /// File errors
   /// Generic file error.
-  FILE_FAILED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_FAILED,
   /// Access denied due to security restrictions.
-  FILE_ACCESS_DENIED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_ACCESS_DENIED,
   /// Disk full.
-  FILE_NO_SPACE,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_NO_SPACE,
   /// Result file path with file name is too long.
-  FILE_NAME_TOO_LONG,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_NAME_TOO_LONG,
   /// File is too large for file system.
-  FILE_TOO_LARGE,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_TOO_LARGE,
   /// File contains a virus.
-  FILE_VIRUS_INFECTED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_VIRUS_INFECTED,
   /// File was in use, too many files opened, or out of memory.
-  FILE_TRANSIENT_ERROR,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_TRANSIENT_ERROR,
   /// File blocked by local policy.
-  FILE_BLOCKED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_BLOCKED,
   /// Security check failed unexpectedly.
-  FILE_SECURITY_CHECK_FAILED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_SECURITY_CHECK_FAILED,
   /// Seeking past the end of a file in opening a file, as part of resuming an
   /// interrupted download.
-  FILE_TOO_SHORT,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_TOO_SHORT,
   /// Partial file did not match the expected hash.
-  FILE_HASH_MISMATCH,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_HASH_MISMATCH,
   /// Source and target of download were the same.
-  FILE_SAME_AS_SOURCE,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_SAME_AS_SOURCE,
 
   /// Network errors
   /// Generic network error.
-  NETWORK_FAILED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NETWORK_FAILED,
   /// Network operation timed out.
-  NETWORK_TIMEOUT,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NETWORK_TIMEOUT,
   /// Network connection lost.
-  NETWORK_DISCONNECTED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NETWORK_DISCONNECTED,
   /// Server has gone down.
-  NETWORK_SERVER_DOWN,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NETWORK_SERVER_DOWN,
   /// Network request invalid because original or redirected URI is invalid, has
   /// an unsupported scheme, or is disallowed by policy.
-  NETWORK_INVALID_REQUEST,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NETWORK_INVALID_REQUEST,
 
   /// Server responses
   /// Generic server error.
-  SERVER_FAILED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_FAILED,
   /// Server does not support range requests.
-  SERVER_NO_RANGE,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_NO_RANGE,
   /// Server does not have the requested data.
-  SERVER_BAD_CONTENT,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_BAD_CONTENT,
   /// Server did not authorize access to resource.
-  SERVER_UNAUTHORIZED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_UNAUTHORIZED,
   /// Server certificate problem.
-  SERVER_CERT_PROBLEM,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_CERT_PROBLEM,
   /// Server access forbidden.
-  SERVER_FORBIDDEN,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_FORBIDDEN,
   /// Unexpected server response. Responding server may not be intended server.
-  SERVER_UNREACHABLE,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_UNREACHABLE,
   /// Server sent fewer bytes than the content-length header. Content-length
   /// header may be invalid or connection may have closed. Download is treated
   /// as complete unless there are strong validators present to interrupt the
   /// download.
-  SERVER_CONTENT_LENGTH_MISMATCH,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_CONTENT_LENGTH_MISMATCH,
   /// Unexpected cross-origin redirect.
-  SERVER_CROSS_ORIGIN_REDIRECT,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_CROSS_ORIGIN_REDIRECT,
 
   /// User input
   /// User canceled the download.
-  USER_CANCELED,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_CANCELED,
   /// User shut down the WebView.
-  USER_SHUTDOWN,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_SHUTDOWN,
 
   /// WebView crashed.
-  CRASH,
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_DOWNLOAD_PROCESS_CRASHED,
 } COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON;
 
 [uuid(9aab8652-d89f-408d-8b2c-1ade3ab51d6d), object, pointer_default(unique)]
-interface ICoreWebView2Settings : IUnknown {
+interface ICoreWebView2Settings2 : ICoreWebView2Settings {
 
   /// The host may set this flag to hide the default download dialog.
   [propget] HRESULT ShouldDisplayDefaultDownloadDialog(
@@ -500,7 +487,7 @@ interface ICoreWebView2DownloadStartingEventHandler : IUnknown
 interface ICoreWebView2DownloadStartingEventArgs : IUnknown
 {
   /// Returns the `ICoreWebView2Download` for the download that has started.
-  HRESULT Download([out, retval] ICoreWebView2Download** download);
+  [propget] HRESULT Download([out, retval] ICoreWebView2Download** download);
 
   /// The host may set this flag to cancel the download. If canceled, the
   /// download save dialog will not be displayed regardless of the
@@ -513,7 +500,7 @@ interface ICoreWebView2DownloadStartingEventArgs : IUnknown
   /// The path to the file. If setting the path, the host should ensure that it
   /// is an absolute path, including the file name. If the directory does not
   /// exist, it will be created. If the path points to an existing file, the
-  /// file name will receive a suffix.
+  /// actual file name used will have an ` (N)` suffix appended.
   [propget] HRESULT ResultFilePath([out, retval] LPWSTR* resultFilePath);
 
   /// Sets the `ResultFilePath` property.
@@ -553,7 +540,7 @@ interface ICoreWebView2DownloadEstimatedEndTimeChangedEventHandler : IUnknown
 /// Implements the interface to receive `DownloadStateChanged` event. Use the
 /// `ICoreWebView2Download.State` property to get the current state, which can
 /// be in progress, interrupted, or complete. Find the `InterruptReason` property
-/// on 'ICoreWebView2DownloadStateChangedEventArgs`.
+/// on `ICoreWebView2DownloadStateChangedEventArgs`.
 [uuid(74EEBAA9-704B-4A9A-8331-AEBD541CB62C), object, pointer_default(unique)]
 interface ICoreWebView2DownloadStateChangedEventHandler : IUnknown
 {
@@ -657,19 +644,19 @@ interface ICoreWebView2Download : IUnknown
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2DownloadItem;
+    runtimeclass CoreWebView2Download;
     runtimeclass CoreWebView2DownloadStartingEventArgs;
     runtimeclass CoreWebView2DownloadStateChangedEventArgs;
 
     enum CoreWebView2DownloadState
     {
-        DownloadInProgress = 0,
-        DownloadInterrupted = 1,
-        DownloadComplete = 2,
+        InProgress = 0,
+        Interrupted = 1,
+        Completed = 2,
     };
     enum CoreWebView2DownloadInterruptReason
     {
-        DownloadInterruptReasonNone = 0,
+        None = 0,
         FileFailed = 1,
         FileAccessDenied = 2,
         FileNoSpace = 3,
@@ -698,7 +685,7 @@ namespace Microsoft.Web.WebView2.Core
         ServerCrossOriginRedirect = 26,
         UserCanceled = 27,
         UserShutdown = 28,
-        Crash = 29,
+        DownloadProcessCrashed = 29,
     };
 
     runtimeclass CoreWebView2Settings
@@ -717,11 +704,11 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2DownloadStartingEventArgs
     {
         // CoreWebView2DownloadStartingEventArgs
+        CoreWebView2Download Download { get; };
+
         Boolean Cancel { get; set; };
 
         String ResultFilePath { get; set; };
-
-        CoreWebView2Download Download();
 
         Windows.Foundation.Deferral GetDeferral();
     }
