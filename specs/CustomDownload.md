@@ -743,7 +743,7 @@ namespace Microsoft.Web.WebView2.Core
 
         UInt64 DownloadProgressSizeInBytes { get; };
 
-        String EstimatedEndTime { get; };
+        Windows.Foundation.DateTime EstimatedEndTime { get; };
 
         String ResultFilePath { get; };
 
