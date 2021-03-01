@@ -103,83 +103,89 @@ We believe these 3 parts of a redesigned Download API, should enable your app to
 -->
 ## Win32 C++
 ```cpp
-// Hide the default download dialog.
-wil::com_ptr<ICoreWebView2Settings> m_settings;
-CHECK_FAILURE(m_webView->get_Settings(&m_settings));
-CHECK_FAILURE(m_settings->put_ShouldDisplayDefaultDownloadDialog(FALSE));
+ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* appWindow)
+    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
+{
+    // Hide the default download dialog.
+    wil::com_ptr<ICoreWebView2Settings> m_settings;
+    CHECK_FAILURE(m_webView->get_Settings(&m_settings));
+    CHECK_FAILURE(m_settings->put_ShouldDisplayDefaultDownloadDialog(FALSE));
 
-// Register a handler for the `DownloadStarting` event.
-// This example hides the default download dialog and shows a dialog box instead.
-// The dialog box displays the default save path and allows the user to specify a different path.
-// Selecting `OK` will save the download to the chosen path.
-// Selecting `CANCEL` will cancel the download.
-CHECK_FAILURE(m_webView->add_DownloadStarting(
-    Callback<ICoreWebView2DownloadStartingEventHandler>(
-        [this](
-            ICoreWebView2_3* sender,
-            ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT {
-            auto showDialog = [this, args] {
+    // Register a handler for the `DownloadStarting` event.
+    // This example hides the default download dialog and shows a dialog box instead.
+    // The dialog box displays the default save path and allows the user to specify a different path.
+    // Selecting `OK` will save the download to the chosen path.
+    // Selecting `CANCEL` will cancel the download.
+    CHECK_FAILURE(m_webView->add_DownloadStarting(
+        Callback<ICoreWebView2DownloadStartingEventHandler>(
+            [this](
+                ICoreWebView2_3* sender,
+                ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT {
+                auto showDialog = [this, args] {
 
-                wil::com_ptr<ICoreWebView2Download> download;
-                CHECK_FAILURE(args->get_Download(&download));
+                    wil::com_ptr<ICoreWebView2Download> download;
+                    CHECK_FAILURE(args->get_Download(&download));
 
-                UINT64 downloadSizeInBytes = 0;
-                CHECK_FAILURE(download->get_DownloadSizeInBytes(&downloadSizeInBytes));
+                    UINT64 expectedDownloadSizeInBytes = 0;
+                    CHECK_FAILURE(download->get_ExpectedDownloadSizeInBytes(
+                      &expectedDownloadSizeInBytes));
 
-                wil::unique_cotaskmem_string uri;
-                CHECK_FAILURE(download->get_Uri(&uri));
+                    wil::unique_cotaskmem_string uri;
+                    CHECK_FAILURE(download->get_Uri(&uri));
 
-                wil::unique_cotaskmem_string mimeType;
-                CHECK_FAILURE(download->get_MimeType(&mimeType));
+                    wil::unique_cotaskmem_string mimeType;
+                    CHECK_FAILURE(download->get_MimeType(&mimeType));
 
-                wil::unique_cotaskmem_string contentDisposition;
-                CHECK_FAILURE(download->get_ContentDisposition(&contentDisposition));
+                    wil::unique_cotaskmem_string contentDisposition;
+                    CHECK_FAILURE(download->get_ContentDisposition(&contentDisposition));
 
-                // Get the suggested path from the event args.
-                wil::unique_cotaskmem_string resultFilePath;
-                CHECK_FAILURE(args->get_ResultFilePath(&resultFilePath));
+                    // Get the suggested path from the event args.
+                    wil::unique_cotaskmem_string resultFilePath;
+                    CHECK_FAILURE(args->get_ResultFilePath(&resultFilePath));
 
-                std::wstring prompt =
-                    std::wstring(L"Enter result file path or select `OK` to use default path. ") +
-                    L"Select `Cancel` to cancel the download.";
+                    std::wstring prompt =
+                        std::wstring(L"Enter result file path or select `OK` to use default path. ") +
+                        L"Select `Cancel` to cancel the download.";
 
-                std::wstring description = std::wstring(L"URI: ") + uri.get() + L"\r\n" +
-                                            L"Mime type: " + mimeType.get() + L"\r\n" +
-                                            L"Download size in bytes: " + std::to_wstring(downloadSizeInBytes) +
-                                            L"\r\n";
+                    std::wstring description = std::wstring(L"URI: ") + uri.get() + L"\r\n" +
+                                                L"Mime type: " + mimeType.get() + L"\r\n" +
+                                                L"Expected Download size in bytes: " +
+                                                std::to_wstring(expectedDownloadSizeInBytes) +
+                                                L"\r\n";
 
-                TextInputDialog dialog(
-                    m_appWindow->GetMainWindow(), L"Download Starting", prompt.c_str(),
-                    description.c_str(), resultFilePath.get());
-                if (dialog.confirmed)
-                {
-                    // If user selects `OK`, the download will complete normally.
-                    // Result file path will be updated if a new one was provided.
-                    CHECK_FAILURE(args->put_ResultFilePath(dialog.input.c_str()));
-                    UpdateProgress(download.get());
-                }
-                else
-                {
-                    // If user selects `Cancel`, the download will be canceled.
-                    CHECK_FAILURE(args->put_Cancel(TRUE));
-                }
-            };
+                    TextInputDialog dialog(
+                        m_appWindow->GetMainWindow(), L"Download Starting", prompt.c_str(),
+                        description.c_str(), resultFilePath.get());
+                    if (dialog.confirmed)
+                    {
+                        // If user selects `OK`, the download will complete normally.
+                        // Result file path will be updated if a new one was provided.
+                        CHECK_FAILURE(args->put_ResultFilePath(dialog.input.c_str()));
+                        UpdateProgress(download.get());
+                    }
+                    else
+                    {
+                        // If user selects `Cancel`, the download will be canceled.
+                        CHECK_FAILURE(args->put_Cancel(TRUE));
+                    }
+                };
 
-            wil::com_ptr<ICoreWebView2Deferral> deferral;
-            CHECK_FAILURE(args->GetDeferral(&deferral));
+                wil::com_ptr<ICoreWebView2Deferral> deferral;
+                CHECK_FAILURE(args->GetDeferral(&deferral));
 
-            // This function can be called to show the download dialog and
-            // complete the event at a later time, allowing the developer to
-            // perform async work before the event completes.
-            m_completeDeferredDownloadEvent = [showDialog, deferral] {
-                showDialog();
-                CHECK_FAILURE(deferral->Complete());
-            };
+                // This function can be called to show the download dialog and
+                // complete the event at a later time, allowing the developer to
+                // perform async work before the event completes.
+                m_completeDeferredDownloadEvent = [showDialog, deferral] {
+                    showDialog();
+                    CHECK_FAILURE(deferral->Complete());
+                };
 
-            return S_OK;
-        })
-    .Get(),
-&m_downloadStartingToken));
+                return S_OK;
+            })
+        .Get(),
+    &m_downloadStartingToken));
+}
 
 // Update download progress
 void ScenarioCustomDownloadExperience::UpdateProgress(ICoreWebView2Download* download)
@@ -189,7 +195,8 @@ void ScenarioCustomDownloadExperience::UpdateProgress(ICoreWebView2Download* dow
         Callback<ICoreWebView2DownloadProgressSizeInBytesChangedEventHandler>(
             [this](ICoreWebView2Download* download, IUnknown* args) -> HRESULT {
                 // Here developer can update UI to show progress of a download using
-                // `download->get_DownloadProgressSizeInBytes` and `download->get_DownloadSizeInBytes`.
+                // `download->get_DownloadProgressSizeInBytes` and
+                // `download->get_ExpectedDownloadSizeInBytes`.
                 return S_OK;
             })
         .Get(),
@@ -222,35 +229,38 @@ void ScenarioCustomDownloadExperience::UpdateProgress(ICoreWebView2Download* dow
 ```
 ## .NET/ WinRT
 ```c#
-if (_coreWebView2Settings == null)
+void DownloadStartingCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    _coreWebView2Settings = webView.CoreWebView2.Settings;
-}
-_coreWebView2Settings.ShouldDisplayDefaultDownloadDialog = false;
-
-webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2DownloadStartingEventArgs args)
-{
-    CoreWebView2Deferral deferral = args.GetDeferral();
-    System.Threading.SynchronizationContext.Current.Post((_) =>
+    if (_coreWebView2Settings == null)
     {
-        using (deferral)
+        _coreWebView2Settings = webView.CoreWebView2.Settings;
+    }
+    _coreWebView2Settings.ShouldDisplayDefaultDownloadDialog = false;
+
+    webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2DownloadStartingEventArgs args)
+    {
+        CoreWebView2Deferral deferral = args.GetDeferral();
+        System.Threading.SynchronizationContext.Current.Post((_) =>
         {
-            var dialog = new TextInputDialog(
-                title: "Download Starting",
-                description: "Enter new result file path or select OK to keep default path. Select cancel to cancel the download.",
-                defaultInput: args.ResultFilePath);
-            if (dialog.ShowDialog() == true)
+            using (deferral)
             {
-                args.ResultFilePath = dialog.Input.Text;
-                UpdateProgress(args.Download);
+                var dialog = new TextInputDialog(
+                    title: "Download Starting",
+                    description: "Enter new result file path or select OK to keep default path. Select cancel to cancel the download.",
+                    defaultInput: args.ResultFilePath);
+                if (dialog.ShowDialog() == true)
+                {
+                    args.ResultFilePath = dialog.Input.Text;
+                    UpdateProgress(args.Download);
+                }
+                else
+                {
+                    args.Cancel = true;
+                }
             }
-            else
-            {
-                args.Cancel = true;
-            }
-        }
-    }, null);
-};
+        }, null);
+    };
+}
 
 // Update download progress
 void UpdateProgress(CoreWebView2Download download)
@@ -258,7 +268,7 @@ void UpdateProgress(CoreWebView2Download download)
     download.DownloadProgressSizeInBytesChanged += delegate (object sender, Object e)
     {
         // Here developer can update download dialog to show progress of a download using
-        // `download.DownloadProgressSizeInBytes` and `download.DownloadSizeInBytes`
+        // `download.DownloadProgressSizeInBytes` and `download.ExpectedDownloadSizeInBytes`
     };
 
     download.DownloadStateChanged += delegate (object sender, CoreWebView2DownloadStateChangedEventArgs args)
@@ -600,9 +610,10 @@ interface ICoreWebView2Download : IUnknown
   /// MIME type of the downloaded content.
   [propget] HRESULT MimeType([out, retval] LPWSTR* mimeType);
 
-  /// The size of the download in total number of bytes before file compression.
-  /// Returns -1 if the size is unknown.
-  [propget] HRESULT DownloadSizeInBytes([out, retval] UINT64* downloadSizeInBytes);
+  /// The expected size of the download in total number of bytes based on the
+  /// HTTP content-length header. Returns -1 if the size is unknown.
+  [propget] HRESULT ExpectedDownloadSizeInBytes(
+    [out, retval] UINT64* expectedDownloadSizeInBytes);
 
   /// The number of bytes that have been written to the download file.
   [propget] HRESULT DownloadProgressSizeInBytes([out, retval] UINT64* downloadProgressSizeInBytes);
@@ -728,7 +739,7 @@ namespace Microsoft.Web.WebView2.Core
 
         String MimeType { get; };
 
-        UInt64 DownloadSizeInBytes { get; };
+        UInt64 ExpectedDownloadSizeInBytes { get; };
 
         UInt64 DownloadProgressSizeInBytes { get; };
 
