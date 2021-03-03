@@ -353,14 +353,14 @@ See [API Details](#api-details) section below for API reference.
 // Enums and structs
 
 typedef enum COREWEBVIEW2_DOWNLOAD_STATE {
-  /// The download is in progress. Includes downloads paused by user.
+  /// The download is in progress.
   COREWEBVIEW2_DOWNLOAD_STATE_IN_PROGRESS,
   /// The connection with the file host was broken. The `InterruptReason` property
   /// can be accessed from `ICoreWebView2DownloadStateChangedEventArgs`. See
   /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON` for descriptions of kinds of
   /// interrupt reasons. Host can check whether an interrupted download can be
   /// resumed with the `CanResume` property on the `ICoreWebView2Download`. Once
-  /// resumed, a download is in the `DOWNLOAD_IN_PROGRESS` state.
+  /// resumed, a download is in the `COREWEBVIEW2_DOWNLOAD_STATE_IN_PROGRESS` state.
   COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED,
   /// The download completed successfully.
   COREWEBVIEW2_DOWNLOAD_STATE_COMPLETED,
@@ -437,6 +437,8 @@ typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_CANCELED,
   /// User shut down the WebView.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_SHUTDOWN,
+  /// User paused the download.
+  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_PAUSED,
 
   /// WebView crashed.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_DOWNLOAD_PROCESS_CRASHED,
@@ -637,17 +639,23 @@ interface ICoreWebView2Download : IUnknown
 
   /// Pauses the download. If paused, the default download dialog will
   /// show that the download is paused. No effect if download is already paused.
-  /// A paused download is in the `DOWNLOAD_IN_PROGRESS` state.
+  /// Pausing a download will change the state to `COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED`
+  /// with `InterruptReason` set to `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_PAUSED`.
   HRESULT Pause();
 
-  /// Resumes a paused download. No effect if download is not paused.
+  /// Resumes a paused download. No effect if download is not paused. Resuming a
+  /// download will change the state from `COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED`
+  /// to `COREWEBVIEW2_DOWNLOAD_STATE_IN_PROGRESS`.
   HRESULT Resume();
 
   /// Returns whether user has paused the download.
   [propget] HRESULT IsPaused([out, retval] BOOL* isPaused);
 
-  /// Returns true if download is paused by user or if download is interrupted
-  /// and can be resumed.
+  /// Returns true if an interrupted download can be resumed. Downloads with
+  /// the following interrupt reasons may be auto-resumed:
+  /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_NO_RANGE`,
+  /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_HASH_MISMATCH`,
+  /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_TOO_SHORT`.
   [propget] HRESULT CanResume([out, retval] BOOL* canResume);
 }
 ```
@@ -696,7 +704,8 @@ namespace Microsoft.Web.WebView2.Core
         ServerCrossOriginRedirect = 26,
         UserCanceled = 27,
         UserShutdown = 28,
-        DownloadProcessCrashed = 29,
+        UserPaused = 29,
+        DownloadProcessCrashed = 30,
     };
 
     runtimeclass CoreWebView2Settings
