@@ -643,9 +643,10 @@ interface ICoreWebView2Download : IUnknown
   /// with `InterruptReason` set to `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_PAUSED`.
   HRESULT Pause();
 
-  /// Resumes a paused download. No effect if download is not paused. Resuming a
-  /// download will change the state from `COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED`
-  /// to `COREWEBVIEW2_DOWNLOAD_STATE_IN_PROGRESS`.
+  /// Resumes a paused download. May also resume a download that was interrupted
+  /// for another reason, if `CanResume` returns true. Resuming a download will
+  /// change the state from `COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED` to
+  /// `COREWEBVIEW2_DOWNLOAD_STATE_IN_PROGRESS`.
   HRESULT Resume();
 
   /// Returns whether user has paused the download.
