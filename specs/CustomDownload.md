@@ -30,6 +30,7 @@ There are 3 parts to this API.
     - Download (link to the download object below)
     - Cancel
     - Result file path (set)
+    - Deferral
 2. Download [Object]: This will give you all the metadata that you might need to block a download, and build UI.
     - Uri
     - Mime type
@@ -40,7 +41,6 @@ There are 3 parts to this API.
     - Estimated end time
     - State (in progress, completed, interrupted)
     - Pause/resume/cancel
-    - Deferral
     - Events:
         - DownloadStateChanged
             - InterruptReason
