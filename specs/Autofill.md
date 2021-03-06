@@ -6,10 +6,10 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
 
-Autofilling has three components
-* Autostuffing - Filling the corresponding form fields automatically on page load
-* Suggesting - When the user clicks on the form field, drop down suggestions of previously saved forms will be displayed  
-* Populating - When clicking on one of the suggestions, the form data will populate the respective fields 
+Autofill has three components
+* Auto-populate - Populate the corresponding form fields automatically on page load.
+* Suggest - When the user clicks on the form field, drop down suggestions of previously saved forms will be displayed.
+* Populate - When clicking on one of the suggestions, the form data will populate the respective fields.
 
 
 # Examples
@@ -28,7 +28,7 @@ void SettingsComponent::ToggleGeneralAutofill() {
     wil::com_ptr<ICoreWebView2Settings2_2> settings;
     webView->get_Settings(&settings);
     bool enabled;
-    settings->get_IsGeneralAutofillEnabled(&enabled)
+    settings->get_IsGeneralAutofillEnabled(&enabled);
     settings->put_IsGeneralAutofillEnabled(!enabled);
 }
 ```
@@ -54,30 +54,6 @@ private void ToggleGeneralAutofill(CoreWebView2 sender, CoreWebView2NavigationSt
 ```
 
 
-# Remarks
-The two types of autofill preferences behave differently when toggling between enable and disable.  
-If general autofill is enabled:
-* General data will be saved
-* Upon clicking on the form field, suggestions will appear.
-* Clicking on one of the suggestions will populate the corresponding fields.
-
-If general autofill is disabled
-* No new general data will be saved.
-* Upon clicking on the form field, suggestions will not appear.
-
-If password autofill is enabled
-* Password data will be autostuffed.
-* Upon clicking on the form field, suggestions will appear.
-* Clicking on one of the suggestions will populate the corresponding fields.
-* Upon submitting the password data, a save password prompt will be displayed that will give the user the option to save or update the password data. If the user selects `Yes`, the new password data will be saved or updated depending on if they have previously entered password data while password autofill is enabled.  
-
-If password autofill is disabled
-* The password data will be autostuffed.
-* Upon clicking on the form field, suggestions will appear.
-* Clicking on one of the suggestions will populate the corresponding fields.
-* Upon submitting the password data, no save password prompt will be displayed and no password information is saved or updated.
-
-
 # API Notes
 See [API Details](#api-details) section below for API reference.
 
@@ -88,13 +64,26 @@ interface ICoreWebView2Settings2_2
 
 [uuid(f051013e-4bb3-46b2-b6e4-6ee3fe4f43c2), object, pointer_default(unique)]
 interface ICoreWebView2Settings2_2 : ICoreWebView2Settings2 {
-  /// IsPasswordAutofillEnabled controls whether autofill for passwords is enabled.
+  /// IsPasswordAutofillEnabled controls whether autofill for password
+  /// information is enabled. The isPasswordAutofillEnabled property behaves 
+  /// independently of the isGeneralAutofillEnabled property. When 
+  /// isPasswordAutofillEnabled is false, password information is auto-populated,
+  /// suggestions are shown and clicking on one will populate the fields, 
+  /// but no new data is saved and no Save/Update Password prompts are displayed. 
+  /// When isPasswordAutofillEnabled is true, password information is auto-populated, 
+  /// suggestions are shown and clicking on one will populate the fields, new data 
+  /// is saved, and a Save/Update Password prompt is displayed. 
   /// The default value is `FALSE`.
   [propget] HRESULT IsPasswordAutofillEnabled([out, retval] BOOL* isPasswordAutofillEnabled);
   // Set the IsPasswordAutofillEnabled property.
   [propput] HRESULT IsPasswordAutofillEnabled([in] BOOL isPasswordAutofillEnabled);
 
-  /// IsGeneralAutofillEnabled controls whether general autofill is enabled.
+  /// IsGeneralAutofillEnabled controls whether autofill for information 
+  /// like names, street and email addresses, phone numbers, and aribtrary input 
+  /// is enabled. This excludes password information. When isGeneralAutofillEnabled 
+  /// is false, no suggestions appear, and no new information is saved.
+  /// When isGeneralAutofillEnabled is true, information is saved, suggestions appear
+  /// and clicking on one will populate the form fields.
   /// The default value is `TRUE`.
   [propget] HRESULT IsGeneralAutofillEnabled([out, retval] BOOL* isGeneralAutofillEnabled);
   /// Set the IsGeneralAutofillEnabled property.
