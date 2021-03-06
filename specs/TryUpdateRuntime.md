@@ -27,6 +27,21 @@ async protected bool EnsureWebView2RuntimeVersion(string minimalVersionRequired)
     currentRuntimeVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
     return (CoreWebView2Environment.CompareBrowserVersions(currentRuntimeVersion, minimalVersionRequired) >= 0);
 }
+
+// For the scenario where the app wants to light up features fast while running with the old version.
+{
+    // Switch to new version by closing and recreating WebView.
+    webView2Environment.NewBrowserVersionAvailable += delegate (object sender, object args)
+    {
+        // Close current WebView2 Control
+        // Wait for it to completely shutdown
+        // Recreate WebView2 Control to run with newer version
+    };
+    
+    // Trigger Edge WebView2 Runtime update, ignroe update result and rely on NewBrowserVersionAvailable to take action.
+    EnsureWebView2RuntimeVersion(desiredVersion);
+}
+
 ```
 ## Win32 C++
 ```cpp
@@ -86,26 +101,7 @@ void EnsureWebView2RuntimeVersion(std::function<void(bool)> const& callback, std
 ```
 
 # Remarks
-Try to update installed Microsoft Edge WebView2 Runtime.
-This will potentially result in a new version of the Edge Webview2
-Runtime being installed and `NewBrowserVersionAvailable` event fired.
-There is no guarantee on the order of that event being fired and
-TryUpdateRuntimeis completed handler being invoked. Besides the
-`NewBrowserVersionAvailable` event, there will be no impact to any
-currently running WebViews when update is installed.
-The latest version can always be queried using `GetAvailableCoreWebView2BrowserVersionString` API.
-This is only supported for installed Edge WebView2 Runtime. When running
-fixed version Edge WebView2 Runtime or non stable channel Edge browser,
-this API will return `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`.
-There could only be one active TryUpdateRuntime operation, calling the API
-before completed handler for previous call is invoked will fail with
-`HRESULT_FROM_WIN32(ERROR_BUSY)`.
-Calling the API repeatedly in a short period of time, will also fail with
-`HRESULT_FROM_WIN32(ERROR_BUSY)`.
-The TryUpdateRuntime operation is associated with the CoreWebView2Environment
-object, on going TryUpdateRuntime operation will be aborted when the
-associated CoreWebView2Environment along with the CoreWebView2 objects that
-are created by the CoreWebView2Environment object are all released.
+See comments in [API Details](#api-details) section below.
 
 # API Notes
 See [API Details](#api-details) section below for API reference.
@@ -114,30 +110,32 @@ See [API Details](#api-details) section below for API reference.
 
 ## Win32 C++
 ```IDL
-/// Result of TryUpdateRuntime operation.
-[v1_enum] typedef enum COREWEBVIEW2_RUNTIME_UPDATE_STATUS {
+/// Status of TryUpdateRuntime operation result.
+[v1_enum] typedef enum COREWEBVIEW2_UPDATE_RUNTIME_STATUS {
 
   /// No update for Edge WebView2 Runtime is available.
-  COREWEBVIEW2_RUNTIME_UPDATE_STATUS_NO_UPDATE,
+  /// Latest version of Edge WebView2 Runtime is already installed.
+  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_NO_UPDATE,
 
   /// Edge WebView2 Runtime is updated successfully.
-  COREWEBVIEW2_RUNTIME_UPDATE_STATUS_UPDATED,
+  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_UPDATED,
 
-    /// Edge WebView2 Runtime update is blocked by group policy. The caller
-    /// should not retry.
-  COREWEBVIEW2_RUNTIME_UPDATE_STATUS_BLOCKED_BY_POLICY,
+  /// Edge WebView2 Runtime update is blocked by group policy.
+  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_BLOCKED_BY_POLICY,
 
   /// Edge WebView2 Runtime update failed.
-  COREWEBVIEW2_RUNTIME_UPDATE_STATUS_FAILED,
-} COREWEBVIEW2_RUNTIME_UPDATE_STATUS;
+  /// See `UpdateError` property of UpdateRuntimeResult for more
+  /// information about the failure.
+  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_FAILED,
+} COREWEBVIEW2_UPDATE_RUNTIME_STATUS;
 
 /// The TryUpdateRuntime result.
 [uuid(DD503E49-AB19-47C0-B2AD-6DDD09CC3E3A), object, pointer_default(unique)]
 interface ICoreWebView2ExperimentalUpdateRuntimeResult : IUnknown {
 
   /// The status for the TryUpdateRuntime method.
-  [propget] HRESULT UpdateRuntimeStatus(
-      [ out, retval ] COREWEBVIEW2_RUNTIME_UPDATE_STATUS * updateResult);
+  [propget] HRESULT Status(
+      [ out, retval ] COREWEBVIEW2_UPDATE_RUNTIME_STATUS * status);
 
   /// The update error happened while trying to update Edge WebView2 Runtime.
   [propget] HRESULT UpdateError([out, retval] HRESULT* updateError);
@@ -173,20 +171,23 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// currently running WebViews when update is installed.
   /// The latest version can always be queried using
   /// `GetAvailableCoreWebView2BrowserVersionString` API.
-  /// This is only supported for installed Edge WebView2 Runtime. When running
-  /// fixed version Edge WebView2 Runtime or non stable channel Edge browser,
-  /// this API will return `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`.
+  /// The TryUpdateRuntime method is only supported for an installed Edge WebView2
+  /// Runtime. When running a fixed version Edge WebView2 Runtime or non stable
+  /// channel Edge browser, this API will return `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`.
   /// There could only be one active TryUpdateRuntime operation, calling the API
   /// before completed handler for previous call is invoked will fail with
   /// `HRESULT_FROM_WIN32(ERROR_BUSY)`.
   /// Calling the API repeatedly in a short period of time, will also fail with
-  /// `HRESULT_FROM_WIN32(ERROR_BUSY)`.
+  /// `HRESULT_FROM_WIN32(ERROR_BUSY)`. Don't call the API more than 3 times
+  /// within 5 minutes.
   /// The TryUpdateRuntime operation is associated with the CoreWebView2Environment
-  /// object, on going TryUpdateRuntime operation will be aborted when the
+  /// object and any ongoing TryUpdateRuntime operation will be aborted when the
   /// associated CoreWebView2Environment along with the CoreWebView2 objects that
-  /// are created by the CoreWebView2Environment object are all released.
+  /// are created by the CoreWebView2Environment object are all released. In this
+  /// case, the completed handler will be invoked with `S_OK` as `errorCode` and a
+  /// result object with `Status` of COREWEBVIEW2_UPDATE_RUNTIME_STATUS_FAILED and
+  /// `UpdateError` as `E_ABORT`.
   ///
-  /// \snippet AppWindow.cpp UpdateRuntime
   HRESULT TryUpdateRuntime(
       [in] ICoreWebView2ExperimentalTryUpdateRuntimeCompletedHandler *
       handler);
@@ -197,7 +198,7 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    public enum CoreWebView2RuntimeUpdateStatus
+    public enum CoreWebView2UpdateRuntimeStatus
     {
         NoUpdate = 0,
         Updated = 1,
@@ -207,7 +208,7 @@ namespace Microsoft.Web.WebView2.Core
 
     public partial class CoreWebView2UpdateRuntimeResult
     {
-        public CoreWebView2RuntimeUpdateStatus UpdateRuntimeStatus
+        public CoreWebView2UpdateRuntimeStatus Status
         {
             get;
         }
@@ -219,7 +220,7 @@ namespace Microsoft.Web.WebView2.Core
 
     public partial class CoreWebView2Environment
     {
-        public async Task<CoreWebView2UpdateRuntimeResult> TryUpdateRuntimeAsync();
+        public async Task<CoreWebView2UpdateRuntimeResult> TryUpdateRuntimeAsync()
     }
 }
 ```
