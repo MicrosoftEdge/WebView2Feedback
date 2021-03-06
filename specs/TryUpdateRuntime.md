@@ -30,7 +30,8 @@ async protected bool EnsureWebView2RuntimeVersion(string minimalVersionRequired)
 
 // For the scenario where the app wants to light up features fast while running with the old version.
 {
-    // Switch to new version by closing and recreating WebView.
+    ...
+    // Listen to NewBrowserVersionAvailable to take action.
     webView2Environment.NewBrowserVersionAvailable += delegate (object sender, object args)
     {
         // Close current WebView2 Control
