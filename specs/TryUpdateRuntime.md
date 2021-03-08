@@ -167,7 +167,7 @@ interface ICoreWebView2ExperimentalTryUpdateRuntimeCompletedHandler : IUnknown {
 interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// Try to update the installed Microsoft Edge WebView2 Runtime.
   /// This will potentially result in a new version of the Edge WebView2
-  /// Runtime being installed and `NewBrowserVersionAvailable` event being fired.
+  /// Runtime being installed and `NewBrowserVersionAvailable` event being raised.
   /// There is no guarantee on the order of that event being fired and
   /// TryUpdateRuntimeis completed handler being invoked. Besides the
   /// `NewBrowserVersionAvailable` event, there will be no impact to any
