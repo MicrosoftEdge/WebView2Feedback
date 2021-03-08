@@ -169,7 +169,7 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// This will potentially result in a new version of the Edge WebView2
   /// Runtime being installed and `NewBrowserVersionAvailable` event being raised.
   /// There is no guarantee on the order of that event being raised and
-  /// TryUpdateRuntimeis completed handler being invoked. Besides the
+  /// TryUpdateRuntime's completed handler being invoked. Besides the
   /// `NewBrowserVersionAvailable` event, there will be no impact to any
   /// currently running WebViews when update is installed.
   /// The latest version can always be queried using
