@@ -172,7 +172,7 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// TryUpdateRuntime's completed handler being invoked. Besides the
   /// `NewBrowserVersionAvailable` event, there will be no impact to any
   /// currently running WebView2s when the update is installed.
-  /// The latest version can always be queried using
+  /// The latest version can always be queried using the
   /// `GetAvailableCoreWebView2BrowserVersionString` API.
   /// The TryUpdateRuntime method is only supported for an installed Edge WebView2
   /// Runtime. When running a fixed version Edge WebView2 Runtime or non stable
