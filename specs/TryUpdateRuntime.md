@@ -34,6 +34,7 @@ async protected bool EnsureWebView2RuntimeVersion(string minimalVersionRequired)
     // Listen to NewBrowserVersionAvailable to take action.
     webView2Environment.NewBrowserVersionAvailable += delegate (object sender, object args)
     {
+        // See the NewBrowserVersionAvailable documentation for more information
         // Close current WebView2 Control
         // Wait for it to completely shutdown
         // Recreate WebView2 Control to run with newer version
