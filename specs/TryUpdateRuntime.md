@@ -40,7 +40,7 @@ async protected bool EnsureWebView2RuntimeVersion(string minimalVersionRequired)
         // Recreate WebView2 Control to run with newer version
     };
     
-    // Trigger Edge WebView2 Runtime update, ignroe update result and rely on NewBrowserVersionAvailable to take action.
+    // Trigger Edge WebView2 Runtime update, ignore update result and rely on NewBrowserVersionAvailable to take action.
     EnsureWebView2RuntimeVersion(desiredVersion);
 }
 
