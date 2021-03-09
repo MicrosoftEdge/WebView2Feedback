@@ -1,7 +1,7 @@
 # AreBrowserAcceleratorKeysEnabled
 
 ## Background
-In general, WebView2 tries to behave as much like the browser as possible.
+In general, CoreWebView2 tries to behave as much like the browser as possible.
 This includes allowing accelerator key access to features such as printing and
 navigation.  However, in many apps these features are unnecessary or even
 intrusive.  These accelerator keys can be disabled by handling the
@@ -35,6 +35,9 @@ as:
 - Ctrl-A for Select All
 - Ctrl-Z for Undo
 
+This setting has no effect on the `AcceleratorKeyPressed` event.  The event will
+be fired for all accelerator keys, whether they are enabled or not.
+
 Those accelerator keys will always be enabled unless they are handled in the
 `AcceleratorKeyPressed` event.
 
@@ -42,6 +45,7 @@ The default value for AreBrowserAcceleratorKeysEnabled is true.
 
 ## Examples
 ```c#
+privagte WebView2 _webView;
 void ToggleBrowserKeysEnabled()
 {
     var settings = _webView.CoreWebView2.Settings;
@@ -72,7 +76,7 @@ To disable the context menu, use `AreDefaultContextMenusEnabled`.
 ```
 [uuid(9aab8652-d89f-408d-8b2c-1ade3ab51d6d), object, pointer_default(unique)]
 interface ICoreWebView2Settings2 : ICoreWebView2Settings {
-    /// When this setting is set to false, it disables all accelerator keys
+    /// When this setting is set to FALSE, it disables all accelerator keys
     /// that access features specific to the browser, including but not limited to:
     ///  - Ctrl-F and F3 for Find on Page
     ///  - Ctrl-P for Print
@@ -88,9 +92,14 @@ interface ICoreWebView2Settings2 : ICoreWebView2Settings {
     ///  - Ctrl-A for Select All
     ///  - Ctrl-Z for Undo
     ///
+    ///
+    /// This setting has no effect on the `AcceleratorKeyPressed` event.  The event
+    /// will be fired for all accelerator keys, whether they are enabled or not.
+    ///
     /// Those accelerator keys will always be enabled unless they are handled in the
     /// `AcceleratorKeyPressed` event.
-    /// The default value for AreBrowserAcceleratorKeysEnabled is true.
+    ///
+    /// The default value for AreBrowserAcceleratorKeysEnabled is TRUE.
   [propget] HRESULT AreBrowserAcceleratorKeysEnabled(
       [out, retval] BOOL* areBrowserAcceleratorKeysEnabled);
 
