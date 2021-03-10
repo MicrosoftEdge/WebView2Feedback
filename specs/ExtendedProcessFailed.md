@@ -375,7 +375,7 @@ library WebView2
 /// `ICoreWebView2ProcessFailedEventHandler` interface. The values in this enum
 /// make reference to the process kinds in the Chromium architecture. For more
 /// information about what these processes are and what they do, see
-/// [Browser Architecture - Inside look at modern web browser](https://developers.google.com/web/updates/2018/09/inside-browser-part1)
+/// [Browser Architecture - Inside look at modern web browser](https://developers.google.com/web/updates/2018/09/inside-browser-part1).
 [v1_enum]
 typedef enum COREWEBVIEW2_PROCESS_FAILED_KIND {
   // Existing stable values.
@@ -388,7 +388,7 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_KIND {
 
   /// Indicates that the main frame's render process ended unexpectedly.  A new
   /// render process is created automatically and navigated to an error page.
-  /// You can use the Reload method to try to reload the page that failed.
+  /// You can use the `Reload` method to try to reload the page that failed.
   COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED,
 
   /// Indicates that the main frame's render process is unresponsive.
@@ -397,7 +397,7 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_KIND {
   // New values.
 
   /// Indicates that a frame-only render process ended unexpectedly. The process
-  /// exit does not impact the top-level document, only a subset of the
+  /// exit does not affect the top-level document, only a subset of the
   /// subframes within it. The content in these frames is replaced with an error
   /// page in the frame.
   COREWEBVIEW2_PROCESS_FAILED_KIND_FRAME_RENDER_PROCESS_EXITED,
@@ -433,8 +433,8 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_REASON {
   /// This only applies to the main frame's render process.
   COREWEBVIEW2_PROCESS_FAILED_REASON_UNRESPONSIVE,
 
-  /// The process was killed. For example, from Task Manager.
-  COREWEBVIEW2_PROCESS_FAILED_REASON_KILLED,
+  /// The process was terminated. For example, from Task Manager.
+  COREWEBVIEW2_PROCESS_FAILED_REASON_TERMINATED,
 
   /// The process crashed.
   COREWEBVIEW2_PROCESS_FAILED_REASON_CRASHED,
@@ -447,8 +447,8 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_REASON {
 } COREWEBVIEW2_PROCESS_FAILED_REASON;
 
 /// A continuation of `ICoreWebView2ProcessFailedEventArgs` interface.
-[uuid(c62f5687-2f09-481b-b6e4-2c0620bc95a2), object, pointer_default(unique)]
-interface ICoreWebView2ProcessFailedEventArgs2 : IUnknown {
+[uuid(4dab9422-46fa-4c3e-a5d2-41d2071d3680), object, pointer_default(unique)]
+interface ICoreWebView2ProcessFailedEventArgs2 : ICoreWebView2ProcessFailedEventArgs {
   // The ProcessFailedKind property below is already in
   // ICoreWebView2ProcessFailedEventArgs. The changes to this interface extend
   // its return enum so it can now specify additional process kinds: gpu process
@@ -472,8 +472,8 @@ interface ICoreWebView2ProcessFailedEventArgs2 : IUnknown {
   [propget] HRESULT Reason(
       [out, retval] COREWEBVIEW2_PROCESS_FAILED_REASON* reason);
 
-  /// The exit code of the failing process. The exit code is always `1` when
-  /// `ProcessFailedKind` is
+  /// The exit code of the failing process, for telemetry purposes. The exit
+  /// code is always `1` when `ProcessFailedKind` is
   /// `COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED`, and
   /// `STILL_ACTIVE` (`259`) when `ProcessFailedKind` is
   /// `COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE`.
@@ -482,58 +482,60 @@ interface ICoreWebView2ProcessFailedEventArgs2 : IUnknown {
 
   /// Description of the process assigned by the WebView2 Runtime. This is a
   /// technical English term appropriate for logging or development purposes,
-  /// and not localized for the end user. It applies to utility processes (for example,
-  /// "Audio Service" or "Video Capture") and plugin processes (for example, "Flash").
-  /// The returned `processDescription` is `null` if the WebView2 Runtime did
-  /// not assign a description to the process.
+  /// and not localized for the end user. It applies to utility processes (for
+  /// example, "Audio Service", "Video Capture") and plugin processes (for
+  /// example, "Flash"). The returned `processDescription` is empty if the
+  /// WebView2 Runtime did not assign a description to the process.
   [propget] HRESULT ProcessDescription(
       [out, retval] LPWSTR* processDescription);
 
-  /// The list of frames in the `CoreWebView2` that were being rendered by the
-  /// failed process. The content in these frames is replaced with an error page.
+  /// The collection of `FrameInfo`s for frames in the `CoreWebView2` that were
+  /// being rendered by the failed process. The content in these frames is
+  /// replaced with an error page.
   /// This is only available when `ProcessFailedKind` is
   /// `COREWEBVIEW2_PROCESS_FAILED_KIND_FRAME_RENDER_PROCESS_EXITED`;
   /// `frames` is `null` for all other process failure kinds, including the case
   /// in which the failed process was the renderer for the main frame and
   /// subframes within it, for which the failure kind is
   /// `COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED`.
-  [propget] HRESULT ImpactedFramesInfo(
+  [propget] HRESULT FrameInfosForFailedProcess(
       [out, retval] ICoreWebView2FrameInfoCollection** frames);
 }
 
-/// Collection of frame details (name and source). Used to list the impacted
+/// Collection of `FrameInfo`s (name and source). Used to list the affected
 /// frames' info when a frame-only render process failure occurs in the
 /// `ICoreWebView2`.
-[uuid(4bedeef8-3de7-4a3a-aadc-e9437bfb3e92), object, pointer_default(unique)]
+[uuid(8f834154-d38e-4d90-affb-6800a7272839), object, pointer_default(unique)]
 interface ICoreWebView2FrameInfoCollection : IUnknown {
-  /// Gets an iterator over the collection of frames' info.
+  /// Gets an iterator over the collection of `FrameInfo`s.
   HRESULT GetIterator(
       [out, retval] ICoreWebView2FrameInfoCollectionIterator** iterator);
 }
 
-/// Iterator for a collection of frames' info. For more info, see
+/// Iterator for a collection of `FrameInfo`s. For more info, see
 /// `ICoreWebView2ProcessFailedEventArgs2` and
 /// `ICoreWebView2FrameInfoCollection`.
-[uuid(0e2367b9-c725-4696-bb8a-75b97af32330), object, pointer_default(unique)]
+[uuid(1bf89e2d-1b2b-4629-b28f-05099b41bb03), object, pointer_default(unique)]
 interface ICoreWebView2FrameInfoCollectionIterator : IUnknown {
-  /// Get the current `ICoreWebView2FrameInfo` of the iterator.
-  HRESULT GetCurrentFrameInfo([out, retval] ICoreWebView2FrameInfo** frameInfo);
-
-  /// `TRUE` when the iterator has not run out of frames' info.  If the
+  /// `TRUE` when the iterator has not run out of `FrameInfo`s.  If the
   /// collection over which the iterator is iterating is empty or if the
   /// iterator has gone past the end of the collection, then this is `FALSE`.
-  [propget] HRESULT HasCurrentFrameInfo([out, retval] BOOL* hasCurrent);
+  [propget] HRESULT HasCurrent([out, retval] BOOL* hasCurrent);
 
-  /// Move the iterator to the next frame's info in the collection.
+  /// Get the current `ICoreWebView2FrameInfo` of the iterator.
+  HRESULT GetCurrent([out, retval] ICoreWebView2FrameInfo** frameInfo);
+
+  /// Move the iterator to the next `FrameInfo` in the collection.
   HRESULT MoveNext([out, retval] BOOL* hasNext);
 }
 
 /// Provides a set of properties for a frame in the `ICoreWebView2`.
-[uuid(b41e743b-ab1a-4054-bafa-d3347ddc4ddc), object, pointer_default(unique)]
+[uuid(da86b8a1-bdf3-4f11-9955-528cefa59727), object, pointer_default(unique)]
 interface ICoreWebView2FrameInfo : IUnknown {
   /// The name attribute of the frame, as in `<iframe name="frame-name" ...>`.
-  /// This is `null` when the frame has no name attribute.
+  /// The returned string is empty when the frame has no name attribute.
   [propget] HRESULT Name([out, retval] LPWSTR* name);
+
   /// The URI of the document in the frame.
   [propget] HRESULT Source([out, retval] LPWSTR* source);
 }
