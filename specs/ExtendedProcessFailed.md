@@ -8,18 +8,18 @@ The updated API is detailed below. We'd appreciate your feedback.
 
 # Description
 We propose to add new cases for which the `ProcessFailed` event is raised:
-  1. When a frame-only render process fails. Only subframes within the `CoreWebView2` are impacted in this case (the content is gone and replaced with an error page).
+  1. When a frame-only render process fails. Only subframes within the `CoreWebView2` are affected in this case (the content is gone and replaced with an error page).
   2. When a WebView2 Runtime child process other than the browser process or a render process fails. The app can use these process failures for logging and telemetry purposes.
 
 We also propose extending the `ProcessFailedEventArgs` to provide additional information about the process failure:
   * Reason of the failure.
   * Exit code.
   * Process description.
-  * Impacted frames for (1) above.
+  * Affected frames for (1) above.
 
 
 # Examples
-The following code snippets demonstrate how the `ProcessFailedEventArgs2` can be used by the host application:
+The following code snippets demonstrate how the updated `ProcessFailedEventArgs` can be used by the host application:
 
 ## Win32 C++
 ```cpp
@@ -350,7 +350,7 @@ async void WebView_ProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedE
 
 
 # Remarks
-* `ProcessFailedKind` in the event args will be `RENDER_PROCESS_EXITED` if the failed process is the main frame's renderer, even if there were subframes rendered by such process. All frames are gone when this happens and `ImpactedFrames` will be `null` as the attribute is intended for frame-only renderer failures only.
+* `ProcessFailedKind` in the event args will be `RENDER_PROCESS_EXITED` if the failed process is the main frame's renderer, even if there were subframes rendered by such process. All frames are gone when this happens and `FrameInfosForFailedProcess` will be `null` as the attribute is intended for frame-only renderer failures only.
 
 * `Reason` in the event args is always `UNEXPECTED` when `ProcessFailedKind` is `BROWSER_PROCESS_EXITED`, and `UNRESPONSIVE` when `ProcessFailedKind` is `RENDER_PROCESS_UNRESPONSIVE`.
 
@@ -395,7 +395,7 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_KIND {
   COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE,
 
   // New values.
-  
+
   /// Indicates that a frame-only render process ended unexpectedly. The process
   /// exit does not impact the top-level document, only a subset of the
   /// subframes within it. The content in these frames is replaced with an error
