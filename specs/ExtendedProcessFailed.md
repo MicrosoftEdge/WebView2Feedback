@@ -554,7 +554,7 @@ namespace Microsoft.Web.WebView2.Core
     /// `CoreWebView2ProcessFailedEventArgs`.
     /// The values in this enum make reference to the process kinds in the
     /// Chromium architecture. For more information about what these processes
-    /// are and what they do, see [Browser Architecture - Inside look at modern web browser](https://developers.google.com/web/updates/2018/09/inside-browser-part1)
+    /// are and what they do, see [Browser Architecture - Inside look at modern web browser](https://developers.google.com/web/updates/2018/09/inside-browser-part1).
     enum CoreWebView2ProcessFailedKind
     {
         // Existing stable values
@@ -566,7 +566,7 @@ namespace Microsoft.Web.WebView2.Core
         BrowserProcessExited,
         /// Indicates that the main frame's render process ended unexpectedly.  A new
         /// render process is created automatically and navigated to an error page.
-        /// You can use the Reload method to try to reload the page that failed.
+        /// You can use the `Reload` method to try to reload the page that failed.
         RenderProcessExited,
         /// Indicates that the main frame's render process is unresponsive.
         RenderProcessUnresponsive,
@@ -601,8 +601,8 @@ namespace Microsoft.Web.WebView2.Core
         /// The process became unresponsive.
         /// This only applies to the main frame's render process.
         Unresponsive,
-        /// The process was killed. For example, from Task Manager.
-        Killed,
+        /// The process was terminated. For example, from Task Manager.
+        Terminated,
         /// The process crashed.
         Crashed,
         /// The process failed to launch.
@@ -632,8 +632,8 @@ namespace Microsoft.Web.WebView2.Core
         /// values.
         CoreWebView2ProcessFailedReason Reason { get; };
 
-        /// The exit code of the failing process. The exit code is always `1` when
-        /// `ProcessFailedKind` is
+        /// The exit code of the failing process, for telemetry purposes. The
+        /// exit code is always `1` when `ProcessFailedKind` is
         /// `CoreWebView2ProcessFailedKind.BrowserProcessExited`, and
         /// `STILL_ACTIVE` (`259`) when `ProcessFailedKind` is
         /// `CoreWebView2ProcessFailedKind.RenderProcessUnresponsive`.
@@ -641,28 +641,28 @@ namespace Microsoft.Web.WebView2.Core
 
         /// Description of the process assigned by the WebView2 Runtime. This is a
         /// technical English term appropriate for logging or development purposes,
-        /// and not localized for the end user. It applies to utility processes (for example,
-        /// "Audio Service" or "Video Capture") and plugin processes (for example, "Flash").
-        /// The returned string is `null` if the WebView2 Runtime did
-        /// not assign a description to the process.
+        /// and not localized for the end user. It applies to utility processes (for
+        /// example, "Audio Service", "Video Capture") and plugin processes (for
+        /// example, "Flash"). The returned string is empty if the WebView2 Runtime
+        /// did not assign a description to the process.
         String ProcessDescription { get; };
 
-        /// The list of frames in the `CoreWebView2` that were being rendered by the
+        /// The collection of frames in the `CoreWebView2` that were being rendered by the
         /// failed process. The content in these frames is replaced with an error page.
         /// This is only available when `ProcessFailedKind` is
         /// `CoreWebView2ProcessFailedKind.FrameRenderProcessExited`;
-        /// it is `null` for all other process failure kinds, including the case
+        /// it is empty for all other process failure kinds, including the case
         /// in which the failed process was the renderer for the main frame and
         /// subframes within it, for which the failure kind is
         /// `CoreWebView2ProcessFailedKind.RenderProcessExited`.
-        IVectorView<CoreWebView2FrameInfo> ImpactedFramesInfo { get; };
+        IVectorView<CoreWebView2FrameInfo> FrameInfosForFailedProcess { get; };
     }
 
     /// Provides a set of properties for a frame in the `CoreWebView2`.
     runtimeclass CoreWebView2FrameInfo
     {
         /// The name attribute of the frame, as in `<iframe name="frame-name" ...>`.
-        /// This is `null` when the frame has no name attribute.
+        /// The returned string is empty when the frame has no name attribute.
         String Name { get; };
 
         /// The URI of the document in the frame.
