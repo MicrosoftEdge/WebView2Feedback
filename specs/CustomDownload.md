@@ -27,16 +27,16 @@ In this document we describe the updated API. We'd appreciate your feedback.
 There are 3 parts to this API.
 
 1. DownloadStarting [Event] - used to intercept a download.
-    - Download (link to the download object below)
+    - Download (the download object below)
     - Cancel
-    - Result file path (set)
+    - Result file path (settable)
     - Deferral
-2. Download [Object]: This will give you all the metadata that you might need to block a download, and build UI.
+2. Download [Object]: This will give you all the metadata that you might need to block a download, or build UI.
     - Uri
     - Mime type
     - Content disposition
     - Download size in bytes
-    - Result file path (get)
+    - Result file path (read only)
     - Progress size in bytes
     - Estimated end time
     - State (in progress, completed, interrupted)
@@ -107,9 +107,9 @@ ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* ap
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
     // Hide the default download dialog.
-    wil::com_ptr<ICoreWebView2Settings> m_settings;
-    CHECK_FAILURE(m_webView->get_Settings(&m_settings));
-    CHECK_FAILURE(m_settings->put_ShouldDisplayDefaultDownloadDialog(FALSE));
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    CHECK_FAILURE(m_webView->get_Settings(&settings));
+    CHECK_FAILURE(settings->put_ShouldDisplayDefaultDownloadDialog(FALSE));
 
     // Register a handler for the `DownloadStarting` event.
     // This example hides the default download dialog and shows a dialog box instead.
@@ -120,13 +120,14 @@ ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* ap
         Callback<ICoreWebView2DownloadStartingEventHandler>(
             [this](
                 ICoreWebView2_3* sender,
-                ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT {
-                auto showDialog = [this, args] {
-
+                ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT
+            {
+                auto showDialog = [this, args]
+                {
                     wil::com_ptr<ICoreWebView2Download> download;
                     CHECK_FAILURE(args->get_Download(&download));
 
-                    UINT64 expectedDownloadSizeInBytes = 0;
+                    INT64 expectedDownloadSizeInBytes = 0;
                     CHECK_FAILURE(download->get_ExpectedDownloadSizeInBytes(
                       &expectedDownloadSizeInBytes));
 
@@ -615,7 +616,7 @@ interface ICoreWebView2Download : IUnknown
   /// The expected size of the download in total number of bytes based on the
   /// HTTP content-length header. Returns -1 if the size is unknown.
   [propget] HRESULT ExpectedDownloadSizeInBytes(
-    [out, retval] UINT64* expectedDownloadSizeInBytes);
+    [out, retval] INT64* expectedDownloadSizeInBytes);
 
   /// The number of bytes that have been written to the download file.
   [propget] HRESULT DownloadProgressSizeInBytes([out, retval] UINT64* downloadProgressSizeInBytes);
@@ -749,7 +750,7 @@ namespace Microsoft.Web.WebView2.Core
 
         String MimeType { get; };
 
-        UInt64 ExpectedDownloadSizeInBytes { get; };
+        Int64 ExpectedDownloadSizeInBytes { get; };
 
         UInt64 DownloadProgressSizeInBytes { get; };
 
