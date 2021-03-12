@@ -1,12 +1,15 @@
 # Background
-The new version of an app might requires a newer version of Edge WebView2 Runtime. The app updater might want to ensure that the newer version of Edge WebView2 Runtime
-is installed before updating the app to the newer version. The app could also update to newer version with some feature disabled, and then request update so that it
-could move to newer version of Edge WebView2 Runtime and enable those features faster.
+The new version of an app might require a newer version of Edge WebView2 Runtime.
+
+An app updater may wish to ensure that a particular minimum version of the Edge WebView2 Runtime is installed before upgrading the app to a version that requires those features.
+
+Alternatively, the newer version of the app could use feature detection to disable portions of the app that rely on new WebView2 Runtime features. In this alternate scenario, the app updater would install the new version of the app immediately, and then request that the Edge WebView2 Runtime be updated, so that the updated app can start taking advantage of the new features.
+
 Edge WebView2 Runtime is auto updated and normally the latest version should be already installed. However, there could be cases that we need trigger Edge WebView2 Runtime
-update to ensure coordinated app and runtime update.
+update to ensure coordinated app and WebView2 Runtime update.
 
 # Description
-You may call the `TryUpdateRuntime` API to check and install updates to installed Edge WebView2 Runtime. This is useful when the app wants to coordinate app and
+You may call the `UpdateRuntime` API to check and install updates to installed Edge WebView2 Runtime. This is useful when the app wants to coordinate app and
 Edge WebView2 Runtime update.
 
 # Examples
@@ -19,12 +22,12 @@ async protected bool EnsureWebView2RuntimeVersion(string minimalVersionRequired)
     if (CoreWebView2Environment.CompareBrowserVersions(currentRuntimeVersion, minimalVersionRequired) < 0)
     {
       auto environment = await CoreWebView2Environment.CreateAsync();
-      auto updateResult = await environment.TryUpdateRuntimeAsync();
+      auto updateResult = await environment.UpdateRuntimeAsync();
       if (updateResult.UpdateRuntimeStatus != CoreWebView2RuntimeUpdateStatus.Updated)
         return false;
+      // check runtime version again
+      currentRuntimeVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
     }
-    // check runtime version again
-    currentRuntimeVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
     return (CoreWebView2Environment.CompareBrowserVersions(currentRuntimeVersion, minimalVersionRequired) >= 0);
 }
 
@@ -74,8 +77,8 @@ void EnsureWebView2RuntimeVersion(std::function<void(bool)> const& callback, std
                 wil::com_ptr<ICoreWebView2Environment> webViewEnvironment = environment;
                 auto experimentalEnvironment3 =
                 webViewEnvironment.try_query<ICoreWebView2ExperimentalEnvironment3>();
-                HRESULT hr = experimentalEnvironment3->TryUpdateRuntime(
-                    Callback<ICoreWebView2ExperimentalTryUpdateRuntimeCompletedHandler>(
+                HRESULT hr = experimentalEnvironment3->UpdateRuntime(
+                    Callback<ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler>(
                         [callback, minimalVersionRequired, experimentalEnvironment3](HRESULT errorCode,
                            ICoreWebView2ExperimentalUpdateRuntimeResult* result) -> HRESULT {
                             COREWEBVIEW2_RUNTIME_UPDATE_STATUS updateStatus =
@@ -112,7 +115,7 @@ See [API Details](#api-details) section below for API reference.
 
 ## Win32 C++
 ```IDL
-/// Status of TryUpdateRuntime operation result.
+/// Status of UpdateRuntime operation result.
 [v1_enum] typedef enum COREWEBVIEW2_UPDATE_RUNTIME_STATUS {
 
   /// No update for Edge WebView2 Runtime is available.
@@ -132,11 +135,11 @@ See [API Details](#api-details) section below for API reference.
 } COREWEBVIEW2_UPDATE_RUNTIME_STATUS;
 
 
-/// The TryUpdateRuntime operation result.
+/// The UpdateRuntime operation result.
 [uuid(DD503E49-AB19-47C0-B2AD-6DDD09CC3E3A), object, pointer_default(unique)]
 interface ICoreWebView2ExperimentalUpdateRuntimeResult : IUnknown {
 
-  /// The status for the TryUpdateRuntime operation.
+  /// The status for the UpdateRuntime operation.
   [propget] HRESULT Status(
       [ out, retval ] COREWEBVIEW2_UPDATE_RUNTIME_STATUS * status);
 
@@ -144,11 +147,11 @@ interface ICoreWebView2ExperimentalUpdateRuntimeResult : IUnknown {
   [propget] HRESULT UpdateError([out, retval] HRESULT* updateError);
 }
 
-/// The caller implements this interface to receive the TryUpdateRuntime result.
+/// The caller implements this interface to receive the UpdateRuntime result.
 [uuid(F1D2D722-3721-499C-87F5-4C405260697A), object, pointer_default(unique)]
-interface ICoreWebView2ExperimentalTryUpdateRuntimeCompletedHandler : IUnknown {
+interface ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler : IUnknown {
 
-  /// Provides the result for the TryUpdateRuntime operation.
+  /// Provides the result for the UpdateRuntime operation.
   /// `errorCode` will be S_OK if the update operation can be performed
   /// normally, regardless of whether we could update the Edge WebView2
   /// Runtime. If an unexpected error interrupts the update operation, error
@@ -169,22 +172,22 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// This will potentially result in a new version of the Edge WebView2
   /// Runtime being installed and `NewBrowserVersionAvailable` event being raised.
   /// There is no guarantee on the order of that event being raised and
-  /// TryUpdateRuntime's completed handler being invoked. Besides the
+  /// UpdateRuntime's completed handler being invoked. Besides the
   /// `NewBrowserVersionAvailable` event, there will be no impact to any
   /// currently running WebView2s when the update is installed.
   /// The latest version can always be queried using the
   /// `GetAvailableCoreWebView2BrowserVersionString` API.
-  /// The TryUpdateRuntime method is only supported for an installed Edge WebView2
+  /// The UpdateRuntime method is only supported for an installed Edge WebView2
   /// Runtime. When running a fixed version Edge WebView2 Runtime or non stable
   /// channel Edge browser, this API will return `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`.
-  /// There could only be one active TryUpdateRuntime operation, calling this API
+  /// There could only be one active UpdateRuntime operation, calling this API
   /// before completed handler for previous call is invoked will fail with
   /// `HRESULT_FROM_WIN32(ERROR_BUSY)`.
   /// Calling this API repeatedly in a short period of time, will also fail with
   /// `HRESULT_FROM_WIN32(ERROR_BUSY)`. Don't call the API more than 3 times
   /// within 5 minutes.
-  /// The TryUpdateRuntime operation is associated with the CoreWebView2Environment
-  /// object and any ongoing TryUpdateRuntime operation will be aborted when the
+  /// The UpdateRuntime operation is associated with the CoreWebView2Environment
+  /// object and any ongoing UpdateRuntime operation will be aborted when the
   /// associated CoreWebView2Environment along with the CoreWebView2 objects that
   /// are created by the CoreWebView2Environment object are all released. In this
   /// case, the completed handler will be invoked with `S_OK` as `errorCode` and a
@@ -192,8 +195,8 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// `UpdateError` as `E_ABORT`.
   ///
   /// \snippet AppWindow.cpp UpdateRuntime
-  HRESULT TryUpdateRuntime(
-      [in] ICoreWebView2ExperimentalTryUpdateRuntimeCompletedHandler *
+  HRESULT UpdateRuntime(
+      [in] ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler *
       handler);
 }
 ```
@@ -223,7 +226,7 @@ namespace Microsoft.Web.WebView2.Core
 
     public partial class CoreWebView2Environment
     {
-        public async Task<CoreWebView2UpdateRuntimeResult> TryUpdateRuntimeAsync()
+        public async Task<CoreWebView2UpdateRuntimeResult> UpdateRuntimeAsync()
     }
 }
 ```
