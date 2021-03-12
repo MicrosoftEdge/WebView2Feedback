@@ -35,7 +35,16 @@ void SubscribeToFrameCreated()
     {
         try
         {
-            List<string> origins = new List<string>(new string[] { "https://appassets.example" });
+            args.Frame.NameChanged += delegate (object sender, CoreWebView2FrameNameChangedEventArgs args)
+            {
+                // Handle frame name changed event
+            };
+            args.Frame.FrameDeleted += delegate (object sender, object args)
+            {
+                // Handle frame deleted event
+            };
+
+            string origins = "https://appassets.example";
             args.Frame.AddHostObjectToScriptWithOrigins("bridge", new BridgeAddRemoteObject(), origins);
         }
         catch (NotSupportedException exception)
@@ -61,12 +70,24 @@ void SampleClass::SampleMethod()
         wil::com_ptr<ICoreWebView2Frame> webviewFrame;
         CHECK_FAILURE(args->get_Frame(&webviewFrame));
 
-        // Subscribe to frame deleted event
+                // Subscribe to frame deleted event
         webviewFrame->add_FrameDeleted(
         Callback<ICoreWebView2FrameDeletedEventHandler>(
-            [this](ICoreWebView2* sender) -> HRESULT {
+            [this](ICoreWebView2Frame* sender,
+                IUnknown* args) -> HRESULT {
             /*Cleanup on frame deletion*/
-        }).Get(), &m_frameDeletedToken));
+            return S_OK;
+        }).Get(), NULL);
+
+        // Subscribe to frame name changed event
+        webviewFrame->add_NameChanged(
+        Callback<ICoreWebView2FrameNameChangedEventHandler>(
+            [this](ICoreWebView2Frame* sender,
+                ICoreWebView2FrameNameChangedEventArgs* args) -> HRESULT {
+            LPWSTR newName;
+            CHECK_FAILURE(args->get_Name(&newName));
+            return S_OK;
+        }).Get(), NULL);
 
         // Wrap host object
         VARIANT remoteObjectAsVariant = {};
