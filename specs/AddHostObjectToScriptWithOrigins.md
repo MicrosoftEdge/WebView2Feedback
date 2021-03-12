@@ -36,7 +36,7 @@ void SubscribeToFrameCreated()
         try
         {
             List<string> origins = new List<string>(new string[] { "https://appassets.example" });
-            args.Frame.AddHostObjectToScriptWithOrigins("bridge", new BridgeAddRemoteObject(), origins, 1);
+            args.Frame.AddHostObjectToScriptWithOrigins("bridge", new BridgeAddRemoteObject(), origins);
         }
         catch (NotSupportedException exception)
         {
@@ -112,7 +112,7 @@ interface ICoreWebView2Frame : IUnknown {
   /// Remove an event handler previously added with add_NameChanged.
   HRESULT remove_NameChanged([in] EventRegistrationToken token);
 
-  /// Add the provided host object to script running in the WebView2 with the
+  /// Add the provided host object to script running in the iframe with the
   /// specified name for the list of the specified origins. The host object
   /// will be accessible for this iframe only if the iframe's origin during
   /// access matches one of the origins which are passed. Non-ASCII origins
@@ -135,8 +135,8 @@ interface ICoreWebView2Frame : IUnknown {
   HRESULT AddHostObjectToScriptWithOrigins(
       [in] LPCWSTR name,
       [in] VARIANT *object,
-      [in] LPCWSTR *origins,
-      [in] UINT32 originsCount);
+      [in] UINT32 originsCount,
+      [in, size_is(originsCount)] LPCWSTR* origins);
   /// Remove the host object specified by the name so that it is no longer
   /// accessible from JavaScript code in the iframe. While new access
   /// attempts are denied, if the object is already obtained by JavaScript code
@@ -167,22 +167,102 @@ interface ICoreWebView2 : IUnknown {
 
 [uuid(6c2d169c-7912-4332-a288-0aee1626759f), object, pointer_default(unique)]
 interface ICoreWebView2FrameCreatedEventHandler: IUnknown {
-  /// Provides the result for the iframe events
+  /// Provides the result for the iframe created event
   HRESULT Invoke([in] ICoreWebView2 * sender,
                  [in] ICoreWebView2FrameCreatedEventArgs *
                      args);
 }
 
-[uuid(8a1860c1-528f-4286-823c-23b0439340d2), object, pointer_default(unique)]
-interface ICoreWebView2FrameDeletedEventHandler: IUnknown {
-  /// Provides the result for the iframe events
-  HRESULT Invoke([in] ICoreWebView2 * sender);
-}
-
-// Event args for the iframe events.
+// Event args for the iframe created events.
 [uuid(5fc1cd71-cd9a-4e8f-ab5f-2f134f941a3d), object, pointer_default(unique)]
 interface ICoreWebView2FrameCreatedEventArgs : IUnknown {
-  /// The frame which was impacted by iframe event
+  /// The frame which was created.
   [propget] HRESULT Frame([ out, retval ] ICoreWebView2Frame **frame);
+}
+
+[uuid(8a1860c1-528f-4286-823c-23b0439340d2), object, pointer_default(unique)]
+interface ICoreWebView2FrameDeletedEventHandler: IUnknown {
+  /// Provides the result for the iframe deleted event.
+  /// No event args exist and the `args` parameter is set to `null`.
+  HRESULT Invoke([in] ICoreWebView2Frame * sender, [in] IUnknown * args);
+}
+
+[uuid(cfd00c6a-8889-47de-84b2-3016d44dbaf4), object, pointer_default(unique)]
+interface ICoreWebView2FrameNameChangedEventHandler : IUnknown {
+  /// Provides the result for the iframe name changed event
+  HRESULT Invoke([in] ICoreWebView2Frame * sender,
+                 [in] ICoreWebView2FrameNameChangedEventArgs * args);
+}
+
+[uuid(5586b928-ef41-43f7-b63c-8b33a52dd378), object, pointer_default(unique)]
+interface ICoreWebView2FrameNameChangedEventArgs : IUnknown {
+  /// The new name of the iframe.
+  [propget] HRESULT Name([ out, retval ] LPWSTR * name);
+}
+```
+## .NET and WinRT
+```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    /// CoreWebView2Frame provides direct access to the iframes information and use.
+     runtimeclass CoreWebView2Frame
+    {
+        /// The name of the iframe from the iframe html tag declaring it.
+        /// Calling this method fails if it is called after the iframe is deleted.
+        String Name { get; };
+
+        /// Called when the iframe changes its window.name property
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, CoreWebView2FrameNameChangedEventArgs> NameChanged;
+        /// Called when an iframe is removed or the document containing that iframe
+        /// is destroyed
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, Object> FrameDeleted;
+
+        /// Add the provided host object to script running in the iframe with the
+        /// specified name for the list of the specified origins. The host object
+        /// will be accessible for this iframe only if the iframe's origin during
+        /// access matches one of the origins which are passed. Non-ASCII origins
+        /// can be passed in Unicode or Punycode format. The IDN origins will be
+        /// converted to Unicode and normalized before comparison. If the iframe is
+        /// declared with no src attribute its origin is considered the same as
+        /// the origin of the parent document.
+        /// List of origins will be treated as following:
+        /// 1. empty list - call will fail and no host object will be added for the
+        /// iframe;
+        /// 2. list with origins - during access to host object from iframe the
+        /// origin will be checked that it belongs to this list;
+        /// 3. list with "*" element - host object will be available for iframe for
+        /// all origins. We suggest not to use this feature without understanding
+        /// security implications of giving access to host object from from iframes
+        /// with unknown origins.
+        /// Calling this method fails if it is called after the iframe is deleted.
+        /// \snippet ScenarioAddHostObject.cpp AddHostObjectToScriptWithOrigins
+        /// For more information about host objects navigate to [AddHostObjectToScript]
+        void AddHostObjectToScriptWithOrigins(String name, Object rawObject, String origins);
+        /// Remove the host object specified by the name so that it is no longer
+        /// accessible from JavaScript code in the iframe. While new access
+        /// attempts are denied, if the object is already obtained by JavaScript code
+        /// in the iframe, the JavaScript code continues to have access to that
+        /// object. Calling this method for a name that is already removed or was never
+        /// added fails. If the iframe is deleted this method will return fail also.
+        void RemoveHostObjectFromScript(String name);
+    }
+
+     runtimeclass CoreWebView2
+    {
+        //..
+        /// Called when a new iframe is created. Use FrameDeleted event to listen for
+        /// when this iframe goes away.
+        event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2FrameCreatedEventArgs> FrameCreated;
+    }
+     runtimeclass CoreWebView2FrameNameChangedEventArgs
+    {
+        /// The new name of the iframe.
+        String Name { get; };
+    }
+     runtimeclass CoreWebView2FrameCreatedEventArgs
+    {
+        /// The frame which was created.
+        CoreWebView2Frame Frame { get; };
+    }
 }
 ```
