@@ -23,7 +23,7 @@ async protected bool EnsureWebView2RuntimeVersion(string minimalVersionRequired)
     {
       auto environment = await CoreWebView2Environment.CreateAsync();
       auto updateResult = await environment.UpdateRuntimeAsync();
-      if (updateResult.UpdateRuntimeStatus != CoreWebView2RuntimeUpdateStatus.Updated)
+      if (updateResult.UpdateRuntimeStatus != CoreWebView2RuntimeUpdateStatus.LatestVersionInstalled)
         return false;
       // check runtime version again
       currentRuntimeVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
@@ -75,8 +75,7 @@ void EnsureWebView2RuntimeVersion(std::function<void(bool)> const& callback, std
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [callback, minimalVersionRequired](HRESULT result, ICoreWebView2Environment* environment) -> HRESULT {
                 wil::com_ptr<ICoreWebView2Environment> webViewEnvironment = environment;
-                auto experimentalEnvironment3 =
-                webViewEnvironment.try_query<ICoreWebView2ExperimentalEnvironment3>();
+                auto experimentalEnvironment3 = webViewEnvironment.try_query<ICoreWebView2ExperimentalEnvironment3>();
                 HRESULT hr = experimentalEnvironment3->UpdateRuntime(
                     Callback<ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler>(
                         [callback, minimalVersionRequired, experimentalEnvironment3](HRESULT errorCode,
@@ -87,7 +86,7 @@ void EnsureWebView2RuntimeVersion(std::function<void(bool)> const& callback, std
                             {
                               CHECK_FAILURE(result->get_UpdateRuntimeStatus(&updateStatus));
                             }
-                            if (updateStatus != COREWEBVIEW2_RUNTIME_UPDATE_STATUS_UPDATED)
+                            if (updateStatus != COREWEBVIEW2_UPDATE_RUNTIME_STATUS_LATEST_VERSION_INSTALLED)
                             {
                               callback(false);
                             }
@@ -118,12 +117,10 @@ See [API Details](#api-details) section below for API reference.
 /// Status of UpdateRuntime operation result.
 [v1_enum] typedef enum COREWEBVIEW2_UPDATE_RUNTIME_STATUS {
 
-  /// No update for Edge WebView2 Runtime is available.
-  /// Latest version of Edge WebView2 Runtime is already installed.
-  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_NO_UPDATE,
-
-  /// Edge WebView2 Runtime is updated successfully.
-  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_UPDATED,
+  /// Latest version of Edge WebView2 Runtime is installed.
+  /// No update for Edge WebView2 Runtime is available, or Edge WebView2
+  /// Runtime is updated successfully and latest version is now installed.
+  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_LATEST_VERSION_INSTALLED,
 
   /// Edge WebView2 Runtime update is blocked by group policy.
   COREWEBVIEW2_UPDATE_RUNTIME_STATUS_BLOCKED_BY_POLICY,
@@ -184,8 +181,9 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// before completed handler for previous call is invoked will fail with
   /// `HRESULT_FROM_WIN32(ERROR_BUSY)`.
   /// Calling this API repeatedly in a short period of time, will also fail with
-  /// `HRESULT_FROM_WIN32(ERROR_BUSY)`. Don't call the API more than 3 times
-  /// within 5 minutes.
+  /// `HRESULT_FROM_WIN32(ERROR_BUSY)`. To protect accidental abuse of the update
+  /// service, the implementation throttles the calls of this API to 3 times within
+  /// 5 minutes in a process.
   /// The UpdateRuntime operation is associated with the CoreWebView2Environment
   /// object and any ongoing UpdateRuntime operation will be aborted when the
   /// associated CoreWebView2Environment along with the CoreWebView2 objects that
@@ -206,10 +204,9 @@ namespace Microsoft.Web.WebView2.Core
 {
     public enum CoreWebView2UpdateRuntimeStatus
     {
-        NoUpdate = 0,
-        Updated = 1,
-        BlockedByPolicy = 2,
-        Failed = 3,
+        LatestVersionInstalled = 0,
+        BlockedByPolicy = 1,
+        Failed = 2,
     }
 
     public partial class CoreWebView2UpdateRuntimeResult
