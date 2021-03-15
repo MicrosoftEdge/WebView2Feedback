@@ -35,7 +35,7 @@ void SubscribeToFrameCreated()
     {
         try
         {
-            args.Frame.NameChanged += delegate (object sender, CoreWebView2FrameNameChangedEventArgs args)
+            args.Frame.NameChanged += delegate (object sender, object args)
             {
                 // Handle frame name changed event
             };
@@ -44,7 +44,7 @@ void SubscribeToFrameCreated()
                 // Handle frame deleted event
             };
 
-            string origins = "https://appassets.example";
+            String[] origins = new String[] { "https://appassets.example"};
             args.Frame.AddHostObjectToScriptWithOrigins("bridge", new BridgeAddRemoteObject(), origins);
         }
         catch (NotSupportedException exception)
@@ -83,9 +83,9 @@ void SampleClass::SampleMethod()
         webviewFrame->add_NameChanged(
         Callback<ICoreWebView2FrameNameChangedEventHandler>(
             [this](ICoreWebView2Frame* sender,
-                ICoreWebView2FrameNameChangedEventArgs* args) -> HRESULT {
+                IUnknown* args) -> HRESULT {
             LPWSTR newName;
-            CHECK_FAILURE(args->get_Name(&newName));
+            CHECK_FAILURE(sender->get_Name(&newName));
             return S_OK;
         }).Get(), NULL);
 
@@ -97,14 +97,11 @@ void SampleClass::SampleMethod()
         // Create list of origins which will be checked.
         // iframe will have access to host object only if its origin belongs
         // to this list.
-        int originsCount = 1;
-        LPCWSTR* originsList =
-            reinterpret_cast<LPCWSTR*>(CoTaskMemAlloc(sizeof(LPCWSTR) * originsCount));
-        originsList[0] = L"https://appassets.example";
+        LPCWSTR origin = L"https://appassets.example/";
         // Add host object to a script for iframe access
         CHECK_FAILURE(
             webviewFrame->AddHostObjectToScriptWithOrigins(
-                L"sample", &remoteObjectAsVariant, originsList, originsCount));
+                L"sample", &remoteObjectAsVariant, 1, &origin));
 
         remoteObjectAsVariant.pdispVal->Release();
         CoTaskMemFree(originsList);
@@ -210,15 +207,9 @@ interface ICoreWebView2FrameDeletedEventHandler: IUnknown {
 
 [uuid(cfd00c6a-8889-47de-84b2-3016d44dbaf4), object, pointer_default(unique)]
 interface ICoreWebView2FrameNameChangedEventHandler : IUnknown {
-  /// Provides the result for the iframe name changed event
-  HRESULT Invoke([in] ICoreWebView2Frame * sender,
-                 [in] ICoreWebView2FrameNameChangedEventArgs * args);
-}
-
-[uuid(5586b928-ef41-43f7-b63c-8b33a52dd378), object, pointer_default(unique)]
-interface ICoreWebView2FrameNameChangedEventArgs : IUnknown {
-  /// The new name of the iframe.
-  [propget] HRESULT Name([ out, retval ] LPWSTR * name);
+  /// Provides the result for the iframe name changed event.
+  /// No event args exist and the `args` parameter is set to `null`.
+  HRESULT Invoke([in] ICoreWebView2Frame * sender, [in] IUnknown * args);
 }
 ```
 ## .NET and WinRT
@@ -233,7 +224,7 @@ namespace Microsoft.Web.WebView2.Core
         String Name { get; };
 
         /// Called when the iframe changes its window.name property
-        event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, CoreWebView2FrameNameChangedEventArgs> NameChanged;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, Object> NameChanged;
         /// Called when an iframe is removed or the document containing that iframe
         /// is destroyed
         event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, Object> FrameDeleted;
@@ -258,7 +249,7 @@ namespace Microsoft.Web.WebView2.Core
         /// Calling this method fails if it is called after the iframe is deleted.
         /// \snippet ScenarioAddHostObject.cpp AddHostObjectToScriptWithOrigins
         /// For more information about host objects navigate to [AddHostObjectToScript]
-        void AddHostObjectToScriptWithOrigins(String name, Object rawObject, String origins);
+        void AddHostObjectToScriptWithOrigins(String name, Object rawObject, String[] origins);
         /// Remove the host object specified by the name so that it is no longer
         /// accessible from JavaScript code in the iframe. While new access
         /// attempts are denied, if the object is already obtained by JavaScript code
@@ -274,11 +265,6 @@ namespace Microsoft.Web.WebView2.Core
         /// Called when a new iframe is created. Use FrameDeleted event to listen for
         /// when this iframe goes away.
         event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2FrameCreatedEventArgs> FrameCreated;
-    }
-     runtimeclass CoreWebView2FrameNameChangedEventArgs
-    {
-        /// The new name of the iframe.
-        String Name { get; };
     }
      runtimeclass CoreWebView2FrameCreatedEventArgs
     {
