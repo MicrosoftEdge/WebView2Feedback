@@ -133,11 +133,14 @@ interface ICoreWebView2Frame : IUnknown {
   /// Add the provided host object to script running in the iframe with the
   /// specified name for the list of the specified origins. The host object
   /// will be accessible for this iframe only if the iframe's origin during
-  /// access matches one of the origins which are passed. Non-ASCII origins
-  /// can be passed in Unicode or Punycode format. The IDN origins will be
-  /// converted to Unicode and normalized before comparison. If the iframe is
-  /// declared with no src attribute its origin is considered the same as
-  /// the origin of the parent document.
+  /// access matches one of the origins which are passed. The provided origins
+  /// will be normalized before comparing to the origin of the document.
+  /// So the scheme name is made lower case, the host will be punycode decoded
+  /// as appropriate, default port values will be removed, and so on.
+  /// This means the origin's host may be punycode encoded or not and will match
+  /// regardless.
+  /// If the iframe is declared with no src attribute its origin is considered
+  /// the same as the origin of the parent document.
   /// List of origins will be treated as following:
   /// 1. empty list - call will fail and no host object will be added for the
   /// iframe;
@@ -232,11 +235,14 @@ namespace Microsoft.Web.WebView2.Core
         /// Add the provided host object to script running in the iframe with the
         /// specified name for the list of the specified origins. The host object
         /// will be accessible for this iframe only if the iframe's origin during
-        /// access matches one of the origins which are passed. Non-ASCII origins
-        /// can be passed in Unicode or Punycode format. The IDN origins will be
-        /// converted to Unicode and normalized before comparison. If the iframe is
-        /// declared with no src attribute its origin is considered the same as
-        /// the origin of the parent document.
+        /// access matches one of the origins which are passed. The provided origins
+        /// will be normalized before comparing to the origin of the document.
+        /// So the scheme name is made lower case, the host will be punycode decoded
+        /// as appropriate, default port values will be removed, and so on.
+        /// This means the origin's host may be punycode encoded or not and will match
+        /// regardless.
+        /// If the iframe is declared with no src attribute its origin is considered
+        /// the same as the origin of the parent document.
         /// List of origins will be treated as following:
         /// 1. empty list - call will fail and no host object will be added for the
         /// iframe;
