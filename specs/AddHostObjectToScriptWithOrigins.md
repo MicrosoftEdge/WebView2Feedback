@@ -35,11 +35,11 @@ void SubscribeToFrameCreated()
     {
         try
         {
-            args.Frame.NameChanged += delegate (object sender, object args)
+            args.Frame.NameChanged += delegate (object nameChangedSender, object nameChangedArgs)
             {
                 // Handle frame name changed event
             };
-            args.Frame.FrameDeleted += delegate (object sender, object args)
+            args.Frame.FrameDeleted += delegate (object frameDeletedSender, object frameDeletedArgs)
             {
                 // Handle frame deleted event
             };
