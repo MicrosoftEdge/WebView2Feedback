@@ -174,6 +174,9 @@ ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* ap
                     }
                 };
 
+                // Obtain a deferral for the event so that the CoreWebView2
+                // doesn't examine the properties we set on the event args until
+                // after we call the Complete method asynchronously later.
                 wil::com_ptr<ICoreWebView2Deferral> deferral;
                 CHECK_FAILURE(args->GetDeferral(&deferral));
 
@@ -219,6 +222,7 @@ void ScenarioCustomDownloadExperience::UpdateProgress(ICoreWebView2Download* dow
                     break;
                 case COREWEBVIEW2_DOWNLOAD_STATE_INTERRUPTED:
                     // Here developer can take different actions based on `args->InterruptReason`.
+                    // For example, show an error message to the end user.
                     CompleteDownload(download);
                     break;
                 case COREWEBVIEW2_DOWNLOAD_STATE_COMPLETED:
@@ -373,7 +377,6 @@ typedef enum COREWEBVIEW2_DOWNLOAD_STATE {
 typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NONE,
 
-  /// File errors
   /// Generic file error.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_FAILED,
   /// Access denied due to security restrictions.
@@ -400,7 +403,6 @@ typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
   /// Source and target of download were the same.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_SAME_AS_SOURCE,
 
-  /// Network errors
   /// Generic network error.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NETWORK_FAILED,
   /// Network operation timed out.
@@ -413,7 +415,6 @@ typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
   /// an unsupported scheme, or is disallowed by policy.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NETWORK_INVALID_REQUEST,
 
-  /// Server responses
   /// Generic server error.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_FAILED,
   /// Server does not support range requests.
@@ -436,7 +437,6 @@ typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
   /// Unexpected cross-origin redirect.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_CROSS_ORIGIN_REDIRECT,
 
-  /// User input
   /// User canceled the download.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_USER_CANCELED,
   /// User shut down the WebView.
@@ -451,7 +451,7 @@ typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
 [uuid(9aab8652-d89f-408d-8b2c-1ade3ab51d6d), object, pointer_default(unique)]
 interface ICoreWebView2Settings2 : ICoreWebView2Settings {
 
-  /// The host may set this flag to hide the default download dialog.
+  /// The host may set this flag to hide the default download dialog. The CoreWebView2.DownloadStarting event will continue to fire, and the download will progress as normal, there will just be no default download UI.
   [propget] HRESULT ShouldDisplayDefaultDownloadDialog(
     [out, retval] BOOL* shouldDisplayDefaultDownloadDialog);
 
@@ -610,7 +610,7 @@ interface ICoreWebView2Download : IUnknown
   /// The URI of the download.
   [propget] HRESULT Uri([out, retval] LPWSTR* uri);
 
-  /// The Content-Disposition header value from HTTP response.
+  /// The Content-Disposition header value from the download's HTTP response.
   [propget] HRESULT ContentDisposition([out, retval] LPWSTR* contentDisposition);
 
   /// MIME type of the downloaded content.
@@ -627,7 +627,7 @@ interface ICoreWebView2Download : IUnknown
   /// The estimated end time in ISO 8601 format.
   [propget] HRESULT EstimatedEndTime([out, retval] LPWSTR* estimatedEndTime);
 
-  /// The absolute path to the file, including file name. Host can change
+  /// The absolute path to the download file, including file name. Host can change
   /// this from `ICoreWebView2DownloadStartingEventArgs`.
   [propget] HRESULT ResultFilePath([out, retval] LPWSTR* resultFilePath);
 
@@ -657,7 +657,7 @@ interface ICoreWebView2Download : IUnknown
   [propget] HRESULT IsPaused([out, retval] BOOL* isPaused);
 
   /// Returns true if an interrupted download can be resumed. Downloads with
-  /// the following interrupt reasons may be auto-resumed:
+  /// the following interrupt reasons may automatically resume without you calling any methods:
   /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_SERVER_NO_RANGE`,
   /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_HASH_MISMATCH`,
   /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_TOO_SHORT`.
