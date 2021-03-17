@@ -131,7 +131,7 @@ See [API Details](#api-details) section below for API reference.
 
   /// Edge WebView2 Runtime update is already running, which could be
   /// triggered by auto update or by other UpdateRuntime request from some app.
-  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_INSTALL_ALREADY_RUNNING,
+  COREWEBVIEW2_UPDATE_RUNTIME_STATUS_UPDATE_ALREADY_RUNNING,
 
   /// Edge WebView2 Runtime update is blocked by group policy.
   COREWEBVIEW2_UPDATE_RUNTIME_STATUS_BLOCKED_BY_POLICY,
@@ -203,7 +203,9 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// Edge update service can only support one update request at a time globally.
   /// If there is already an update operation running in the Edge update service,
   //  UpdateRuntime request will result in the completed handler being invoked with a
-  /// result that has `Status` of `COREWEBVIEW2_UPDATE_RUNTIME_STATUS_INSTALL_ALREADY_RUNNING`.
+  /// result that has `Status` of `COREWEBVIEW2_UPDATE_RUNTIME_STATUS_UPDATE_ALREADY_RUNNING`.
+  /// As the running update could succeed or fail, the app should retry later if
+  /// `NewBrowserVersionAvailable` event has not been raised.
   /// The UpdateRuntime operation is associated with the CoreWebView2Environment
   /// object and any ongoing UpdateRuntime operation will be aborted when the
   /// associated CoreWebView2Environment along with the CoreWebView2 objects that
@@ -224,7 +226,7 @@ namespace Microsoft.Web.WebView2.Core
     public enum CoreWebView2UpdateRuntimeStatus
     {
         LatestVersionInstalled = 0,
-        InstallAlreadyRunning = 1,
+        UpdateAlreadyRunning = 1,
         BlockedByPolicy = 2,
         Failed = 3,
     }
@@ -254,7 +256,7 @@ namespace Microsoft.Web.WebView2.Core
     public enum CoreWebView2UpdateRuntimeStatus
     {
         LatestVersionInstalled = 0,
-        InstallAlreadyRunning = 1,
+        UpdateAlreadyRunning = 1,
         BlockedByPolicy = 2,
         Failed = 3,
     }
