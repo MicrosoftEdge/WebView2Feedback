@@ -3,13 +3,13 @@ The new version of an app might require a newer version of Edge WebView2 Runtime
 
 An app updater may wish to ensure that a particular minimum version of the Edge WebView2 Runtime is installed before upgrading the app to a version that requires those features.
 
-Alternatively, the newer version of the app could use feature detection to disable portions of the app that rely on new WebView2 Runtime features. In this alternate scenario, the app updater would install the new version of the app immediately, and then request that the Edge WebView2 Runtime be updated, so that the updated app can start taking advantage of the new features.
+Alternatively, the newer version of the app could use feature detection to disable portions of the app that rely on new WebView2 Runtime features. In this alternate scenario, the app updater would install the new version of the app immediately, and then request that the Edge WebView2 Runtime be updated, so that the updated app can start taking advantage of the new features once the Edge WebView2 Runtime is updated.
 
 Edge WebView2 Runtime is auto updated and normally the latest version should be already installed. However, there could be cases that we need trigger Edge WebView2 Runtime
 update to ensure coordinated app and WebView2 Runtime update.
 
 # Description
-You may call the `UpdateRuntime` API to check and install updates to installed Edge WebView2 Runtime. This is useful when the app wants to coordinate app and
+You may call the `UpdateRuntime` API to check and install updates for the installed Edge WebView2 Runtime. This is useful when the app wants to coordinate app and
 Edge WebView2 Runtime update.
 
 # Examples
@@ -158,7 +158,7 @@ interface ICoreWebView2ExperimentalUpdateRuntimeResult : IUnknown {
 
 /// The caller implements this interface to receive the UpdateRuntime result.
 [uuid(F1D2D722-3721-499C-87F5-4C405260697A), object, pointer_default(unique)]
-interface ICoreWebView2ExperimentalTryUpdateRuntimeCompletedHandler : IUnknown {
+interface ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler : IUnknown {
 
   /// Provides the result for the UpdateRuntime operation.
   /// `errorCode` will be S_OK if the update operation can be performed
@@ -200,6 +200,10 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// `HRESULT_FROM_WIN32(ERROR_BUSY)`. To protect accidental abuse of the update
   /// service, the implementation throttles the calls of this API to 3 times within
   /// 5 minutes in a process. Throttling limit can change in the future.
+  /// Edge update service can only support one update request at a time globally.
+  /// If there is already an update operation running in the Edge update service,
+  //  UpdateRuntime request will result in the completed handler being invoked with a
+  /// result that has `Status` of `COREWEBVIEW2_UPDATE_RUNTIME_STATUS_INSTALL_ALREADY_RUNNING`.
   /// The UpdateRuntime operation is associated with the CoreWebView2Environment
   /// object and any ongoing UpdateRuntime operation will be aborted when the
   /// associated CoreWebView2Environment along with the CoreWebView2 objects that
@@ -208,7 +212,7 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// result object with `Status` of COREWEBVIEW2_UPDATE_RUNTIME_STATUS_FAILED and
   /// `ExtendedError` as `E_ABORT`.
   HRESULT UpdateRuntime(
-      [in] ICoreWebView2ExperimentalTryUpdateRuntimeCompletedHandler *
+      [in] ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler *
       handler);
 }
 
