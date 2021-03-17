@@ -24,7 +24,7 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
 
-There are 3 parts to this API.
+There are 3 parts to this API: the CoreWebView2.DownloadStarting event that can be used to find out about or cancel new downloads, the Download class available from the DownloadStarting event that has up to date information on a download as it progresses, and the CoreWebView2Settings.DefaultDownloadDialog property that can be used to disable the default download UI.
 
 1. DownloadStarting [Event] - used to intercept a download.
     - Download (the download object below)
