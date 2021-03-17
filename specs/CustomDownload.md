@@ -122,6 +122,9 @@ ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* ap
                 ICoreWebView2_3* sender,
                 ICoreWebView2DownloadStartingEventArgs* args) -> HRESULT
             {
+                // We avoid potential reentrancy from running a message loop in the download
+                // starting event handler by showing our download dialog via this lambda run
+                // asynchronously later outside of this event handler.
                 auto showDialog = [this, args]
                 {
                     wil::com_ptr<ICoreWebView2Download> download;
