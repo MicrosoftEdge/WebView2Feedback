@@ -628,7 +628,7 @@ interface ICoreWebView2Download : IUnknown
     [out, retval] INT64* expectedDownloadSizeInBytes);
 
   /// The number of bytes that have been written to the download file.
-  [propget] HRESULT DownloadProgressSizeInBytes([out, retval] UINT64* downloadProgressSizeInBytes);
+  [propget] HRESULT DownloadProgressSizeInBytes([out, retval] INT64* downloadProgressSizeInBytes);
 
   /// The estimated end time in ISO 8601 format.
   [propget] HRESULT EstimatedEndTime([out, retval] LPWSTR* estimatedEndTime);
@@ -761,7 +761,7 @@ namespace Microsoft.Web.WebView2.Core
 
         Int64 ExpectedDownloadSizeInBytes { get; };
 
-        UInt64 DownloadProgressSizeInBytes { get; };
+        Int64 DownloadProgressSizeInBytes { get; };
 
         Windows.Foundation.DateTime EstimatedEndTime { get; };
 
