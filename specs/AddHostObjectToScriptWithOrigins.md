@@ -35,17 +35,19 @@ void SubscribeToFrameCreated()
     {
         try
         {
+            if (args.Frame.Name.Equals("iframe_name"))
+            {
+                String[] origins = new String[] { "https://appassets.example" };
+                args.Frame.AddHostObjectToScriptWithOrigins("bridge", new BridgeAddRemoteObject(), origins);
+            }
             args.Frame.NameChanged += delegate (object nameChangedSender, object nameChangedArgs)
             {
-                // Handle frame name changed event
+                CoreWebView2Frame frame = (CoreWebView2Frame)nameChangedSender;
+                if (!frame.Name.Equals("iframe_name"))
+                {
+                    frame.RemoveHostObjectFromScript("bridge");
+                }
             };
-            args.Frame.FrameDeleted += delegate (object frameDeletedSender, object frameDeletedArgs)
-            {
-                // Handle frame deleted event
-            };
-
-            String[] origins = new String[] { "https://appassets.example"};
-            args.Frame.AddHostObjectToScriptWithOrigins("bridge", new BridgeAddRemoteObject(), origins);
         }
         catch (NotSupportedException exception)
         {
@@ -70,41 +72,40 @@ void SampleClass::SampleMethod()
         wil::com_ptr<ICoreWebView2Frame> webviewFrame;
         CHECK_FAILURE(args->get_Frame(&webviewFrame));
 
-                // Subscribe to frame deleted event
-        webviewFrame->add_FrameDeleted(
-        Callback<ICoreWebView2FrameDeletedEventHandler>(
-            [this](ICoreWebView2Frame* sender,
-                IUnknown* args) -> HRESULT {
-            /*Cleanup on frame deletion*/
-            return S_OK;
-        }).Get(), NULL);
-
-        // Subscribe to frame name changed event
+        // Subscribe to frame name changed event and remove host object when name is changed
         webviewFrame->add_NameChanged(
         Callback<ICoreWebView2FrameNameChangedEventHandler>(
             [this](ICoreWebView2Frame* sender,
                 IUnknown* args) -> HRESULT {
             LPWSTR newName;
             CHECK_FAILURE(sender->get_Name(&newName));
+            if (std::wcscmp(newName, L"iframe_name") != 0)
+            {
+                sender->RemoveHostObjectFromScript(L"sample");
+            }
             return S_OK;
         }).Get(), NULL);
 
-        // Wrap host object
-        VARIANT remoteObjectAsVariant = {};
-        m_hostObject.query_to<IDispatch>(&remoteObjectAsVariant.pdispVal);
-        remoteObjectAsVariant.vt = VT_DISPATCH;
+        LPWSTR name;
+        CHECK_FAILURE(webviewFrame->get_Name(&name));
+        if (!std::wcscmp(name, L"iframe_name"))
+        {
+            // Wrap host object
+            VARIANT remoteObjectAsVariant = {};
+            m_hostObject.query_to<IDispatch>(&remoteObjectAsVariant.pdispVal);
+            remoteObjectAsVariant.vt = VT_DISPATCH;
 
-        // Create list of origins which will be checked.
-        // iframe will have access to host object only if its origin belongs
-        // to this list.
-        LPCWSTR origin = L"https://appassets.example/";
-        // Add host object to a script for iframe access
-        CHECK_FAILURE(
-            webviewFrame->AddHostObjectToScriptWithOrigins(
-                L"sample", &remoteObjectAsVariant, 1, &origin));
+            // Create list of origins which will be checked.
+            // iframe will have access to host object only if its origin belongs
+            // to this list.
+            LPCWSTR origin = L"https://appassets.example/";
+            // Add host object to a script for iframe access
+            CHECK_FAILURE(
+                webviewFrame->AddHostObjectToScriptWithOrigins(
+                    L"sample", &remoteObjectAsVariant, 1, &origin));
 
-        remoteObjectAsVariant.pdispVal->Release();
-        CoTaskMemFree(originsList);
+            remoteObjectAsVariant.pdispVal->Release();
+        }
 
         return S_OK;
     }).Get(), &m_frameCreatedToken));
@@ -166,8 +167,8 @@ interface ICoreWebView2Frame : IUnknown {
   /// added fails. If the iframe is deleted this method will return fail also.
   HRESULT RemoveHostObjectFromScript([in] LPCWSTR name);
 
-  /// Called when an iframe is removed or the document containing that iframe
-  /// is destroyed
+  /// The FrameDeleted event is raised when the iframe corresponding to this CoreWebView2Frame
+  /// object is removed or the document containing that iframe is destroyed
   HRESULT add_FrameDeleted(
       [in] ICoreWebView2FrameDeletedEventHandler *eventHandler,
       [out] EventRegistrationToken * token);
@@ -177,8 +178,8 @@ interface ICoreWebView2Frame : IUnknown {
 
 [uuid(ae64d3bc-01ba-4769-a470-a1888de6d30b), object, pointer_default(unique)]
 interface ICoreWebView2 : IUnknown {
-  /// Called when a new iframe is created. Use add_FrameDeleted to listen for
-  /// when this iframe goes away.
+  /// Raised when a new iframe is created. Use the CoreWebView2Frame.add_FrameDeleted
+  /// to listen for when this iframe goes away.
   HRESULT add_FrameCreated(
       [in] ICoreWebView2FrameCreatedEventHandler *eventHandler,
       [out] EventRegistrationToken * token);
@@ -228,8 +229,8 @@ namespace Microsoft.Web.WebView2.Core
 
         /// Called when the iframe changes its window.name property
         event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, Object> NameChanged;
-        /// Called when an iframe is removed or the document containing that iframe
-        /// is destroyed
+        /// The FrameDeleted event is raised when the iframe corresponding to this CoreWebView2Frame
+        /// object is removed or the document containing that iframe is destroyed
         event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, Object> FrameDeleted;
 
         /// Add the provided host object to script running in the iframe with the
@@ -268,8 +269,8 @@ namespace Microsoft.Web.WebView2.Core
      runtimeclass CoreWebView2
     {
         //..
-        /// Called when a new iframe is created. Use FrameDeleted event to listen for
-        /// when this iframe goes away.
+        /// Raised when a new iframe is created. Use the CoreWebView2Frame.FrameDeleted event to
+        /// listen for when this iframe goes away.
         event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2FrameCreatedEventArgs> FrameCreated;
     }
      runtimeclass CoreWebView2FrameCreatedEventArgs
