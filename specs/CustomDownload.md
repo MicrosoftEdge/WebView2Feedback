@@ -251,8 +251,9 @@ void DownloadStartingCmdExecuted(object target, ExecutedRoutedEventArgs e)
 
     webView.CoreWebView2.DownloadStarting += delegate (object sender, CoreWebView2DownloadStartingEventArgs args)
     {
-        // Developer can defer the `DownloadStarting` event to
-        // perform async work before the event completes.
+        // Developer can obtain a deferral for the event so that the CoreWebView2
+        // doesn't examine the properties we set on the event args until
+        // after the deferral completes asynchronously.
         CoreWebView2Deferral deferral = args.GetDeferral();
         System.Threading.SynchronizationContext.Current.Post((_) =>
         {
