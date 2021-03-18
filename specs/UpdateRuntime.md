@@ -148,7 +148,7 @@ interface ICoreWebView2ExperimentalUpdateRuntimeResult : IUnknown {
 
   /// The status for the UpdateRuntime operation.
   [propget] HRESULT Status(
-      [ out, retval ] COREWEBVIEW2_UPDATE_RUNTIME_STATUS * status);
+      [out, retval] COREWEBVIEW2_UPDATE_RUNTIME_STATUS* status);
 
   /// The update error happened while trying to update Edge WebView2 Runtime.
   /// ExtendedError will be S_OK if Status is not `COREWEBVIEW2_UPDATE_RUNTIME_STATUS_FAILED`
@@ -169,7 +169,7 @@ interface ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler : IUnknown {
   /// failure, like download failed, the error code would be presented as
   /// `ExtendedError` property of ICoreWebView2ExperimentalUpdateRuntimeResult.
   HRESULT Invoke([in] HRESULT errorCode,
-                 [in] ICoreWebView2ExperimentalUpdateRuntimeResult * result);
+                 [in] ICoreWebView2ExperimentalUpdateRuntimeResult* result);
 }
 
 /// This interface is an extension of the ICoreWebView2Environment. An object
@@ -187,19 +187,19 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// Even though the Edge WebView2 Runtime update is installed for the machine
   /// and available to all users, the update will happen silently and not show
   /// elevation prompt.
-  /// This will not impact Edge browser installation.
+  /// This will not impact Edge browser installations.
   /// The latest version can always be queried using the
   /// `GetAvailableCoreWebView2BrowserVersionString` API.
   /// The UpdateRuntime method is only supported for an installed Edge WebView2
   /// Runtime. When running a fixed version Edge WebView2 Runtime or non stable
   /// channel Edge browser, this API will return `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`.
   /// There could only be one active UpdateRuntime operation in an app process,
-  /// calling this API before completed handler for previous call is invoked will fail with
-  /// `HRESULT_FROM_WIN32(ERROR_BUSY)`.
+  /// and calling this API before the completed handler for a previous call is invoked
+  /// will fail with `HRESULT_FROM_WIN32(ERROR_BUSY)`.
   /// Calling this API repeatedly in a short period of time, will also fail with
   /// `HRESULT_FROM_WIN32(ERROR_BUSY)`. To protect accidental abuse of the update
   /// service, the implementation throttles the calls of this API to 3 times within
-  /// 5 minutes in a process. Throttling limit can change in the future.
+  /// 5 minutes in a process. The exact throttling limit can change in the future.  
   /// Edge update service can only support one update request at a time globally.
   /// If there is already an update operation running in the Edge update service,
   //  UpdateRuntime request will result in the completed handler being invoked with a
@@ -213,11 +213,11 @@ interface ICoreWebView2ExperimentalEnvironment3 : IUnknown {
   /// case, the completed handler will be invoked with `S_OK` as `errorCode` and a
   /// result object with `Status` of COREWEBVIEW2_UPDATE_RUNTIME_STATUS_FAILED and
   /// `ExtendedError` as `E_ABORT`.
+  ///
+  /// \snippet AppWindow.cpp UpdateRuntime
   HRESULT UpdateRuntime(
-      [in] ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler *
-      handler);
+      [in] ICoreWebView2ExperimentalUpdateRuntimeCompletedHandler* handler);
 }
-
 ```
 ## WinRT
 ```c#
