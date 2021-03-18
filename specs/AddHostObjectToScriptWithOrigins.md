@@ -25,7 +25,7 @@ The host object will be removed during iframe deletion automatically.
 
 
 # Examples
-## FrameCreated/FrameDeleted and AddHostObjectToScriptWithOrigins
+## Frame created event, frame name changed event, adding and removing host object
 
 ## .NET, WinRT
 ```c#
