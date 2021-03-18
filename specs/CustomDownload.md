@@ -237,10 +237,6 @@ void ScenarioCustomDownloadExperience::UpdateProgress(ICoreWebView2Download* dow
 ```
 ## .NET/ WinRT
 ```c#
-// This example hides the default download dialog and shows a dialog box instead.
-// The dialog box displays the default save path and allows the user to specify a different path.
-// Selecting `OK` will save the download to the chosen path.
-// Selecting `CANCEL` will cancel the download.
 void DownloadStartingCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
     if (_coreWebView2Settings == null)
@@ -255,6 +251,10 @@ void DownloadStartingCmdExecuted(object target, ExecutedRoutedEventArgs e)
         // doesn't examine the properties we set on the event args until
         // after the deferral completes asynchronously.
         CoreWebView2Deferral deferral = args.GetDeferral();
+
+        // We avoid potential reentrancy from running a message loop in the download
+        // starting event handler by showing our download dialog later when we
+        // complete the deferral asynchronously.
         System.Threading.SynchronizationContext.Current.Post((_) =>
         {
             using (deferral)
@@ -294,6 +294,7 @@ void UpdateProgress(CoreWebView2Download download)
             break;
           case CoreWebView2DownloadState.Interrupted:
             // Here developer can take different actions based on `args.InterruptReason`.
+            // For example, show an error message to the end user.
             break;
           case CoreWebView2DownloadState.Completed:
             break;
