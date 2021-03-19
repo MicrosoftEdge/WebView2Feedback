@@ -26,30 +26,6 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 There are 3 parts to this API: the CoreWebView2.DownloadStarting event that can be used to find out about or cancel new downloads, the Download class available from the DownloadStarting event that has up to date information on a download as it progresses, and the CoreWebView2Settings.DefaultDownloadDialog property that can be used to disable the default download UI.
 
-1. DownloadStarting [Event] - used to intercept a download.
-    - Download (the download object below)
-    - Cancel
-    - Result file path (settable)
-    - Deferral
-2. Download [Object]: This will give you all the metadata that you might need to block a download, or build UI.
-    - Uri
-    - Mime type
-    - Content disposition
-    - Download size in bytes
-    - Result file path (read only)
-    - Progress size in bytes
-    - Estimated end time
-    - State (in progress, completed, interrupted)
-    - Pause/resume/cancel
-    - Events:
-        - DownloadStateChanged
-            - InterruptReason
-        - DownloadProgressSizeInBytesChanged
-        - DownloadEstimatedEndTimeChanged
-3. WebView Setting: Default Download Dialog - used to disable the default download UI (bottom dock)
-
-We believe these 3 parts of a redesigned Download API, should enable your app to have a customizable & complete download experience.
-
 # Examples
 <!-- TEMPLATE
     Use this section to explain the features of the API, showing
