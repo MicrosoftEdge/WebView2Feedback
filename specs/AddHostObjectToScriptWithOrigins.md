@@ -124,7 +124,7 @@ interface ICoreWebView2Frame : IUnknown {
   /// The name of the iframe from the iframe html tag declaring it.
   /// Calling this method fails if it is called after the iframe is deleted.
   [propget] HRESULT Name([ out, retval ] LPWSTR * name);
-  /// Called when the iframe changes its window.name property
+  /// Raised when the iframe changes its window.name property
   HRESULT add_NameChanged(
       [in] ICoreWebView2FrameNameChangedEventHandler *eventHandler,
       [out] EventRegistrationToken * token);
@@ -227,7 +227,7 @@ namespace Microsoft.Web.WebView2.Core
         /// Calling this method fails if it is called after the iframe is deleted.
         String Name { get; };
 
-        /// Called when the iframe changes its window.name property
+        /// Raised when the iframe changes its window.name property
         event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, Object> NameChanged;
         /// The FrameDeleted event is raised when the iframe corresponding to this CoreWebView2Frame
         /// object is removed or the document containing that iframe is destroyed
