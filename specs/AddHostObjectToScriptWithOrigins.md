@@ -33,26 +33,19 @@ void SubscribeToFrameCreated()
 {
     webView.CoreWebView2.FrameCreated += delegate (object sender, CoreWebView2FrameCreatedEventArgs args)
     {
-        try
+        if (args.Frame.Name.Equals("iframe_name"))
         {
-            if (args.Frame.Name.Equals("iframe_name"))
+            String[] origins = new String[] { "https://appassets.example" };
+            args.Frame.AddHostObjectToScriptWithOrigins("bridge", new BridgeAddRemoteObject(), origins);
+        }
+        args.Frame.NameChanged += delegate (object nameChangedSender, object nameChangedArgs)
+        {
+            CoreWebView2Frame frame = (CoreWebView2Frame)nameChangedSender;
+            if (!frame.Name.Equals("iframe_name"))
             {
-                String[] origins = new String[] { "https://appassets.example" };
-                args.Frame.AddHostObjectToScriptWithOrigins("bridge", new BridgeAddRemoteObject(), origins);
+                frame.RemoveHostObjectFromScript("bridge");
             }
-            args.Frame.NameChanged += delegate (object nameChangedSender, object nameChangedArgs)
-            {
-                CoreWebView2Frame frame = (CoreWebView2Frame)nameChangedSender;
-                if (!frame.Name.Equals("iframe_name"))
-                {
-                    frame.RemoveHostObjectFromScript("bridge");
-                }
-            };
-        }
-        catch (NotSupportedException exception)
-        {
-            MessageBox.Show("Frame.AddHostObjectToScriptWithOrigins failed: " + exception.Message);
-        }
+        };
     };
 }
 ```
@@ -88,7 +81,7 @@ void SampleClass::SampleMethod()
 
         LPWSTR name;
         CHECK_FAILURE(webviewFrame->get_Name(&name));
-        if (!std::wcscmp(name, L"iframe_name"))
+        if (std::wcscmp(name, L"iframe_name") == 0)
         {
             // Wrap host object
             VARIANT remoteObjectAsVariant = {};
