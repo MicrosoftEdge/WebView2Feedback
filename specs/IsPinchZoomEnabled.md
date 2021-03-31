@@ -73,7 +73,7 @@ namespace Microsoft.Web.WebView2.Core
     public partial class CoreWebView2Settings
     {
         /// 
-        public bool IsPinchZoomEnabled { get; set};
+        public bool IsPinchZoomEnabled { get; set; };
 
     }
 }
