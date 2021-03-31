@@ -1,25 +1,30 @@
 # Background
 
 There are two types of zoom in Chromium: Browser Zoom and Pinch-Zoom:
-- Browser zoom is what you get by using Ctrl + +(plus) or – (minus) or Ctrl + Mousewheel. 
-- Pinch-zoom is activated by using a pinch gesture on a touchscreen. 
+- Browser zoom, referred to as “Page Zoom” or “Zoom” more generally, is what we get by using Ctrl + +(plus) or – (minus) or Ctrl + Mousewheel. This changes the size of a CSS pixel relative to a device independent pixel and so it will cause page layout to change. End developers can programmatically change browser Zoom properties including (IsZoomControlEnabled)[https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2settings?view=webview2-1.0.774.44#get_iszoomcontrolenabled] and (ZoomFactor)[(IsZoomControlEnabled)[https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2settings?view=webview2-1.0.774.44#get_iszoomcontrolenabled]. Setting ZoomFactor property causes the layout to change and enables scroll bar which lets users interact with the zoomed in content using mouse.
+- Pinch-zoom, referred to as “Page Scale” zoom, is performed as a post-rendering step, it scales the surface the web page is rendered onto by changing the page scale factor property. When user perfom a pinch zooming action, it does not change the layout but rather changes the viewport and clips the web content, the content outside of the viewport isn't visible onscreen and users can't reach this content using mouse.
 
-Currently, the first type of zoom control is supported in WebView2 and modifying it has no effect on pinch zoom. 
+Currently, the first type of zoom control is supported in WebView2 and modifying it has no effect on page scale zoom. 
 
-In response to customer requests to be able to change the current functionality of pinch zoon in WebView2: Disable/Enanle pinch zoom, the WebView2 team has introduced Pinch Zoom API which allows users to change setting to disable/enable pinch zoom.
+In response to customer requests to be able to change the current functionality of page scale zoom in WebView2, the WebView2 team has introduced this Pinch Zoom API which allows end developers to disable or enable page scale zoom control via a setting.
 
 In this document we describe the new setting. We'd appreciate your feedback.
 
 
 # Description
-The default value for IsPinchZoomEnabled is true.
-When this setting is set to false, it disables pinch zoom in WebView.
+The default value for `IsPinchZoomEnabled` is true.
+When this setting is set to false, it disables pinch zooming in WebView.
 
 
 # Examples
 ```cpp
+wil::com_ptr<ICoreWebView2> webView;
 void SettingsComponent::TogglePinchZooomEnabled()
 {
+    wil::com_ptr<ICoreWebView2Settings> coreWebView2Settings;
+    // Get webView's current settings
+    CHECK_FAILURE(webView->get_Settings(&coreWebView2Settings));
+
     BOOL enabled;
     CHECK_FAILURE(coreWebView2Settings->get_IsPinchZoomEnabled(&enabled));
     CHECK_FAILURE(coreWebView2Settings->put_IsPinchZoomEnabled(enabled ? FALSE : TRUE));
@@ -27,13 +32,17 @@ void SettingsComponent::TogglePinchZooomEnabled()
 ```
 
 ```c#
-privagte WebView2 _webView;
+private WebView2 _webView;
 void TogglePinchZoomEnabled()
 {
-    var coreWebView2Settings = webView.CoreWebView2.Settings;
+    var coreWebView2Settings = _webView.CoreWebView2.Settings;
     coreWebView2Settings.IsPinchZoomEnabled = !coreWebView2Settings.IsPinchZoomEnabled;
 }
 ```
+
+# Remarks
+When `IsPinchZoomEnabled` is set to false, pinch zooming user action is disabled in WebView. This however doesn't modify the underlying page scale factor of page scale zoom.
+
 # API Notes
 
 See [API Details](#api-details) section below for API reference.
