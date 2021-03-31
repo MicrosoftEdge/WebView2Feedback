@@ -57,6 +57,9 @@ interface ICoreWebView2StagingSettings : IUnknown {
   /// the end user to use a pinching motion on touch input enabled devices
   /// to scale the web content in the WebView2. It defaults to TRUE.
   /// When set to FALSE, the end user cannot pinch zoom.
+  /// This API only affects the Page Scale zoom and has no effect on the
+  /// existing browser zoom properties (IsZoomControlEnabled and ZoomFactor)
+  /// or other end user mechanisms for zooming.
   ///
   /// \snippet SettingsComponent.cpp DisablePinchZoom
   [propget] HRESULT IsPinchZoomEnabled([out, retval] BOOL* enabled);
