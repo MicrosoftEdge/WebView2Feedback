@@ -38,7 +38,9 @@ specifies which corresponding IDropTarget function was called.
 
 
 # Examples
+## Win32
 ```c++
+// Win32 Sample
 // Initialized elsewhere
 wil::com_ptr<ICoreWebView2Controller> webViewController;
 
@@ -120,9 +122,51 @@ HRESULT DropTarget::Drop(IDataObject* dataObject,
 }
 ```
 
+## WinRT
+```c#
+// WinRT Sample
+private void WebView_DragEnter(object sender, DragEventArgs e)
+{
+  uint keyboardState = 
+    ConvertDragDropModifiersToWin32KeyboardState(e.Modifiers);
+  Point pointerPosition = CoreWindow.GetForCurrentThread().PointerPosition;
+  DataPackageOperation operation = 
+    (DataPackageOperation)webView2CompositionController.DragEnter(
+      e.Data, keyboardState, pointerPosition);
+  e.AcceptedOperation = operation;
+}
+
+private void WebView_DragOver(object sender, DragEventArgs e)
+{
+  uint keyboardState =
+    ConvertDragDropModifiersToWin32KeyboardState(e.Modifiers);
+  Point pointerPosition = CoreWindow.GetForCurrentThread().PointerPosition;
+  DataPackageOperation operation = 
+    (DataPackageOperation)webView2CompositionController.DragOver(
+      keyboardState, pointerPosition);
+  e.AcceptedOperation = operation;
+}
+
+private void WebView_DragLeave(object sender, DragEventArgs e)
+{
+  webView2CompositionController.DragLeave();
+}
+
+private void WebView_Drop(object sender, DragEventArgs e)
+{
+  uint keyboardState =
+    ConvertDragDropModifiersToWin32KeyboardState(e.Modifiers);
+  Point pointerPosition = CoreWindow.GetForCurrentThread().PointerPosition;
+  DataPackageOperation operation =
+    (DataPackageOperation)webView2CompositionController.Drop(
+      e.Data, keyboardState, pointerPosition);
+  e.AcceptedOperation = operation;
+}
+```
+
 
 # API Details
-## Win32 C++
+## Win32
 ```c++
 [v1_enum]
 typedef enum COREWEBVIEW2_DROP_TARGET_ACTION {
@@ -135,6 +179,15 @@ typedef enum COREWEBVIEW2_DROP_TARGET_ACTION {
 
 ```c++
 interface ICoreWebView2CompositionController : IUnknown {
+  /// This set of APIs (DragEnter, DragLeave, DragOver, and Drop) will allow
+  /// users to drop things such as images, text, and links into the WebView as
+  /// part of a drag/drop operation. The reason that we need a separate API for
+  /// this with composition hosting is because we don't have an HWND to call
+  /// RegisterDragDrop on. The hosting app needs to call RegisterDragDrop on the
+  /// HWND that contains the WebView and implement IDropTarget so it can forward
+  /// the calls (IDropTarget::DragEnter, DragMove, DragLeave, and Drop) to the
+  /// WebView.
+  ///
   /// This function corresponds to IDropTarget::DragEnter
   ///
   /// The hosting application must register as an IDropTarget and implement
@@ -152,6 +205,9 @@ interface ICoreWebView2CompositionController : IUnknown {
       [in] POINT point,
       [out, retval] DWORD* effect);
 
+  /// Please refer to DragEnter for more information on how Drag/Drop works with
+  /// WebView2.
+  ///
   /// This function corresponds to IDropTarget::DragLeave
   ///
   /// The hosting application must register as an IDropTarget and implement
@@ -162,6 +218,9 @@ interface ICoreWebView2CompositionController : IUnknown {
   /// object before forwarding the call to WebView.
   HRESULT DragLeave();
 
+  /// Please refer to DragEnter for more information on how Drag/Drop works with
+  /// WebView2.
+  ///
   /// This function corresponds to IDropTarget::DragOver
   ///
   /// The hosting application must register as an IDropTarget and implement
@@ -178,6 +237,9 @@ interface ICoreWebView2CompositionController : IUnknown {
       [in] POINT point,
       [out, retval] DWORD* effect);
 
+  /// Please refer to DragEnter for more information on how Drag/Drop works with
+  /// WebView2.
+  ///
   /// This function corresponds to IDropTarget::Drop
   ///
   /// The hosting application must register as an IDropTarget and implement
@@ -196,25 +258,26 @@ interface ICoreWebView2CompositionController : IUnknown {
       [out, retval] DWORD* effect);
 }
 ```
+
 ## WinRT
-```c++
+```c#
 namespace Microsoft.Web.WebView2.Core
 {
-  uint32_t DragEnter(
-      winrt.Windows.ApplicationModel.DataTransfer.DataPackage const& dataObject,
-      uint32_t keyState,
-      winrt.Windows.Foundation.Point point);
+  uint DragEnter(
+      Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
+      uint keyState,
+      Point point);
 
   void DragLeave();
 
-  uint32_t DragOver(
-      uint32_t keyState,
-      winrt::Windows.Foundation.Point point);
+  uint DragOver(
+      uint keyState,
+      Windows.Foundation.Point point);
 
-  uint32_t Drop(
-      winrt.Windows.ApplicationModel.DataTransfer.DataPackage const& dataObject,
-      uint32_t keyState,
-      winrt.Windows.Foundation.Point point);
+  uint Drop(
+      Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
+      uint keyState,
+      Windows.Foundation.Point point);
 }
 ```
 
