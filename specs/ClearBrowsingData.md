@@ -5,7 +5,39 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 
 # Description
-The clear browsing data api is an asyncrhonous api that clears data based on the browsing data kind that is passed in as a parameter. 
+The clear browsing data api is an asynchronous api that clears data based on a browsing data kind. 
+The browsing data kinds that are supported are as follows.  These data kinds follow a hierarchical structure in which nested bullet points are included in their parent bullet point's data kind. 
+
+Ex: Dom storage is encompassed in site data which is encompassed in the profile data. Each of the following bullets correspond to a COREWEBVIE2_BROWSING_DATA_KIND unless otherwise specified. 
+
+* Profile 
+    * Site Data
+        * Dom Storage 
+            * App cache
+            * File systems
+            * Indexddb
+            * Local storage
+            * Web SQL
+            * Cache storage
+            * Embedder dom storage (this api does not support this specific data kind but this is included in the dom storage data kind)
+            * Background fetch (this api does not support this specific data kind but this is included in the dom storage data kind)
+        * Cookies
+        * Media licenses
+        * Plugin data
+        * Site usage
+        * Durable permissions
+        * External protocols
+        * Isolated origins
+        * Trust tokens
+        * Conversions data
+    * Http cache 
+    * Download history
+    * General autofill
+    * Password autofill
+    * Bookmarks
+    * Settings
+    * Content settings
+    * Local custom dictionary
 
 
 # Examples
@@ -40,7 +72,7 @@ private void ClearPasswordAutofillData()
     var environment = webView2Control.CoreWebView2.Environment;
     try
     {
-        await environment.ClearBrowsingDataAsync(dataKind); 
+        await environment.ClearBrowsingDataAsync(COREWEBVIEW2_BROWSING_DATA_KIND_PASSWORD_AUTOFILL); 
     }
     catch (System.Runtime.InteropServices.COMException exception)
     {
@@ -88,7 +120,7 @@ typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
   /// of COREWEBVIEW2_BROWSING_DATA_KIND_APP_CACHE, COREWEBVIEW2_BROWSING_DATA_KIND_FILE_SYSTEMS,
   /// COREWEBVIEW2_BROWSING_DATA_KIND_INDEXEDDB, COREWEBVIEW2_BROWSING_DATA_KIND_LOCAL_STORAGE,
   /// COREWEBVIEW2_BROWSING_DATA_KIND_WEB_SQL, COREWEBVIEW2_BROWSING_DATA_KIND_CACHE_STORAGE.
-  /// In addition to these data kinds, dom storage also includese embedder dom storage and
+  /// In addition to these data kinds, dom storage also includes embedder dom storage and
   /// background fetch. 
   COREWEBVIEW2_BROWSING_DATA_KIND_DOM_STORAGE = 0x07,
   
