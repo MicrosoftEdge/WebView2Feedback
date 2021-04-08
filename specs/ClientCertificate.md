@@ -68,11 +68,11 @@ void SettingsComponent::SetClientCertificateRequested(bool raiseClientCertificat
                                 CHECK_FAILURE(certificate->get_SerialNumber(&serialNumber));
                                 COREWEBVIEW2_CLIENT_CERTIFICATE_KIND certificateKind;
                                 CHECK_FAILURE(certificate->get_CertificateKind(&certificateKind));
-                                UINT64 startDate;
+                                INT64 startDate;
                                 CHECK_FAILURE(certificate->get_ValidStartDate(&startDate));
-                                UINT64 expiryDate;
+                                INT64 expiryDate;
                                 CHECK_FAILURE(certificate->get_ValidExpiryDate(&expiryDate));
-                                ICoreWebView2ClientCertificatePEMEncodedIssuerChainList* pemIssuerChainList;
+                                ICoreWebView2ClientCertificateIssuerChainList* pemIssuerChainList;
                                 CHECK_FAILURE(certificate->get_PEMEncodedIssuerChainData(&pemIssuerChainList));
                             }
                         }
@@ -142,8 +142,7 @@ See [API Details](#api-details) section below for API reference.
 ```cpp
 interface ICoreWebView2_3;
 interface ICoreWebView2ClientCertificate;
-interface ICoreWebView2ClientCertificateDEREncodedIssuerChainList;
-interface ICoreWebView2ClientCertificatePEMEncodedIssuerChainList;
+interface ICoreWebView2ClientCertificateIssuerChainList;
 interface ICoreWebView2ClientCertificateList;
 interface ICoreWebView2ClientCertificateRequestedEventArgs;
 interface ICoreWebView2ClientCertificateRequestedEventHandler;
@@ -207,10 +206,10 @@ interface ICoreWebView2ClientCertificate : IUnknown {
   [propget] HRESULT Issuer([ out, retval ] LPWSTR* issuer);
   /// The valid start date and time for the certificate as the number of seconds since
   /// the UNIX epoch.
-  [propget] HRESULT ValidStartDate([out, retval] UINT64* validStartDate);
+  [propget] HRESULT ValidStartDate([out, retval] INT64* validStartDate);
   /// The valid expiration date and time for the certificate as the number of seconds since
   /// the UNIX epoch.
-  [propget] HRESULT ValidExpiryDate([out, retval] UINT64* validExpiryDate);
+  [propget] HRESULT ValidExpiryDate([out, retval] INT64* validExpiryDate);
   /// DER encoded serial number of the certificate.
   [propget] HRESULT SerialNumber([out, retval] LPWSTR* serialNumber);
   /// Display name for a certificate.
@@ -223,7 +222,7 @@ interface ICoreWebView2ClientCertificate : IUnknown {
   /// List of DER encoded client certificate issuer chain.
   /// This list contains the certificate and intermediate CA certificates.
   [propget] HRESULT DEREncodedIssuerChainData([out, retval]
-      ICoreWebView2ClientCertificateDEREncodedIssuerChainList**
+      ICoreWebView2ClientCertificateIssuerChainList**
                                               derEncodedIssuerChainData);
   /// PEM encoded data for the certificate.
   /// Returns Base64 encoding of DER encoded certificate.
@@ -233,44 +232,24 @@ interface ICoreWebView2ClientCertificate : IUnknown {
   /// List of PEM encoded client certificate issuer chain.
   /// This list contains the certificate and intermediate CA certificates.
   [propget] HRESULT PEMEncodedIssuerChainData([out, retval]
-      ICoreWebView2ClientCertificatePEMEncodedIssuerChainList**
+      ICoreWebView2ClientCertificateIssuerChainList**
                                               pemEncodedIssuerChainData);
   /// Kind of a certificate (smart card, pin).
   [propget] HRESULT CertificateKind([out,retval]
       COREWEBVIEW2_CLIENT_CERTIFICATE_KIND* certificateKind);
 }
 
-/// Provides client certificate issuer.
-[uuid(9fb88b84-9169-11eb-a8b3-0242ac130003), object, pointer_default(unique)]
-interface ICoreWebView2ClientCertificateIssuer : IUnknown {
-  /// Client certificate issuer.
-  [propget] HRESULT Issuer([out, retval] LPWSTR* issuer);
-}
 
-/// A list of DER encoded client certificate issuer chain.
+/// A list of client certificate issuer chains.
 [uuid(4271275e-9107-11eb-a8b3-0242ac130003), object, pointer_default(unique)]
-interface ICoreWebView2ClientCertificateDEREncodedIssuerChainList : IUnknown {
-  /// The number of der encoded issuer chains contained in the
+interface ICoreWebView2ClientCertificateIssuerChainList : IUnknown {
+  /// The number of issuer chains contained in
   /// ICoreWebView2ClientCertificate.
   [propget] HRESULT Count([out, retval] UINT* count);
 
-  /// Gets the DER encoded data of the issuer chain at the given index.
+  /// Gets encoded data of the issuer chain at the given index.
   /// Index 0 contains the certificate followed by intermediate CA certificates.
-  HRESULT GetValueAtIndex([in] UINT index, [out, retval]
-      ICoreWebView2ClientCertificateIssuer** issuerChainData);
-}
-
-/// A list of PEM encoded client certificate issuer chain.
-[uuid(f23be52c-910a-11eb-a8b3-0242ac130003), object, pointer_default(unique)]
-interface ICoreWebView2ClientCertificatePEMEncodedIssuerChainList : IUnknown {
-  /// The number of pem encoded issuer chains contained in the
-  /// ICoreWebView2ClientCertificate.
-  [propget] HRESULT Count([out, retval] UINT* count);
-
-  /// Gets the PEM encoded data of the issuer chain at the given index.
-  /// Index 0 contains the certificate followed by intermediate CA certificates.
-  HRESULT GetValueAtIndex([in] UINT index, [out, retval]
-      ICoreWebView2ClientCertificateIssuer** issuerChainData);
+  HRESULT GetValueAtIndex([in] UINT index, [out, retval] LPWSTR* issuer);
 }
 
 /// A list of client certificate object.
@@ -302,7 +281,7 @@ interface ICoreWebView2ClientCertificateRequestedEventArgs : IUnknown {
 
   /// Returns true if the server that issues this request is https proxy.
   /// Returns false if the server is the origin server.
-  [propget] HRESULT IsProxy([out, retval] BOOL * isProxy);
+  [propget] HRESULT IsProxy([out, retval] BOOL* isProxy);
 
   /// Returns the `ICoreWebView2ClientCertificateList` when client
   /// certificate authentication is requested. The list contains mutually
@@ -339,10 +318,6 @@ interface ICoreWebView2ClientCertificateRequestedEventArgs : IUnknown {
 namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2ClientCertificateRequestedEventArgs;
-    runtimeclass CoreWebView2ClientCertificatePEMEncodedIssuerChainList;
-    runtimeclass CoreWebView2ClientCertificateList;
-    runtimeclass CoreWebView2ClientCertificateIssuer;
-    runtimeclass CoreWebView2ClientCertificateDEREncodedIssuerChainList;
     runtimeclass CoreWebView2ClientCertificate;
 
     enum CoreWebView2ClientCertificateRequestResponseState
@@ -372,49 +347,19 @@ namespace Microsoft.Web.WebView2.Core
         Windows.Foundation.Deferral GetDeferral();
     }
 
-    runtimeclass CoreWebView2ClientCertificatePEMEncodedIssuerChainList
-    {
-        // ICoreWebView2ClientCertificatePEMEncodedIssuerChainList members
-        UInt32 Count { get; };
-
-        CoreWebView2ClientCertificateIssuer GetValueAtIndex(UInt32 index);
-    }
-
-    runtimeclass CoreWebView2ClientCertificateList
-    {
-        // ICoreWebView2ClientCertificateList members
-        UInt32 Count { get; };
-
-        CoreWebView2ClientCertificate GetValueAtIndex(UInt32 index);
-    }
-
-    runtimeclass CoreWebView2ClientCertificateIssuer
-    {
-        // ICoreWebView2ClientCertificateIssuer members
-        String Issuer { get; };
-    }
-
-    runtimeclass CoreWebView2ClientCertificateDEREncodedIssuerChainList
-    {
-        // ICoreWebView2ClientCertificateDEREncodedIssuerChainList members
-        UInt32 Count { get; };
-
-        CoreWebView2ClientCertificateIssuer GetValueAtIndex(UInt32 index);
-    }
-
     runtimeclass CoreWebView2ClientCertificate
     {
         // ICoreWebView2ClientCertificate members
         String Subject { get; };
         String Issuer { get; };
-        UInt64 ValidStartDate { get; };
-        UInt64 ValidExpiryDate { get; };
+        Windows.Foundation.DateTime ValidStartDate { get; };
+        Windows.Foundation.DateTime ValidExpiryDate { get; };
         String SerialNumber { get; };
         String DisplayName { get; };
         String DEREncodedData { get; };
-        IVector<CoreWebView2ClientCertificateIssuer> DEREncodedIssuerChainData { get; };
+        IVector<string> DEREncodedIssuerChainData { get; };
         String PEMEncodeData { get; };
-        IVector<CoreWebView2ClientCertificateIssuer> PEMEncodedIssuerChainData { get; };
+        IVector<string> PEMEncodedIssuerChainData { get; };
         CoreWebView2ClientCertificateKind CertificateKind { get; };
     }
 
