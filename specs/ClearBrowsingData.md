@@ -1,5 +1,7 @@
 # Background
-The WebView2 team has been asked for an API to allow end developers to clear the browsing data that is stored in the User Data Folder. We are creating an api that will allow developers to clear the browsing data programtically in which the developer can specify the data type to clear. 
+The WebView2 team has been asked for an API to allow end developers to clear the browsing data that is stored in the User Data Folder. Developers want to be able to clear data between each of their customers, clear the data folder to clear space, and to clear data on the fly. 
+Currently users can delete the User Data Folder clear this data. This has a few drawbacks: it removes the user data folder instead of specific parts which incurs performance costs later on, the webview must be shutdown fully and then re-initialized, and deleting the User Data Folder is a complex API to call. 
+We are creating an api that will allow developers to clear the browsing data programtically in which the developer can specify the data type to clear. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
