@@ -1,6 +1,6 @@
 # Background
 The WebView2 team has been asked for an API to allow end developers to clear the browsing data that is stored in the User Data Folder. Developers want to be able to clear data between each of their customers, clear the data folder to clear space, and to clear data on the fly. 
-Currently users can delete the entire User Data Folder to clear this data. This has a few drawbacks: it removes the user data folder instead of specific parts which incurs performance costs later on, the webview must be shutdown fully and then re-initialized, and deleting the User Data Folder is a complex API to call. 
+Currently users can delete the entire User Data Folder to clear this data. This has a few drawbacks: it removes the entire user data folder instead of specific parts which incurs performance costs later on, the webview must be shutdown fully and then re-initialized, and deleting the User Data Folder is a complex API to call. 
 We are creating an API that will allow developers to clear the browsing data programtically in which the developer can specify the data kind to clear. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
@@ -8,7 +8,7 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
 The clear browsing data API is an asynchronous API. 
-The browsing data kinds that are supported are as follows.  These data kinds follow a hierarchical structure in which nested bullet points are included in their parent bullet point's data kind. 
+The browsing data kinds that are supported are listed below.  These data kinds follow a hierarchical structure in which nested bullet points are included in their parent bullet point's data kind. 
 
 Ex: Dom storage is encompassed in site data which is encompassed in the profile data. Each of the following bullets correspond to a COREWEBVIEW2_BROWSING_DATA_KIND unless otherwise specified. 
 
