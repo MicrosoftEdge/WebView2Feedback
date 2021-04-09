@@ -1,45 +1,45 @@
 # Background
 The WebView2 team has been asked for an API to allow end developers to clear the browsing data that is stored in the User Data Folder. Developers want to be able to clear data between each of their customers, clear the data folder to clear space, and to clear data on the fly. 
-Currently users can delete the User Data Folder clear this data. This has a few drawbacks: it removes the user data folder instead of specific parts which incurs performance costs later on, the webview must be shutdown fully and then re-initialized, and deleting the User Data Folder is a complex API to call. 
-We are creating an api that will allow developers to clear the browsing data programtically in which the developer can specify the data type to clear. 
+Currently users can delete the entire User Data Folder to clear this data. This has a few drawbacks: it removes the user data folder instead of specific parts which incurs performance costs later on, the webview must be shutdown fully and then re-initialized, and deleting the User Data Folder is a complex API to call. 
+We are creating an API that will allow developers to clear the browsing data programtically in which the developer can specify the data kind to clear. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
 
 # Description
-The clear browsing data api is an asynchronous api that clears data based on a browsing data kind. 
+The clear browsing data API is an asynchronous API. 
 The browsing data kinds that are supported are as follows.  These data kinds follow a hierarchical structure in which nested bullet points are included in their parent bullet point's data kind. 
 
-Ex: Dom storage is encompassed in site data which is encompassed in the profile data. Each of the following bullets correspond to a COREWEBVIE2_BROWSING_DATA_KIND unless otherwise specified. 
+Ex: Dom storage is encompassed in site data which is encompassed in the profile data. Each of the following bullets correspond to a COREWEBVIEW2_BROWSING_DATA_KIND unless otherwise specified. 
 
 * Profile 
     * Site Data
         * Dom Storage 
-            * App cache
-            * File systems
+            * App Cache
+            * File Systems
             * Indexddb
-            * Local storage
+            * Local Storage
             * Web SQL
-            * Cache storage
-            * Embedder dom storage (this api does not support this specific data kind but this is included in the dom storage data kind)
-            * Background fetch (this api does not support this specific data kind but this is included in the dom storage data kind)
+            * Cache Storage
+            * Embedder Dom Storage (this API does not support this specific data kind but this is included in the dom storage data kind)
+            * Background Fetch (this API does not support this specific data kind but this is included in the dom storage data kind)
         * Cookies
-        * Media licenses
-        * Plugin data
-        * Site usage
-        * Durable permissions
-        * External protocols
-        * Isolated origins
-        * Trust tokens
-        * Conversions data
-    * Http cache 
-    * Download history
-    * General autofill
-    * Password autofill
+        * Media Licenses
+        * Plugin Data
+        * Site Usage
+        * Durable Permissions
+        * External Protocols
+        * Isolated Origins
+        * Trust Tokens
+        * Conversions Data
+    * Http Cache 
+    * Download History
+    * General Autofill
+    * Password Autofill
     * Bookmarks
     * Settings
-    * Content settings
-    * Local custom dictionary
+    * Content Settings
+    * Local Custom Dictionary
 
 
 # Examples
@@ -49,7 +49,7 @@ Ex: Dom storage is encompassed in site data which is encompassed in the profile 
 /// Function to clear the password form data 
 bool EnvironmentComponent::ClearPasswordAutofillData() 
 {
-    wil::com_ptr<ICoreWebView2Environment2> environment;
+    wil::com_ptr<ICoreWebView2Environment5> environment;
     webView->get_Environment(&environment);
     CHECK_FAILURE(environment->ClearBrowsingData(COREWEBVIEW2_BROWSING_DATA_KIND_PASSWORD_AUTOFILL,
         Callback<ICoreWebView2ClearBrowsingDataHandler>(
@@ -97,7 +97,7 @@ interface ICoreWebView2Environment5
 interface ICoreWebView2ClearBrowsingDataCompletedHandler;
 
 /// Specifies the datatype for the 
-/// `ICoreWebView2StagingEnvironment2::ClearBrowsingData` method.
+/// `ICoreWebView2Environment5::ClearBrowsingData` method.
 [v1_enum]
 typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
   /// Specifies app cache data.
@@ -163,7 +163,7 @@ typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
   /// COREWEBVIEW2_BROWSING_DATA_KIND_CONVERSIONS. If on an android OS, site data also includes web app data. 
   COREWEBVIEW2_BROWSING_DATA_KIND_SITE = 0x17, 
 
-  /// Specifies content in in the HTTP cache including images and other files. 
+  /// Specifies content in the HTTP cache including images and other files. 
   COREWEBVIEW2_BROWSING_DATA_KIND_HTTP_CACHE = 0x18,
 
   /// Specifies download history data. 
@@ -206,11 +206,9 @@ typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
 
 [uuid(4ecfcb16-dd09-4464-9a71-fd8e2d3ac0a2), object, pointer_default(unique)]
 interface ICoreWebView2SEnvironment5 : ICoreWebView2Environment {
-  /// Clear browsing data based on a specific data type and time duration. Specify the 
-  /// data type with the `dataType` parameter. The `start_time` parameter specifies 
-  /// the beginning time to clear the data and the `end_time` parameter specifies 
-  /// the ending time to stop clearing the data.  
-  /// The time parameters are the number of seconds since the UNIX epoch. 
+  /// Clear browsing data based on a specific data type. The completed handler
+  /// will be invoked when the browsing data has been cleared and will indicate 
+  /// if the specified data was properly cleared. 
   HRESULT ClearBrowsingData(
     [in] COREWEBVIEW2_BROWSING_DATA_KIND dataKind,
     [in] ICoreWebView2ClearBrowsingDataCompletedHandler *handler);
