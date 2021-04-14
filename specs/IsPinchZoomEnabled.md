@@ -21,13 +21,15 @@ When this setting is set to `false`, it disables the ability of the end users to
 wil::com_ptr<ICoreWebView2> webView;
 void SettingsComponent::TogglePinchZooomEnabled()
 {
-    wil::com_ptr<ICoreWebView2Settings> coreWebView2Settings;
     // Get webView's current settings
+    wil::com_ptr<ICoreWebView2Settings> coreWebView2Settings;
     CHECK_FAILURE(webView->get_Settings(&coreWebView2Settings));
+    wil::com_ptr<ICoreWebView2Settings4> coreWebView2Settings4;
+    coreWebView2Settings4 = coreWebView2Settings.try_query<ICoreWebView2Settings4>();
 
     BOOL enabled;
-    CHECK_FAILURE(coreWebView2Settings->get_IsPinchZoomEnabled(&enabled));
-    CHECK_FAILURE(coreWebView2Settings->put_IsPinchZoomEnabled(enabled ? FALSE : TRUE));
+    CHECK_FAILURE(coreWebView2Settings4->get_IsPinchZoomEnabled(&enabled));
+    CHECK_FAILURE(coreWebView2Settings4->put_IsPinchZoomEnabled(enabled ? FALSE : TRUE));
 }
 ```
 
@@ -52,7 +54,7 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
 ```cpp
 [uuid(B625A89E-368F-43F5-BCBA-39AA6234CCF8), object, pointer_default(unique)]
-interface ICoreWebView2StagingSettings : IUnknown {
+interface ICoreWebView2Settings4 : ICoreWebView2Settings3 {
   /// The IsPinchZoomEnabled property enables or disables the ability of 
   /// the end user to use a pinching motion on touch input enabled devices
   /// to scale the web content in the WebView2. It defaults to TRUE.
