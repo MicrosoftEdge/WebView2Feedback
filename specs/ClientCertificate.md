@@ -42,7 +42,7 @@ void SettingsComponent::SetClientCertificateRequested(bool raiseClientCertificat
                         ICoreWebView2ClientCertificateRequestedEventArgs* args) {
 
                         ICoreWebView2ClientCertificateList* certificateList;
-                        CHECK_FAILURE(args->get_RequestMatchingCertificates(&certificateList));
+                        CHECK_FAILURE(args->get_MutuallyTrustedCertificates(&certificateList));
 
                         wil::unique_cotaskmem_string host;
                         CHECK_FAILURE(args->get_Host(&host));
@@ -112,7 +112,7 @@ void ClientCertificateRequestedCmdExecuted(object target, ExecutedRoutedEventArg
     webView.CoreWebView2.ClientCertificateRequested += delegate (
     object sender, CoreWebView2ClientCertificateRequestedEventArgs args)
     {
-      List<CoreWebView2ClientCertificate> certificatesList = args.RequestMatchingCertificates;
+      List<CoreWebView2ClientCertificate> certificatesList = args.MutuallyTrustedCertificates;
       if (certificatesList.Count() > 0)
       {
         args.SelectedCertificate = certificatesList.FirstOrDefault();
@@ -148,6 +148,13 @@ interface ICoreWebView2ClientCertificateRequestedEventArgs;
 interface ICoreWebView2ClientCertificateRequestedEventHandler;
 
 [v1_enum]
+/// Question to reviewers if COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE
+/// enum should be replaced with Cancel and Handled properties like below to match
+/// with other WebView2 API conventions ????
+/// * Cancel = true -> AbortRequest
+/// * Handled = true -> ContinueWithoutCertificate
+/// * Handled = true + SelectedCertificate -> ContinueWithCertificate
+/// * Neither -> ContinueWithDefaultDialog
 typedef enum COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE {
   /// Cancels the certificate selection and aborts the request.
   COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_ABORT_REQUEST,
@@ -155,8 +162,8 @@ typedef enum COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE {
   COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITHOUT_CERTIFICATE,
   /// Continue with the selected certificate to respond to the server.
   COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITH_CERTIFICATE,
-  /// Continue to display default client certificate selection dialog prompt.
-  /// to let user to respond to the server
+  /// Display the default client certificate selection dialog prompt to allow the user
+  /// to choose a certificate. The SelectedCertificate property is ignored in this case.
   COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITH_DEFAULT_DIALOG,
 } COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE;
 
@@ -166,7 +173,7 @@ typedef enum COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE {
   /// Specifies PIN certificate.
   COREWEBVIEW2_CLIENT_CERTIFICATE_KIND_PIN,
   /// Specifies other certificate.
-  COREWEBVIEW2_CLIENT_CERTIFICATE_KIND_OTHER_CERT,
+  COREWEBVIEW2_CLIENT_CERTIFICATE_KIND_OTHER,
 } COREWEBVIEW2_CLIENT_CERTIFICATE_KIND;
 
 [uuid(92d41f20-8e92-11eb-8dcd-0242ac130003), object, pointer_default(unique)]
@@ -228,7 +235,7 @@ interface ICoreWebView2ClientCertificate : IUnknown {
   /// Returns Base64 encoding of DER encoded certificate.
   /// Read more about PEM at [RFC 1421 Privacy Enhanced Mail]
   /// (https://tools.ietf.org/html/rfc1421).
-  [propget] HRESULT PEMEncodeData([out, retval] LPWSTR* pemEncodeData);
+  [propget] HRESULT PEMEncodedData([out, retval] LPWSTR* pemEncodedData);
   /// List of PEM encoded client certificate issuer chain.
   /// This list contains the certificate and intermediate CA certificates.
   [propget] HRESULT PEMEncodedIssuerChainData([out, retval]
@@ -279,14 +286,14 @@ interface ICoreWebView2ClientCertificateRequestedEventArgs : IUnknown {
   /// Port of the server that requested client certificate authentication.
   [propget] HRESULT Port([out, retval] int* port);
 
-  /// Returns true if the server that issues this request is https proxy.
+  /// Returns true if the server that issued this request is an http proxy.
   /// Returns false if the server is the origin server.
   [propget] HRESULT IsProxy([out, retval] BOOL* isProxy);
 
   /// Returns the `ICoreWebView2ClientCertificateList` when client
   /// certificate authentication is requested. The list contains mutually
   /// trusted CA certificates.
-  [propget] HRESULT RequestMatchingCertificates([out, retval]
+  [propget] HRESULT MutuallyTrustedCertificates([out, retval]
       ICoreWebView2ClientCertificateList** clientCertificateList);
 
   /// Returns the selected certificate.
@@ -331,7 +338,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         SmartCard = 0,
         Pin = 1,
-        OtherCert = 2,
+        Other = 2,
     };
 
     runtimeclass CoreWebView2ClientCertificateRequestedEventArgs
@@ -340,7 +347,7 @@ namespace Microsoft.Web.WebView2.Core
         String Host { get; };
         Int32 Port { get; };
         Boolean IsProxy { get; };
-        IVector<CoreWebView2ClientCertificate> RequestMatchingCertificates { get; };
+        IVector<CoreWebView2ClientCertificate> MutuallyTrustedCertificates { get; };
         CoreWebView2ClientCertificate SelectedCertificate { get; set; };
         CoreWebView2ClientCertificateRequestResponseState ClientCertificateRequestResponseState { get; set; };
 
@@ -358,7 +365,7 @@ namespace Microsoft.Web.WebView2.Core
         String DisplayName { get; };
         String DEREncodedData { get; };
         IVector<string> DEREncodedIssuerChainData { get; };
-        String PEMEncodeData { get; };
+        String PEMEncodedData { get; };
         IVector<string> PEMEncodedIssuerChainData { get; };
         CoreWebView2ClientCertificateKind CertificateKind { get; };
     }
