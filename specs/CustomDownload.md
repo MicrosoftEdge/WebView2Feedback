@@ -90,13 +90,13 @@ ScenarioCustomDownloadExperience::ScenarioCustomDownloadExperience(AppWindow* ap
                 wil::com_ptr<ICoreWebView2Deferral> deferral;
                 CHECK_FAILURE(args->GetDeferral(&deferral));
 
-                // This function can be called to show the download dialog and
-                // complete the event at a later time, allowing the developer to
-                // perform async work before the event completes.
-                m_completeDeferredDownloadEvent = [showDialog, deferral] {
+                // We avoid potential reentrancy from running a message loop in
+                // the download starting event handler by showing our download
+                // dialog later when we complete the deferral asynchronously.
+                PostWorkItemToUIThread([showDialog, deferral] {
                     showDialog();
                     CHECK_FAILURE(deferral->Complete());
-                };
+                });
 
                 return S_OK;
             })
@@ -361,36 +361,37 @@ interface ICoreWebView2DownloadStartingEventArgs : IUnknown
   /// Returns the `ICoreWebViewDownloadOperation` for the download that
   /// has started.
   [propget] HRESULT DownloadOperation(
-      [out, retval] ICoreWebView2DownloadOperation** downloadOperation);
+      [out, retval] ICoreWebView2DownloadOperation** value);
 
   /// The host may set this flag to cancel the download. If canceled, the
   /// download save dialog is not displayed regardless of the
   /// `Handled` property.
-  [propget] HRESULT Cancel([out, retval] BOOL* cancel);
+  [propget] HRESULT Cancel([out, retval] BOOL* value);
 
   /// Sets the `Cancel` property.
-  [propput] HRESULT Cancel([in] BOOL cancel);
+  [propput] HRESULT Cancel([in] BOOL value);
 
   /// The path to the file. If setting the path, the host should ensure that it
   /// is an absolute path, including the file name, and that the path does not
   /// point to an existing file. If the path points to an existing file, the
   /// file will be overwritten. If the directory does not exist, it is created.
-  [propget] HRESULT ResultFilePath([out, retval] LPWSTR* resultFilePath);
+  [propget] HRESULT ResultFilePath([out, retval] LPWSTR* value);
 
   /// Sets the `ResultFilePath` property.
-  [propput] HRESULT ResultFilePath([in] LPCWSTR resultFilePath);
+  [propput] HRESULT ResultFilePath([in] LPCWSTR value);
 
   /// The host may set this flag to `TRUE` to hide the default download dialog
   /// for this download. The download will progress as normal if it is not
   /// canceled, there will just be no default UI shown. By default the value is
   /// `FALSE` and the default download dialog is shown.
-  [propget] HRESULT Handled([out, retval] BOOL* handled);
+  [propget] HRESULT Handled([out, retval] BOOL* value);
 
   /// Sets the `Handled` property.
-  [propput] HRESULT Handled([in] BOOL handled);
+  [propput] HRESULT Handled([in] BOOL value);
 
   /// Returns an `ICoreWebView2Deferral` object.  Use this operation to
-  /// complete the event at a later time.
+  /// complete the event at a later time. Download progress events do not occur
+  /// until the deferral is completed.
   HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 }
 
@@ -465,35 +466,36 @@ interface ICoreWebView2DownloadOperation : IUnknown
       [in] EventRegistrationToken token);
 
   /// The URI of the download.
-  [propget] HRESULT Uri([out, retval] LPWSTR* uri);
+  [propget] HRESULT Uri([out, retval] LPWSTR* value);
 
   /// The Content-Disposition header value from the download's HTTP response.
-  [propget] HRESULT ContentDisposition([out, retval] LPWSTR* contentDisposition);
+  /// If none, the value is an empty string.
+  [propget] HRESULT ContentDisposition([out, retval] LPWSTR* value);
 
   /// MIME type of the downloaded content.
-  [propget] HRESULT MimeType([out, retval] LPWSTR* mimeType);
+  [propget] HRESULT MimeType([out, retval] LPWSTR* value);
 
   /// The expected size of the download in total number of bytes based on the
   /// HTTP Content-Length header. Returns -1 if the size is unknown.
-  [propget] HRESULT TotalBytesToReceive([out, retval] INT64* totalBytesToReceive);
+  [propget] HRESULT TotalBytesToReceive([out, retval] INT64* value);
 
   /// The number of bytes that have been written to the download file.
-  [propget] HRESULT BytesReceived([out, retval] INT64* bytesReceived);
+  [propget] HRESULT BytesReceived([out, retval] INT64* value);
 
   /// The estimated end time in [ISO 8601 Date and Time Format](https://www.iso.org/iso-8601-date-and-time-format.html).
-  [propget] HRESULT EstimatedEndTime([out, retval] LPWSTR* estimatedEndTime);
+  [propget] HRESULT EstimatedEndTime([out, retval] LPWSTR* value);
 
   /// The absolute path to the download file, including file name. Host can change
   /// this from `ICoreWebView2DownloadStartingEventArgs`.
-  [propget] HRESULT ResultFilePath([out, retval] LPWSTR* resultFilePath);
+  [propget] HRESULT ResultFilePath([out, retval] LPWSTR* value);
 
   /// The state of the download. A download can be in progress, interrupted, or
   /// completed. See `COREWEBVIEW2_DOWNLOAD_STATE` for descriptions of states.
-  [propget] HRESULT State([out, retval] COREWEBVIEW2_DOWNLOAD_STATE* downloadState);
+  [propget] HRESULT State([out, retval] COREWEBVIEW2_DOWNLOAD_STATE* value);
 
   /// The reason why connection with file host was broken.
   [propget] HRESULT InterruptReason(
-      [out, retval] COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON* interruptReason);
+      [out, retval] COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON* value);
 
   /// Cancels the download. If canceled, the default download dialog shows
   /// that the download was canceled. Host should set the `Cancel` property from
@@ -521,7 +523,7 @@ interface ICoreWebView2DownloadOperation : IUnknown
   /// `COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_TOO_SHORT`.
   /// In these cases download progress may be restarted with `BytesReceived`
   /// reset to 0.
-  [propget] HRESULT CanResume([out, retval] BOOL* canResume);
+  [propget] HRESULT CanResume([out, retval] BOOL* value);
 }
 ```
 ## .NET/ WinRT
