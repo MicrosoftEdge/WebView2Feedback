@@ -262,8 +262,6 @@ typedef enum COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON {
   /// Partial file did not match the expected hash and was deleted. Download
   /// will be restarted automatically.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_HASH_MISMATCH,
-  /// Source and target of download were the same.
-  COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_FILE_SAME_AS_SOURCE,
 
   /// Generic network error. User can retry the download manually.
   COREWEBVIEW2_DOWNLOAD_INTERRUPT_REASON_NETWORK_FAILED,
@@ -553,7 +551,6 @@ namespace Microsoft.Web.WebView2.Core
         FileSecurityCheckFailed = 9,
         FileTooShort = 10,
         FileHashMismatch = 11,
-        FileSameAsSource = 12,
         NetworkFailed = 13,
         NetworkTimeout = 14,
         NetworkDisconnected = 15,
