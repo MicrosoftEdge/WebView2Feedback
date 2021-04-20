@@ -19,7 +19,7 @@ process is active, and moving to a new WebView2 Runtime version after a
 `NewBrowserVersionAvailable` event.
 
 This event is raised for both expected and unexpected termination of the
-collection of processes, after all resources, including the user data folder, 
+collection of processes, after all resources, including the user data folder,
 used by the WebView2 Runtime have been released. The
 `CoreWebView2BrowserProcessExitedEventArgs` lets app developers get
 the `BrowserProcessExitKind` so they can decide how to handle different exit
@@ -86,7 +86,8 @@ void AppWindow::CloseWebView(/* ... */) {
           // the browser has exited but before our handler gets to run, a new
           // browser process will be created and lock the user data folder
           // again. Do not attempt to cleanup the user data folder in these
-          // cases. We check the PID of the exited browser process against the
+          // cases. If this happens, the PID of the new browser process will be
+          // different to the PID of the older process, we check against the
           // PID of the browser process to which our last CoreWebView2 attached.
           if (pid == m_newestBrowserPid)
           {
@@ -102,15 +103,21 @@ void AppWindow::CloseWebView(/* ... */) {
               m_webViewEnvironment = nullptr;
               CleanupUserDataFolder();
             }
-          } else {
-            MessageBox(m_mainWindow, L"A new browser process prevented cleanup of "
-                            L"the user data folder.", L"Cleanup User Data Folder", MB_OK);
+          }
+          else
+          {
+            // The exiting process is not the last in use. Do not attempt cleanup
+            // as we might still have a webview open over the user data folder.
+            MessageBox(
+                m_mainWindow,
+                L"A new browser process prevented cleanup of the user data folder.",
+                L"Cleanup User Data Folder", MB_OK);
           }
 
           return S_OK;
       }).Get(),
       &m_browserExitedEventToken));
-  
+
   // ...
 
   // Close the WebView from its controller.
@@ -143,7 +150,7 @@ void AppWindow::CloseWebView(/* ... */) {
         <!-- ... -->
 
         <DockPanel DockPanel.Dock="Top">
-            
+
             <!-- ... -->
 
             <TextBox x:Name="url" Text="{Binding ElementName=webView,Path=Source,Mode=OneWay}">
@@ -394,7 +401,7 @@ namespace Microsoft.Web.WebView2.Core
         /// process recovers from a crash by recreating its WebView controls.
         ///
         /// Note this is an event from `CoreWebView2Environment`, not `CoreWebView2`. The
-        /// difference between this `BrowserProcessExited` event and the `CoreWebView2`'s 
+        /// difference between this `BrowserProcessExited` event and the `CoreWebView2`'s
         /// `ProcessFailed` event is that `BrowserProcessExited` is raised for any (expected
         /// and unexpected) **browser process** (along its associated processes) exits, while
         /// `ProcessFailed` is raised only for **unexpected** browser process exits, or for
