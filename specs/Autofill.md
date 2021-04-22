@@ -10,6 +10,7 @@ Autofill has three components
 * Auto-populate - Populate the corresponding form fields automatically on page load.
 * Suggest - When the user clicks on the form field, drop down suggestions of previously saved forms will be displayed.
 * Populate - When clicking on one of the suggestions, the form data will populate the respective fields.
+
 The general autofill setting and password autofill setting behave independently.  Their behavior differs as well.  
 When the password autofill setting is disabled, no new password data is saved and no Save/Update Password prompts are displayed.  However, if there was password data already saved before disabling this setting, then that password information is auto-populated, suggestions are shown and clicking on one will populate the fields.  When the password autofill setting is enabled, password information is auto-populated, suggestions are shown and clicking on one will populate the fields, new data is saved, and a Save/Update Password prompt is displayed. The password autofill setting default behavior is enabled. 
 When the general autofill setting is disabled, no suggestions appear, and no new information is saved. When the general autofill setting is enabled, information is saved, suggestions appear and clicking on one will populate the form fields. 
@@ -20,19 +21,21 @@ When the general autofill setting is disabled, no suggestions appear, and no new
 ## Win32 C++
 ```cpp
 void SettingsComponent::TogglePasswordAutofill() {
-    wil::com_ptr<ICoreWebView2Settings4> settings;
+    wil::com_ptr<ICoreWebView2Settings> settings;
     webView->get_Settings(&settings);
+    wil::com_ptr<ICoreWebView2Settings4> settings4 = settings.try_query<ICoreWebView2Settings4>();
     bool enabled;
-    settings->get_IsPasswordAutofillEnabled(&enabled);
-    settings->put_IsPasswordAutofillEnabled(!enabled);
+    settings4->get_IsPasswordAutofillEnabled(&enabled);
+    settings4->put_IsPasswordAutofillEnabled(!enabled);
 }
 
 void SettingsComponent::ToggleGeneralAutofill() {
-    wil::com_ptr<ICoreWebView2Settings4> settings;
+    wil::com_ptr<ICoreWebView2Settings> settings;
     webView->get_Settings(&settings);
+    wil::com_ptr<ICoreWebView2Settings4> settings4 = settings.try_query<ICoreWebView2Settings4>();
     bool enabled;
-    settings->get_IsGeneralAutofillEnabled(&enabled);
-    settings->put_IsGeneralAutofillEnabled(!enabled);
+    settings4->get_IsGeneralAutofillEnabled(&enabled);
+    settings4->put_IsGeneralAutofillEnabled(!enabled);
 }
 ```
 
