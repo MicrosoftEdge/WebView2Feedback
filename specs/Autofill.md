@@ -20,7 +20,7 @@ When the general autofill setting is disabled, no suggestions appear, and no new
 ## Win32 C++
 ```cpp
 void SettingsComponent::TogglePasswordAutofill() {
-    wil::com_ptr<ICoreWebView2Settings2_2> settings;
+    wil::com_ptr<ICoreWebView2Settings4> settings;
     webView->get_Settings(&settings);
     bool enabled;
     settings->get_IsPasswordAutofillEnabled(&enabled);
@@ -28,7 +28,7 @@ void SettingsComponent::TogglePasswordAutofill() {
 }
 
 void SettingsComponent::ToggleGeneralAutofill() {
-    wil::com_ptr<ICoreWebView2Settings2_2> settings;
+    wil::com_ptr<ICoreWebView2Settings4> settings;
     webView->get_Settings(&settings);
     bool enabled;
     settings->get_IsGeneralAutofillEnabled(&enabled);
