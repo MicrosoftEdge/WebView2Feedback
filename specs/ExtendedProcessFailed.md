@@ -238,9 +238,7 @@ CHECK_FAILURE(m_webView->add_ProcessFailed(
 
     <!-- ... -->
 
-    <DockPanel
-        x:Name="MyDockPanel"
-    >
+    <DockPanel>
         <!-- ... -->
 
         <DockPanel DockPanel.Dock="Top">
@@ -254,66 +252,137 @@ CHECK_FAILURE(m_webView->add_ProcessFailed(
             </TextBox>
         </DockPanel>
 
-        <wv2:WebView2
-            x:Name="webView"
-            CreationProperties="{StaticResource EvergreenWebView2CreationProperties}"
-            Source="https://www.bing.com/"
-            NavigationStarting="WebView_NavigationStarting"
-            NavigationCompleted="WebView_NavigationCompleted"
-        />
+        <Grid x:Name="Layout">
+            <wv2:WebView2
+                x:Name="webView"
+                CreationProperties="{StaticResource EvergreenWebView2CreationProperties}"
+                Source="https://www.bing.com/"
+            />
+            <!-- The control event handlers are set in code behind so they can be reused when replacing the control after
+            a WebView2 Runtime's browser process failure
+            -->
+        </Grid>
     </DockPanel>
 </Window>
 
 ```
 
 ```c#
-// This re-instantiates the control and attaches properties as set in the XAML
-// element. Replace once the control has reinit/uninitialize logic.
-void ReinitializeWebView()
+public MainWindow()
 {
-    webView = new WebView2();
+    InitializeComponent();
+    AttachControlEventHandlers(webView);
+}
 
-    // Restore URI and other WebView state/setup.
-    webView.CreationProperties = (CoreWebView2CreationProperties)this.FindResource("EvergreenWebView2CreationProperties");
-    webView.NavigationStarting += WebView_NavigationStarting;
-    webView.NavigationCompleted += WebView_NavigationCompleted;
+void AttachControlEventHandlers(WebView2 control) {
+    control.NavigationStarting += WebView_NavigationStarting;
+    control.NavigationCompleted += WebView_NavigationCompleted;
+    control.CoreWebView2InitializationCompleted += WebView_CoreWebView2InitializationCompleted;
+    control.KeyDown += WebView_KeyDown;
+}
+
+// The WPF WebView2 control is first added to the visual tree from the webView
+// element in the XAML for this class. When we want to replace this instance,
+// we need to remove it from the visual tree first.
+private bool _isControlInVisualTree = true;
+
+void RemoveControlFromVisualTree(WebView2 control)
+{
+    Layout.Children.Remove(control);
+    _isControlInVisualTree = false;
+}
+
+void AttachControlToVisualTree(WebView2 control)
+{
+    Layout.Children.Add(control);
+    _isControlInVisualTree = true;
+}
+
+WebView2 GetReplacementControl()
+{
+    WebView2 replacementControl = new WebView2();
+    ((System.ComponentModel.ISupportInitialize)(replacementControl)).BeginInit();
+    // Setup properties and bindings
+    replacementControl.CreationProperties = webView.CreationProperties;
 
     Binding urlBinding = new Binding()
     {
-        Source = webView,
+        Source = replacementControl,
         Path = new PropertyPath("Source"),
         Mode = BindingMode.OneWay
     };
     url.SetBinding(TextBox.TextProperty, urlBinding);
 
-    MyDockPanel.Children.Add(webView);
-    webView.Source = _uriToRestore ?? new Uri("https://www.bing.com");
+    AttachControlEventHandlers(replacementControl);
+    replacementControl.Source = webView.Source ?? new Uri("https://www.bing.com");
+    ((System.ComponentModel.ISupportInitialize)(replacementControl)).EndInit();
+
+    return replacementControl;
 }
 
-async void WebView_ProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs e)
+void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
-    void AskForReinit(string message, string caption)
+    if (e.IsSuccess)
     {
-        // Save URI or other state you want to restore when the WebView is recreated.
-        _uriToRestore = webView.Source;
-        // Work around. An exception will be thrown while trying to redraw the
-        // control as its CoreWebView2 is in the closed state.
-        webView.Dispose();
-        webView = null;
-        var selection = MessageBox.Show(message, caption, MessageBoxButton.YesNo);
-        if (selection == MessageBoxResult.Yes)
+        webView.CoreWebView2.ProcessFailed += WebView_ProcessFailed;
+        return;
+    }
+
+    MessageBox.Show($"WebView2 creation failed with exception = {e.InitializationException}");
+}
+
+void WebView_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
+{
+    void ReinitIfSelectedByUser(CoreWebView2ProcessFailedKind kind)
+    {
+        string caption;
+        string message;
+        if (kind == CoreWebView2ProcessFailedKind.BrowserProcessExited)
         {
-            // Replace once the control has reinit/uninitialize logic.
-            ReinitializeWebView();
+            caption = "Browser process exited";
+            message = "WebView2 Runtime's browser process exited unexpectedly. Recreate WebView?";
         }
         else
         {
-            _uriToRestore = null;
+            caption = "Web page unresponsive";
+            message = "WebView2 Runtime's render process stopped responding. Recreate WebView?";
+        }
+
+        var selection = MessageBox.Show(message, caption, MessageBoxButton.YesNo);
+        if (selection == MessageBoxResult.Yes)
+        {
+            // The control cannot be re-initialized so we setup a new instance to replace it.
+            // Note the previous instance of the control has been disposed of and removed from
+            // the visual tree before attaching the new one.
+            WebView2 replacementControl = GetReplacementControl();
+            if (_isControlInVisualTree)
+            {
+                RemoveControlFromVisualTree(webView);
+            }
+            // Dispose of the control so additional resources are released. We do this only
+            // after creating the replacement control as properties for the replacement
+            // control are taken from the existing instance.
+            webView.Dispose();
+            webView = replacementControl;
+            AttachControlToVisualTree(webView);
         }
     }
 
-    void AskForReload(string message, string caption)
+    void ReloadIfSelectedByUser(CoreWebView2ProcessFailedKind kind)
     {
+        string caption;
+        string message;
+        if (kind == CoreWebView2ProcessFailedKind.RenderProcessExited)
+        {
+            caption = "Web page unresponsive";
+            message = "WebView2 Runtime's render process exited unexpectedly. Reload page?";
+        }
+        else
+        {
+            caption = "App content frame unresponsive";
+            message = "WebView2 Runtime's render process for app frame exited unexpectedly. Reload page?";
+        }
+
         var selection = MessageBox.Show(message, caption, MessageBoxButton.YesNo);
         if (selection == MessageBoxResult.Yes)
         {
@@ -321,50 +390,58 @@ async void WebView_ProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedE
         }
     }
 
-    string message;
-    string caption;
+    bool IsAppContentUri(Uri source)
+    {
+        // Sample virtual host name for the app's content.
+        // See CoreWebView2.SetVirtualHostNameToFolderMapping: https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.setvirtualhostnametofoldermapping
+        return source.Host == "appassets.example";
+    }
+
     switch (e.ProcessFailedKind)
     {
         case CoreWebView2ProcessFailedKind.BrowserProcessExited:
-            message = "Browser process exited unexpectedly.  Recreate webview?";
-            caption = "Browser process exited";
-            AskForReinit(message, caption);
-            break;
+            // Once the WebView2 Runtime's browser process has crashed,
+            // the control becomes virtually unusable as the process exit
+            // moves the CoreWebView2 to its Closed state. Most calls will
+            // become invalid as they require a backing browser process.
+            // Remove the control from the visual tree so the framework does
+            // not atempt to redraw it, which would call the invalid methods.
+            RemoveControlFromVisualTree(webView);
+            goto case CoreWebView2ProcessFailedKind.RenderProcessUnresponsive;
         case CoreWebView2ProcessFailedKind.RenderProcessUnresponsive:
-            message = "Browser render process has stopped responding.  Recreate webview?";
-            caption = "Web page unresponsive";
-            AskForReinit(message, caption);
+            System.Threading.SynchronizationContext.Current.Post((_) =>
+            {
+                ReinitIfSelectedByUser(e.ProcessFailedKind);
+            }, null);
             break;
         case CoreWebView2ProcessFailedKind.RenderProcessExited:
-            message = "Browser render process exited unexpectedly. Reload page?";
-            caption = "Web page unresponsive";
-            AskForReload(message, caption);
+            System.Threading.SynchronizationContext.Current.Post((_) =>
+            {
+                ReloadIfSelectedByUser(e.ProcessFailedKind);
+            }, null);
             break;
         case CoreWebView2ProcessFailedKind.FrameRenderProcessExited:
             // A frame-only renderer has exited unexpectedly. Check if reload is needed.
             // In this sample we only reload if the app's content has been impacted.
-            foreach (CoreWebView2FrameInfo frameInfo in e.ImpactedFramesInfo)
+            foreach (CoreWebView2FrameInfo frameInfo in e.FrameInfosForFailedProcess)
             {
-                // Sample virtual host name for the app's content.
-                string virtualAppHostName = "https://appassets.example/";
-                if (frameInfo.Source.StartsWith(virtualAppHostName))
+                if (IsAppContentUri(new System.Uri(frameInfo.Source)))
                 {
-                    message = "Browser render process for app frame exited unexpectedly. Reload page?";
-                    caption = "App content frame unresponsive";
-                    AskForReload(message, caption);
-                    break;
+                    goto case CoreWebView2ProcessFailedKind.RenderProcessExited;
                 }
             }
             break;
         default:
             // Show the process failure details. Apps can collect info for their logging purposes.
-            caption = "Child process failed";
             StringBuilder messageBuilder = new StringBuilder();
             messageBuilder.AppendLine($"Process kind: {e.ProcessFailedKind}");
             messageBuilder.AppendLine($"Reason: {e.Reason}");
             messageBuilder.AppendLine($"Exit code: {e.ExitCode}");
             messageBuilder.AppendLine($"Process description: {e.ProcessDescription}");
-            MessageBox.Show(messageBuilder.ToString(), caption, MessageBoxButton.OK);
+            System.Threading.SynchronizationContext.Current.Post((_) =>
+            {
+                MessageBox.Show(messageBuilder.ToString(), "Child process failed", MessageBoxButton.OK);
+            }, null);
             break;
     }
 }
