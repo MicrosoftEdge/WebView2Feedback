@@ -47,7 +47,7 @@ std::wstring ProcessComponent::ProcessFailedKindToString(
 #undef KIND_ENTRY
     }
 
-    return L"PROCESS_FAILED";
+    return L"PROCESS FAILED: " + std::to_wstring(static_cast<uint32_t>(kind));
 }
 
 // Get a string for the failure reason enum value.
@@ -62,7 +62,7 @@ std::wstring ProcessComponent::ProcessFailedReasonToString(
 
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_UNEXPECTED);
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_UNRESPONSIVE);
-        REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_KILLED);
+        REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_TERMINATED);
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_CRASHED);
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_LAUNCH_FAILED);
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_OUT_OF_MEMORY);
@@ -70,8 +70,49 @@ std::wstring ProcessComponent::ProcessFailedReasonToString(
 #undef REASON_ENTRY
     }
 
-    return L"REASON";
+    return L"REASON: " + std::to_wstring(static_cast<uint32_t>(reason));
 }
+
+bool ProcessComponent::IsAppContentUri(const std::wstring& source)
+{
+    wil::com_ptr<IUri> uri;
+    CHECK_FAILURE(CreateUri(source.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri));
+    wil::unique_bstr domain;
+    CHECK_FAILURE(uri->GetDomain(&domain));
+
+    // Content from our app uses a mapped host name.
+    const std::wstring mappedAppHostName = L"appassets.example";
+    return domain.get() == mappedAppHostName;
+}
+
+void ProcessComponent::ScheduleReinitIfSelectedByUser(
+    const std::wstring& message, const std::wstring& caption)
+{
+    // Do not block from event handler
+    m_appWindow->RunAsync([this, message, caption]() {
+        int selection = MessageBox(
+            m_appWindow->GetMainWindow(), message.c_str(), caption.c_str(), MB_YESNO);
+        if (selection == IDYES)
+        {
+            m_appWindow->ReinitializeWebView();
+        }
+    });
+}
+
+void ProcessComponent::ScheduleReloadIfSelectedByUser(
+    const std::wstring& message, const std::wstring& caption)
+{
+    // Do not block from event handler
+    m_appWindow->RunAsync([this, message, caption]() {
+        int selection = MessageBox(
+            m_appWindow->GetMainWindow(), message.c_str(), caption.c_str(), MB_YESNO);
+        if (selection == IDYES)
+        {
+            CHECK_FAILURE(m_webView->Reload());
+        }
+    });
+}
+
 
 //! [ProcessFailed]
 // Register a handler for the ProcessFailed event.
@@ -85,84 +126,64 @@ CHECK_FAILURE(m_webView->add_ProcessFailed(
         [this](ICoreWebView2* sender, ICoreWebView2ProcessFailedEventArgs* argsRaw)
             -> HRESULT {
             wil::com_ptr<ICoreWebView2ProcessFailedEventArgs> args = argsRaw;
-            COREWEBVIEW2_PROCESS_FAILED_KIND failureKind;
-            CHECK_FAILURE(args->get_ProcessFailedKind(&failureKind));
-            if (failureKind == COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED)
+            COREWEBVIEW2_PROCESS_FAILED_KIND kind;
+            CHECK_FAILURE(args->get_ProcessFailedKind(&kind));
+            if (kind == COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED)
             {
-                int button = MessageBox(
-                    m_appWindow->GetMainWindow(),
-                    L"Browser process exited unexpectedly.  Recreate webview?",
-                    L"Browser process exited", MB_YESNO);
-                if (button == IDYES)
-                {
-                    m_appWindow->ReinitializeWebView();
-                }
+                // Do not run a message loop from within the event handler
+                // as that could lead to reentrancy and leave the event
+                // handler in stack indefinitely. Instead, schedule the
+                // appropriate work to take place after completion of the
+                // event handler.
+                ScheduleReinitIfSelectedByUser(
+                    L"Browser process exited unexpectedly. Recreate webview?",
+                    L"Browser process exited");
             }
-            else if (failureKind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE)
+            else if (kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE)
             {
-                int button = MessageBox(
-                    m_appWindow->GetMainWindow(),
-                    L"Browser render process has stopped responding.  Recreate webview?",
-                    L"Web page unresponsive", MB_YESNO);
-                if (button == IDYES)
-                {
-                    m_appWindow->ReinitializeWebView();
-                }
+                ScheduleReinitIfSelectedByUser(
+                    L"Browser render process has stopped responding. Recreate webview?",
+                    L"Web page unresponsive");
             }
-            else if (failureKind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED)
+            else if (kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED)
             {
-                int button = MessageBox(
-                    m_appWindow->GetMainWindow(),
+                // Reloading the page will start a new render process if
+                // needed.
+                ScheduleReloadIfSelectedByUser(
                     L"Browser render process exited unexpectedly. Reload page?",
-                    L"Web page unresponsive", MB_YESNO);
-                if (button == IDYES)
-                {
-                    CHECK_FAILURE(m_webView->Reload());
-                }
+                    L"Web page unresponsive");
             }
-
             // Check the runtime event args implements the newer interface.
-            auto args2 =
-                args.try_query<ICoreWebView2ProcessFailedEventArgs2>();
+            auto args2 = args.try_query<ICoreWebView2ProcessFailedEventArgs2>();
             if (!args2)
             {
                 return S_OK;
             }
-
-            if (failureKind ==
-                COREWEBVIEW2_PROCESS_FAILED_KIND_FRAME_RENDER_PROCESS_EXITED)
+            if (kind == COREWEBVIEW2_PROCESS_FAILED_KIND_FRAME_RENDER_PROCESS_EXITED)
             {
-                // A frame-only renderer has exited unexpectedly. Check if reload is needed.
-                wil::com_ptr<ICoreWebView2FrameInfoCollection> impactedFrames;
+                // A frame-only renderer has exited unexpectedly. Check if
+                // reload is needed.
+                wil::com_ptr<ICoreWebView2FrameInfoCollection> frameInfos;
                 wil::com_ptr<ICoreWebView2FrameInfoCollectionIterator> iterator;
-                CHECK_FAILURE(args2->get_ImpactedFramesInfo(&impactedFrames));
-                CHECK_FAILURE(impactedFrames->GetIterator(&iterator));
+                CHECK_FAILURE(args2->get_FrameInfosForFailedProcess(&frameInfos));
+                CHECK_FAILURE(frameInfos->GetIterator(&iterator));
 
                 BOOL hasCurrent = FALSE;
-                while (SUCCEEDED(iterator->HasCurrentFrameInfo(&hasCurrent)) && hasCurrent)
+                while (SUCCEEDED(iterator->get_HasCurrent(&hasCurrent)) && hasCurrent)
                 {
                     wil::com_ptr<ICoreWebView2FrameInfo> frameInfo;
-                    CHECK_FAILURE(iterator->GetCurrentFrameInfo(&frameInfo));
+                    CHECK_FAILURE(iterator->GetCurrent(&frameInfo));
 
                     wil::unique_cotaskmem_string nameRaw;
                     wil::unique_cotaskmem_string sourceRaw;
                     CHECK_FAILURE(frameInfo->get_Name(&nameRaw));
                     CHECK_FAILURE(frameInfo->get_Source(&sourceRaw));
-                    std::wstring source = sourceRaw.get();
-
-                    // Content from our app uses a mapped host name.
-                    const std::wstring mappedAppHostName = L"https://appassets.example/";
-                    if (source.compare(0, mappedAppHostName.length(), mappedAppHostName) == 0)
+                    if (IsAppContentUri(sourceRaw.get()))
                     {
-                        int button = MessageBox(
-                            m_appWindow->GetMainWindow(),
+                        ScheduleReloadIfSelectedByUser(
                             L"Browser render process for app frame exited unexpectedly. "
                             L"Reload page?",
-                            L"App content frame unresponsive", MB_YESNO);
-                        if (button == IDYES)
-                        {
-                            CHECK_FAILURE(m_webView->Reload());
-                        }
+                            L"App content frame unresponsive");
                         break;
                     }
 
@@ -183,13 +204,15 @@ CHECK_FAILURE(m_webView->add_ProcessFailed(
                 CHECK_FAILURE(args2->get_ExitCode(&exitCode));
 
                 std::wstringstream message;
-                message << L"Process kind:\t"        << ProcessFailedKindToString(failureKind) << L"\n"
-                        << L"Reason:\t"              << ProcessFailedReasonToString(reason)    << L"\n"
-                        << L"Exit code:\t"           << std::to_wstring(exitCode)              << L"\n"
-                        << L"Process description:\t" << processDescription.get()               << std::endl;
-                MessageBox(
-                    m_appWindow->GetMainWindow(), message.str().c_str(),
-                    L"Child process failed", MB_OK);
+                message << L"Kind: "                << ProcessFailedKindToString(kind) << L"\n"
+                        << L"Reason: "              << ProcessFailedReasonToString(reason) << L"\n"
+                        << L"Exit code: "           << std::to_wstring(exitCode) << L"\n"
+                        << L"Process description: " << processDescription.get() << std::endl;
+                m_appWindow->RunAsync([this, message = message.str()]() {
+                    MessageBox(
+                        m_appWindow->GetMainWindow(), message.c_str(),
+                        L"Child process failed", MB_OK);
+                });
             }
             return S_OK;
         })
