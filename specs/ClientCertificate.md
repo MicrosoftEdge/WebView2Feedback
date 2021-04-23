@@ -68,9 +68,9 @@ void SettingsComponent::SetClientCertificateRequested(bool raiseClientCertificat
                                 CHECK_FAILURE(certificate->get_SerialNumber(&serialNumber));
                                 COREWEBVIEW2_CLIENT_CERTIFICATE_KIND certificateKind;
                                 CHECK_FAILURE(certificate->get_CertificateKind(&certificateKind));
-                                INT64 startDate;
+                                double startDate;
                                 CHECK_FAILURE(certificate->get_ValidStartDate(&startDate));
-                                INT64 expiryDate;
+                                double expiryDate;
                                 CHECK_FAILURE(certificate->get_ValidExpiryDate(&expiryDate));
                                 ICoreWebView2ClientCertificateIssuerChainList* pemIssuerChainList;
                                 CHECK_FAILURE(certificate->get_PEMEncodedIssuerChainData(&pemIssuerChainList));
@@ -142,6 +142,7 @@ See [API Details](#api-details) section below for API reference.
 ```cpp
 interface ICoreWebView2_3;
 interface ICoreWebView2ClientCertificate;
+interface ICoreWebView2StagingCertificateAuthoritiesList;
 interface ICoreWebView2ClientCertificateIssuerChainList;
 interface ICoreWebView2ClientCertificateList;
 interface ICoreWebView2ClientCertificateRequestedEventArgs;
@@ -213,24 +214,14 @@ interface ICoreWebView2ClientCertificate : IUnknown {
   [propget] HRESULT Issuer([ out, retval ] LPWSTR* issuer);
   /// The valid start date and time for the certificate as the number of seconds since
   /// the UNIX epoch.
-  [propget] HRESULT ValidStartDate([out, retval] INT64* validStartDate);
+  [propget] HRESULT ValidStartDate([out, retval] double* validStartDate);
   /// The valid expiration date and time for the certificate as the number of seconds since
   /// the UNIX epoch.
-  [propget] HRESULT ValidExpiryDate([out, retval] INT64* validExpiryDate);
+  [propget] HRESULT ValidExpiryDate([out, retval] double* validExpiryDate);
   /// DER encoded serial number of the certificate.
   [propget] HRESULT SerialNumber([out, retval] LPWSTR* serialNumber);
   /// Display name for a certificate.
   [propget] HRESULT DisplayName([out, retval] LPWSTR* displayName);
-  /// DER encoded data for the certificate.
-  /// Returns encoded binary data of the certificate represented as a string.
-  /// Read more about DER at [RFC 7468 DER]
-  /// (https://tools.ietf.org/html/rfc7468#appendix-B).
-  [propget] HRESULT DEREncodedData([out, retval] LPWSTR* derEncodedData);
-  /// List of DER encoded client certificate issuer chain.
-  /// This list contains the certificate and intermediate CA certificates.
-  [propget] HRESULT DEREncodedIssuerChainData([out, retval]
-      ICoreWebView2ClientCertificateIssuerChainList**
-                                              derEncodedIssuerChainData);
   /// PEM encoded data for the certificate.
   /// Returns Base64 encoding of DER encoded certificate.
   /// Read more about PEM at [RFC 1421 Privacy Enhanced Mail]
@@ -246,6 +237,16 @@ interface ICoreWebView2ClientCertificate : IUnknown {
       COREWEBVIEW2_CLIENT_CERTIFICATE_KIND* certificateKind);
 }
 
+/// A list of distinguished certificate authorities.
+[uuid(c87bb63e-a3f4-11eb-bcbc-0242ac130002), object, pointer_default(unique)]
+interface ICoreWebView2CertificateAuthoritiesList : IUnknown {
+  /// The number of certificate authorities contained in
+  /// ICoreWebView2CertificateAuthoritiesList.
+  [propget] HRESULT Count([out, retval] UINT* count);
+
+  /// Gets the certificate authority at the given index.
+  HRESULT GetValueAtIndex([in] UINT index, [out, retval] LPWSTR* certificateAuthority);
+}
 
 /// A list of client certificate issuer chains.
 [uuid(4271275e-9107-11eb-a8b3-0242ac130003), object, pointer_default(unique)]
@@ -289,6 +290,12 @@ interface ICoreWebView2ClientCertificateRequestedEventArgs : IUnknown {
   /// Returns true if the server that issued this request is an http proxy.
   /// Returns false if the server is the origin server.
   [propget] HRESULT IsProxy([out, retval] BOOL* isProxy);
+
+  /// Returns the `ICoreWebView2CertificateAuthoritiesList`.
+  /// The list contains distinguished name of certificate authorities
+  /// allowed by the server.
+  [propget] HRESULT CertificateAuthorities([out, retval]
+      ICoreWebView2CertificateAuthoritiesList** certificateAuthoritiesList);
 
   /// Returns the `ICoreWebView2ClientCertificateList` when client
   /// certificate authentication is requested. The list contains mutually
@@ -347,6 +354,7 @@ namespace Microsoft.Web.WebView2.Core
         String Host { get; };
         Int32 Port { get; };
         Boolean IsProxy { get; };
+        IVector<string> CertificateAuthorities { get; };
         IVector<CoreWebView2ClientCertificate> MutuallyTrustedCertificates { get; };
         CoreWebView2ClientCertificate SelectedCertificate { get; set; };
         CoreWebView2ClientCertificateRequestResponseState ClientCertificateRequestResponseState { get; set; };
@@ -363,8 +371,6 @@ namespace Microsoft.Web.WebView2.Core
         Windows.Foundation.DateTime ValidExpiryDate { get; };
         String SerialNumber { get; };
         String DisplayName { get; };
-        String DEREncodedData { get; };
-        IVector<string> DEREncodedIssuerChainData { get; };
         String PEMEncodedData { get; };
         IVector<string> PEMEncodedIssuerChainData { get; };
         CoreWebView2ClientCertificateKind CertificateKind { get; };
