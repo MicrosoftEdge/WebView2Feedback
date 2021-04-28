@@ -41,11 +41,6 @@ specifies which corresponding IDropTarget function was called.
 ## Win32
 ```c++
 // Win32 Sample
-// Initialized elsewhere
-wil::com_ptr<ICoreWebView2Controller> webViewController;
-
-webViewCompositionController =
-        webViewController.query<ICoreWebView2CompositionController>();
 
 // Implementation for IDropTarget
 HRESULT DropTarget::DragEnter(IDataObject* dataObject,
@@ -64,7 +59,7 @@ HRESULT DropTarget::DragEnter(IDataObject* dataObject,
 
     // Convert the screen point to client coordinates add the WebView's offset.
     m_viewComponent->OffsetPointToWebView(&point);
-    return webViewCompositionController->DragEnter(
+    return m_webViewCompositionController->DragEnter(
         dataObject, keyState, point, effect);
 }
 
@@ -84,7 +79,7 @@ HRESULT DropTarget::DragOver(DWORD keyState,
     // Convert the screen point to client coordinates add the WebView's offset.
     // This returns whether the resultant point is over the WebView visual.
     m_viewComponent->OffsetPointToWebView(&point);
-    return webViewCompositionController->DragOver(
+    return m_webViewCompositionController->DragOver(
         keyState, point, effect);
 }
 
@@ -97,7 +92,7 @@ HRESULT DropTarget::DragLeave()
         dropHelper->DragLeave();
     }
 
-    return webViewCompositionController->DragLeave();
+    return m_webViewCompositionController->DragLeave();
 }
 
 HRESULT DropTarget::Drop(IDataObject* dataObject,
@@ -117,7 +112,7 @@ HRESULT DropTarget::Drop(IDataObject* dataObject,
     // Convert the screen point to client coordinates add the WebView's offset.
     // This returns whether the resultant point is over the WebView visual.
     m_viewComponent->OffsetPointToWebView(&point);
-    return webViewCompositionController->Drop(
+    return m_webViewCompositionController->Drop(
         dataObject, keyState, point, effect);
 }
 ```
@@ -161,6 +156,35 @@ private void WebView_Drop(object sender, DragEventArgs e)
     (DataPackageOperation)webView2CompositionController.Drop(
       e.Data, keyboardState, pointerPosition);
   e.AcceptedOperation = operation;
+}
+
+// Win32 keyboard state modifiers that are relevant during drag and drop.
+public const uint MK_LBUTTON = 1;
+public const uint MK_RBUTTON = 2;
+public const uint MK_SHIFT = 4;
+public const uint MK_CONTROL = 8;
+public const uint MK_MBUTTON = 16;
+public const uint MK_ALT = 32;
+
+// Helper function to convert DragDropModifiers to win32 keyboard state
+// modifiers that WebView2 uses during drag and drop operation.
+private uint ConvertDragDropModifiersToWin32KeyboardState(
+  Windows.ApplicationModel.DataTransfer.DragDrop.DragDropModifiers modifiers)
+{
+  uint win32DragDropModifiers = 0;
+  if ((modifiers & DragDropModifiers.Shift) == DragDropModifiers.Shift)
+    win32DragDropModifiers |= MK_SHIFT;
+  if ((modifiers & DragDropModifiers.Control) == DragDropModifiers.Control)
+    win32DragDropModifiers |= MK_CONTROL;
+  if ((modifiers & DragDropModifiers.Alt) == DragDropModifiers.Alt)
+    win32DragDropModifiers |= MK_ALT;
+  if ((modifiers & DragDropModifiers.LeftButton) == DragDropModifiers.LeftButton)
+    win32DragDropModifiers |= MK_LBUTTON;
+  if ((modifiers & DragDropModifiers.MiddleButton) == DragDropModifiers.MiddleButton)
+    win32DragDropModifiers |= MK_MBUTTON;
+  if ((modifiers & DragDropModifiers.RightButton) == DragDropModifiers.RightButton)
+    win32DragDropModifiers |= MK_RBUTTON;
+  return win32DragDropModifiers;
 }
 ```
 
@@ -263,21 +287,24 @@ interface ICoreWebView2CompositionController : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-  uint DragEnter(
-      Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
-      uint keyState,
-      Point point);
+  public sealed class CoreWebView2CompositionController : CoreWebView2Controller, ICoreWebView2CompositionController
+  {
+    uint DragEnter(
+        Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
+        uint keyState,
+        Point point);
 
-  void DragLeave();
+    void DragLeave();
 
-  uint DragOver(
-      uint keyState,
-      Windows.Foundation.Point point);
+    uint DragOver(
+        uint keyState,
+        Windows.Foundation.Point point);
 
-  uint Drop(
-      Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
-      uint keyState,
-      Windows.Foundation.Point point);
+    uint Drop(
+        Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
+        uint keyState,
+        Windows.Foundation.Point point);
+  }
 }
 ```
 
