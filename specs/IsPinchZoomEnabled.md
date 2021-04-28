@@ -14,6 +14,7 @@ In this document we describe the new setting. We'd appreciate your feedback.
 # Description
 The default value for `IsPinchZoomEnabled` is `true`.
 When this setting is set to `false`, it disables the ability of the end users to use pinching motions on touch input enabled devices to scale the web content in the WebView2 and users cannot pinch zoom.
+Disabling/Enabling `IsPinchZoomEnabled` does not take effect until the next navigation, it only affects the end user's ability to use pinch motions and has no effect on the page scale factor.
 
 
 # Examples
@@ -26,10 +27,12 @@ void SettingsComponent::TogglePinchZooomEnabled()
     CHECK_FAILURE(webView->get_Settings(&coreWebView2Settings));
     wil::com_ptr<ICoreWebView2Settings4> coreWebView2Settings4;
     coreWebView2Settings4 = coreWebView2Settings.try_query<ICoreWebView2Settings4>();
-
-    BOOL enabled;
-    CHECK_FAILURE(coreWebView2Settings4->get_IsPinchZoomEnabled(&enabled));
-    CHECK_FAILURE(coreWebView2Settings4->put_IsPinchZoomEnabled(enabled ? FALSE : TRUE));
+    if(coreWebView2Settings4) 
+    {
+        BOOL enabled;
+        CHECK_FAILURE(coreWebView2Settings4->get_IsPinchZoomEnabled(&enabled));
+        CHECK_FAILURE(coreWebView2Settings4->put_IsPinchZoomEnabled(enabled ? FALSE : TRUE));
+    }
 }
 ```
 
@@ -63,7 +66,7 @@ interface ICoreWebView2Settings4 : ICoreWebView2Settings3 {
   /// existing browser zoom properties (IsZoomControlEnabled and ZoomFactor)
   /// or other end user mechanisms for zooming.
   ///
-  /// \snippet SettingsComponent.cpp DisablePinchZoom
+  /// \snippet SettingsComponent.cpp TogglePinchZooomEnabled
   [propget] HRESULT IsPinchZoomEnabled([out, retval] BOOL* enabled);
   /// Set the IsPinchZoomEnabled property
   [propput] HRESULT IsPinchZoomEnabled([in] BOOL enabled);
