@@ -59,7 +59,7 @@ HRESULT DropTarget::DragEnter(IDataObject* dataObject,
 
     // Convert the screen point to client coordinates add the WebView's offset.
     m_viewComponent->OffsetPointToWebView(&point);
-    return m_webViewCompositionController->DragEnter(
+    return m_webViewCompositionController2->DragEnter(
         dataObject, keyState, point, effect);
 }
 
@@ -79,7 +79,7 @@ HRESULT DropTarget::DragOver(DWORD keyState,
     // Convert the screen point to client coordinates add the WebView's offset.
     // This returns whether the resultant point is over the WebView visual.
     m_viewComponent->OffsetPointToWebView(&point);
-    return m_webViewCompositionController->DragOver(
+    return m_webViewCompositionController2->DragOver(
         keyState, point, effect);
 }
 
@@ -92,7 +92,7 @@ HRESULT DropTarget::DragLeave()
         dropHelper->DragLeave();
     }
 
-    return m_webViewCompositionController->DragLeave();
+    return m_webViewCompositionController2->DragLeave();
 }
 
 HRESULT DropTarget::Drop(IDataObject* dataObject,
@@ -112,7 +112,7 @@ HRESULT DropTarget::Drop(IDataObject* dataObject,
     // Convert the screen point to client coordinates add the WebView's offset.
     // This returns whether the resultant point is over the WebView visual.
     m_viewComponent->OffsetPointToWebView(&point);
-    return m_webViewCompositionController->Drop(
+    return m_webViewCompositionController2->Drop(
         dataObject, keyState, point, effect);
 }
 ```
@@ -202,7 +202,7 @@ typedef enum COREWEBVIEW2_DROP_TARGET_ACTION {
 ```
 
 ```c++
-interface ICoreWebView2CompositionController : IUnknown {
+interface ICoreWebView2CompositionController2 : ICoreWebView2CompositionController {
   /// This set of APIs (DragEnter, DragLeave, DragOver, and Drop) will allow
   /// users to drop things such as images, text, and links into the WebView as
   /// part of a drag/drop operation. The reason that we need a separate API for
@@ -287,7 +287,7 @@ interface ICoreWebView2CompositionController : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-  public sealed class CoreWebView2CompositionController : CoreWebView2Controller, ICoreWebView2CompositionController
+  public sealed class CoreWebView2CompositionController : CoreWebView2Controller, ICoreWebView2CompositionController2
   {
     uint DragEnter(
         Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
