@@ -14,7 +14,7 @@ In this document we describe the new setting. We'd appreciate your feedback.
 # Description
 The default value for `IsPinchZoomEnabled` is `true`.
 When this setting is set to `false`, it disables the ability of the end users to use pinching motions on touch input enabled devices to scale the web content in the WebView2 and users cannot pinch zoom.
-Disabling/Enabling `IsPinchZoomEnabled` does not take effect until the next navigation, it only affects the end user's ability to use pinch motions and has no effect on the page scale factor.
+Disabling/Enabling `IsPinchZoomEnabled` does not take effect until the next navigation, it only affects the end user's ability to use pinch motions and does not change the page scale factor.
 
 
 # Examples
