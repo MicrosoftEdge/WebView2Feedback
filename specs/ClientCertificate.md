@@ -22,7 +22,7 @@ from issuers that the server trusts, inspect the certificate metadata and server
 
 # Examples
 The following code snippets demonstrate how the ClientCertificateRequested event can be used:
-## Win32 C++
+## Win32 C++: Select a certificate with no UI
 ```cpp
 // Turn on or off client certificate selection dialog by adding or removing a
 // ClientCertificateRequested handler which intercepts when server requests client
@@ -42,35 +42,22 @@ void SettingsComponent::SetClientCertificateRequested(bool raiseClientCertificat
                     [this](
                         ICoreWebView2* sender,
                         ICoreWebView2ClientCertificateRequestedEventArgs* args) {
-
                         ICoreWebView2ClientCertificateList* certificateList;
                         CHECK_FAILURE(args->get_MutuallyTrustedCertificates(&certificateList));
 
-                        UINT cert_lst_size;
-                        CHECK_FAILURE(certificateList->get_Count(&cert_lst_size));
+                        // Certificate list count will always be greater than zero as this event is
+                        // raised when there is atleast one mutually trusted certificate.
+                        UINT certificateListCount = 0;
+                        CHECK_FAILURE(certificateList->get_Count(&certificateListCount));
 
                         ICoreWebView2ClientCertificate* certificate = nullptr;
 
-                        if (cert_lst_size > 0)
-                        {
-                            for (UINT i = 0; i < cert_lst_size; i++)
-                            {
-                                CHECK_FAILURE(
-                                    certificateList->GetValueAtIndex(i, &certificate));
-                            }
-                        }
+                        CHECK_FAILURE(certificateList->GetValueAtIndex(certificateListCount-1, &certificate));
 
-                        if (certificate)
-                        {
-                            CHECK_FAILURE(args->put_SelectedCertificate(certificate));
-                            CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
+                        CHECK_FAILURE(args->put_SelectedCertificate(certificate));
+                        CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
                                 COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITH_CERTIFICATE));
-                        }
-                        else
-                        {
-                            CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
-                                COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITHOUT_CERTIFICATE));
-                        }
+
                         return S_OK;
                     })
                     .Get(),
@@ -84,7 +71,9 @@ void SettingsComponent::SetClientCertificateRequested(bool raiseClientCertificat
         //! [ClientCertificateRequested1]
     }
 }
-
+```
+## Win32 C++: Custom certificate selection dialog
+```cpp
 ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
@@ -95,113 +84,110 @@ ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(AppWindow
     // Selecting `OK` will continue the request with a certificate.
     // Selecting `CANCEL` will continue the request without a certificate.
     CHECK_FAILURE(m_webView->add_ClientCertificateRequested(
-            Callback<ICoreWebView2ClientCertificateRequestedEventHandler>(
-                [this](
-                    ICoreWebView2* sender,
-                    ICoreWebView2ClientCertificateRequestedEventArgs* args) {
-                    auto showDialog = [this, args] {
-                        ICoreWebView2ClientCertificateList* certificateList;
-                        CHECK_FAILURE(args->get_MutuallyTrustedCertificates(&certificateList));
+			Callback<ICoreWebView2ClientCertificateRequestedEventHandler>(
+				[this](
+					ICoreWebView2* sender,
+					ICoreWebView2ClientCertificateRequestedEventArgs* args) {
+						auto showDialog = [this, args] {
+							ICoreWebView2ClientCertificateList* certificateList;
+							CHECK_FAILURE(args->get_MutuallyTrustedCertificates(&certificateList));
 
-                        wil::unique_cotaskmem_string host;
-                        CHECK_FAILURE(args->get_Host(&host));
+							wil::unique_cotaskmem_string host;
+							CHECK_FAILURE(args->get_Host(&host));
 
-                        INT port = FALSE;
-                        CHECK_FAILURE(args->get_Port(&port));
+							INT port = FALSE;
+							CHECK_FAILURE(args->get_Port(&port));
 
-                        UINT cert_lst_size;
-                        CHECK_FAILURE(certificateList->get_Count(&cert_lst_size));
+							UINT certificateListCount;
+							CHECK_FAILURE(certificateList->get_Count(&certificateListCount));
 
-                        ICoreWebView2ClientCertificate* certificate = nullptr;
+							ICoreWebView2ClientCertificate* certificate = nullptr;
 
-                        ClientCertificate client_certificate;
-                        if (cert_lst_size > 0)
-                        {
-                            for (UINT i = 0; i < cert_lst_size; i++)
-                            {
-                                CHECK_FAILURE(
-                                    certificateList->GetValueAtIndex(i, &certificate));
+							ClientCertificate client_certificate;
+							for (UINT i = 0; i < certificateListCount; i++)
+							{
+								CHECK_FAILURE(
+									certificateList->GetValueAtIndex(i, &certificate));
 
-                                wil::unique_cotaskmem_string subject;
-                                CHECK_FAILURE(certificate->get_Subject(&subject));
-                                client_certificate.Subject = subject.get();
+								wil::unique_cotaskmem_string subject;
+								CHECK_FAILURE(certificate->get_Subject(&subject));
+								client_certificate.Subject = subject.get();
 
-                                wil::unique_cotaskmem_string displayName;
-                                CHECK_FAILURE(certificate->get_DisplayName(&displayName));
-                                client_certificate.DisplayName = displayName.get();
+								wil::unique_cotaskmem_string displayName;
+								CHECK_FAILURE(certificate->get_DisplayName(&displayName));
+								client_certificate.DisplayName = displayName.get();
 
-                                wil::unique_cotaskmem_string issuer;
-                                CHECK_FAILURE(certificate->get_Issuer(&issuer));
-                                client_certificate.Issuer = issuer.get();
+								wil::unique_cotaskmem_string issuer;
+								CHECK_FAILURE(certificate->get_Issuer(&issuer));
+								client_certificate.Issuer = issuer.get();
 
-                                wil::unique_cotaskmem_string serialNumber;
-                                CHECK_FAILURE(certificate->get_SerialNumber(&serialNumber));
+								wil::unique_cotaskmem_string serialNumber;
+								CHECK_FAILURE(certificate->get_SerialNumber(&serialNumber));
 
-                                COREWEBVIEW2_CLIENT_CERTIFICATE_KIND certificateKind;
-                                CHECK_FAILURE(
-                                    certificate->get_CertificateKind(&certificateKind));
-                                client_certificate.CertificateKind = NameOfCertificateKind(certificateKind);
+								COREWEBVIEW2_CLIENT_CERTIFICATE_KIND certificateKind;
+								CHECK_FAILURE(
+									certificate->get_CertificateKind(&certificateKind));
+								client_certificate.CertificateKind = NameOfCertificateKind(certificateKind);
 
-                                double startDate;
-                                CHECK_FAILURE(certificate->get_ValidStartDate(&startDate));
-                                client_certificate.StartDate = startDate;
+								double startDate;
+								CHECK_FAILURE(certificate->get_ValidStartDate(&startDate));
+								client_certificate.StartDate = startDate;
 
-                                double expiryDate;
-                                CHECK_FAILURE(certificate->get_ValidExpiryDate(&expiryDate));
-                                client_certificate.ExpiryDate = expiryDate;
+								double expiryDate;
+								CHECK_FAILURE(certificate->get_ValidExpiryDate(&expiryDate));
+								client_certificate.ExpiryDate = expiryDate;
 
-                                client_certificates_.push_back(client_certificate);
-                            }
-                        }
+								client_certificates_.push_back(client_certificate);
+							}
 
-                        // Display custom dialog box for the client certificate selection.
-                        ClientCertificateSelectionDialog dialog(
-                            m_appWindow->GetMainWindow(), L"Select a Certificate for authentication", host.get(), port, client_certificates_);
+							// Display custom dialog box for the client certificate selection.
+							ClientCertificateSelectionDialog dialog(
+								m_appWindow->GetMainWindow(), L"Select a Certificate for authentication", host.get(), port, client_certificates_);
 
-                        if (dialog.confirmed)
-                        {
-                            int selectedCertificate = dialog.selectedItem;
-                            if (selectedCertificate >= 0)
-                            {
-                                CHECK_FAILURE(
-                                    certificateList->GetValueAtIndex(selectedCertificate, &certificate));
+							if (dialog.confirmed)
+							{
+								int selectedCertificate = dialog.selectedItem;
+								if (selectedCertificate >= 0)
+								{
+									CHECK_FAILURE(
+										certificateList->GetValueAtIndex(selectedCertificate, &certificate));
 
-                                CHECK_FAILURE(args->put_SelectedCertificate(certificate));
-                                CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
-                                    COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITH_CERTIFICATE));
-                            }
-                            else
-                            {
-                                CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
-                                    COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITHOUT_CERTIFICATE));
-                            }
-                        }
-                        else
-                        {
-                            CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
-                                COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITHOUT_CERTIFICATE));
-                        }
-                    };
+									CHECK_FAILURE(args->put_SelectedCertificate(certificate));
+									CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
+										COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITH_CERTIFICATE));
+								}
+								else
+								{
+									CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
+										COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITHOUT_CERTIFICATE));
+								}
+							}
+							else
+							{
+								CHECK_FAILURE(args->put_ClientCertificateRequestResponseState(
+									COREWEBVIEW2_CLIENT_CERTIFICATE_REQUEST_RESPONSE_STATE_CONTINUE_WITHOUT_CERTIFICATE));
+							}
+						};
 
-                    // Obtain a deferral for the event so that the CoreWebView2
-                    // doesn't examine the properties we set on the event args until
-                    // after we call the Complete method asynchronously later.
-                    wil::com_ptr<ICoreWebView2Deferral> deferral;
-                    CHECK_FAILURE(args->GetDeferral(&deferral));
+						// Obtain a deferral for the event so that the CoreWebView2
+						// doesn't examine the properties we set on the event args and
+						// after we call the Complete method asynchronously later.
+						wil::com_ptr<ICoreWebView2Deferral> deferral;
+						CHECK_FAILURE(args->GetDeferral(&deferral));
 
-                    // This function can be called to show the custom client certificate dialog and
-                    // complete the event at a later time, allowing the developer to
-                    // perform async work before the event completes.
-                    m_completeDeferredCertificateRequestedEvent = [showDialog, deferral] {
-                        showDialog();
-                        CHECK_FAILURE(deferral->Complete());
-                    };
+						// This function can be called to show the custom client certificate dialog and
+						// complete the event at a later time, allowing the developer to
+						// perform async work before the event completes.
+						m_completeDeferredCertificateRequestedEvent = [showDialog, deferral] {
+							showDialog();
+							CHECK_FAILURE(deferral->Complete());
+						};
 
-                    return S_OK;
-                })
-                .Get(),
-            &m_ClientCertificateRequestedToken));
-    //! [ClientCertificateRequested2]
+						return S_OK;
+				})
+			.Get(),
+					&m_ClientCertificateRequestedToken));
+	//! [ClientCertificateRequested2]
 }
 ```
 
@@ -271,7 +257,7 @@ See [API Details](#api-details) section below for API reference.
 ```cpp
 interface ICoreWebView2_3;
 interface ICoreWebView2ClientCertificate;
-interface ICoreWebView2CertificateAuthoritiesList;
+interface ICoreWebView2CertificateAuthorityList;
 interface ICoreWebView2ClientCertificateIssuerChainList;
 interface ICoreWebView2ClientCertificateList;
 interface ICoreWebView2ClientCertificateRequestedEventArgs;
@@ -311,7 +297,8 @@ interface ICoreWebView2_3 : ICoreWebView2_2 {
   /// Add an event handler for the ClientCertificateRequested event.
   /// The ClientCertificateRequested event is raised when the WebView2
   /// is making a request to an HTTP server that needs a client certificate
-  /// for HTTP authentication. Read more about HTTP client certificates at
+  /// for HTTP authentication and when there is atleast one mutually trusted certitifcate.
+  /// Read more about HTTP client certificates at
   /// [RFC 8446 The Transport Layer Security (TLS) Protocol Version 1.3](https://tools.ietf.org/html/rfc8446).
   ///
   /// With this event you have several options for responding to client certificate requests:
@@ -368,9 +355,9 @@ interface ICoreWebView2ClientCertificate : IUnknown {
 
 /// A list of distinguished certificate authorities.
 [uuid(c87bb63e-a3f4-11eb-bcbc-0242ac130002), object, pointer_default(unique)]
-interface ICoreWebView2CertificateAuthoritiesList : IUnknown {
+interface ICoreWebView2CertificateAuthorityList : IUnknown {
   /// The number of certificate authorities contained in
-  /// ICoreWebView2CertificateAuthoritiesList.
+  /// ICoreWebView2CertificateAuthorityList.
   [propget] HRESULT Count([out, retval] UINT* count);
 
   /// Gets the certificate authority at the given index.
@@ -420,11 +407,11 @@ interface ICoreWebView2ClientCertificateRequestedEventArgs : IUnknown {
   /// Returns false if the server is the origin server.
   [propget] HRESULT IsProxy([out, retval] BOOL* isProxy);
 
-  /// Returns the `ICoreWebView2CertificateAuthoritiesList`.
+  /// Returns the `ICoreWebView2CertificateAuthorityList`.
   /// The list contains distinguished name of certificate authorities
   /// allowed by the server.
   [propget] HRESULT CertificateAuthorities([out, retval]
-      ICoreWebView2CertificateAuthoritiesList** certificateAuthoritiesList);
+      ICoreWebView2CertificateAuthorityList** certificateAuthorityList);
 
   /// Returns the `ICoreWebView2ClientCertificateList` when client
   /// certificate authentication is requested. The list contains mutually
