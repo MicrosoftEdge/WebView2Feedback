@@ -1,25 +1,27 @@
 # Background
-The WebView2 team has been asked for an API to allow end developers to set the autofill preferences.  We are exposing two of the autofill preferences that will allow enabling and disabling general and password autosave.  General autofill includes things like email addresses, shipping addresses, phone numbers, and names.  Password autosave includes things like usernames and passwords for login.  Password information is not included in the general autofill. 
+The WebView2 team has been asked for an API to allow end developers to set the autofill preferences.  We are exposing two of the autofill preferences that will allow enabling and disabling general autofill and password autosave.  General autofill includes things like email addresses, shipping addresses, phone numbers, and names.  Password autosave includes things like usernames and passwords for login.  Password information is not included in general autofill. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
 
 # Description
 
-Autofill has three components
+The components of autofill/autosave are as follows:
 * Auto-populate - Populate the corresponding form fields automatically on page load.
 * Suggest - When the user clicks on the form field, drop down suggestions of previously saved forms will be displayed.
 * Populate - When clicking on one of the suggestions, the form data will populate the respective fields.
+* Save/Update prompt - After submitting password information, if IsPasswordAutosaveEnabled is true, a prompt will popup that allows the user to give permission to save or update their password information.
 
 The general autofill setting and password autosave setting behave independently.  Their behavior differs as well. 
+
 The default behavior for the general autofill setting is enabled.  
 The default behavior for the password autosave setting is disabled.
 
 | Behavior | IsPasswordAutosaveEnabled = false | IsGeneralAutofillEnabled = false | IsPasswordAutoSaveEnabled = true | IsGeneralAutofillEnabled = true |
 |-|-|-|-|-|
 | Populate on accepted suggestion | Yes | No | Yes | Yes |
-| Suggestions | Yes | No | Yes | Yes |
-| Auto-populate | Yes | No | Yes | Yes |
+| Suggest | Yes | No | Yes | Yes |
+| Auto-populate | Yes | No | Yes | No |
 | Save/Update prompt | No | N/A | Yes | N/A |
 | Input saved | No | No | Yes | Yes |
 
