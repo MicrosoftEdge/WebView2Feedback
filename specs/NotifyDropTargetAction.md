@@ -13,17 +13,26 @@
 
 
 # Background
-This API will allow users to drop things such as images, text, and links into the WebView as part of a drag/drop operation.
-The reason that we need a separate API for this with composition hosting is because we don't have an HWND to call RegisterDragDrop on.
+These APIs will allow users to drop things such as images, text, and links into the WebView as part of a drag/drop operation.
+The reason that we need separate APIs for this with composition hosting is because we don't have an HWND to call RegisterDragDrop on.
 The hosting app needs to call RegisterDragDrop on the HWND that contains the WebView and implement IDropTarget so it can forward the
-calls (IDropTarget::DragEnter, DragMove, DragLeave, and Drop) to the WebView.
+calls (IDropTarget::DragEnter, DragMove, DragLeave, and Drop) to the WebView. Other UI frameworks have their own ways to register.
+For example, Xaml require setting event handler for DragEnter, DragOver, DragLeave, and Drop on the corresponding UIElement.
 
-Additionally, the hosting app also needs to call into IDropTargetHelper before forwarding those calls to us as documented here:
+Additionally, for win32, the hosting app also needs to call into IDropTargetHelper before forwarding those calls to us as documented here:
 https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-idroptargethelper
+
+For API reviewers, We want a unified API surface between COM and WinRT that works in both UWP and Win32.
+
+We could have one API focusing on Win32 types and require the end dev to convert from UWP types to Win32 (which we've done).
+Or we could have one API focusing on UWP types and require the end dev to convert Win32 to UWP.
+Or we could have two sets of methods one for Win32 and one for UWP types.
+Or we could do (1) or (2) and provide a conversion function.
+Because the conversion is simple and we have a large Win32 user base we chose (1).
 
 
 # Description
-NotifyDropTargetAction is meant to provide a way for composition hosted WebViews to receive drop events as part of a drag/drop operation.
+DragEnter, DragOver, DragLeave, and Drop are functions meant to provide a way for composition hosted WebViews to receive drop events as part of a drag/drop operation.
 It is the hosting application's responsibility to call RegisterDragDrop (https://docs.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-registerdragdrop)
 on the HWND that contains any composition hosted WebViews and to implement IDropTarget(https://docs.microsoft.com/en-us/windows/win32/api/oleidl/nn-oleidl-idroptarget)
 to receive the corresponding drop events from Ole32:
@@ -33,9 +42,8 @@ to receive the corresponding drop events from Ole32:
 - IDropTarget::DragLeave
 - IDropTarget::Drop
 
-NotifyDropTargetAction consolidates these four functions into one and the COREWEBVIEW2_DROP_TARGET_ACTION enum
-specifies which corresponding IDropTarget function was called.
-
+For other UI frameworks such as Xaml, the hosting application would set event handlers for DragEnter, DragOver, DragLeave, and Drop
+on the UIElement that contains the WebView2 element.
 
 # Examples
 ## Win32
@@ -192,16 +200,6 @@ private uint ConvertDragDropModifiersToWin32KeyboardState(
 # API Details
 ## Win32
 ```c++
-[v1_enum]
-typedef enum COREWEBVIEW2_DROP_TARGET_ACTION {
-  COREWEBVIEW2_DRAG_ENTER,
-  COREWEBVIEW2_DRAG_LEAVE,
-  COREWEBVIEW2_DRAG_OVER,
-  COREWEBVIEW2_DROP,
-} COREWEBVIEW2_DROP_TARGET_ACTION;
-```
-
-```c++
 interface ICoreWebView2CompositionController2 : ICoreWebView2CompositionController {
   /// This set of APIs (DragEnter, DragLeave, DragOver, and Drop) will allow
   /// users to drop things such as images, text, and links into the WebView as
@@ -289,6 +287,7 @@ namespace Microsoft.Web.WebView2.Core
 {
   public sealed class CoreWebView2CompositionController : CoreWebView2Controller, ICoreWebView2CompositionController2
   {
+    // New APIs
     uint DragEnter(
         Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
         uint keyState,
