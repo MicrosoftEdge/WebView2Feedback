@@ -32,14 +32,17 @@ different scenarios. It is up to the app to coordinate the handlers so they do
 not try to perform reliability recovery while also trying to move to a new
 WebView2 Runtime version or remove the user data folder.
 
-Multiple app processes can share a browser process by creating their
-`CoreWebView2Environment` with the same user data folder. When the entire
-collection of WebView2Runtime processes sharing the browser process exit, all
-associated `CoreWebview2Environment` objects receive the `BrowserProcessExited`
+Multiple app processes can share a browser process by creating their webviews
+from a `CoreWebView2Environment` with the same user data folder. When the entire
+collection of WebView2Runtime processes for the browser process exit, all
+associated `CoreWebView2Environment` objects receive the `BrowserProcessExited`
 event. Multiple processes sharing the same browser process need to coordinate
-their use of the shared user data folder to avoid race conditions. For example,
-one process should not clear the user data folder at the same time that another
-process recovers from a crash by recreating its WebView controls.
+their use of the shared user data folder to avoid race conditions and
+unnecessary waits. For example, one process should not clear the user data
+folder at the same time that another process recovers from a crash by recreating
+its WebView controls; one process should not block waiting for the event if
+other app processes are using the same browser process (the browser process will
+not exit until those other processes have closed their webviews too).
 
 
 # Examples
@@ -314,14 +317,17 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// `remove_BrowserProcessExited`, even if a new browser process is bound to
   /// this environment after earlier `BrowserProcessExited` events are raised.
   ///
-  /// Multiple app processes can share a browser process by creating their
-  /// `ICoreWebView2Environment` with the same user data folder. When the entire
-  /// collection of WebView2Runtime processes sharing the browser process exit, all
-  /// associated `ICoreWebview2Environment` objects receive the `BrowserProcessExited`
+  /// Multiple app processes can share a browser process by creating their webviews
+  /// from a `ICoreWebView2Environment` with the same user data folder. When the entire
+  /// collection of WebView2Runtime processes for the browser process exit, all
+  /// associated `ICoreWebView2Environment` objects receive the `BrowserProcessExited`
   /// event. Multiple processes sharing the same browser process need to coordinate
-  /// their use of the shared user data folder to avoid race conditions. For example,
-  /// one process should not clear the user data folder at the same time that another
-  /// process recovers from a crash by recreating its WebView controls.
+  /// their use of the shared user data folder to avoid race conditions and
+  /// unnecessary waits. For example, one process should not clear the user data
+  /// folder at the same time that another process recovers from a crash by recreating
+  /// its WebView controls; one process should not block waiting for the event if
+  /// other app processes are using the same browser process (the browser process will
+  /// not exit until those other processes have closed their webviews too).
   ///
   /// Note this is an event from the `ICoreWebView2Environment3` interface, not
   /// the `ICoreWebView2` one. The difference between `BrowserProcessExited` and
@@ -396,14 +402,17 @@ namespace Microsoft.Web.WebView2.Core
         /// WebViews are closed), after all resources (including the user data folder)
         /// have been released.
         ///
-        /// Multiple app processes can share a browser process by creating their
-        /// `CoreWebView2Environment` with the same user data folder. When the entire
-        /// collection of WebView2Runtime processes sharing the browser process exit, all
-        /// associated `CoreWebview2Environment` objects receive the `BrowserProcessExited`
+        /// Multiple app processes can share a browser process by creating their webviews
+        /// from a `CoreWebView2Environment` with the same user data folder. When the entire
+        /// collection of WebView2Runtime processes for the browser process exit, all
+        /// associated `CoreWebView2Environment` objects receive the `BrowserProcessExited`
         /// event. Multiple processes sharing the same browser process need to coordinate
-        /// their use of the shared user data folder to avoid race conditions. For example,
-        /// one process should not clear the user data folder at the same time that another
-        /// process recovers from a crash by recreating its WebView controls.
+        /// their use of the shared user data folder to avoid race conditions and
+        /// unnecessary waits. For example, one process should not clear the user data
+        /// folder at the same time that another process recovers from a crash by recreating
+        /// its WebView controls; one process should not block waiting for the event if
+        /// other app processes are using the same browser process (the browser process will
+        /// not exit until those other processes have closed their webviews too).
         ///
         /// Note this is an event from `CoreWebView2Environment`, not `CoreWebView2`. The
         /// difference between `BrowserProcessExited` and `CoreWebView2`'s 
