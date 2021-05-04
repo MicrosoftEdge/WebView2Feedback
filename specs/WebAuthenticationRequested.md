@@ -137,7 +137,7 @@ interface ICoreWebView2_4 : ICoreWebView2_3
   /// ...
 
   /// Add an event handler for the WebAuthenticationRequested event.
-  /// WebAuthenticationRequested event is raised when WebView encountered a Basic HTTP
+  /// WebAuthenticationRequested event is raised when WebView encounters a Basic HTTP
   /// Authentication request as described in
   /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication.
   ///
