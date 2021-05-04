@@ -5,7 +5,7 @@ additional work on the host app, so we are proposing the `BrowserProcessExited`
 event. The `ProcessFailed` event already lets app developers handle unexpected
 browser process exits for a WebView; this new API lets you listen to both
 expected and unexpected termination of the collection of processes associated to
-a `CoreWebView2Environment` so you can, e.g., cleanup the user data folder when
+a `CoreWebView2Environment` so you can, for example, cleanup the user data folder when
 it's no longer in use. In this document we describe the new API. We'd appreciate
 your feedback.
 
@@ -305,7 +305,7 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// Add an event handler for the `BrowserProcessExited` event.
   /// The `BrowserProcessExited` event is raised when the collection of WebView2
   /// Runtime processes associated to this environment terminate due to a
-  /// browser process error or normal shutdown (e.g., when all associated
+  /// browser process error or normal shutdown (for example, when all associated
   /// WebViews are closed), after all resources (including the user data folder)
   /// have been released.
   ///
@@ -390,7 +390,7 @@ namespace Microsoft.Web.WebView2.Core
 
         /// `BrowserProcessExited` is raised when the collection of WebView2
         /// Runtime processes associated to this `CoreWebView2Environment` terminate due to a
-        /// browser process error or normal shutdown (e.g., when all associated
+        /// browser process error or normal shutdown (for example, when all associated
         /// WebViews are closed), after all resources (including the user data folder)
         /// have been released.
         ///
@@ -439,7 +439,7 @@ handler for `BrowserProcessExited` will only be interested in the next single
 time the browser process exits (even if there could be more browser processes
 being created and exiting throughout the lifetime of a
 `CoreWebView2Environment`). For this reason, we also consider making this event
-an async method instead (e.g., `RegisterWaitForBrowserProcessExit`).
+an async method instead (for example, `RegisterWaitForBrowserProcessExit`).
 
 While there would be no operation started on calling the async method, a handler
 would be a added to be run (only) the next time the browser process associated
