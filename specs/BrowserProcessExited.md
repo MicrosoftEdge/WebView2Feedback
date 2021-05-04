@@ -61,13 +61,19 @@ class AppWindow {
 
 HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICoreWebView2Controller* controller)
 {
-  // ...
+  if (result == S_OK)
+  {
+    // ...
 
-  // Save PID of the browser process serving last WebView created from our
-  // CoreWebView2Environment.
-  CHECK_FAILURE(m_webView->get_BrowserProcessId(&m_newestBrowserPid));
+    // Save PID of the browser process serving last WebView created from our
+    // CoreWebView2Environment. We know the controller was created with
+    // S_OK, and it hasn't been closed (we haven't called Close and no
+    // ProcessFailed event could have been raised yet) so the PID is
+    // available.
+    CHECK_FAILURE(m_webView->get_BrowserProcessId(&m_newestBrowserPid));
 
-  // ...
+    // ...
+  }
 }
 
 void AppWindow::CloseWebView(/* ... */) {
