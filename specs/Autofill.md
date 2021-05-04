@@ -99,9 +99,9 @@ interface ICoreWebView2Settings4 : ICoreWebView2Settings3 {
   /// suggestions are shown and clicking on one will populate the fields, new data 
   /// is saved, and a Save/Update Password prompt is displayed. 
   /// The default value is `FALSE`.
-  [propget] HRESULT IsPasswordAutosaveEnabled([out, retval] BOOL* isPasswordAutosaveEnabled);
-  // Set the IsPasswordAutosaveEnabled property.
-  [propput] HRESULT IsPasswordAutosaveEnabled([in] BOOL isPasswordAutosaveEnabled);
+  [propget] HRESULT IsPasswordAutosaveEnabled([out, retval] BOOL* value);
+  /// Set the IsPasswordAutosaveEnabled property.
+  [propput] HRESULT IsPasswordAutosaveEnabled([in] BOOL value);
 
   /// IsGeneralAutofillEnabled controls whether autofill for information 
   /// like names, street and email addresses, phone numbers, and arbitrary input 
@@ -110,9 +110,9 @@ interface ICoreWebView2Settings4 : ICoreWebView2Settings3 {
   /// is saved. When IsGeneralAutofillEnabled is true, information is saved, suggestions 
   /// appear and clicking on one will populate the form fields.
   /// The default value is `TRUE`.
-  [propget] HRESULT IsGeneralAutofillEnabled([out, retval] BOOL* isGeneralAutofillEnabled);
+  [propget] HRESULT IsGeneralAutofillEnabled([out, retval] BOOL* value);
   /// Set the IsGeneralAutofillEnabled property.
-  [propput] HRESULT IsGeneralAutofillEnabled([in] BOOL isGeneralAutofillEnabled);
+  [propput] HRESULT IsGeneralAutofillEnabled([in] BOOL value);
 }
 ```
 
