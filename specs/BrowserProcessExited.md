@@ -314,10 +314,11 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
 
   /// Add an event handler for the `BrowserProcessExited` event.
   /// The `BrowserProcessExited` event is raised when the collection of WebView2
-  /// Runtime processes associated to this environment terminate due to a
-  /// browser process error or normal shutdown (for example, when all associated
-  /// WebViews are closed), after all resources (including the user data folder)
-  /// have been released.
+  /// Runtime processes for the browser process of this environment terminate
+  /// due to browser process failure or normal shutdown (for example, when all
+  /// associated WebViews are closed), after all resources have been released
+  /// (including the user data folder). To learn about what these processes are,
+  /// go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
   ///
   /// A handler added with this method is called until removed with
   /// `remove_BrowserProcessExited`, even if a new browser process is bound to
@@ -403,10 +404,11 @@ namespace Microsoft.Web.WebView2.Core
         // ...
 
         /// `BrowserProcessExited` is raised when the collection of WebView2
-        /// Runtime processes associated to this `CoreWebView2Environment` terminate due to a
-        /// browser process error or normal shutdown (for example, when all associated
-        /// WebViews are closed), after all resources (including the user data folder)
-        /// have been released.
+        /// Runtime processes for the browser process of this `CoreWebView2Environment`
+        /// terminate due to browser process failure or normal shutdown (for example,
+        /// when all associated WebViews are closed), after all resources have been
+        /// released (including the user data folder). To learn about what these processes
+        /// are, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
         ///
         /// Multiple app processes can share a browser process by creating their webviews
         /// from a `CoreWebView2Environment` with the same user data folder. When the entire
