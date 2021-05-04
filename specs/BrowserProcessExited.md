@@ -263,12 +263,13 @@ void ReinitializeWebView()
 
 # Remarks
 Note this is an event from `CoreWebView2Environment`, not `CoreWebView2`. The
-difference between this `BrowserProcessExited` event and the `CoreWebView2`'s
-`ProcessFailed` event is that `BrowserProcessExited` is raised for any (expected
-and unexpected) **browser process** (along its associated processes) exits,
-while `ProcessFailed` is raised only for **unexpected** browser process exits,
-or for **render process** exits/unresponsiveness. To learn more about the
-WebView2 Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+difference between `BrowserProcessExited` and `CoreWebView2`'s `ProcessFailed`
+is that `BrowserProcessExited` is raised for any **browser process** exit
+(expected or unexpected, after all associated processes have exited too), while
+`ProcessFailed` is raised for **unexpected** process exits of any kind (browser,
+render, GPU, and all other types), or for main frame **render process**
+unresponsiveness. To learn more about the WebView2 Process Model, go to
+[Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
 
 In the case the browser process crashes, both `BrowserProcessExited` and
 `ProcessFailed` events are raised, but the order is not guaranteed.
@@ -322,13 +323,14 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// one process should not clear the user data folder at the same time that another
   /// process recovers from a crash by recreating its WebView controls.
   ///
-  /// Note this is an event from the `ICoreWebView2Environment3` interface, not the
-  /// `ICoreWebView2`. The difference between this `BrowserProcessExited` event and
-  /// the `ICoreWebView2`'s `ProcessFailed` event is that `BrowserProcessExited` is
-  /// raised for any (expected and unexpected) **browser process** (along its
-  /// associated processes) exits, while `ProcessFailed` is raised only for
-  /// **unexpected** browser process exits, or for **render process**
-  /// exits/unresponsiveness. To learn more about the WebView2 Process Model, go to
+  /// Note this is an event from the `ICoreWebView2Environment3` interface, not
+  /// the `ICoreWebView2` one. The difference between `BrowserProcessExited` and
+  /// `ICoreWebView2`'s `ProcessFailed` is that `BrowserProcessExited` is
+  /// raised for any **browser process** exit (expected or unexpected, after all
+  /// associated processes have exited too), while `ProcessFailed` is raised for
+  /// **unexpected** process exits of any kind (browser, render, GPU, and all
+  /// other types), or for main frame **render process** unresponsiveness. To
+  /// learn more about the WebView2 Process Model, go to
   /// [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
   ///
   /// In the case the browser process crashes, both `BrowserProcessExited` and
@@ -404,11 +406,12 @@ namespace Microsoft.Web.WebView2.Core
         /// process recovers from a crash by recreating its WebView controls.
         ///
         /// Note this is an event from `CoreWebView2Environment`, not `CoreWebView2`. The
-        /// difference between this `BrowserProcessExited` event and the `CoreWebView2`'s
-        /// `ProcessFailed` event is that `BrowserProcessExited` is raised for any (expected
-        /// and unexpected) **browser process** (along its associated processes) exits, while
-        /// `ProcessFailed` is raised only for **unexpected** browser process exits, or for
-        /// **render process** exits/unresponsiveness. To learn more about the WebView2
+        /// difference between `BrowserProcessExited` and `CoreWebView2`'s 
+        /// `ProcessFailed` is that `BrowserProcessExited` is raised for any **browser process** exit
+        /// (expected or unexpected, after all associated processes have exited too), while
+        /// `ProcessFailed` is raised  for **unexpected** process exits of any kind (browser,
+        /// render, GPU, and all other types), or for main frame **render process**
+        /// unresponsiveness. To learn more about the WebView2
         /// Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
         ///
         /// In the case the browser process crashes, both `BrowserProcessExited` and
