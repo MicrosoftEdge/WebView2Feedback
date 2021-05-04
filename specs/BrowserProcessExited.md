@@ -108,10 +108,13 @@ void AppWindow::CloseWebView(/* ... */) {
           {
             // The exiting process is not the last in use. Do not attempt cleanup
             // as we might still have a webview open over the user data folder.
-            MessageBox(
-                m_mainWindow,
-                L"A new browser process prevented cleanup of the user data folder.",
-                L"Cleanup User Data Folder", MB_OK);
+            // Do not block from event handler.
+            RunAsync([this]() {
+                MessageBox(
+                    m_mainWindow,
+                    L"A new browser process prevented cleanup of the user data folder.",
+                    L"Cleanup User Data Folder", MB_OK);
+            });
           }
 
           return S_OK;
