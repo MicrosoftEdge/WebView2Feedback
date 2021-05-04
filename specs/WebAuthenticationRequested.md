@@ -132,7 +132,7 @@ webView.CoreWebView2.WebAuthenticationRequested += delegate (object sender, Core
 /// browser and web technology.
 
 [uuid(76eceacb-0462-4d94-ac83-423a6793775e), object, pointer_default(unique)]
-interface ICoreWebView2 : IUnknown
+interface ICoreWebView2_4 : ICoreWebView2_3
 {
   /// ...
 
