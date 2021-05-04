@@ -244,7 +244,7 @@ namespace Microsoft.Web.WebView2.Core
         String Challenge { get; };
 
         /// Cancel the authentication request. False by default.
-         /// If set to true, Response will be ignored.
+        /// If set to true, Response will be ignored.
         bool Cancel { get; set; };
 
         /// Response to the authentication request with credentials.
