@@ -48,25 +48,25 @@ void SettingsComponent::EnableCustomClientCertificateSelection()
             [this](
                 ICoreWebView2* sender,
                 ICoreWebView2ClientCertificateRequestedEventArgs* args) {
-                   wil::com_ptr<ICoreWebView2ClientCertificateList> certificateList;
-                   CHECK_FAILURE(args->get_MutuallyTrustedCertificates(&certificateList));
+                   wil::com_ptr<ICoreWebView2ClientCertificateCollection> certificateCollection;
+                   CHECK_FAILURE(args->get_MutuallyTrustedCertificates(&certificateCollection));
 
-                   UINT certificateListCount = 0;
-                   CHECK_FAILURE(certificateList->get_Count(&certificateListCount));
+                   UINT certificateCollectionCount = 0;
+                   CHECK_FAILURE(certificateCollection->get_Count(&certificateCollectionCount));
 
                    wil::com_ptr<ICoreWebView2ClientCertificate> certificate = nullptr;
 
-                   if (certificateListCount > 0)
+                   if (certificateCollectionCount > 0)
                    {
                      // There is no significance to the order, picking a certificate arbitrarily.
-                     CHECK_FAILURE(certificateList->GetValueAtIndex(certificateListCount - 1, &certificate));
+                     CHECK_FAILURE(certificateCollection->GetValueAtIndex(certificateCollectionCount - 1, &certificate));
                      // Continue with the selected certificate to respond to the server.
                      CHECK_FAILURE(args->put_SelectedCertificate(certificate.get()));
                      CHECK_FAILURE(args->put_Handled(TRUE));
                    }
                    else
                    {
-                     //Continue without a certificate to respond to the server if certificate list is empty.
+                     //Continue without a certificate to respond to the server if certificate collection is empty.
                      CHECK_FAILURE(args->put_Handled(TRUE));
                    }
                    return S_OK;
@@ -120,8 +120,8 @@ ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(SampleWin
         ICoreWebView2* sender,
         ICoreWebView2ClientCertificateRequestedEventArgs* args) {
           auto showDialog = [this, args] {
-            wil::com_ptr<ICoreWebView2ClientCertificateList> certificateList;
-            CHECK_FAILURE(args->get_MutuallyTrustedCertificates(&certificateList));
+            wil::com_ptr<ICoreWebView2ClientCertificateCollection> certificateCollection;
+            CHECK_FAILURE(args->get_MutuallyTrustedCertificates(&certificateCollection));
 
             wil::unique_cotaskmem_string host;
             CHECK_FAILURE(args->get_Host(&host));
@@ -129,17 +129,17 @@ ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(SampleWin
             INT port = FALSE;
             CHECK_FAILURE(args->get_Port(&port));
 
-            UINT certificateListCount;
-            CHECK_FAILURE(certificateList->get_Count(&certificateListCount));
+            UINT certificateCollectionCount;
+            CHECK_FAILURE(certificateCollection->get_Count(&certificateCollectionCount));
 
             wil::com_ptr<ICoreWebView2ClientCertificate> certificate = nullptr;
 
-            if (certificateListCount > 0)
+            if (certificateCollectionCount > 0)
             {
               ClientCertificate client_certificate;
-              for (UINT i = 0; i < certificateListCount; i++)
+              for (UINT i = 0; i < certificateCollectionCount; i++)
               {
-                CHECK_FAILURE(certificateList->GetValueAtIndex(i, &certificate));
+                CHECK_FAILURE(certificateCollection->GetValueAtIndex(i, &certificate));
 
                 CHECK_FAILURE(certificate->get_Subject(&client_certificate.Subject));
 
@@ -168,7 +168,7 @@ ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(SampleWin
                 int selectedIndex = dialog.selectedItem;
                 if (selectedIndex >= 0)
                 {
-                  CHECK_FAILURE(certificateList->GetValueAtIndex(selectedIndex, &certificate));
+                  CHECK_FAILURE(certificateCollection->GetValueAtIndex(selectedIndex, &certificate));
                   // Continue with the selected certificate to respond to the server if `OK` is selected.
                   CHECK_FAILURE(args->put_SelectedCertificate(certificate.get()));
                 }
@@ -178,7 +178,7 @@ ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(SampleWin
             }
             else
             {
-              // Continue without a certificate to respond to the server if certificate list is empty.
+              // Continue without a certificate to respond to the server if certificate collection is empty.
               CHECK_FAILURE(args->put_Handled(TRUE));
             }
           };
@@ -246,12 +246,12 @@ void EnableCustomClientCertificateSelection()
 
 void WebView_ClientCertificateRequested(object sender, CoreWebView2ClientCertificateRequestedEventArgs e)
 {
-  IReadOnlyList<CoreWebView2ClientCertificate> certificatesList = e. MutuallyTrustedCertificates; 
-  if (certificatesList. Count() > 0)
+  IReadOnlyList<CoreWebView2ClientCertificate> certificateList = e. MutuallyTrustedCertificates; 
+  if (certificateList. Count() > 0)
   {
 
     // There is no significance to the order, picking a certificate arbitrarily.
-    e.SelectedCertificate = certificatesList.LastOrDefault();
+    e.SelectedCertificate = certificateList.LastOrDefault();
     // Continue with the selected certificate to respond to the server.
     e.Handled = true;
 
@@ -294,15 +294,15 @@ void DeferredCustomClientCertificateSelectionDialog()
         {
           using (deferral)
           {
-            IReadOnlyList<CoreWebView2ClientCertificate> certificatesList = args.MutuallyTrustedCertificates;
-            if (certificatesList.Count() > 0)
+            IReadOnlyList<CoreWebView2ClientCertificate> certificateList = args.MutuallyTrustedCertificates;
+            if (certificateList.Count() > 0)
             {
               // Display custom dialog box for the client certificate selection.
               var dialog = new ClientCertificateSelectionDialog(
                                         title: "Select a Certificate for authentication",
                                         host: args.Host,
                                         port: args.Port,
-                                        client_cert_list: certificatesList);
+                                        client_cert_list: certificateList);
               if (dialog.ShowDialog() == true)
               {
                 // Continue with the selected certificate to respond to the server if `OK` is selected.
@@ -345,8 +345,8 @@ See [API Details](#api-details) section below for API reference.
 ``` cpp
 interface ICoreWebView2_3;
 interface ICoreWebView2ClientCertificate;
-interface ICoreWebView2StringList;
-interface ICoreWebView2ClientCertificateList;
+interface ICoreWebView2StringCollection;
+interface ICoreWebView2ClientCertificateCollection;
 interface ICoreWebView2ClientCertificateRequestedEventArgs;
 interface ICoreWebView2ClientCertificateRequestedEventHandler;
 
@@ -412,31 +412,32 @@ interface ICoreWebView2ClientCertificate : IUnknown {
     /// Read more about PEM at [RFC 1421 Privacy Enhanced Mail]
     /// (https://tools.ietf.org/html/rfc1421).
     HRESULT ToPemEncoding([out, retval] LPWSTR* pemEncodedData);
-    /// List of PEM encoded client certificate issuer chain.
-    /// In this list first element is the current certificate followed by
+    /// Collection of PEM encoded client certificate issuer chain.
+    /// In this collection first element is the current certificate followed by
     /// intermediate1, intermediate2...intermediateN-1. Root certificate is the
-    /// last element in list.
+    /// last element in collection.
     [propget] HRESULT PemEncodedIssuerCertificateChain([out, retval]
-        ICoreWebView2StringList** value);
+        ICoreWebView2StringCollection** value);
     /// Kind of a certificate (eg., smart card, pin, other).
     [propget] HRESULT Kind([out, retval]
         COREWEBVIEW2_CLIENT_CERTIFICATE_KIND* value);
 }
 
-/// A list of client certificate object.
+/// A collection of client certificate object.
 [uuid(aedb012a-8e92-11eb-8dcd-0242ac130003), object, pointer_default(unique)]
-interface ICoreWebView2ClientCertificateList : IUnknown {
-    /// The number of client certificates contained in the ICoreWebView2ClientCertificateList.
+interface ICoreWebView2ClientCertificateCollection : IUnknown {
+    /// The number of client certificates contained in the
+    /// ICoreWebView2ClientCertificateCollection.
     [propget] HRESULT Count([out, retval] UINT* value);
     /// Gets the certificate object at the given index.
     HRESULT GetValueAtIndex([in] UINT index,
         [out, retval] ICoreWebView2ClientCertificate** certificate);
 }
 
-/// A list of strings.
+/// A collection of strings.
 [uuid(c87bb63e-a3f4-11eb-bcbc-0242ac130002), object, pointer_default(unique)]
-interface ICoreWebView2StringList : IUnknown {
-    /// The number of strings contained in ICoreWebView2StringList.
+interface ICoreWebView2StringCollection : IUnknown {
+    /// The number of strings contained in ICoreWebView2StringCollection.
     [propget] HRESULT Count([out, retval] UINT* value);
 
     /// Gets the value at a given index.
@@ -468,17 +469,17 @@ interface ICoreWebView2ClientCertificateRequestedEventArgs : IUnknown {
     /// Returns false if the server is the origin server.
     [propget] HRESULT IsProxy([out, retval] BOOL* value);
 
-    /// Returns the `ICoreWebView2StringList`.
-    /// The list contains distinguished names of certificate authorities
+    /// Returns the `ICoreWebView2StringCollection`.
+    /// The collection contains distinguished names of certificate authorities
     /// allowed by the server.
     [propget] HRESULT AllowedCertificateAuthorities([out, retval]
-        ICoreWebView2StringList** value);
+        ICoreWebView2StringCollection** value);
 
-    /// Returns the `ICoreWebView2ClientCertificateList` when client
-    /// certificate authentication is requested. The list contains mutually
+    /// Returns the `ICoreWebView2ClientCertificateCollection` when client
+    /// certificate authentication is requested. The collection contains mutually
     /// trusted CA certificates.
     [propget] HRESULT MutuallyTrustedCertificates([out, retval]
-        ICoreWebView2ClientCertificateList** value);
+        ICoreWebView2ClientCertificateCollection** value);
 
     /// Returns the selected certificate.
     [propget] HRESULT SelectedCertificate([out, retval]
