@@ -455,6 +455,10 @@ interface ICoreWebView2ClientCertificateRequestedEventHandler : IUnknown {
 [uuid(cb10ae1c-8e92-11eb-8dcd-0242ac130003), object, pointer_default(unique)]
 interface ICoreWebView2ClientCertificateRequestedEventArgs : IUnknown {
     /// Host name of the server that requested client certificate authentication.
+    /// Normalization rules applied to the hostname are:
+    /// * Convert to lowercase characters for ascii characters.
+    /// * Punycode is used for representing non ascii characters.
+    /// * Strip square brackets for IPV6 address.
     [propget] HRESULT Host([out, retval] LPWSTR* value);
 
     /// Port of the server that requested client certificate authentication.
