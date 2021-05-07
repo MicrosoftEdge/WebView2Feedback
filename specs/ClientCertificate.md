@@ -377,7 +377,7 @@ interface ICoreWebView2_3 : ICoreWebView2_2 {
   /// to let user to respond to the server.
   /// *  You can cancel the request.
   ///
-  /// If you doesn't handle the event, WebView2 will
+  /// If you don't handle the event, WebView2 will
   /// show the default client certificate selection dialog prompt to user.
   ///
   /// \snippet SettingsComponent.cpp ClientCertificateRequested1
