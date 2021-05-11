@@ -24,11 +24,12 @@ https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_cor
 
 For API reviewers, We want a unified API surface between COM and WinRT that works in both UWP and Win32.
 
-We could have one API focusing on Win32 types and require the end dev to convert from UWP types to Win32 (which we've done).
-Or we could have one API focusing on UWP types and require the end dev to convert Win32 to UWP.
-Or we could have two sets of methods one for Win32 and one for UWP types.
+We could:
+1. Have one API focusing on Win32 types and require the end dev to convert from UWP types to Win32 (which we've done).
+2. Have one API focusing on UWP types and require the end dev to convert Win32 to UWP.
+3. Have two sets of methods one for Win32 and one for UWP types.
 Or we could do (1) or (2) and provide a conversion function.
-Because the conversion is simple and we have a large Win32 user base we chose (1).
+Because the conversion is simple and we have a large Win32 user base we chose (1) and provided a conversion function.
 
 
 # Description
@@ -56,7 +57,7 @@ HRESULT DropTarget::DragEnter(IDataObject* dataObject,
     POINTL point,
     DWORD* effect)
 {
-    POINT point = { cursorPosition.x, cursorPosition.y};
+    POINT point = { cursorPosition.x, cursorPosition.y };
     // Tell the helper that we entered so it can update the drag image and get
     // the correct effect.
     wil::com_ptr<IDropTargetHelper> dropHelper = DropHelper();
@@ -75,7 +76,7 @@ HRESULT DropTarget::DragOver(DWORD keyState,
     POINTL point,
     DWORD* effect)
 {
-    POINT point = { cursorPosition.x, cursorPosition.y};
+    POINT point = { cursorPosition.x, cursorPosition.y };
     // Tell the helper that we moved over it so it can update the drag image
     // and get the correct effect.
     wil::com_ptr<IDropTargetHelper> dropHelper = DropHelper();
@@ -108,7 +109,7 @@ HRESULT DropTarget::Drop(IDataObject* dataObject,
     POINTL point,
     DWORD* effect)
 {
-    POINT point = { cursorPosition.x, cursorPosition.y};
+    POINT point = { cursorPosition.x, cursorPosition.y };
     // Tell the helper that we dropped onto it so it can update the drag image
     // and get the correct effect.
     wil::com_ptr<IDropTargetHelper> dropHelper = DropHelper();
