@@ -41,7 +41,7 @@ See [API Details](#api_details) section below for API reference.
 ## Win32 C++
 ``` c#
 interface ICoreWebView2Environment4 : ICoreWebView2Environment3 {
-  /// Returns the UI Automation Provider for the WebView that matches the provided window.
+  /// Returns the Automation Provider for the WebView that matches the provided window.
   /// Host apps are expected to implement IRawElementProviderHwndOverride. When GetOverrideProviderForHwnd
   /// is called, the app can pass the HWND to GetAutomationProviderForWindow to find the matching WebView
   /// automation provider.
@@ -50,7 +50,7 @@ interface ICoreWebView2Environment4 : ICoreWebView2Environment3 {
 }
 
 interface ICoreWebView2CompositionController2 : ICoreWebView2CompositionController {
-  /// Returns the UI Automation Provider for the WebView.
+  /// Returns the Automation Provider for the WebView. This object implements IRawElementProviderSimple.
   [propget] HRESULT AutomationProvider([out, retval] IUnknown** provider);
 }
 ```
