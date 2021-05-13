@@ -133,7 +133,7 @@ interface ICoreWebView2RasterizationScaleChangedEventHandler : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-public partial class CoreWebView2Controller
+    unsealed runtimeclass CoreWebView2Controller
     {
         /// <summary>
         /// Gets or sets the WebView rasterization scale.
@@ -142,7 +142,7 @@ public partial class CoreWebView2Controller
         /// The rasterization scale is the combination of the monitor DPI scale and text scaling set by the user. This value should be updated when the DPI scale of the app's top level window changes (i.e. monitor DPI scale changes or the window changes monitor) or when the text scale factor of the system changes.
         /// Rasterization scale applies to the WebView content, as well as popups, context menus, scroll bars, and so on. Normal app scaling scenarios should use the <see cref="CoreWebView2.ZoomFactor"/> property or <see cref="CoreWebView2.SetBoundsAndZoomFactor"/> method.
         /// </remarks>
-        public double RasterizationScale { get; set;};
+        Double RasterizationScale { get; set; };
 
         /// <summary>
         /// Determines whether the WebView will detect monitor scale changes.
@@ -150,7 +150,7 @@ public partial class CoreWebView2Controller
         /// <remarks>
         /// ShouldDetectMonitorScaleChanges property determines whether the WebView attempts to track monitor DPI scale schanges. When true, the WebView will track monitor DPI scale changes, update the <see cref="CoreWebView2.RasterizationScale"/> property, and raise <see cref="CoreWebView2.RasterizationScaleChanged"/> event. When false, the WebView will not track monitor DPI scale changes, and the app must update the <see cref="CoreWebView2.RasterizationScale"/> property itself. <see cref="CoreWebView2.RasterizationScaleChanged"/> event will never be raised when ShouldDetectMonitorScaleChanges is false.
         /// </remarks>
-        public bool ShouldDetectMonitorScaleChanges {get; set;};
+        Boolean ShouldDetectMonitorScaleChanges { get; set; };
 
         /// <summary>
         /// RasterizationScalechanged is raised when the <see cref="CoreWebView2Controller.RasterizationScale"/> property changes.
@@ -159,6 +159,6 @@ public partial class CoreWebView2Controller
         /// The event is raised when the Webview detects that the monitor DPI scale has changed, <see cref="CoreWebView2Controller.ShouldDetectMonitorScaleChanges"/> is true, and the Webview has changed the <see cref="CoreWebView2Controller.RasterizationScale"/> property.
         /// </remarks>
         /// <seealso cref="CoreWebView2Controller.RasterizationScale"/>
-        public event EventHandler<object> RasterizationScaleChanged;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Controller, Object> RasterizationScaleChanged;
     }
 ```
