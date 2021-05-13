@@ -148,7 +148,7 @@ public partial class CoreWebView2Controller
         /// Determines whether the WebView will detect monitor scale changes.
         /// </summary>
         /// <remarks>
-        /// ShouldDetectMonitorScaleChanges property determines whether the WebView attempts to track monitor DPI scale schanges. When true, the WebView will track monitor DPI scale changes, update the <see cref="CoreWebView2.RasterizationScale"/> property, and fire <see cref="CoreWebView2.RasterizationScaleChanged"/> event. When false, the WebView will not track monitor DPI scale changes, and the app must update the <see cref="CoreWebView2.RasterizationScale"/> property itself. <see cref="CoreWebView2.RasterizationScaleChanged"/> event will never fire when ShouldDetectMonitorScaleChanges is false.
+        /// ShouldDetectMonitorScaleChanges property determines whether the WebView attempts to track monitor DPI scale schanges. When true, the WebView will track monitor DPI scale changes, update the <see cref="CoreWebView2.RasterizationScale"/> property, and raise <see cref="CoreWebView2.RasterizationScaleChanged"/> event. When false, the WebView will not track monitor DPI scale changes, and the app must update the <see cref="CoreWebView2.RasterizationScale"/> property itself. <see cref="CoreWebView2.RasterizationScaleChanged"/> event will never be raised when ShouldDetectMonitorScaleChanges is false.
         /// </remarks>
         public bool ShouldDetectMonitorScaleChanges {get; set;};
 
