@@ -139,7 +139,7 @@ public partial class CoreWebView2Controller
         /// Gets or sets the WebView rasterization scale.
         /// </summary>
         /// <remarks>
-        /// The rasterization scale is the combination of the monitor DPI scale and text scaling set by the user. This value shoud be updated when the DPI scale of the app's top level window changes (i.e. monitor DPI scale changes or the window changes monitor) or when the text scale factor of the system changes.
+        /// The rasterization scale is the combination of the monitor DPI scale and text scaling set by the user. This value should be updated when the DPI scale of the app's top level window changes (i.e. monitor DPI scale changes or the window changes monitor) or when the text scale factor of the system changes.
         /// Rasterization scale applies to the WebView content, as well as popups, context menus, scroll bars, and so on. Normal app scaling scenarios should use the <see cref="CoreWebView2.ZoomFactor"/> property or <see cref="CoreWebView2.SetBoundsAndZoomFactor"/> method.
         /// </remarks>
         public double RasterizationScale { get; set;};
