@@ -2,7 +2,7 @@
 
 The WebView2 team has been asked for an API to intercept client certificates when WebView2 is
 making a request to an Http server that needs a client certificate for Http authentication.
-This event allows you to show ui if desired, replace default client certificate dialog prompt,
+This event allows you to show ui if desired, replace default client certificate dialog prompt, 
 programmatically query the certificates and select a certificate from the list to respond to the server.
 
 In this document we describe the API. We'd appreciate your feedback.
@@ -214,7 +214,7 @@ ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(SampleWin
 // Turn off client certificate selection dialog using ClientCertificateRequested event handler
 // that disables the dialog. This example hides the default client certificate dialog and
 // always chooses the last certificate without prompting the user.
-private bool _isCustomClientCertificateSelection = false;
+private bool _isCustomClientCertificateSelection = false; 
 void EnableCustomClientCertificateSelection()
 {
   // Safeguarding the handler when unsupported runtime is used.
@@ -246,7 +246,7 @@ void EnableCustomClientCertificateSelection()
 
 void WebView_ClientCertificateRequested(object sender, CoreWebView2ClientCertificateRequestedEventArgs e)
 {
-  IReadOnlyList<CoreWebView2ClientCertificate> certificateList = e. MutuallyTrustedCertificates;
+  IReadOnlyList<CoreWebView2ClientCertificate> certificateList = e. MutuallyTrustedCertificates; 
   if (certificateList. Count() > 0)
   {
 
@@ -265,7 +265,7 @@ void WebView_ClientCertificateRequested(object sender, CoreWebView2ClientCertifi
   }
 }
 
-```
+``` 
 
 ## .NET/ WinRT: Custom certificate selection dialog
 
