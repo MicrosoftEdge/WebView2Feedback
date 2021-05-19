@@ -370,7 +370,7 @@ interface ICoreWebView2_3 : ICoreWebView2_2 {
   ///
   /// With this event you have several options for responding to client certificate requests:
   ///
-	/// Scenario                                                   | Handled | Cancel | SelectedCertificate
+  /// Scenario                                                   | Handled | Cancel | SelectedCertificate
   /// ---------------------------------------------------------- | ------- | ------ | -------------------
   /// Respond to server with a certificate                       | True    | False  | MutuallyTrustedCertificate value
   /// Respond to server without certificate                      | True    | False  | null
