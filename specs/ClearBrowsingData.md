@@ -1,7 +1,7 @@
 # Background
 The WebView2 team has been asked for an API to allow end developers to clear the browsing data that is stored in the User Data Folder. Developers want to be able to clear data between each of their customers, clear space, and to clear data on the fly. 
 
-Currently users can delete the entire User Data Folder to clear this data. This has a few drawbacks: it removes the entire user data folder instead of specific parts which incurs performance costs later on, the WebView must be shutdown fully and then re-initialized, and deleting the entire User Data Folder is a complex process. 
+Currently developers can delete the entire User Data Folder to clear this data. This has a few drawbacks: it removes the entire user data folder instead of specific parts which incurs performance costs later on, the WebView must be shutdown fully and then re-initialized, and deleting the entire User Data Folder is a complex process. 
 We are creating an API that will allow developers to clear the browsing data programtically in which the developer can specify the data kind to clear. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
@@ -9,24 +9,22 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
 The clear browsing data API is an asynchronous API and the data clearing is exposed in two different APIs:
-
-* HRESULT ClearBrowsingData(
+```IDL
+HRESULT ClearBrowsingData(
       [in] uint64 dataKinds,
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler *handler); 
-* HRESULT ClearBrowsingDataInTimeRange(
+
+HRESULT ClearBrowsingDataInTimeRange(
       [in] uint64 dataKinds, 
       [in] double startTime,
       [in] double endTime, 
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler *handler);
+```
+The first method takes a uint64 parameter that consists of one or more COREWEBVIEW2_BROWSING_DATA_KIND passed in as well as a handler which will indicate if the proper data has been cleared successfully. The handler will respond with one of three results, which indicate that the method was successful, interrupted, or failed. This method clears the data for all time. 
 
-The first method takes a uint64 parameter that consists of one or more COREWEBVIEW2_BROWSING_DATA_KIND passed in as well as a handler which will indicate if the proper data has been cleared successfully. This method clears the data for all time. 
-
-The second method takes a uint64 for the data kinds and a handler, as well as a start and end time in which the API should clear the corresponding data between. The double time parameters correspond to how many seconds since the UNIX epoch. 
-
-The handler will respond with one of three results, which indicate that the method was successful, interrupted, or failed.  
-
+The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The double time parameters correspond to how many seconds since the UNIX epoch. 
+ 
 The browsing data kinds that are supported are listed below. These data kinds follow a hierarchical structure in which nested bullet points are included in their parent bullet point's data kind. 
-
 Ex: DOM storage is encompassed in site data which is encompassed in the profile data. Each of the following bullets correspond to a COREWEBVIEW2_BROWSING_DATA_KIND. 
 
 * Profile
@@ -83,7 +81,6 @@ bool EnvironmentComponent::ClearAutofillData()
 
 ### .NET, WinRT
 ```c#
-webView2Control.NavigationStarting += ClearAutofillData;
 
 private void ClearAutofillData() 
 {
@@ -129,13 +126,13 @@ typedef enum COREWEBVIEW2_CLEAR_BROWSING_DATA_RESULT_KIND {
 /// `ICoreWebView2StagingEnvironment2::ClearBrowsingData` method.
 [v1_enum]
 typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
-  /// Specifies data stored by the AppCache DOM feature.
+  /// Specifies data stored by the AppCache DOM API.
   COREWEBVIEW2_BROWSING_DATA_KIND_APP_CACHE = 1<<0,
 
   /// Specifies file systems stored by the FileSystems DOM API.
   COREWEBVIEW2_BROWSING_DATA_KIND_FILE_SYSTEMS = 1<<1,
 
-  /// Specifies data stored by the IndexedDB DOM feature.
+  /// Specifies data stored by the IndexedDB DOM API.
   COREWEBVIEW2_BROWSING_DATA_KIND_INDEXED_DB = 1<<2,
 
   /// Specifies data stored by the LocalStorage DOM API.
@@ -145,7 +142,7 @@ typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
   COREWEBVIEW2_BROWSING_DATA_KIND_WEB_SQL = 1<<4,
 
   /// Specifies cache storage which stores the network requests
-  /// and responses. 
+  /// and responses from the CacheStorage DOM API.
   COREWEBVIEW2_BROWSING_DATA_KIND_CACHE_STORAGE = 1<<5,
 
   /// Specifies DOM storage data. This browsing data kind is inclusive 
