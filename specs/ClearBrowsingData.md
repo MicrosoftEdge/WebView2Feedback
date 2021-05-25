@@ -2,13 +2,13 @@
 The WebView2 team has been asked for an API to allow end developers to clear the browsing data that is stored in the User Data Folder. Developers want to be able to clear data between each of their customers, clear space, and to clear data on the fly. 
 
 Currently developers can delete the entire User Data Folder to clear this data. This has a few drawbacks: it removes the entire user data folder instead of specific parts which incurs performance costs later on, the WebView must be shutdown fully and then re-initialized, and deleting the entire User Data Folder is a complex process. 
-We are creating an API that will allow developers to clear the browsing data programtically in which the developer can specify the data kind to clear. 
+We are creating an API that will allow developers to clear the browsing data programatically in which the developer can specify the data kind to clear. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
 
 # Description
-The clear browsing data API is an asynchronous API and the data clearing is exposed in two different APIs:
+We expose browsing data clearing in two different asynchronous APIs:
 ```IDL
 HRESULT ClearBrowsingData(
       [in] uint64 dataKinds,
@@ -53,7 +53,7 @@ bool EnvironmentComponent::ClearAutofillData()
             COREWEBVIEW2_BROWSING_DATA_KIND_PASSWORD_AUTOSAVE;
     CHECK_FAILURE(environment->ClearBrowsingData(
         data_kinds,
-        Callback<ICoreWebView2StagingClearBrowsingDataCompletedHandler>(
+        Callback<ICoreWebView2ClearBrowsingDataCompletedHandler>(
             [this](HRESULT error, COREWEBVIEW2_CLEAR_BROWSING_DATA_RESULT_KIND result_kind)
                 -> HRESULT {
                 LPCWSTR result;
@@ -123,13 +123,13 @@ typedef enum COREWEBVIEW2_CLEAR_BROWSING_DATA_RESULT_KIND {
 } COREWEBVIEW2_CLEAR_BROWSING_DATA_RESULT_KIND;
 
 /// Specifies the datatype for the
-/// `ICoreWebView2StagingEnvironment2::ClearBrowsingData` method.
+/// `ICoreWebView2Environment2::ClearBrowsingData` method.
 [v1_enum]
 typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
   /// Specifies data stored by the AppCache DOM API.
   COREWEBVIEW2_BROWSING_DATA_KIND_APP_CACHE = 1<<0,
 
-  /// Specifies file systems stored by the FileSystems DOM API.
+  /// Specifies data stored by the FileSystems DOM API.
   COREWEBVIEW2_BROWSING_DATA_KIND_FILE_SYSTEMS = 1<<1,
 
   /// Specifies data stored by the IndexedDB DOM API.
@@ -188,8 +188,6 @@ typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
   COREWEBVIEW2_BROWSING_DATA_KIND_SETTINGS = 1<<12,
 
   /// Specifies profile data that should be wiped to make it look like a new profile.
-  /// This does not delete account-scoped data like passwords but will remove access
-  /// to account-scoped data by signing the user out.
   /// This browsing data kind if inclusive of COREWEBVIEW2_BROWSING_DATA_KIND_SITE,
   /// COREWEBVIEW2_BROWSING_DATA_KIND_HTTP_CACHE, 
   /// COREWEBVIEW2_BROWSING_DATA_KIND_DOWNLOAD_HISTORY,
@@ -204,7 +202,7 @@ typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
 } COREWEBVIEW2_BROWSING_DATA_KIND;
 
 [uuid(4ecfcb16-dd09-4464-9a71-fd8e2d3ac0a2), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironment2 : ICoreWebView2StagingEnvironment {
+interface ICoreWebView2Environment2 : ICoreWebView2Environment {
   /// Clear browsing data based on a data type. This method takes two parameters, 
   /// the first being a mask of one or more COREWEBVIEW2_BROWSING_DATAKIND. Multiple 
   /// COREWEBVIEW2_BROWSING_DATA_KIND values can be orred together to create a mask 
@@ -232,12 +230,12 @@ interface ICoreWebView2StagingEnvironment2 : ICoreWebView2StagingEnvironment {
   /// parameters correspond to the number of seconds since the UNIX epoch. 
   HRESULT ClearBrowsingData(
       [in] uint64 dataKinds,
-      [in] ICoreWebView2StagingClearBrowsingDataCompletedHandler *handler);
+      [in] ICoreWebView2ClearBrowsingDataCompletedHandler *handler);
   HRESULT ClearBrowsingDataInTimeRange(
       [in] uint64 dataKinds, 
       [in] double startTime,
       [in] double endTime, 
-      [in] ICoreWebView2StagingClearBrowsingDataCompletedHandler *handler);
+      [in] ICoreWebView2ClearBrowsingDataCompletedHandler *handler);
 }
 
 /// The caller implements this interface to receive the ClearBrowsingData result.
