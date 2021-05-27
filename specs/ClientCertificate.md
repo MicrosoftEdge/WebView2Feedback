@@ -559,13 +559,13 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2ClientCertificateKind Kind { get; };
 
         String ToPemEncoding();
-        // Converts this to a System.Security.Cryptography.X509Certificates.X509Certificate2.
+        /// Converts this to a System.Security.Cryptography.X509Certificates.X509Certificate2.
         // This is only for the .NET API, not the WinRT API.
-        X509Certificate2 ToX509Certificate2(CoreWebView2ClientCertificate coreWebView2ClientCertificate);
+        System.Security.Cryptography.X509Certificates.X509Certificate2 ToX509Certificate2(CoreWebView2ClientCertificate coreWebView2ClientCertificate);
 
-        // Converts this to a Windows.Security.Cryptography.Certificates.Certificate.
+        /// Converts this to a Windows.Security.Cryptography.Certificates.Certificate.
         // This is only for the WinRT API, not the .NET API.
-        Certificate ToCertificate(CoreWebView2ClientCertificate coreWebView2ClientCertificate);
+        Windows.Security.Cryptography.Certificates.Certificate ToCertificate(CoreWebView2ClientCertificate coreWebView2ClientCertificate);
     }
 
     runtimeclass CoreWebView2
