@@ -6,7 +6,7 @@ There currently is no method using WebView2 APIs to customize the default contex
 We propose a new event for WebView2, CoreWebView2ContextMenuRequested that will allow developers to listen to context menus being requested by the end user in the WebView2. When a context menu is requested in WebView2, the app developer will receive:
 
 1. The list of default ContextMenuItem objects (contains name, ID, kind/type, Icon, Shorcut Desc, Access Key, the Command)
-2. The coordinates that the right click
+2. The coordinates where the context menu was requested. For instance where the end user right clicked.
 3. The source of the context selected
 
 and have the choice to: 
