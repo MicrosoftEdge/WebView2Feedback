@@ -1,7 +1,7 @@
 # Background
 WebView2 raises the `NewWindowRequested` event when a new window is opened. The WebView2 team has been asked to include the name of the new window 
 being created as a parameter of `NewWindowRequestedEventArgs`. This window name is the name given to the window when it is opened 
-using `window.open(url, windowName)`.
+using `window.open(url, windowName)` or via html such as `<a target="windowName">...</a>` or `<iframe name="windowName">...</iframe>`.
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
@@ -83,7 +83,7 @@ interface ICoreWebView2NewWindowRequestedEventArgs2 : ICoreWebView2NewWindowRequ
   /// where the windowName parameter corresponds to `Name` property.
   /// If no windowName is passed to `window.open`, then the `Name` property 
   /// will be set to an empty string. Additionally, if window is opened through other means, 
-  /// such as `<a target="windowName">...</a>` or `<iframe name="windowName>...</iframe>`,
+  /// such as `<a target="windowName">...</a>` or `<iframe name="windowName">...</iframe>`,
   /// then the `Name` property will be set accordingly. In the case of target=_blank, 
   /// the `Name` property will be an empty string.
   /// Opening a window via ctrl+clicking a link would result in the `Name` property 
