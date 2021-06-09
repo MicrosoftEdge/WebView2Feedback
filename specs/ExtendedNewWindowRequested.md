@@ -31,9 +31,8 @@ m_webviewEventSource->add_NewWindowRequested(
                     wil::unique_cotaskmem_string uri;
                     CHECK_FAILURE(args->get_Uri(&uri));
 
-                    // Example usage of how the customer would use the window
-                    // name to handle special cases such as "openInNewBrowser"
-                    // which deviate from the normal handling of a new window.
+                    // Example usage of how the customer would use the window name to pass
+                    // additional context from their web content to their webview2 event handler.
                     if (wcscmp(name.get(), L"openInNewBrowser") == 0)
                     {
                         ShellExecute(NULL, "open", uri.get(), 
@@ -42,7 +41,7 @@ m_webviewEventSource->add_NewWindowRequested(
                     }
                     else 
                     {
-                        HandleNormalNewWindow();
+                        HandleNewWindow(args);
                     }
                 }
 
@@ -60,9 +59,8 @@ void WebView_NewWindowRequested(object sender, CoreWebView2NewWindowRequestedEve
 {
     string newWindowName = e.Name;
     
-    // Example usage of how the customer would use the window
-    // name to handle special cases such as "openInNewBrowser"
-    // which deviate from the normal handling of a new window.
+    // Example usage of how the customer would use the window name to pass
+    // additional context from their web content to their webview2 event handler.
     if (newWindowName == "openInNewBrowser")
     {
         Process.Start(e.Uri);
@@ -70,7 +68,7 @@ void WebView_NewWindowRequested(object sender, CoreWebView2NewWindowRequestedEve
     }
     else
     {
-        HandleNormalNewWindow();
+        HandleNewWindow(e);
     }
 }
 ```
@@ -81,7 +79,15 @@ void WebView_NewWindowRequested(object sender, CoreWebView2NewWindowRequestedEve
 /// This is a continuation of the `ICoreWebView2NewWindowRequestedEventArgs` interface.
 [uuid(9bcea956-6e1f-43bc-bf02-0a360d73717b), object, pointer_default(unique)]
 interface ICoreWebView2NewWindowRequestedEventArgs2 : ICoreWebView2NewWindowRequestedEventArgs {
-  /// Gets the name of the new window.
+  /// Gets the name of the new window. This window can be created via `window.open(url, windowName)`,
+  /// where the windowName parameter corresponds to `Name` property.
+  /// If no windowName is passed to `window.open`, then the `Name` property 
+  /// will be set to an empty string. Additionally, if window is opened through other means, 
+  /// such as `<a target="windowName">...</a>` or `<iframe name="windowName>...</iframe>`,
+  /// then the `Name` property will be set accordingly. In the case of target=_blank, 
+  /// the `Name` property will be an empty string.
+  /// Opening a window via ctrl+clicking a link would result in the `Name` property 
+  /// being set to an empty string.
   [propget] HRESULT Name([out, retval] LPWSTR* value);
 }
 ```
