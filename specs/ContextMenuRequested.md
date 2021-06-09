@@ -20,7 +20,7 @@ and have the choice to:
 
 ## Win32 C++ Use Data to Display Custom Context Menu
 
-The developer can use the data provided in the Event arguments to display a custom context menu with entries of their choice. For this case, the developer specifies Handled to be true and requests a deferral. Tthe resolution of the event is when the user selects a context menu item (either the app developer will handle the case, or can return the selected option to the browser) or when they click on the screen (effectively closing the menu).
+The developer can use the data provided in the Event arguments to display a custom context menu with entries of their choice. For this case, the developer specifies Handled to be true and requests a deferral. The resolution of the event is when the user selects a context menu item (either the app developer will handle the case, or can return the selected option to the browser) or when they click on the screen (effectively closing the menu).
 
  ```cpp
     webview2->add_ContextMenuRequested(
