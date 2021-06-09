@@ -41,7 +41,7 @@ m_webviewEventSource->add_NewWindowRequested(
                     }
                     else 
                     {
-                        HandleNewWindow(args);
+                        HandleNewWindow(args); // App specific handling of opening a new window
                     }
                 }
 
@@ -68,7 +68,7 @@ void WebView_NewWindowRequested(object sender, CoreWebView2NewWindowRequestedEve
     }
     else
     {
-        HandleNewWindow(e);
+        HandleNewWindow(e); // App specific handling of opening a new window
     }
 }
 ```
