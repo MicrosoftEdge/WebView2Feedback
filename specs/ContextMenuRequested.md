@@ -3,7 +3,7 @@
 There currently is no method using WebView2 APIs to customize the default context menu experience. Currently, the only option using WebView2 API's is to show or disable the default context menu. We have been requested by WebView2 app developers to allow for two different customization paths for context menus. The first option is to pass appropriate data to allow the app developers to create their own context menu UI and the second is to allow app developers to add and remove items from the default context menus.
 
 # Description
-We propose a new event for WebView2, CoreWebView2ContextMenuRequested that will allow developers to listen to context menus being requested by the end user in the embedded browser. When a context menu is requested in WebView2, the app developer will receive:
+We propose a new event for WebView2, CoreWebView2ContextMenuRequested that will allow developers to listen to context menus being requested by the end user in the WebView2. When a context menu is requested in WebView2, the app developer will receive:
 
 1. The list of default ContextMenuItem objects (contains name, ID, kind/type, Icon, Shorcut Desc, Access Key, the Command)
 2. The coordinates that the right click
