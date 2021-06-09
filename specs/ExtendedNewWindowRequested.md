@@ -19,17 +19,36 @@ EventRegistrationToken m_newWindowRequestedToken = {};
 m_webviewEventSource->add_NewWindowRequested(
     Callback<ICoreWebView2NewWindowRequestedEventHandler>(
         [this](ICoreWebView2* sender, ICoreWebView2NewWindowRequestedEventArgs* args)
-          -> HRESULT {
-              wil::com_ptr<ICoreWebView2NewWindowRequestedEventArgs2> args2;
+          -> HRESULT 
+            {
+                wil::com_ptr<ICoreWebView2NewWindowRequestedEventArgs2> args2;
               
-              if(SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&args2)))) {
-                  wil::unique_cotaskmem_string name;
-                  CHECK_FAILURE(args2->get_Name(&name));
-              }
+                if(SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&args2)))) 
+                {
+                    wil::unique_cotaskmem_string name;
+                    CHECK_FAILURE(args2->get_Name(&name));
+
+                    wil::unique_cotaskmem_string uri;
+                    CHECK_FAILURE(args->get_Uri(&uri));
+
+                    // Example usage of how the customer would use the window
+                    // name to handle special cases such as "openInNewBrowser"
+                    // which deviate from the normal handling of a new window.
+                    if (wcscmp(name.get(), L"openInNewBrowser") == 0)
+                    {
+                        ShellExecute(NULL, "open", uri.get(), 
+                            NULL, NULL, SW_SHOWNORMAL);
+                        args->put_Handled(true);
+                    }
+                    else 
+                    {
+                        HandleNormalNewWindow();
+                    }
+                }
 
               return S_OK;
-        })
-        .Get(),
+            })
+            .Get(),
   &m_newWindowRequestedToken);
 ```
 
@@ -40,7 +59,19 @@ webView.CoreWebView2.NewWindowRequested += WebView_NewWindowRequested;
 void WebView_NewWindowRequested(object sender, CoreWebView2NewWindowRequestedEventArgs e)
 {
     string newWindowName = e.Name;
-    MessageBox.Show(this, newWindowName);
+    
+    // Example usage of how the customer would use the window
+    // name to handle special cases such as "openInNewBrowser"
+    // which deviate from the normal handling of a new window.
+    if (newWindowName == "openInNewBrowser")
+    {
+        Process.Start(e.Uri);
+        e.Handled = true;
+    }
+    else
+    {
+        HandleNormalNewWindow();
+    }
 }
 ```
 
@@ -51,7 +82,7 @@ void WebView_NewWindowRequested(object sender, CoreWebView2NewWindowRequestedEve
 [uuid(9bcea956-6e1f-43bc-bf02-0a360d73717b), object, pointer_default(unique)]
 interface ICoreWebView2NewWindowRequestedEventArgs2 : ICoreWebView2NewWindowRequestedEventArgs {
   /// Gets the name of the new window.
-  [propget] HRESULT Name([out, retval] LPWSTR* name);
+  [propget] HRESULT Name([out, retval] LPWSTR* value);
 }
 ```
 
