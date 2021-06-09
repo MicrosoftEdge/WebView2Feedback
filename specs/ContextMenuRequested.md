@@ -77,30 +77,29 @@ The developer can use the data provided in the Event arguments to display a cust
     webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         CoreWebView2Deferral deferral = args.GetDeferral();
-         System.Threading.SynchronizationContext.Current.Post((_) =>
+        System.Threading.SynchronizationContext.Current.Post((_) =>
         {
             using (deferral)
             {
                 CoreWebView2ContextMenuItemCollection collection = args.MenuItems;
-                CoreWebView2SelectionContext context = args.ContextSelected;
-                Int32 collectionSize = collection.Count;
+                CoreWebView2SelectionContext context = args.context;
+                CoreWebView2ContextMenuItemCollectionIterator iterator = collection.GetIterator();
                 args.Handled = true;
-                CoreWebView2ContextMenuItem current = null;
                 ContextMenu cm = this.FindResource("ContextMenu") as ContextMenu;
                 cm.Items.Clear();
                 while (iterator.HasCurrent)
                 {
-                    CoreWebView2ContextMenuItem current = iterator.Current;
+                    CoreWebView2ContextMenuItem current = iterator.GetCurrent();
                     MenuItem newItem = new MenuItem();
                     newItem.Header = current.Name;
-                    newItem.Click += (s,e) => args.SelectedItem = current;
+                    newItem.Click += (s, ex) => args.SelectedItem = current.id;
                     cm.Items.Add(newItem);
-                    iterator.MoveNext;
+                    iterator.MoveNext();
                 }
                 cm.IsOpen = true;
             }
         }, null);
-    }
+    };
 ```
 # Remarks
 
@@ -203,13 +202,13 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(f562a2f5-c415-45cf-b909-d4b7c1e276d3), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuItemCollection : IUnknown {
         /// Gets the iterator over the collection of context menu items from the start
-        HRESULT GetIterator(ICoreWebView2ContextMenuItemCollectionIterator ** iterator);
+        HRESULT GetIterator([out, retval] ICoreWebView2ContextMenuItemCollectionIterator ** iterator);
 
         /// Returns whether the specific Context Menu ID is contained in the collection
-        HRESULT Contains(COREWEBVIEW2_CONTEXT_MENU_ITEM_ID menuItem, BOOL * iterator);
+        HRESULT Contains([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_ID menuItem, [out, retval] BOOL * iterator);
 
         /// Returns the iterator starting at the menu item specified
-        HRESULT Get(COREWEBVIEW2_CONTEXT_MENU_ITEM_ID menuItem, ICoreWebView2ContextMenuItemCollectionIterator ** iterator);
+        HRESULT Get([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_ID menuItem, [out, retval]  ICoreWebView2ContextMenuItemCollectionIterator ** iterator);
 
     }
 
@@ -218,13 +217,13 @@ The developer can use the data provided in the Event arguments to display a cust
     interface ICoreWebView2ContextMenuItemCollectionIterator : IUnknown {
         /// TRUE when the iterator has not run out of ContextMenuItem objects
         /// Will be FALSE if collection is empty or if iterator has gone past collection
-        [propget] HRESULT HasCurrent(BOOL * hasCurrent);
+        [propget] HRESULT HasCurrent([out, retval] BOOL * hasCurrent);
 
         /// Gets the current ICoreWebView2ContextMenuItem of the iterator
-        HRESULT GetCurrent(ICoreWebView2ContextMenuItem ** contextItem);
+        HRESULT GetCurrent([out, retval] ICoreWebView2ContextMenuItem ** contextItem);
 
         /// Moves the iterator to the next ContextMenuItem
-        HRESULT MoveNext(BOOL * hasNext);
+        HRESULT MoveNext([out, retval] BOOL * hasNext);
 
     }
 
@@ -287,7 +286,7 @@ The developer can use the data provided in the Event arguments to display a cust
 
         /// Returns an `ICoreWebView2Deferral` object. Use this operation to
         /// complete the event at a later time.
-        HRESULT GetDeferral(ICoreWebView2Deferral ** deferral);
+        HRESULT GetDeferral([out, retval] ICoreWebView2Deferral ** deferral);
     }
 ```
 
@@ -349,7 +348,6 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2ContextMenuItemCollection MenuItems { get; };
         CoreWebView2ContextMenuItem SelectedItem { get; set; }
         Point Location { get; };
-        
         Windows.Foundation.Deferral GetDeferral();
     };
     
@@ -362,7 +360,7 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2ContextMenuItemCollection
     {
-        CoreWebView2ContextMenuItemCollectionIterator Iterator{ get; }
+        CoreWebView2ContextMenuItemCollectionIterator GetIterator();
         Boolean Contains(CoreWebView2ContextMenuItemID menuItem);
         CoreWebView2ContextMenuItemCollectionIterator Get(CoreWebView2ContextMenuItemID menuItem);
     };
@@ -370,8 +368,8 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ContextMenuItemCollectionIterator
     {
         Boolean HasCurrent{ get; }
-        CoreWebView2ContextMenuItem Current{ get; }
-        Boolean MoveNext{ get; }
+        CoreWebView2ContextMenuItem GetCurrent();
+        Boolean MoveNext();
     };
 
     runtimeclass CoreWebView2
