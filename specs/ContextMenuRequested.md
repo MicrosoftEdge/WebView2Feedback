@@ -5,9 +5,9 @@ There currently is no method using WebView2 APIs to customize the default contex
 # Description
 We propose a new event for WebView2, CoreWebView2ContextMenuRequested that will allow developers to listen to context menus being requested by the end user in the WebView2. When a context menu is requested in WebView2, the app developer will receive:
 
-1. The list of default ContextMenuItem objects (contains name, ID, kind/type, Icon, Shorcut Desc, Access Key, the Command)
+1. The list of default ContextMenuItem objects (contains name, Descriptor, kind/type, Shorcut Desc)
 2. The coordinates where the context menu was requested. For instance where the end user right clicked.
-3. The source of the context selected
+3. The type of context selected (image, textbox, link, etc)
 
 and have the choice to: 
 
@@ -20,7 +20,7 @@ and have the choice to:
 
 ## Win32 C++ Use Data to Display Custom Context Menu
 
-The developer can use the data provided in the Event arguments to display a custom context menu with entries of their choice. For this case, the developer specifies Handled to be true and requests a deferral. The resolution of the event is when the user selects a context menu item (either the app developer will handle the case, or can return the selected option to the browser) or when they click on the screen (effectively closing the menu).
+The developer can use the data provided in the Event arguments to display a custom context menu with entries of their choice. For this case, the developer specifies Handled to be true and requests a deferral. deferral of this event should be completed when the user selects a context menu item (either the app developer will handle the case, or can return the selected option to the browser) or when they click on the screen (effectively closing the menu).
 
  ```cpp
     webview2->add_ContextMenuRequested(
@@ -41,13 +41,13 @@ The developer can use the data provided in the Event arguments to display a cust
                     {
                         wil::com_ptr<ICoreWebView2ContextMenuItem> current;
                         CHECK_FAILURE(iterator->GetCurrent(&current));
-                        LPWSTR name;
-                        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID id;
-                        LPWSTR shortcut;
+                        wil::unique_cotaskmem_string name;
+                        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR desc;
+                        wil::unique_cotaskmem_string shortcut;
                         CHECK_FAILURE(current->get_Name(&name));
-                        CHECK_FAILURE(current->get_ID(&id));
+                        CHECK_FAILURE(current->get_DESCRIPTOR(&desc));
                         CHECK_FAILURE(current->get_Shortcut(&shortcut));
-                        InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, id, name);
+                        InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, desc, name);
                         BOOL hasNext = FALSE;
                         CHECK_FAILURE(iterator->MoveNext(&hasNext));
                     }
@@ -116,37 +116,37 @@ The developer can use the data provided in the Event arguments to display a cust
 
     /// Defines the Context Menu Items
     [v1_enum]
-    typedef enum COREWEBVIEW2_CONTEXT_MENU_ITEM_ID {
+    typedef enum COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR {
         /// Custome type, will include Items brought in by browser extensions
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_CUSTOM,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_CUSTOM,
 
         /// No Command
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_NONE,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_NONE,
 
         /// Page Commands
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_BACK,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_FORWARD,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_RELOAD,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_STOP,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_NEW_WINDOW,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_PRINT,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_BACK,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_FORWARD,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_RELOAD,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_STOP,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_NEW_WINDOW,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_PRINT,
 
         /// Clipboard Commands
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_ID_CUT,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_COPY,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_PASTE,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_PASTE_AS_PLAIN_TEXT,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_SELECT_ALL,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_CUT,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_COPY,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_PASTE,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_PASTE_AS_PLAIN_TEXT,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SELECT_ALL,
 
         /// Saving
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_SAVE_LINK_AS,
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_SAVE_IMAGE_AS,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_LINK_AS,
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_IMAGE_AS,
 
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_INSPECT, 
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_INSPECT, 
 
         ... /// list is not complete
         
-    } COREWEBVIEW2_CONTEXT_MENU_ITEM_ID;
+    } COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR;
     
     /// Indicates the context selected (where the user right clicked)
     [v1_enum]
@@ -188,13 +188,13 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(7aed49e3-a93f-497a-811c-749c6b6b6c65), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuItem : IUnknown {
         /// Get the Name displayed for the Context Menu Item
-        [propget] HRESULT Name([out, retval] LPWSTR* name);
+        [propget] HRESULT Name([out, retval] LPWSTR* value);
 
         /// Get the ID for the Context Menu Item
-        [propget] HRESULT ID([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_ID* id);
+        [propget] HRESULT ID([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR* value);
 
-        /// Get the Shortcut for the Context Menu Item (CTRL+X for Cut)
-        [propget] HRESULT Shortcut([out, retval] LPWSTR* short_cut);
+        /// Get the Shortcut for the Context Menu Item
+        [propget] HRESULT Shortcut([out, retval] LPWSTR* value);
 
     }
 
@@ -205,10 +205,10 @@ The developer can use the data provided in the Event arguments to display a cust
         HRESULT GetIterator([out, retval] ICoreWebView2ContextMenuItemCollectionIterator ** iterator);
 
         /// Returns whether the specific Context Menu ID is contained in the collection
-        HRESULT Contains([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_ID menuItem, [out, retval] BOOL * iterator);
+        HRESULT Contains([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR menuItem, [out, retval] BOOL * iterator);
 
         /// Returns the iterator starting at the menu item specified
-        HRESULT Get([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_ID menuItem, [out, retval]  ICoreWebView2ContextMenuItemCollectionIterator ** iterator);
+        HRESULT Get([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR menuItem, [out, retval]  ICoreWebView2ContextMenuItemCollectionIterator ** iterator);
 
     }
 
@@ -217,7 +217,7 @@ The developer can use the data provided in the Event arguments to display a cust
     interface ICoreWebView2ContextMenuItemCollectionIterator : IUnknown {
         /// TRUE when the iterator has not run out of ContextMenuItem objects
         /// Will be FALSE if collection is empty or if iterator has gone past collection
-        [propget] HRESULT HasCurrent([out, retval] BOOL * hasCurrent);
+        [propget] HRESULT HasCurrent([out, retval] BOOL * value);
 
         /// Gets the current ICoreWebView2ContextMenuItem of the iterator
         HRESULT GetCurrent([out, retval] ICoreWebView2ContextMenuItem ** contextItem);
@@ -235,8 +235,7 @@ The developer can use the data provided in the Event arguments to display a cust
         ///
         /// The host can use their own UI to create their own context menu using
         /// the data provided in the API or can add to / remove from the default
-        /// context menu. provide a response with credentials for the authentication
-        /// or cancel the request. If the host doesn't handle the event, Webview will
+        /// context menu. If the host doesn't handle the event, Webview will
         /// display the original context menu.
         ///
         HRESULT add_ContextMenuRequested(
@@ -263,29 +262,30 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(a1d309ee-c03f-11eb-8529-0242ac130003), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuRequestedEventArgs : IUnknown {
         /// The list of default ContextMenuItem objects
-        [propget] HRESULT MenuItems([out, retval] ICoreWebView2ContextMenuItemCollection ** menuItems);
+        [propget] HRESULT MenuItems([out, retval] ICoreWebView2ContextMenuItemCollection ** value);
 
         /// The coordinates where the right click occured
-        [propget] HRESULT Location([out, retval] POINT* coordinates);
+        [propget] HRESULT Location([out, retval] POINT* value);
 
         /// The context that the user selected
-        [propget] HRESULT Context([out, retval] COREWEBVIEW2_SELECTION_CONTEXT* context);
+        [propget] HRESULT Context([out, retval] COREWEBVIEW2_SELECTION_CONTEXT* value);
 
-        /// Returns the selected Context Menu Item
-        [propget] HRESULT SelectedItem([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_ID* selectedItem);
+        /// Returns the selected Context Menu Item, default item is COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_NONE
+        [propget] HRESULT SelectedItem([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR* value);
 
-        /// Sets the Selected Menu Item to respond to the server
-        [propput] HRESULT SelectedItem([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_ID selectedItem);
+        /// Sets the Selected Menu Item to respond to the server, default item is COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_NONE
+        [propput] HRESULT SelectedItem([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR value);
 
         /// Whether the App will draw context menu. False by default, meaning WebView should display default context menu
         /// If set to true, app developer will handle displaying the Context Menu using the data provided.
-        [propput] HRESULT Handled([out, retval] BOOL* handled);
+        [propput] HRESULT Handled([out, retval] BOOL* value);
 
         /// Sets the Handled property
-        [propget] HRESULT Handled([in] BOOL handled);
+        [propget] HRESULT Handled([in] BOOL value);
 
         /// Returns an `ICoreWebView2Deferral` object. Use this operation to
-        /// complete the event at a later time.
+        /// complete the event when a user selects a context menu item from custom menu
+        /// or clicks outside from context menu
         HRESULT GetDeferral([out, retval] ICoreWebView2Deferral ** deferral);
     }
 ```
@@ -299,7 +299,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ContextMenuItemCollection;
     runtimeclass CoreWebView2ContextMenuItemCollectionIterator;
 
-    enum CoreWebView2ContextMenuItemID {
+    enum CoreWebView2ContextMenuItemDescriptor {
         /// Custome type, will include Items brought in by browser extensions
         Custom = 0,
 
@@ -355,7 +355,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         String Name { get; }
         String Shortcut { get; }
-        CoreWebView2ContextMenuItemID ID { get; }
+        CoreWebView2ContextMenuItemDescriptor Descriptor { get; }
     };
 
     runtimeclass CoreWebView2ContextMenuItemCollection
