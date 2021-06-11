@@ -25,11 +25,11 @@ The first method takes a uint64 parameter that consists of one or more COREWEBVI
 The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The double time parameters correspond to how many seconds since the UNIX epoch. 
  
 The browsing data kinds that are supported are listed below. These data kinds follow a hierarchical structure in which nested bullet points are included in their parent bullet point's data kind. 
-Ex: DOM storage is encompassed in site data which is encompassed in the profile data. Each of the following bullets correspond to a COREWEBVIEW2_BROWSING_DATA_KIND. 
+Ex: DOM storage is included in site data which is included in the profile data. Each of the following bullets correspond to a COREWEBVIEW2_BROWSING_DATA_KIND. 
 
 * Profile
   * Site Data
-    * DOM Storage: App Cache, File Systems, Indexed DB, Local Storage, Web SQL, Cache 
+    * DOM Storage: App Cache, File Systems, Indexed DB, Local Storage, Web SQL, Cache Storage
         Storage
     * Cookies 
   * HTTP Cache 
@@ -188,7 +188,7 @@ typedef enum COREWEBVIEW2_BROWSING_DATA_KIND {
   COREWEBVIEW2_BROWSING_DATA_KIND_SETTINGS = 1<<12,
 
   /// Specifies profile data that should be wiped to make it look like a new profile.
-  /// This browsing data kind if inclusive of COREWEBVIEW2_BROWSING_DATA_KIND_SITE,
+  /// This browsing data kind is inclusive of COREWEBVIEW2_BROWSING_DATA_KIND_SITE,
   /// COREWEBVIEW2_BROWSING_DATA_KIND_HTTP_CACHE, 
   /// COREWEBVIEW2_BROWSING_DATA_KIND_DOWNLOAD_HISTORY,
   /// COREWEBVIEW2_BROWSING_DATA_KIND_GENERAL_AUTOFILL, 
@@ -224,13 +224,14 @@ interface ICoreWebView2Environment2 : ICoreWebView2Environment {
   ///   * Settings  
   /// The completed handler will be invoked when the browsing data has been cleared and will 
   /// indicate if the specified data was properly cleared.
-  /// The first ClearBrowsingData method clears the dataKinds for all time. 
-  /// The second ClearBrowsingData method takes in two additional parameters for the 
-  /// start and end time in which it should clear the data between.  The startTime and endTime 
-  /// parameters correspond to the number of seconds since the UNIX epoch. 
+  /// ClearBrowsingData clears the dataKinds for all time. 
   HRESULT ClearBrowsingData(
       [in] uint64 dataKinds,
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler *handler);
+      
+  /// ClearBrowsingDataInTimeRange takes in two additional parameters for the 
+  /// start and end time for which it should clear the data between.  The startTime and endTime 
+  /// parameters correspond to the number of seconds since the UNIX epoch. 
   HRESULT ClearBrowsingDataInTimeRange(
       [in] uint64 dataKinds, 
       [in] double startTime,
@@ -260,7 +261,7 @@ namespace Microsoft.Web.WebView2.Core
         Failed = 2,
     };
 
-    enum CoreWebView2BrowsingDataKind
+    [Flags] enum CoreWebView2BrowsingDataKind
     {
         AppCache = 1,
         FileSystems = 2,
