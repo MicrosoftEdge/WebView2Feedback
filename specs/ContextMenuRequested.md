@@ -11,10 +11,63 @@ We propose a new event for WebView2, CoreWebView2ContextMenuRequested that will 
 
 and have the choice to: 
 
-1. Add or remove entries to the default context menu provided by the browser (not in this PR, added later)
+1. Add or remove entries to the default context menu provided by the browser
 2. Use their own UI to display their custom context menu (can either handle the selection on their own or return the selected option to the browser)
 
 # Examples
+
+## Win32 C++ Add or Remove Entries From Browser Menu
+
+The developer can add or remove entries to the default browser context menu. For this case, the developer specifies Handled to be false and is able to add or remove items to the collection of context menu items.
+
+ ```cpp
+    webview2->add_ContextMenuRequested(
+        Callback<ICoreWebView2ContextMenuRequestedEventHandler>(
+            [this](
+                ICoreWebView2* sender,
+                ICoreWebView2ContextMenuRequestedEventArgs* args)
+            {
+                wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
+                args->get_ContextMenuItems(&items);
+                COREWEBVIEW2_SELECTION_CONTEXT selection_context;
+                args->get_ContextSelected(&selection_context);
+                args->put_Handled(false);
+                UINT menuCollectionCount;
+                CHECK_FAILURE(items->get_Count(&menuCollectionCount));
+
+                // Removing item
+                if(selection_context == COREWEBVIEW2_SELECTION_CONTEXT_IMAGE)
+                {
+                    UINT removeIndex = -1;
+                    wil::com_ptr<ICoreWebView2ContextMenuItem> current;
+                    for(UINT i = 0; i < menuCollectionCount; i++) {
+                        CHECK_FAILURE(items->GetValueAtIndex(i, &current));
+                        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR desc;
+                        CHECK_FAILURE(current->get_Descriptor(&desc));
+                        if(desc == COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR == COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_IMAGE_AS){
+                            removeIndex = i;
+                        }
+                    }
+                    if(removeIndex > -1){
+                        CHECK_FAILURE(items->RemoveValueAtIndex(removeIndex));
+                    }
+                }
+                // Adding item
+                else if (selection_context == COREWEBVIEW2_SELECTION_CONTEXT_LINK)
+                {
+                    wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
+                    m_appWindow->GetWebViewEnvironment()->QueryInterface(
+                        IID_PPV_ARGS(&webviewEnvironment));
+                    wil::com_ptr<ICoreWebView2ContextMenuItem> newMenuItem;
+                    webviewEnvironment->CreateContextMenuItem(
+                        L"NewItem", L"Shorcut", &newMenuItem);    
+                    CHECK_FAILURE(items->AddValueAtIndex(newMenuItem, menuCollectionCount));
+                }
+                return S_OK;
+            })
+            .Get(),
+        &m_contextMenuRequestedToken));
+```
 
 ## Win32 C++ Use Data to Display Custom Context Menu
 
@@ -28,26 +81,25 @@ The developer can use the data provided in the Event arguments to display a cust
                 ICoreWebView2ContextMenuRequestedEventArgs* args)
             {
                 auto showMenu = [this, args] {
-                    wil::com_ptr<ICoreWebView2ContextMenuItemCollection> context_menu_items;
-                    CHECK_FAILURE(args->get_ContextMenuItems(&context_menu_items));
+                    wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
+                    CHECK_FAILURE(args->get_ContextMenuItems(&items));
                     args->put_Handled(true);
-                    wil::com_ptr<ICoreWebView2ContextMenuItemCollectionIterator> iterator;
-                    CHECK_FAILURE(context_menu_items->GetIterator(&iterator));
+
+                    UINT menuCollectionCount;
+                    CHECK_FAILURE(certificateCollection->get_Count(&menuCollectionCount));
+
                     HMENU hPopupMenu = CreatePopupMenu();
-                    BOOL hasCurrent = FALSE;
-                    while (SUCCEEDED(iterator->get_HasCurrent(&hasCurrent)) && hasCurrent)
-                    {
-                        wil::com_ptr<ICoreWebView2ContextMenuItem> current;
-                        CHECK_FAILURE(iterator->GetCurrent(&current));
+                    wil::com_ptr<ICoreWebView2ContextMenuItem> current;
+
+                    for(UINT i = 0; i < menuCollectionCount; i++) {
+                        CHECK_FAILURE(items->GetValueAtIndex(i, &current));
                         wil::unique_cotaskmem_string name;
                         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR desc;
                         wil::unique_cotaskmem_string shortcut;
                         CHECK_FAILURE(current->get_Name(&name));
-                        CHECK_FAILURE(current->get_DESCRIPTOR(&desc));
+                        CHECK_FAILURE(current->get_Descriptor(&desc));
                         CHECK_FAILURE(current->get_Shortcut(&shortcut));
-                        InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, desc, name);
-                        BOOL hasNext = FALSE;
-                        CHECK_FAILURE(iterator->MoveNext(&hasNext));
+                        InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, desc, name + "-" + shortcut);
                     }
                     HWND hWnd;
                     m_appWindow->GetWebViewController()->get_ParentWindow(&hWnd);
@@ -67,6 +119,28 @@ The developer can use the data provided in the Event arguments to display a cust
             }).Get(),
         &m_contextMenuRequestedToken);
 ```
+## .Net/ WinRT Add or Remove Entries From Browser Menu 
+
+ ```c#
+    webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
+    {
+        CoreWebView2ContextMenuItemCollection collection = args.MenuItems;
+        CoreWebView2SelectionContext context = args.ContextSelected;
+        args.Handled = false;
+        if(context == CoreWebView2SelectionContext.Image)
+        {
+            /// removes the last item in the collection
+            collection.RemoveValueAtIndex(collection.Count - 1);
+        }
+        else if (context == CoreWebView2SelectionContext.Link)
+        {
+            /// add new item to end of colelction
+            CoreWebView2ContextMenuItem newItem = _coreWebView2Environment.CreateContextMenuItem(
+                "NewItem", "Shortcut");
+            collection.AddValueAtIndex(newItem, collection.Count);
+        }
+    };
+```
 
 ## .Net/ WinRT Use Data to Display Custom Context Menu 
 
@@ -78,20 +152,17 @@ The developer can use the data provided in the Event arguments to display a cust
         {
             using (deferral)
             {
-                CoreWebView2ContextMenuItemCollection collection = args.MenuItems;
+                IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
                 CoreWebView2SelectionContext context = args.context;
-                CoreWebView2ContextMenuItemCollectionIterator iterator = collection.GetIterator();
                 args.Handled = true;
                 ContextMenu cm = this.FindResource("ContextMenu") as ContextMenu;
                 cm.Items.Clear();
-                while (iterator.HasCurrent)
-                {
-                    CoreWebView2ContextMenuItem current = iterator.GetCurrent();
+                for(int i = 0; i < menuList.Count; i ++){
+                    CoreWebView2ContextMenuItem current = menuList[i];
                     MenuItem newItem = new MenuItem();
                     newItem.Header = current.Name;
                     newItem.Click += (s, ex) => args.SelectedItem = current.id;
                     cm.Items.Add(newItem);
-                    iterator.MoveNext();
                 }
                 cm.IsOpen = true;
             }
@@ -105,9 +176,9 @@ The developer can use the data provided in the Event arguments to display a cust
 # API Details
  ```cpp
     interface ICoreWebView2_4;
+    interface ICoreWebView2Environment;
     interface ICoreWebView2ContextMenuItem;
     interface ICoreWebView2ContextMenuItemCollection;
-    interface ICoreWebView2ContextMenuItemCollectionIterator;
     interface ICoreWebView2ContextMenuRequestedEventArgs;
     interface ICoreWebView2ContextMenuRequestedEventHandler;
 
@@ -116,6 +187,8 @@ The developer can use the data provided in the Event arguments to display a cust
     typedef enum COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR {
         /// Custome type, will include Items brought in by browser extensions
         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_CUSTOM,
+
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_MISSPELLED,
 
         /// No Command
         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_NONE,
@@ -140,8 +213,6 @@ The developer can use the data provided in the Event arguments to display a cust
         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_IMAGE_AS,
 
         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_INSPECT, 
-
-        ... /// list is not complete
         
     } COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR;
     
@@ -149,37 +220,39 @@ The developer can use the data provided in the Event arguments to display a cust
     [v1_enum]
     typedef enum COREWEBVIEW2_SELECTION_CONTEXT {
 
+        /// Indicates that a user right clicked on the page.
+        COREWEBVIEW2_SELECTION_CONTEXT_DEFAULT,
+
+        /// Indicates that a user right clicked on audio.
+        COREWEBVIEW2_SELECTION_CONTEXT_AUDIO,
+
         /// Indicates that a user right clicked on an image.
-
         COREWEBVIEW2_SELECTION_CONTEXT_IMAGE,
-
-        /// Indicates that a user right clicked on a link.
-
-        COREWEBVIEW2_SELECTION_CONTEXT_LINK,
-
-        /// Indicates that a user right clicked on a textbox.
-
-        COREWEBVIEW2_SELECTION_CONTEXT_TEXTBOX,
-
-        /// Indicates that a user right clicked on selected text.
-
-        COREWEBVIEW2_SELECTION_CONTEXT_TEXT,
-
-        /// Indicates that a user right clicked on an area on the page.
-
-        COREWEBVIEW2_SELECTION_CONTEXT_PAGE,
-
-        /// Indicates that a user right clicked on a video
-
-        COREWEBVIEW2_SELECTION_CONTEXT_VIDEO,
         
-        /// Indicates that a user right clicked on a pdf
-
-        COREWEBVIEW2_SELECTION_CONTEXT_PDF,
-
-        /// list is not complete
+        /// Indicates that a user right clicked on a video
+        COREWEBVIEW2_SELECTION_CONTEXT_VIDEO,
 
     } COREWEBVIEW2_SELECTION_CONTEXT;
+
+    /// Indicates the menu item type
+    [v1_enum]
+    typedef enum COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND {
+        /// A normal menu item kind, can be enabled or not.
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL,
+
+        /// A checkbox. Can be checked or enabled
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_CHECKBOX,
+
+        /// A radio button type, can be checked or enabled
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_RADIO,
+
+        /// A Separator type, has no underlying functionality
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_SEPARATOR,
+
+        /// A Submenu type, will contain a list of its children
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_SUBMENU,
+
+    } COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND;
 
     /// Context Menu Items displayed by the Edge browser, holds the properties of a context menu item
     [uuid(7aed49e3-a93f-497a-811c-749c6b6b6c65), object, pointer_default(unique)]
@@ -188,54 +261,40 @@ The developer can use the data provided in the Event arguments to display a cust
         [propget] HRESULT Name([out, retval] LPWSTR* value);
 
         /// Get the ID for the Context Menu Item
-        [propget] HRESULT ID([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR* value);
+        [propget] HRESULT Descriptor([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR* value);
 
         /// Get the Shortcut for the Context Menu Item
         [propget] HRESULT Shortcut([out, retval] LPWSTR* value);
+
+        /// Returns the menu item kind
+        [propget] HRESULT Kind([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND* value);
+
+        /// Returns if the menu item is enabled
+        [propget] HRESULT IsEnabled([out, retval] BOOL* value);
+
+        /// Returns if the menu item is checked, used if the kind is checkbox or radio
+        [propget] HRESULT IsChecked([out, retval] BOOL* value);
+
+        /// Returns the list of Children menu items if the kind is Submenu
+        [propget] HRESULT Children([out, retval] ICoreWebView2ContextMenuItemCollection** value);
 
     }
 
     /// Collection of ContextMenuItem objects 
     [uuid(f562a2f5-c415-45cf-b909-d4b7c1e276d3), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuItemCollection : IUnknown {
-        /// Gets the iterator over the collection of context menu items from the start
-        HRESULT GetIterator([out, retval] ICoreWebView2ContextMenuItemCollectionIterator ** iterator);
+        /// The number of context menu items contained in the ICoreWebView2ContextMenuItemCollection
+        [propget] HRESULT Count([out, retval] UINT* value);
 
-        /// Returns whether the specific Context Menu ID is contained in the collection
-        HRESULT Contains([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR menuItem, [out, retval] BOOL * iterator);
+        /// Gets the context menu item at the given index.
+        HRESULT GetValueAtIndex([in] UINT index,
+            [out, retval] ICoreWebView2ContextMenuItem** value);
 
-        /// Returns the iterator starting at the menu item specified
-        HRESULT Get([in] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR menuItem, [out, retval]  ICoreWebView2ContextMenuItemCollectionIterator** iterator);
+        // Removes ContextMenuItem at the specified index
+        HRESULT RemoveValueAtIndex([in] UINT index);
 
-        /// Deletes the menu item specified
-        HRESULT Delete(COREWEBVIEW2_CONTEXT_MENU_ITEM_ID menuItem);
-
-        /// Adds a context menu item to the front of the list
-        HRESULT InsertBefore(ICoreWebView2ContextMenu* menuItem, UINT index);
-
-        /// Adds a context menu item to the end of the list
-        HRESULT Append(ICoreWebView2ContextMenu* newMenuItem);
-
-    }
-
-    /// Iterator for a collection of ContextMenuItem objects 
-    [uuid(b9cc0ce5-4d10-4b9c-af06-802b199abc42), object, pointer_default(unique)]
-    interface ICoreWebView2ContextMenuItemCollectionIterator : IUnknown {
-        /// TRUE when the iterator has not run out of ContextMenuItem objects
-        /// Will be FALSE if collection is empty or if iterator has gone past collection
-        [propget] HRESULT HasCurrent([out, retval] BOOL * value);
-
-        /// Gets the current ICoreWebView2ContextMenuItem of the iterator
-        HRESULT GetCurrent([out, retval] ICoreWebView2ContextMenuItem ** contextItem);
-
-        /// Moves the iterator to the next ContextMenuItem
-        HRESULT MoveNext([out, retval] BOOL * hasNext);
-
-        /// Deletes the current context menu item and moves to the next item
-        HRESULT DeleteAndMoveNext(BOOL * hasNext);
-
-        /// Inserts the new context menu item before the current one.
-        HRESULT InsertBefore(ICoreWebView2ContextMenuItem* menuItem);
+        /// Will insert the new ContextMenuItem at the index specified
+        HRESULT AddValueAtIndex([in] UINT index, [in] ICoreWebView2ContextMenuItem* value);
     }
 
     [uuid(76eceacb-0462-4d94-ac83-423a6793775e), object, pointer_default(unique)]
@@ -248,7 +307,7 @@ The developer can use the data provided in the Event arguments to display a cust
         /// the data provided in the API or can add to / remove from the default
         /// context menu. If the host doesn't handle the event, Webview will
         /// display the original context menu.
-        ///
+
         HRESULT add_ContextMenuRequested(
             [in] ICoreWebView2ContextMenuRequestedEventHandler* eventHandler,
             [out] EventRegistrationToken* token);
@@ -258,9 +317,9 @@ The developer can use the data provided in the Event arguments to display a cust
             [in] EventRegistrationToken token);
     }
 
-    /// A continuation of the ICoreWebView2Environment3 interface.
+    /// A continuation of the ICoreWebView2Environment interface.
     [uuid(04d4fe1d-ab87-42fb-a898-da241d35b63c), object, pointer_default(unique)]
-    interface ICoreWebView2Environment4 : ICoreWebView2Environment3 {
+    interface ICoreWebView2Environment : IUnknown {
         /// Create a ContextMenuItem object used for developers to insert new items 
         /// into the default browser context menu, Descriptor will be CUSTOM
         HRESULT CreateContextMenuItem(
@@ -291,6 +350,15 @@ The developer can use the data provided in the Event arguments to display a cust
         /// The context that the user selected
         [propget] HRESULT Context([out, retval] COREWEBVIEW2_SELECTION_CONTEXT* value);
 
+        /// Returns if the source is selected
+        [propget] HRESULT IsSourceSelected([out, retval] BOOL* value);
+
+        /// Returns if the source is editable
+        [propget] HRESULT IsSourceEditable([out, retval] BOOL* value);
+
+        /// Returns if the HTML content is enabled
+        [propget] HRESULT IsSourceEnabled([out, retval] BOOL* value);
+
         /// Returns the selected Context Menu Item, default item is COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_NONE
         [propget] HRESULT SelectedItem([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR* value);
 
@@ -314,11 +382,10 @@ The developer can use the data provided in the Event arguments to display a cust
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-
-    runtimeclass CoreWebView2ContextMenuRequestedEventArgs;
+    runtimeclass CoreWebView2Environment;
     runtimeclass CoreWebView2ContextMenuItem;
-    runtimeclass CoreWebView2ContextMenuItemCollection;
-    runtimeclass CoreWebView2ContextMenuItemCollectionIterator;
+    runtimeclass CoreWebView2ContextMenuRequestedEventArgs;
+    
 
     enum CoreWebView2ContextMenuItemDescriptor {
         /// Custome type, will include Items brought in by browser extensions
@@ -347,26 +414,34 @@ namespace Microsoft.Web.WebView2.Core
         SaveImageAs = 14,
         
         Inspect = 15,
-        ... /// list is not complete
     };
 
     enum CoreWebView2SelectionContext
     {
-        Image = 0,
-        Link = 1,
-        Textbox = 2,
-        Text = 3,
-        Page = 4,
-        Video = 5,
-        PDF = 6,
-        ... /// list is not complete
+        Default = 0,
+        Audio = 1,
+        Image = 2,
+        Video = 3,
+    };
+
+    enum CoreWebView2ContextMenuItemKind
+    {
+        Normal = 0,
+        Checkbox = 1,
+        Radio = 2,
+        Separator = 3,
+        Submenu = 4,
     };
 
     runtimeclass CoreWebView2ContextMenuRequestedEventArgs
     {
         Boolean Handled { get; set; }
         CoreWebView2SelectionContext Context { get; };
-        CoreWebView2ContextMenuItemCollection MenuItems { get; };
+        Boolean IsSourceSelected { get; }
+        Boolean IsSourceEditable { get; }
+        Boolean IsSourceEnabled { get; }
+        Uri ArnchorUri { get; }
+        IVector<CoreWebView2ContextMenuItem> MenuItems { get; };
         CoreWebView2ContextMenuItem SelectedItem { get; set; }
         Point Location { get; };
         Windows.Foundation.Deferral GetDeferral();
@@ -377,26 +452,19 @@ namespace Microsoft.Web.WebView2.Core
         String Name { get; }
         String Shortcut { get; }
         CoreWebView2ContextMenuItemDescriptor Descriptor { get; }
+        CoreWebView2ContextMenuItemKind Kind { get; }
+        Boolean IsEnabled { get; }
+        Boolean IsChecked { get; }
+        IVector<CoreWebView2ContextMenuItem> Children { get; }
     };
 
-    runtimeclass CoreWebView2ContextMenuItemCollection
+    runtimeclass CoreWebView2Environment
     {
-        CoreWebView2ContextMenuItemCollectionIterator GetIterator();
-        Boolean Contains(CoreWebView2ContextMenuItemDescriptor menuItem);
-        CoreWebView2ContextMenuItemCollectionIterator Get(CoreWebView2ContextMenuItemDescriptor menuItem);
-        void Delete(CoreWebView2ContextMenuItemDescriptor menuItem);
-        void InsertBefore(CoreWebView2ContextMenuItemDescriptor newMenuItem, Int32 index);
-        void Append(CoreWebView2ContextMenuItemDescriptor newMenuItem);
-    };
-    
-    runtimeclass CoreWebView2ContextMenuItemCollectionIterator
-    {
-        Boolean HasCurrent{ get; }
-        CoreWebView2ContextMenuItem GetCurrent();
-        Boolean MoveNext();
-        Boolean DeleteAndMoveNext();
-        void InsertBefore(CoreWebView2ContextMenuItem newMenuItem);
-    };
+        public CoreWebView2ContextMenuItem CreateContextMenuItem(
+            String name,
+            String shortcut,
+        )
+    }
 
     runtimeclass CoreWebView2
     {
