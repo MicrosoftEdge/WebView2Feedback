@@ -62,6 +62,7 @@ interface ICoreWebView2Settings6 : ICoreWebView2Settings5 {
   /// 2. Pull to refresh (swipe vertically) the current page. (This feature is
   /// currently disabled by default in the browser, to enable in WebView2, use
   /// `put_AdditionalBrowserArguments` api with "--pull-to-refresh" switch).
+  ///
   /// The `IsSwipeNavigationEnabled` property enables or disables the ability of the
   /// end user to use swiping gesture on touch input enabled devices to
   /// navigate in WebView2. It defaults to `TRUE`.
@@ -69,6 +70,8 @@ interface ICoreWebView2Settings6 : ICoreWebView2Settings5 {
   /// This API only affects the overscrolling navigation functionality and has no
   /// effect on the scrolling interaction used to explore the web content shown
   /// in WebView2.
+  /// Disabling/Enabling IsSwipeNavigationEnabled does not take effect until the
+  /// next navigation.
   ///
   /// \snippet SettingsComponent.cpp ToggleSwipeNavigationEnabled
   [propget] HRESULT IsSwipeNavigationEnabled([out, retval] BOOL* enabled);
