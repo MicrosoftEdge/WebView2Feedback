@@ -93,8 +93,6 @@ interface ICoreWebView2StatusBarHidingEventHandler : IUnknown {
 ## C#/ .Net/ WinRT
 ```
 namespace Microsoft.Web.WebView2.Core {
-
-
     runtimeclass CoreWebView2StatusBarShowingEventArgs {
         string message {get;};
     }
