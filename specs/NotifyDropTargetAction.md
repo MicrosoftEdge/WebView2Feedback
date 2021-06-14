@@ -19,9 +19,6 @@ The hosting app needs to call RegisterDragDrop on the HWND that contains the Web
 calls (IDropTarget::DragEnter, DragMove, DragLeave, and Drop) to the WebView. Other UI frameworks have their own ways to register.
 For example, Xaml require setting event handler for DragEnter, DragOver, DragLeave, and Drop on the corresponding UIElement.
 
-Additionally, for win32, the hosting app also needs to call into IDropTargetHelper before forwarding those calls to us as documented here:
-https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-idroptargethelper
-
 For API reviewers, We want a unified API surface between COM and WinRT that works in both UWP and Win32.
 
 We could:
@@ -34,8 +31,8 @@ Because the conversion is simple and we have a large Win32 user base we chose (1
 
 # Description
 DragEnter, DragOver, DragLeave, and Drop are functions meant to provide a way for composition hosted WebViews to receive drop events as part of a drag/drop operation.
-It is the hosting application's responsibility to call RegisterDragDrop (https://docs.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-registerdragdrop)
-on the HWND that contains any composition hosted WebViews and to implement IDropTarget(https://docs.microsoft.com/en-us/windows/win32/api/oleidl/nn-oleidl-idroptarget)
+For win32, it is the hosting application's responsibility to call [RegisterDragDrop](https://docs.microsoft.com/en-us/windows/win32/api/ole2/nf-ole2-registerdragdrop)
+on the HWND that contains any composition hosted WebViews and to implement [IDropTarget](https://docs.microsoft.com/en-us/windows/win32/api/oleidl/nn-oleidl-idroptarget)
 to receive the corresponding drop events from Ole32:
 
 - IDropTarget::DragEnter
@@ -43,8 +40,11 @@ to receive the corresponding drop events from Ole32:
 - IDropTarget::DragLeave
 - IDropTarget::Drop
 
-For other UI frameworks such as Xaml, the hosting application would set event handlers for DragEnter, DragOver, DragLeave, and Drop
-on the UIElement that contains the WebView2 element.
+The HWND doesn't have to be the immediate parent of the WebView2 but it does have to convert the POINTL argument in the above functions from screen coordinates to client coordinates of the WebView2.
+
+For WinRT, it is the hosting applications responsibility to register as a drop target via [CoreDragDropManager](https://docs.microsoft.com/en-us/uwp/api/windows.applicationmodel.datatransfer.dragdrop.core.coredragdropmanager)
+on CoreDragDropManager.TargetRequested and to call [CoreDropOperationTargetRequestedEventArgs.SetTarget(ICoreDropOperationTarget)](https://docs.microsoft.com/en-us/uwp/api/windows.applicationmodel.datatransfer.dragdrop.core.coredropoperationtargetrequestedeventargs)
+on an implementation of [ICoreDropOperationTarget](https://docs.microsoft.com/en-us/uwp/api/Windows.ApplicationModel.DataTransfer.DragDrop.Core.ICoreDropOperationTarget).
 
 # Examples
 ## Win32
@@ -54,17 +54,10 @@ on the UIElement that contains the WebView2 element.
 // Implementation for IDropTarget
 HRESULT DropTarget::DragEnter(IDataObject* dataObject,
     DWORD keyState,
-    POINTL point,
+    POINTL cursorPosition,
     DWORD* effect)
 {
     POINT point = { cursorPosition.x, cursorPosition.y };
-    // Tell the helper that we entered so it can update the drag image and get
-    // the correct effect.
-    wil::com_ptr<IDropTargetHelper> dropHelper = DropHelper();
-    if (dropHelper)
-    {
-        dropHelper->DragEnter(GetHWND(), dataObject, &point, *effect);
-    }
 
     // Convert the screen point to client coordinates add the WebView's offset.
     m_viewComponent->OffsetPointToWebView(&point);
@@ -73,17 +66,10 @@ HRESULT DropTarget::DragEnter(IDataObject* dataObject,
 }
 
 HRESULT DropTarget::DragOver(DWORD keyState,
-    POINTL point,
+    POINTL cursorPosition,
     DWORD* effect)
 {
     POINT point = { cursorPosition.x, cursorPosition.y };
-    // Tell the helper that we moved over it so it can update the drag image
-    // and get the correct effect.
-    wil::com_ptr<IDropTargetHelper> dropHelper = DropHelper();
-    if (dropHelper)
-    {
-        dropHelper->DragOver(&point, *effect);
-    }
 
     // Convert the screen point to client coordinates add the WebView's offset.
     // This returns whether the resultant point is over the WebView visual.
@@ -94,29 +80,15 @@ HRESULT DropTarget::DragOver(DWORD keyState,
 
 HRESULT DropTarget::DragLeave()
 {
-    // Tell the helper that we moved out of it so it can update the drag image.
-    wil::com_ptr<IDropTargetHelper> dropHelper = DropHelper();
-    if (dropHelper)
-    {
-        dropHelper->DragLeave();
-    }
-
     return m_webViewCompositionController2->DragLeave();
 }
 
 HRESULT DropTarget::Drop(IDataObject* dataObject,
     DWORD keyState,
-    POINTL point,
+    POINTL cursorPosition,
     DWORD* effect)
 {
     POINT point = { cursorPosition.x, cursorPosition.y };
-    // Tell the helper that we dropped onto it so it can update the drag image
-    // and get the correct effect.
-    wil::com_ptr<IDropTargetHelper> dropHelper = DropHelper();
-    if (dropHelper)
-    {
-        dropHelper->Drop(dataObject, &point, *effect);
-    }
 
     // Convert the screen point to client coordinates add the WebView's offset.
     // This returns whether the resultant point is over the WebView visual.
@@ -129,71 +101,24 @@ HRESULT DropTarget::Drop(IDataObject* dataObject,
 ## WinRT
 ```c#
 // WinRT Sample
-private void WebView_DragEnter(object sender, DragEventArgs e)
+IAsyncOperation<DataPackageOperation> ICoreDropOperationTarget.EnterAsync(CoreDragInfo dragInfo, CoreDragUIOverride dragUIOverride)
 {
-  uint keyboardState = 
-    ConvertDragDropModifiersToWin32KeyboardState(e.Modifiers);
-  Point pointerPosition = CoreWindow.GetForCurrentThread().PointerPosition;
-  DataPackageOperation operation = 
-    (DataPackageOperation)webView2CompositionController.DragEnter(
-      e.Data, keyboardState, pointerPosition);
-  e.AcceptedOperation = operation;
+    return compositionController.DragEnter(dragInfo, dragUIOverride);
 }
 
-private void WebView_DragOver(object sender, DragEventArgs e)
+IAsyncOperation<DataPackageOperation> ICoreDropOperationTarget.OverAsync(CoreDragInfo dragInfo, CoreDragUIOverride dragUIOverride)
 {
-  uint keyboardState =
-    ConvertDragDropModifiersToWin32KeyboardState(e.Modifiers);
-  Point pointerPosition = CoreWindow.GetForCurrentThread().PointerPosition;
-  DataPackageOperation operation = 
-    (DataPackageOperation)webView2CompositionController.DragOver(
-      keyboardState, pointerPosition);
-  e.AcceptedOperation = operation;
+    return compositionController.DragOver(dragInfo, dragUIOverride);
 }
 
-private void WebView_DragLeave(object sender, DragEventArgs e)
+IAsyncAction ICoreDropOperationTarget.LeaveAsync(CoreDragInfo dragInfo)
 {
-  webView2CompositionController.DragLeave();
+    return compositionController.DragLeave(dragInfo);
 }
 
-private void WebView_Drop(object sender, DragEventArgs e)
+IAsyncOperation<DataPackageOperation> ICoreDropOperationTarget.DropAsync(CoreDragInfo dragInfo)
 {
-  uint keyboardState =
-    ConvertDragDropModifiersToWin32KeyboardState(e.Modifiers);
-  Point pointerPosition = CoreWindow.GetForCurrentThread().PointerPosition;
-  DataPackageOperation operation =
-    (DataPackageOperation)webView2CompositionController.Drop(
-      e.Data, keyboardState, pointerPosition);
-  e.AcceptedOperation = operation;
-}
-
-// Win32 keyboard state modifiers that are relevant during drag and drop.
-public const uint MK_LBUTTON = 1;
-public const uint MK_RBUTTON = 2;
-public const uint MK_SHIFT = 4;
-public const uint MK_CONTROL = 8;
-public const uint MK_MBUTTON = 16;
-public const uint MK_ALT = 32;
-
-// Helper function to convert DragDropModifiers to win32 keyboard state
-// modifiers that WebView2 uses during drag and drop operation.
-private uint ConvertDragDropModifiersToWin32KeyboardState(
-  Windows.ApplicationModel.DataTransfer.DragDrop.DragDropModifiers modifiers)
-{
-  uint win32DragDropModifiers = 0;
-  if ((modifiers & DragDropModifiers.Shift) == DragDropModifiers.Shift)
-    win32DragDropModifiers |= MK_SHIFT;
-  if ((modifiers & DragDropModifiers.Control) == DragDropModifiers.Control)
-    win32DragDropModifiers |= MK_CONTROL;
-  if ((modifiers & DragDropModifiers.Alt) == DragDropModifiers.Alt)
-    win32DragDropModifiers |= MK_ALT;
-  if ((modifiers & DragDropModifiers.LeftButton) == DragDropModifiers.LeftButton)
-    win32DragDropModifiers |= MK_LBUTTON;
-  if ((modifiers & DragDropModifiers.MiddleButton) == DragDropModifiers.MiddleButton)
-    win32DragDropModifiers |= MK_MBUTTON;
-  if ((modifiers & DragDropModifiers.RightButton) == DragDropModifiers.RightButton)
-    win32DragDropModifiers |= MK_RBUTTON;
-  return win32DragDropModifiers;
+    return compositionController.Drop(dragInfo);
 }
 ```
 
@@ -289,25 +214,23 @@ namespace Microsoft.Web.WebView2.Core
   public sealed class CoreWebView2CompositionController : CoreWebView2Controller, ICoreWebView2CompositionController2
   {
     // New APIs
-    uint DragEnter(
-        Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
-        uint keyState,
-        Point point);
+    Windows.ApplicationModel.DataTransfer.DataPackageOperation DragEnter(
+        Windows.ApplicationModel.DataTransfer.DragDrop.Core.CoreDragInfo dragInfo,
+        Windows.ApplicationModel.DataTransfer.DragDrop.Core.CoreDragUIOverride dragUIOverride);
 
-    void DragLeave();
+    Windows.ApplicationModel.DataTransfer.DataPackageOperation DragLeave(
+        Windows.ApplicationModel.DataTransfer.DragDrop.Core.CoreDragInfo dragInfo);
 
-    uint DragOver(
-        uint keyState,
-        Windows.Foundation.Point point);
+    Windows.ApplicationModel.DataTransfer.DataPackageOperation DragOver(
+        Windows.ApplicationModel.DataTransfer.DragDrop.Core.CoreDragInfo dragInfo,
+        Windows.ApplicationModel.DataTransfer.DragDrop.Core.CoreDragUIOverride dragUIOverride);
 
-    uint Drop(
-        Windows.ApplicationModel.DataTransfer.DataPackage dataObject,
-        uint keyState,
-        Windows.Foundation.Point point);
+    Windows.ApplicationModel.DataTransfer.DataPackageOperation Drop(
+        Windows.ApplicationModel.DataTransfer.DragDrop.Core.CoreDragInfo dragInfo);
   }
 }
 ```
 
 # Appendix
 A good resource to read about the whole Ole drag/drop is located here:
-https://docs.microsoft.com/en-us/cpp/mfc/drag-and-drop-ole?view=msvc-160#:~:text=You%20select%20the%20data%20from,than%20the%20copy%2Fpaste%20sequence.
+[OLE Drag and Drop](https://docs.microsoft.com/en-us/cpp/mfc/drag-and-drop-ole?view=msvc-160)
