@@ -6,7 +6,7 @@
 -->
 # Background
 The browser has a Status bar that displays text when hovering over a link, or performing some activity. Currently, 
-Developers are able to opt in to disable showing the status bar through the browser 
+developers are able to opt in to disable showing the status bar through the browser 
 settings.
 
 Developers would also like to be able to opt in to intercept the updates which would 
