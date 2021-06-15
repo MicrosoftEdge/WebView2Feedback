@@ -219,7 +219,7 @@ interface ICoreWebView2WebAuthenticationRequestedEventArgs : IUnknown
 }
 
 [uuid(0cec3e32-36aa-4859-9bbe-f9c116ad4721), object, pointer_default(unique)]
-interface ICoreWebView2Environment : IUnknown
+interface ICoreWebView2Environment3 : ICoreWebView2Environment2
 {
   /// Create a WebAuthenticationResponse object used to provide credentials for
   /// WebAuthenticationRequested event
