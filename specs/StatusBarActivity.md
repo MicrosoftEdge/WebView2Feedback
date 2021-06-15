@@ -13,8 +13,7 @@ Developers would also like to be able to opt in to intercept the updates which w
 normally be displayed by the Status bar, and show it using thier own custom UI. 
 # Description
 We propose two new events for WebView2 that would allow developers to 
-listen for Status bar updates which are triggered by activity on the embedded 
-browser, and then handle those updates however they want in their applications.
+listen for Status bar updates which are triggered by activity on the WebView, and then handle those updates however they want in their applications.
 
 Developers will be able to: 
 
@@ -90,7 +89,7 @@ interface ICoreWebView2StatusBarHidingEventHandler : IUnknown {
       [in] ICoreWebView2* sender);
 }
 ```
-## C#/ .Net/ WinRT
+## .Net/ WinRT
 ```
 namespace Microsoft.Web.WebView2.Core {
     runtimeclass CoreWebView2StatusBarShowingEventArgs {
