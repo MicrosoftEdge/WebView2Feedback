@@ -36,6 +36,7 @@ We also propose CoreWebView2WebAuthenticationResponse, the runtime class that re
 The developer can provide the authentication credentials on behalf of the user when it encounters the Basic authentication request. In this case, the default login dialog prompt will no longer be shown to the user. If the developer provided credentials are wrong, the server may keep responding with Unauthorized, which will lead to an infinite loop so the developer should pay attention to this.
 
 ```cpp
+
     webview2->add_WebAuthenticationRequested(
         Callback<ICoreWebView2WebAuthenticationRequestedEventHandler>(
             [this](
@@ -45,11 +46,17 @@ The developer can provide the authentication credentials on behalf of the user w
                 wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
                 m_appWindow->GetWebViewEnvironment()->QueryInterface(
                     IID_PPV_ARGS(&webviewEnvironment));
-                wil::com_ptr<ICoreWebView2WebAuthenticationResponse> webAuthenticationResponse;
-                webviewEnvironment->CreateWebAuthenticationResponse(
-                    L"userName", L"password" , &webAuthenticationResponse);
-                args->put_Response(webAuthenticationResponse.get());
-
+                wil::com_ptr<ICoreWebView2Deferral> deferral;
+                wil::com_ptr<ICoreWebView2WebAuthenticationRequestedEventArgs> web_auth_args = args;
+                args->GetDeferral(&deferral);
+                ShowCustomLoginUI().then([web_auth_args, deferral](LPCWSTR userName, LPCWSTR password) {
+                    wil::com_ptr<ICoreWebView2WebAuthenticationResponse> webAuthenticationResponse;
+                    webviewEnvironment->CreateWebAuthenticationResponse(
+                        userName, password, &webAuthenticationResponse);
+                    args->put_Response(webAuthenticationResponse.get());
+                    deferral->Complete();
+                }
+                
                 return S_OK;
             })
             .Get(),
@@ -59,9 +66,12 @@ The developer can provide the authentication credentials on behalf of the user w
 ```c#
 webView.CoreWebView2.WebAuthenticationRequested += delegate (object sender, CoreWebView2WebAuthenticationRequestedEventArgs args)
 {
+    CoreWebView2Deferral deferral = args.GetDeferral();
+    Credential credential = await ShowCustomLoginUIAsync();
     CoreWebView2WebAuthenticationResponse response = _coreWebView2Environment.CreateWebAuthenticationResponse(
-        "User", "Pass");
+        credential.username, credential.password);
     args.Response = response;
+    deferral.Complete();
 };
 ```
 
@@ -101,8 +111,7 @@ webview2->add_WebAuthenticationRequested(
             ICoreWebView2WebAuthenticationRequestedEventArgs* args)
         {
             args->get_Challenge(&challenge);
-            if (wcsncmp(challenge.get(), L"Expected login credentials") != 0)
-            {
+            if (!ValidateChallenge(challenge.get())) { // Check the challenge string
                 args->put_Cancel(true);
             }
             return S_OK;
@@ -203,6 +212,10 @@ interface ICoreWebView2WebAuthenticationRequestedEventArgs : IUnknown
   [propget] HRESULT Cancel([out, retval] BOOL* cancel);
   /// Set the Cancel property.
   [propput] HRESULT Cancel([in] BOOL cancel);
+
+  /// Returns an `ICoreWebView2Deferral` object.  Use this operation to
+  /// complete the event at a later time.
+  HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 }
 
 [uuid(0cec3e32-36aa-4859-9bbe-f9c116ad4721), object, pointer_default(unique)]
