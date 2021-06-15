@@ -446,7 +446,8 @@ The developer can use the data provided in the Event arguments to display a cust
     interface ICoreWebView2_4 : ICoreWebView2_3
     {
         /// Add an event handler for the ContextMenuRequested event.
-        /// ContextMenuRequested event is raied when the user right clicks in the webview
+        /// ContextMenuRequested event is raised when a context menu is requested by the user
+        /// and the browser hasn't disabled context menu usage.
         /// The host can use their own UI to create their own context menu using
         /// the data provided in the API or can add to / remove from the default
         /// context menu. If the host doesn't handle the event, Webview will
@@ -495,7 +496,7 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(04d3fe1d-ab87-42fb-a898-da241d35b63c), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuRequestedEventHandler : IUnknown
     {
-        /// Called to provide the event args when a user right clicks on WebView2 element
+        /// Called to provide the event args when a context menu is invoked on WebView2 element
         HRESULT Invoke(
             [in] ICoreWebView2* sender,
             [in] ICoreWebView2ContextMenuRequestedEventArgs* args);
@@ -540,7 +541,7 @@ The developer can use the data provided in the Event arguments to display a cust
     }
 
     /// Event args for the CustomItemSelected event. Will contain the
-    /// context selected by the user, the location of the right click and the data of the selection
+    /// context selected by the user, the location of the context menu request and the data of the selection
     [uuid(8d606e57-f8d4-412f-8d69-c2205eabd9ee), object, pointer_default(unique)]
     interface ICoreWebView2CustomItemSelectedEventArgs : IUnknown
     {
@@ -555,7 +556,7 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(b8611d99-eed6-4f3f-902c-a198502ad472), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuParams : IUnknown
     {
-        /// The coordinates where the right click occured in relation to the upper left corner of the webview bounds
+        /// The coordinates where the context menu is requested occured in relation to the upper left corner of the webview bounds
         [propget] HRESULT Location([out, retval] POINT* value);
 
         /// The context that the user selected
