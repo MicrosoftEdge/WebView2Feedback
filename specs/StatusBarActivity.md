@@ -51,7 +51,7 @@ CHECK_FAILURE(m_webView->add_StatusBarHiding(
     ).Get(),
 &m_statusBarHiding));
 ```
-## C#/ .Net/ WinRT Registering a listener for status bar showing
+## .NET / WinRT Registering a listener for status bar showing
 ```
 webView.CoreWebView2.StatusBarShowing += (object sender, CoreWebView2StatusBarShowingEventArgs arg) =>
 {
