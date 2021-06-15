@@ -72,7 +72,7 @@ See [API Details](#api-details) Section below for API reference
 ## Win32 C++
 ```
 interface ICoreWebView2StatusBarShowingEventArgs : IUnknown {
-    [propget] HRESULT message([out, retval] std::string* message);
+    [propget] HRESULT Message([out, retval] LPWSTR* value);
 }   
    
 interface ICoreWebView2StatusBarShowingEventHandler : IUnknown {
