@@ -77,7 +77,8 @@ The developer can add or remove entries to the default browser context menu. For
                             {
                                 wil::unique_cotaskmem_string linkUrl;
                                 parameters->get_LinkUrl(&linkUrl);
-                                m_appWindow->RunAsync([this, linkUrl]() {
+                                m_appWindow->RunAsync([this, linkUrl]()
+                                {
                                 MessageBox(
                                     m_appWindow->GetMainWindow(), linkUrl,
                                     L"Display Link", MB_OK);
