@@ -516,7 +516,7 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(a1d309ee-c03f-11eb-8529-0242ac130003), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuRequestedEventArgs : IUnknown
     {
-        /// The list of default ContextMenuItem objects
+        /// The list of ContextMenuItem objects. The end developer may modify the contents of this collection.
         [propget] HRESULT MenuItems([out, retval] ICoreWebView2ContextMenuItemCollection ** value);
 
         /// Contains the data regarding the selection
