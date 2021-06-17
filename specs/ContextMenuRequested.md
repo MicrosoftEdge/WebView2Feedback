@@ -40,26 +40,29 @@ The developer can add or remove entries to the default browser context menu. For
                 params->get_Context(&context);
                 args->put_Handled(false);
                 UINT32 itemsCount;
-                CHECK_FAILURE(items->get_Count(&menuCollectionCount));
+                CHECK_FAILURE(items->get_Count(&itemsCount));
 
                 // Removing item
                 if (context == COREWEBVIEW2_CONTEXT_TYPE_IMAGE)
                 {
-                    UINT32 removeIndex = -1;
+                    UINT32 removeIndex = itemsCount;
                     wil::com_ptr<ICoreWebView2ContextMenuItem> current;
-                    for(UINT32 i = 0; i < menuCollectionCount; i++) {
+                    for(UINT32 i = 0; i < itemsCount; i++) 
+                    {
                         CHECK_FAILURE(items->GetValueAtIndex(i, &current));
                         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR desc;
                         CHECK_FAILURE(current->get_Descriptor(&desc));
-                        if(desc == COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_IMAGE_AS){
+                        if (desc == COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_IMAGE_AS)
+                        {
                             removeIndex = i;
                         }
                     }
-                    if(removeIndex > -1){
+                    if (removeIndex < itemsCount)
+                    {
                         CHECK_FAILURE(items->RemoveValueAtIndex(removeIndex));
                     }
                 }
-                /// Adding item
+                // Adding item
                 else if (context == COREWEBVIEW2_CONTEXT_TYPE_LINK)
                 {
                     wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
@@ -68,7 +71,7 @@ The developer can add or remove entries to the default browser context menu. For
                     wil::com_ptr<ICoreWebView2ContextMenuItem> newMenuItem;
                     webviewEnvironment->CreateContextMenuItem(
                         1, L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, false, &newMenuItem);    
-                    CHECK_FAILURE(items->AddValueAtIndex(menuCollectionCount, newMenuItem.get()));
+                    CHECK_FAILURE(items->AddValueAtIndex(itemsCount, newMenuItem.get()));
                 }
                 return S_OK;
             })
@@ -120,13 +123,14 @@ The developer can use the data provided in the Event arguments to display a cust
                     CHECK_FAILURE(args->get_MenuItems(&items));
                     args->put_Handled(true);
 
-                    UINT32 menuCollectionCount;
-                    CHECK_FAILURE(certificateCollection->get_Count(&menuCollectionCount));
+                    UINT32 itemsCount;
+                    CHECK_FAILURE(certificateCollection->get_Count(&itemsCount));
 
                     HMENU hPopupMenu = CreatePopupMenu();
                     wil::com_ptr<ICoreWebView2ContextMenuItem> current;
 
-                    for (UINT32 i = 0; i < menuCollectionCount; i++) {
+                    for (UINT32 i = 0; i < itemsCount; i++) 
+                    {
                         CHECK_FAILURE(items->GetValueAtIndex(i, &current));
                         wil::unique_cotaskmem_string name;
                         wil::unique_cotaskmem_string shortcut;
@@ -210,7 +214,8 @@ The developer can use the data provided in the Event arguments to display a cust
                 args.Handled = true;
                 ContextMenu cm = this.FindResource("ContextMenu") as ContextMenu;
                 cm.Items.Clear();
-                for (int i = 0; i < menuList.Count; i ++){
+                for (int i = 0; i < menuList.Count; i ++)
+                {
                     CoreWebView2ContextMenuItem current = menuList[i];
                     MenuItem newItem = new MenuItem();
                     newItem.Header = current.Name;
