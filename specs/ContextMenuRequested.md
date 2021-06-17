@@ -43,7 +43,7 @@ The developer can add or remove entries to the default browser context menu. For
                 CHECK_FAILURE(items->get_Count(&menuCollectionCount));
 
                 // Removing item
-                if(context == COREWEBVIEW2_CONTEXT_TYPE_IMAGE)
+                if (context == COREWEBVIEW2_CONTEXT_TYPE_IMAGE)
                 {
                     UINT32 removeIndex = -1;
                     wil::com_ptr<ICoreWebView2ContextMenuItem> current;
