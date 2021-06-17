@@ -39,7 +39,7 @@ The developer can add or remove entries to the default browser context menu. For
                 COREWEBVIEW2_CONTEXT_TYPE context;
                 params->get_Context(&context);
                 args->put_Handled(false);
-                UINT32 menuCollectionCount;
+                UINT32 itemsCount;
                 CHECK_FAILURE(items->get_Count(&menuCollectionCount));
 
                 // Removing item
