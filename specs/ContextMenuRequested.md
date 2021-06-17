@@ -66,7 +66,8 @@ The developer can add or remove entries to the default browser context menu. For
                     m_appWindow->GetWebViewEnvironment()->QueryInterface(
                         IID_PPV_ARGS(&webviewEnvironment));
                     wil::com_ptr<ICoreWebView2ContextMenuItem> newMenuItem;
-                    webviewEnvironment->CreateContextMenuItem(
+                    CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(
+                        1, L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, false, &newMenuItem));
                         1, L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, false, &newMenuItem);    
                     CHECK_FAILURE(items->AddValueAtIndex(menuCollectionCount, newMenuItem.get()));
                 }
