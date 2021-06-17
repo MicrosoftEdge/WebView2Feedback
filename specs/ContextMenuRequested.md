@@ -126,7 +126,7 @@ The developer can use the data provided in the Event arguments to display a cust
                     HMENU hPopupMenu = CreatePopupMenu();
                     wil::com_ptr<ICoreWebView2ContextMenuItem> current;
 
-                    for(UINT32 i = 0; i < menuCollectionCount; i++) {
+                    for (UINT32 i = 0; i < menuCollectionCount; i++) {
                         CHECK_FAILURE(items->GetValueAtIndex(i, &current));
                         wil::unique_cotaskmem_string name;
                         wil::unique_cotaskmem_string shortcut;
@@ -142,7 +142,7 @@ The developer can use the data provided in the Event arguments to display a cust
                     POINT p;
                     POINT final_p;
                     CHECK_FAILURE(params->get_Location(&p));
-                    /// get_Location returns coordinates in relation to upper left Bounds of the WebView2.Controller. Will need to convert to Screen coordinates to display the popup menu in the correct location.
+                    // get_Location returns coordinates in relation to upper left Bounds of the WebView2.Controller. Will need to convert to Screen coordinates to display the popup menu in the correct location.
                     ConvertToScreenCoordinates(p, &final_p);
                     UINT32 selectedIndex = TrackPopupMenu(hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD, final_p.x, final_p.y, 0, hWnd, NULL);
                     wil::com_ptr<ICoreWebView2ContextMenuItem> selectedItem;
@@ -169,12 +169,12 @@ The developer can use the data provided in the Event arguments to display a cust
         args.Handled = false;
         if (context == CoreWebView2ContextType.Image)
         {
-            /// removes the last item in the collection
+            // removes the last item in the collection
             menuList.RemoveAt(menuList.Count - 1);
         }
         else if (context == CoreWebView2ContextType.Link)
         {
-            /// add new item to end of colelction
+            // add new item to end of colelction
             CoreWebView2ContextMenuItem newItem = webView.CoreWebView2.Environment.CreateContextMenuItem(
                 1, "Display Link", "Shorcut", null, CoreWebView2ContextMenuItemKind.Normal, 0);
             menuList.Insert(menuList.Count, newItem);
@@ -210,7 +210,7 @@ The developer can use the data provided in the Event arguments to display a cust
                 args.Handled = true;
                 ContextMenu cm = this.FindResource("ContextMenu") as ContextMenu;
                 cm.Items.Clear();
-                for(int i = 0; i < menuList.Count; i ++){
+                for (int i = 0; i < menuList.Count; i ++){
                     CoreWebView2ContextMenuItem current = menuList[i];
                     MenuItem newItem = new MenuItem();
                     newItem.Header = current.Name;
