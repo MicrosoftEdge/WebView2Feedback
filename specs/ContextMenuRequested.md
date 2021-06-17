@@ -90,7 +90,7 @@ The developer can add or remove entries to the default browser context menu. For
                 switch(customId)
                 {
                     case 1:
-                        LPWSTR linkUrl;
+                        wil::unique_cotaskmem_string linkUrl;
                         params->get_LinkUrl(&linkUrl);
                         MessageBox(
                             nullptr,
