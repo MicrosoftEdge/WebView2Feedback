@@ -69,7 +69,8 @@ The developer can add or remove entries to the default browser context menu. For
                     m_appWindow->GetWebViewEnvironment()->QueryInterface(
                         IID_PPV_ARGS(&webviewEnvironment));
                     wil::com_ptr<ICoreWebView2ContextMenuItem> newMenuItem;
-                    webviewEnvironment->CreateContextMenuItem(
+                    CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(
+                        1, L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, false, &newMenuItem));
                         1, L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, false, &newMenuItem);    
                     CHECK_FAILURE(items->AddValueAtIndex(itemsCount, newMenuItem.get()));
                 }
@@ -92,7 +93,7 @@ The developer can add or remove entries to the default browser context menu. For
                 switch(customId)
                 {
                     case 1:
-                        LPWSTR linkUrl;
+                        wil::unique_cotaskmem_string linkUrl;
                         params->get_LinkUrl(&linkUrl);
                         MessageBox(
                             nullptr,
@@ -485,9 +486,9 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(04d4fe1d-ab87-42fb-a898-da241d35b63c), object, pointer_default(unique)]
     interface ICoreWebView2Environment : IUnknown
     {
-        /// Create a ContextMenuItem object used for developers to insert new items into the default browser context menu
+        /// Create a ContextMenuItem object used for developers to insert new items into the default browser context menu.
         /// The Enabled and visible properties will default to true and the IsChecked property will only be used if the 
-        /// menu item type is radio or checkbox
+        /// menu item type is radio or checkbox.
         HRESULT CreateContextMenuItem(
             [in] UINT32 customItemID,
             [in] LPCWSTR displayName,
@@ -520,11 +521,11 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(a1d309ee-c03f-11eb-8529-0242ac130003), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuRequestedEventArgs : IUnknown
     {
-        /// The list of default ContextMenuItem objects
+        /// The list of ContextMenuItem objects. The end developer may modify the contents of this collection.
         [propget] HRESULT MenuItems([out, retval] ICoreWebView2ContextMenuItemCollection ** value);
 
         /// Contains the data regarding the selection
-        [propget] HRESULT ContextMenuParams([out, retval] ICoreWebView2ContextMenuParams ** value);
+        [propget] HRESULT ContextMenuParameters([out, retval] ICoreWebView2ContextMenuParameters ** value);
 
         /// Returns the selected Context Menu Item
         [propget] HRESULT SelectedItem([out, retval] ICoreWebView2ContextMenuItem ** value);
