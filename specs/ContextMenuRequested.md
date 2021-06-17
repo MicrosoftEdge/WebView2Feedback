@@ -482,7 +482,7 @@ The developer can use the data provided in the Event arguments to display a cust
     interface ICoreWebView2Environment : IUnknown
     {
         /// Create a ContextMenuItem object used for developers to insert new items into the default browser context menu.
-        /// The Enabled and visible properties will default to true and the IsChecked property will only be used if the 
+        /// The IsEnabled and IsVisible properties are always true for custom context menu items. The IsChecked property will only be used if the 
         /// menu item type is radio or checkbox.
         HRESULT CreateContextMenuItem(
             [in] UINT32 customItemID,
