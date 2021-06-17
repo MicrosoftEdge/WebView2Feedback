@@ -34,8 +34,8 @@ The developer can add or remove entries to the default browser context menu. For
             {
                 wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
                 args->get_MenuItems(&items);
-                wil::com_ptr<ICoreWebView2ContextMenuParams> params;
-                args->get_ContextMenuParams(&params);
+                wil::com_ptr<ICoreWebView2ContextMenuParameters> params;
+                args->get_ContextMenuParameters(&params);
                 COREWEBVIEW2_CONTEXT_TYPE context;
                 params->get_Context(&context);
                 args->put_Handled(false);
@@ -70,8 +70,7 @@ The developer can add or remove entries to the default browser context menu. For
                         IID_PPV_ARGS(&webviewEnvironment));
                     wil::com_ptr<ICoreWebView2ContextMenuItem> newMenuItem;
                     CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(
-                        1, L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, false, &newMenuItem));
-                        1, L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, false, &newMenuItem);    
+                        1, L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, false, &newMenuItem));  
                     CHECK_FAILURE(items->AddValueAtIndex(itemsCount, newMenuItem.get()));
                 }
                 return S_OK;
@@ -88,8 +87,8 @@ The developer can add or remove entries to the default browser context menu. For
             {
                 UINT32 customId;
                 args->get_SelectedId(&customId);
-                wil::com_ptr<ICoreWebView2ContextMenuParams> params;
-                args->get_ContextMenuParams(&params);
+                wil::com_ptr<ICoreWebView2ContextMenuParameters> params;
+                args->get_ContextMenuParameters(&params);
                 switch(customId)
                 {
                     case 1:
@@ -142,14 +141,14 @@ The developer can use the data provided in the Event arguments to display a cust
                     HWND hWnd;
                     m_appWindow->GetWebViewController()->get_ParentWindow(&hWnd);
                     SetForegroundWindow(hWnd);
-                    wil::com_ptr<ICoreWebView2ContextMenuParams> params;
-                    args->get_ContextMenuParams(&params);
-                    POINT p;
-                    POINT final_p;
-                    CHECK_FAILURE(params->get_Location(&p));
+                    wil::com_ptr<ICoreWebView2ContextMenuParameters> params;
+                    args->get_ContextMenuParameters(&params);
+                    POINT locationInControlCoordinates;
+                    POINT locationInScreenCoordinates;
+                    CHECK_FAILURE(params->get_Location(&locationInControlCoordinates));
                     // get_Location returns coordinates in relation to upper left Bounds of the WebView2.Controller. Will need to convert to Screen coordinates to display the popup menu in the correct location.
-                    ConvertToScreenCoordinates(p, &final_p);
-                    UINT32 selectedIndex = TrackPopupMenu(hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD, final_p.x, final_p.y, 0, hWnd, NULL);
+                    ConvertToScreenCoordinates(locationInControlCoordinates, &locationInScreenCoordinates);
+                    UINT32 selectedIndex = TrackPopupMenu(hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD, locationInScreenCoordinates.x, locationInScreenCoordinates.y, 0, hWnd, NULL);
                     wil::com_ptr<ICoreWebView2ContextMenuItem> selectedItem;
                     items->GetValueAtIndex(selectedIndex, &selectedItem);
                     CHECK_FAILURE(args->put_SelectedItem(selectedItem.get()));
@@ -170,7 +169,7 @@ The developer can use the data provided in the Event arguments to display a cust
     webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
-        CoreWebView2ContextType context = args.ContextMenuParams.context;
+        CoreWebView2ContextType context = args.ContextMenuParameters.context;
         args.Handled = false;
         if (context == CoreWebView2ContextType.Image)
         {
@@ -189,7 +188,7 @@ The developer can use the data provided in the Event arguments to display a cust
     webView.CoreWebView2.CustomItemSelected += delegate (object sender, CoreWebView2CustomItemSelectedEventArgs args)
     {
         UInt32 customId = args.SelectedId;
-        CoreWebView2ContextMenuParams parameters = args.ContextMenuParams;
+        CoreWebView2ContextMenuParameters parameters = args.ContextMenuParameters;
         switch (customId)
         {
             case 1:
@@ -211,7 +210,7 @@ The developer can use the data provided in the Event arguments to display a cust
             using (deferral)
             {
                 IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
-                CoreWebView2ContextType context = args.ContextMenuParams.context;
+                CoreWebView2ContextType context = args.ContextMenuParameters.context;
                 args.Handled = true;
                 ContextMenu cm = this.FindResource("ContextMenu") as ContextMenu;
                 cm.Items.Clear();
@@ -238,7 +237,7 @@ The developer can use the data provided in the Event arguments to display a cust
     interface ICoreWebView2Environment;
     interface ICoreWebView2ContextMenuItem;
     interface ICoreWebView2ContextMenuItemCollection;
-    interface ICoreWebView2ContextMenuParams;
+    interface ICoreWebView2ContextMenuParameters;
     interface ICoreWebView2ContextMenuRequestedEventArgs;
     interface ICoreWebView2ContextMenuRequestedEventHandler;
     interface ICoreWebView2CustomItemSelectedEventArgs;
@@ -416,9 +415,6 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Returns the menu item kind
         [propget] HRESULT Kind([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND* value);
 
-        /// Returns if the menu item is visible
-        [propget] HRESULT IsVisible([out, retval] BOOL* value);
-
         /// Returns if the menu item is enabled
         [propget] HRESULT IsEnabled([out, retval] BOOL* value);
 
@@ -555,12 +551,12 @@ The developer can use the data provided in the Event arguments to display a cust
         [propget] HRESULT SelectedId([out, retval] UINT32 * value);
 
         /// Get the data regarding the selection
-        [propget] HRESULT ContextMenuParams([out, retval] ICoreWebView2ContextMenuParams ** value);
+        [propget] HRESULT ContextMenuParameters([out, retval] ICoreWebView2ContextMenuParameters ** value);
     }
 
     /// Context Menu Parameters including the location of the request, the context selected and the appropriate data associated with the context menu request
     [uuid(b8611d99-eed6-4f3f-902c-a198502ad472), object, pointer_default(unique)]
-    interface ICoreWebView2ContextMenuParams : IUnknown
+    interface ICoreWebView2ContextMenuParameters : IUnknown
     {
         /// The coordinates where the context menu is requested occured in relation to the upper left corner of the webview bounds
         [propget] HRESULT Location([out, retval] POINT* value);
@@ -593,7 +589,7 @@ namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2Environment;
     runtimeclass CoreWebView2ContextMenuItem;
-    runtimeclass CoreWebView2ContextMenuParams;
+    runtimeclass CoreWebView2ContextMenuParameters;
     runtimeclass CoreWebView2ContextMenuRequestedEventArgs;
     runtimeclass CoreWebView2CustomItemSelectedEventArgs;
     
@@ -657,7 +653,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ContextMenuRequestedEventArgs
     {
         Boolean Handled { get; set; }
-        CoreWebView2ContextMenuParams ContextMenuParams { get; }
+        CoreWebView2ContextMenuParameters ContextMenuParameters { get; }
         IVector<CoreWebView2ContextMenuItem> MenuItems { get; }
         CoreWebView2ContextMenuItem SelectedItem { get; set; }
         Windows.Foundation.Deferral GetDeferral();
@@ -666,10 +662,10 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2CustomItemSelectedEventArgs
     {
         Int32 SelectedId { get; }
-        CoreWebView2ContextMenuParams ContextMenuParams { get; }
+        CoreWebView2ContextMenuParameters ContextMenuParameters { get; }
     };
 
-    runtimeclass CoreWebView2ContextMenuParams
+    runtimeclass CoreWebView2ContextMenuParameters
     {
         Point Location { get; }
         CoreWebView2ContextType Context { get; }
@@ -689,7 +685,6 @@ namespace Microsoft.Web.WebView2.Core
         Stream Icon { get; }
         CoreWebView2ContextMenuItemKind Kind { get; }
         Boolean IsEnabled { get; }
-        Boolean IsVisible { get; }
         Boolean IsChecked { get; }
         IVector<CoreWebView2ContextMenuItem> Children { get; }
     };
