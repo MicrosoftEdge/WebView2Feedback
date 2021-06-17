@@ -42,7 +42,7 @@ The developer can add or remove entries to the default browser context menu. For
                 UINT32 menuCollectionCount;
                 CHECK_FAILURE(items->get_Count(&menuCollectionCount));
 
-                /// Removing item
+                // Removing item
                 if(context == COREWEBVIEW2_CONTEXT_TYPE_IMAGE)
                 {
                     UINT32 removeIndex = -1;
