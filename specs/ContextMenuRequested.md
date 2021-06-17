@@ -14,7 +14,7 @@ and have the choice to:
 1. Add or remove entries to the default context menu provided by the browser
 2. Use their own UI to display their custom context menu (can either handle the selection on their own or return the selected option to the browser)
 
-If one of the entries added by the end developer is selected, the CustomMenuItemSelected event will be raised and will include the event args: 
+If one of the entries added by the end developer is selected, the CustomMenuItemSelected event will be raised and will include in the event args: 
 
 1. The developer-provided ID for the context menu selected
 2. The selection object with the appropriate data for the end developer to use to carry out custom commands
