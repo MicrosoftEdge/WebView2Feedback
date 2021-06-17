@@ -520,7 +520,7 @@ The developer can use the data provided in the Event arguments to display a cust
         [propget] HRESULT MenuItems([out, retval] ICoreWebView2ContextMenuItemCollection ** value);
 
         /// Contains the data regarding the selection
-        [propget] HRESULT ContextMenuParams([out, retval] ICoreWebView2ContextMenuParams ** value);
+        [propget] HRESULT ContextMenuParameters([out, retval] ICoreWebView2ContextMenuParameters ** value);
 
         /// Returns the selected Context Menu Item
         [propget] HRESULT SelectedItem([out, retval] ICoreWebView2ContextMenuItem ** value);
