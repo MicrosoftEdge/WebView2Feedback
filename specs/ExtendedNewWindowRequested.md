@@ -1,5 +1,5 @@
 # Background
-WebView2 raises the `NewWindowRequested` event when a new window is opened. The WebView2 team has been asked to include the name of the new window 
+WebView2 raises the `NewWindowRequested` event when web content in the WebView2 tries to open a new window. The WebView2 team has been asked to include the name of the new window 
 being created as a parameter of `NewWindowRequestedEventArgs`. This window name is the name given to the window when it is opened 
 using `window.open(url, windowName)` or via html such as `<a target="windowName">...</a>` or `<iframe name="windowName">...</iframe>`.
 
