@@ -479,10 +479,10 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Information about the requested context menu.
         [propget] HRESULT ContextMenuInfo([out, retval] ICoreWebView2ContextMenuInfo ** value);
 
-        /// Sets the selected command for the WebView to execute. If user clicks away from context menu, this value will remain -1, meaning no selection occured.
+        /// Sets the selected command for the WebView to execute. If user clicks away from context menu, this value will remain 0, meaning no selection occured.
         [propput] HRESULT SelectedCommand([in] UINT32 value);
 
-        /// Returns the selected command. This value defaults to -1, which means there was no selection and the context menu was canceled.
+        /// Returns the selected command. This value defaults to 0, which means there was no selection and the context menu was canceled.
         [propget] HRESULT SelectedCommand([out, retval] UINT32* value);
 
         /// Sets whether the `ContextMenuRequested` event is handled by host.  If this
