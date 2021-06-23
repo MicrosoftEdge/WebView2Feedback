@@ -41,7 +41,7 @@ The developer can add or remove entries to the default WebView context menu. For
                 args->put_Handled(false);
                 UINT32 itemsCount;
                 CHECK_FAILURE(items->get_Count(&itemsCount));
-                // Removing item
+                // Removing the 'Save image as' context menu item for image context selections.
                 if (context == COREWEBVIEW2_CONTEXT_TYPE_IMAGE)
                 {
                     UINT32 removeIndex = itemsCount;
