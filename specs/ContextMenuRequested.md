@@ -96,7 +96,7 @@ The developer can add or remove entries to the default WebView context menu. For
 
 ## Win32 C++ Use Data to Display Custom Context Menu
 
-The developer can use the data provided in the Event arguments to display a custom context menu with entries of their choice. For this case, the developer specifies Handled to be true and requests a deferral. Deferral of this event should be completed when the user selects a context menu item (either the app developer will handle the case, or can return the selected option to the WebView) or when they click on the screen (effectively closing the menu).
+The developer can use the data provided in the Event arguments to display a custom context menu with entries of their choice. For this case, the developer specifies Handled to be true and requests a deferral. Deferral of this event should be completed when the user selects a context menu item (either the app developer will handle the case, or can return the selected option to the WebView) or when the end user dismisses the context menu by clicking outside of the context menu for example.
 
  ```cpp
     webview2->add_ContextMenuRequested(
