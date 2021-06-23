@@ -155,7 +155,7 @@ The developer can use the data provided in the Event arguments to display a cust
     webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
-        CoreWebView2ContextType context = args.ContextMenuInfo.context;
+        CoreWebView2ContextType context = args.ContextMenuInfo.Context;
         args.Handled = false;
         if (context == CoreWebView2ContextType.Image)
         {
@@ -170,7 +170,10 @@ The developer can use the data provided in the Event arguments to display a cust
                 newItem.CustomItemSelected += delegate (object send, Object ex)
                 {
                     string linkUrl = args.ContextMenuInfo.LinkUrl;
-                    MessageBox.Show(linkUrl, "Display Link", MessageBoxButton.YesNo);
+                    System.Threading.SynchronizationContext.Current.Post((_) =>
+                    {
+                        MessageBox.Show(linkUrl, "Display Link", MessageBoxButton.YesNo);
+                    }, null);
                 }
             menuList.Insert(menuList.Count, newItem);
         }
