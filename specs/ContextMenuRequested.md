@@ -120,11 +120,11 @@ The developer can use the data provided in the Event arguments to display a cust
                     for (UINT32 i = 0; i < itemsCount; i++) 
                     {
                         CHECK_FAILURE(items->GetValueAtIndex(i, &current));
-                        wil::unique_cotaskmem_string name;
-                        CHECK_FAILURE(current->get_Name(&name));
+                        wil::unique_cotaskmem_string label;
+                        CHECK_FAILURE(current->get_Label(&label));
                         UINT32 command_id;
                         CHECK_FAILURE(current->get_CommandId(&command_id));
-                        InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, command_id, name);
+                        InsertMenu(hPopupMenu, 0, MF_BYPOSITION | MF_STRING, command_id, label);
                     }
                     HWND hWnd;
                     CHECK_FAILURE(m_appWindow->GetWebViewController()->get_ParentWindow(&hWnd));
@@ -199,7 +199,7 @@ The developer can use the data provided in the Event arguments to display a cust
                 {
                     CoreWebView2ContextMenuItem current = menuList[i];
                     MenuItem newItem = new MenuItem();
-                    newItem.Header = current.Name;
+                    newItem.Header = current.Label;
                     newItem.Click += (s, ex) => args.SelectedCommand = current.CommandId;
                     cm.Items.Add(newItem);
                 }
@@ -372,8 +372,8 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Gets the Command ID for the context menu item. Use this to report the `SelectedCommandId` in `ContextMenuRequested` event.
         [propget] HRESULT CommandId([out, retval] INT32* value);
 
-        /// Gets the shortcut for the ContextMenuItem.
-        [propget] HRESULT Shortcut([out, retval] LPWSTR* value);
+        /// Get the keyboard shortcut for this ContextMenuItem. It will be the empty string if there is no keyboard shortcut. This is text intended to be displayed to the end user to show the keyboard shortcut. For example this property is `Ctrl+Shift+I` for the "Inspect" context menu item.
+        [propget] HRESULT ShortcutKeyDescription([out, retval] LPWSTR* value);
 
         /// Gets the Icon for the ContextMenuItem in PNG format in the form of an IStream.
         [propget] HRESULT Icon([out, retval] IStream** value);
@@ -384,10 +384,11 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Gets the enabled property of the `ContextMenuItem`.
         [propget] HRESULT IsEnabled([out, retval] BOOL* value);
 
-        /// Gets the checked property of the `ContextMenuItem`, used if the kind is Checkbox or Radio.
+        /// Gets the checked property of the `ContextMenuItem`, will return false if the type is not Checkbox
+        /// or Radio.
         [propget] HRESULT IsChecked([out, retval] BOOL* value);
 
-        /// Gets the list of Children menu items through a `ContextMenuItemCollection` if the kind is Submenu.
+        /// Gets the list of Children menu items through a `ContextMenuItemCollection` if the kind is Submenu. If the kind is not submenu, will return null.
         [propget] HRESULT Children([out, retval] ICoreWebView2ContextMenuItemCollection** value);
         
         /// Add an event handler for the CustomItemSelected event.
@@ -491,11 +492,13 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Returns the selected command. This value defaults to -1, which means there was no selection and the context menu was canceled.
         [propget] HRESULT SelectedCommandId([out, retval] INT32* value);
 
-        /// Sets whether the `ContextMenuRequested` event is handled by host.  If this
-        /// is `FALSE`, the WebView will draw its own context menu UI.  If set to `TRUE` 
-        /// the WebView will not open its own context menu and will wait on the app to 
-        /// return the item the user selected.
-        /// The default value is `FALSE`.
+        /// Sets whether the `ContextMenuRequested` event is handled by host after
+        /// the event handler completes or if there is a deferral then after the deferral is completed.  
+        /// If Handled is set to TRUE then WebView2 will not display a context menu and will instead
+        /// use the SelectedCommandId property to indicate which, if any, context menu item to invoke.
+        /// If after the event handler or deferral completes Handled is set to FALSE then WebView2 
+        /// will display a context menu based on the contents of the MenuItems property. 
+        /// The default value is FALSE.
         [propput] HRESULT Handled([in] BOOL value);
 
         /// Gets whether the `ContextMenuRequested` event is handled by host.
@@ -621,7 +624,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         String Label { get; }
         String Name { get; }
-        String Shortcut { get; }
+        String ShortcutKeyDescription { get; }
         Int32 CommandId { get; }
         CoreWebView2ContextMenuItemDescriptor Descriptor { get; }
         Stream Icon { get; }
