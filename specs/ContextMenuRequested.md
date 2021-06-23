@@ -153,7 +153,7 @@ The developer can use the data provided in the Event arguments to display a cust
                 CHECK_FAILURE(current->get_IsEnabled(&isEnabled));
                 BOOL isChecked;
                 CHECK_FAILURE(current->get_IsChecked(&isChecked));
-                UINT32 commandId;
+                INT32 commandId;
                 CHECK_FAILURE(current->get_CommandId(&commandId));
                 if (kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_SEPARATOR)
                 {
