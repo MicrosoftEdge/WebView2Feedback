@@ -370,7 +370,7 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Get the Command ID for the context menu item, this ID is unique and will be used by the app to return which specific item was selected.
         [propget] HRESULT CommandId([out, retval] UINT32* value);
 
-        /// Get the shortcut for the ContextMenuItem.
+        /// Get the keyboard shortcut for this ContextMenuItem. It will be the empty string if there is no keyboard shortcut. This is text intended to be displayed to the end user to show the keyboard shortcut. For example this property is `Ctrl+Shift+I` for the "Inspect" context menu item.
         [propget] HRESULT Shortcut([out, retval] LPWSTR* value);
 
         /// Get the Icon for the ContextMenuItem in PNG format in the form of an IStream.
