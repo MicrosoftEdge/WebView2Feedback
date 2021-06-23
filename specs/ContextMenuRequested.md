@@ -41,7 +41,7 @@ The developer can add or remove entries to the default WebView context menu. For
                 CHECK_FAILURE(args->put_Handled(false));
                 UINT32 itemsCount;
                 CHECK_FAILURE(items->get_Count(&itemsCount));
-                // Removing item
+                // Removing the 'Save image as' context menu item for image context selections.
                 if (context == COREWEBVIEW2_CONTEXT_TYPE_IMAGE)
                 {
                     UINT32 removeIndex = itemsCount;
@@ -61,7 +61,7 @@ The developer can add or remove entries to the default WebView context menu. For
                         CHECK_FAILURE(items->RemoveValueAtIndex(removeIndex));
                     }
                 }
-                // Adding item
+                // Adding a custom context menu item for links that will display the link's URI.
                 else if (context == COREWEBVIEW2_CONTEXT_TYPE_LINK)
                 {
                     wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
