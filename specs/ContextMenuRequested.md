@@ -61,7 +61,7 @@ The developer can add or remove entries to the default WebView context menu. For
                         CHECK_FAILURE(items->RemoveValueAtIndex(removeIndex));
                     }
                 }
-                // Adding item
+                // Adding a custom context menu item for links that will display the link's URI.
                 else if (context == COREWEBVIEW2_CONTEXT_TYPE_LINK)
                 {
                     wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
