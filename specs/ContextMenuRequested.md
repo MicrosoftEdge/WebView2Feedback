@@ -246,26 +246,23 @@ The developer can use the data provided in the Event arguments to display a cust
     webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         CoreWebView2Deferral deferral = args.GetDeferral();
-        System.Threading.SynchronizationContext.Current.Post((_) =>
+        IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
+        args.Handled = true;
+        ContextMenu cm = this.FindResource("ContextMenu") as ContextMenu;
+        cm.Items.Clear();
+        for (int i = 0; i < menuList.Count; i++)
         {
-            using (deferral)
+            CoreWebView2ContextMenuItem current = menuList[i];
+            MenuItem newItem = new MenuItem();
+            newItem.Header = current.Label;
+            newItem.Click += (s, ex) => 
             {
-                IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
-                CoreWebView2ContextType context = args.ContextMenuInfo.context;
-                args.Handled = true;
-                ContextMenu cm = this.FindResource("ContextMenu") as ContextMenu;
-                cm.Items.Clear();
-                for (int i = 0; i < menuList.Count; i ++)
-                {
-                    CoreWebView2ContextMenuItem current = menuList[i];
-                    MenuItem newItem = new MenuItem();
-                    newItem.Header = current.Label;
-                    newItem.Click += (s, ex) => args.SelectedCommand = current.CommandId;
-                    cm.Items.Add(newItem);
-                }
-                cm.IsOpen = true;
-            }
-        }, null);
+                args.SelectedCommand = current.CommandId;
+                deferral.Complete();
+            };
+            cm.Items.Add(newItem);
+        }
+        cm.IsOpen = true;
     };
 ```
 # Remarks
