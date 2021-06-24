@@ -257,7 +257,7 @@ The developer can use the data provided in the Event arguments to display a cust
             newItem.Header = current.Label;
             newItem.Click += (s, ex) => 
             {
-                args.SelectedCommand = current.CommandId;
+                args.SelectedCommandId = current.CommandId;
                 deferral.Complete();
             };
             cm.Items.Add(newItem);
