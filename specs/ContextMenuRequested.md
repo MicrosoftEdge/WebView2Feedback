@@ -37,7 +37,7 @@ The developer can add or remove entries to the default WebView context menu. For
                 wil::com_ptr<ICoreWebView2ContextMenuInfo> info;
                 CHECK_FAILURE(args->get_ContextMenuInfo(&info));
                 COREWEBVIEW2_CONTEXT_TYPE context;
-                CHECK_FAILURE(info->get_Context(&context));
+                CHECK_FAILURE(info->get_ContextType(&context));
                 CHECK_FAILURE(args->put_Handled(false));
                 UINT32 itemsCount;
                 CHECK_FAILURE(items->get_Count(&itemsCount));
@@ -215,7 +215,7 @@ The developer can use the data provided in the Event arguments to display a cust
     webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
-        CoreWebView2ContextType context = args.ContextMenuInfo.Context;
+        CoreWebView2ContextType context = args.ContextMenuInfo.ContextType;
         args.Handled = false;
         if (context == CoreWebView2ContextType.Image)
         {
@@ -365,7 +365,7 @@ The developer can use the data provided in the Event arguments to display a cust
     } COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR;
     
     /// Indicates the type of context for which the context menu was created
-    /// for the `ICoreWebView2ContextMenuInfo::get_Context` method
+    /// for the `ICoreWebView2ContextMenuInfo::get_ContextType` method
     [v1_enum]
     typedef enum COREWEBVIEW2_CONTEXT_TYPE
     {
@@ -589,7 +589,7 @@ The developer can use the data provided in the Event arguments to display a cust
         [propget] HRESULT Location([out, retval] POINT* value);
 
         /// Gets the type of context that the user selected.
-        [propget] HRESULT Context([out, retval] COREWEBVIEW2_CONTEXT_TYPE* value);
+        [propget] HRESULT ContextType([out, retval] COREWEBVIEW2_CONTEXT_TYPE* value);
 
         /// Returns TRUE if the context menu was requested on the main frame and
         /// FALSE if invoked on another frame.
@@ -685,7 +685,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ContextMenuInfo
     {
         Point Location { get; }
-        CoreWebView2ContextType Context { get; }
+        CoreWebView2ContextType ContextType { get; }
         String PageUrl { get; }
         String FrameUrl { get; }
         String SourceUrl { get; }
