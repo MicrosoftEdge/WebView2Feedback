@@ -76,10 +76,11 @@ The developer can add or remove entries to the default WebView context menu. For
                             {
                                 wil::unique_cotaskmem_string linkUrl;
                                 CHECK_FAILURE(info->get_LinkUrl(&linkUrl));
-                                m_appWindow->RunAsync([this, linkUrl]()
+                                std::wstring linkString = linkUrl.get();
+                                m_appWindow->RunAsync([this, linkString]()
                                 {
                                     MessageBox(
-                                        m_appWindow->GetMainWindow(), linkUrl,
+                                        m_appWindow->GetMainWindow(), linkString.c_str(),
                                         L"Display Link", MB_OK);
                                 });
                                 return S_OK;
@@ -147,8 +148,9 @@ The developer can use the data provided in the Event arguments to display a cust
                 CHECK_FAILURE(items->GetValueAtIndex(i, &current));
                 COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND kind;
                 CHECK_FAILURE(current->get_Kind(&kind));
-                LPWSTR label;
+                wil::unique_cotaskmem_string label;
                 CHECK_FAILURE(current->get_Label(&label));
+                std::wstring labelString = label.get();
                 BOOL isEnabled;
                 CHECK_FAILURE(current->get_IsEnabled(&isEnabled));
                 BOOL isChecked;
@@ -162,20 +164,20 @@ The developer can use the data provided in the Event arguments to display a cust
                 else if (kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_SUBMENU)
                 {
                     HMENU newMenu = CreateMenu();
-                    wil::com_ptr<ICoreWebView2ContextMenuItemCollection> SubmenuItems;
-                    CHECK_FAILURE(current->get_Children(&SubmenuItems));
-                    AddMenuItems(newMenu, SubmenuItems);
-                    AppendMenu(hPopupMenu, MF_POPUP, (UINT_PTR)newMenu, label);
+                    wil::com_ptr<ICoreWebView2ContextMenuItemCollection> submenuItems;
+                    CHECK_FAILURE(current->get_Children(&submenuItems));
+                    AddMenuItems(newMenu, submenuItems);
+                    AppendMenu(hPopupMenu, MF_POPUP, (UINT_PTR)newMenu, labelString.c_str());
                 }
                 else if (kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL)
                 {
                     if (isEnabled)
                     {
-                        AppendMenu(hPopupMenu, MF_BYPOSITION | MF_STRING, commandId, label);
+                        AppendMenu(hPopupMenu, MF_BYPOSITION | MF_STRING, commandId, labelString.c_str());
                     }
                     else
                     {
-                        AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING, commandId, label);
+                        AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING, commandId, labelString.c_str());
                     }
                 }
                 else if (
@@ -186,11 +188,11 @@ The developer can use the data provided in the Event arguments to display a cust
                     {
                         if (isChecked)
                         {
-                            AppendMenu(hPopupMenu, MF_CHECKED | MF_STRING, commandId, label);
+                            AppendMenu(hPopupMenu, MF_CHECKED | MF_STRING, commandId, labelString.c_str());
                         }
                         else
                         {
-                            AppendMenu(hPopupMenu, MF_BYPOSITION | MF_STRING, commandId, label);
+                            AppendMenu(hPopupMenu, MF_BYPOSITION | MF_STRING, commandId, labelString.c_str());
                         }
                     }
                     else
@@ -198,11 +200,11 @@ The developer can use the data provided in the Event arguments to display a cust
                         if (isChecked)
                         {
                             AppendMenu(
-                                hPopupMenu, MF_CHECKED | MF_GRAYED | MF_STRING, commandId, label);
+                                hPopupMenu, MF_CHECKED | MF_GRAYED | MF_STRING, commandId, labelString.c_str());
                         }
                         else
                         {
-                            AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING, commandId, label);
+                            AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING, commandId, labelString.c_str());
                         }
                     }
                 }
@@ -423,7 +425,7 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Gets the localized label for the `ContextMenuItem`.
         [propget] HRESULT Label([out, retval] LPWSTR* value);
 
-        /// Get the unlocalized name for the `ContextMenuItem`. Use this to distinguish items with 
+        /// Gets the unlocalized name for the `ContextMenuItem`. Use this to distinguish items with 
         /// same Descriptor such as Extension items and items with Other as descriptor.
         [propget] HRESULT Name([out, retval] LPWSTR* value);
 
@@ -471,7 +473,7 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(f562a2f5-c415-45cf-b909-d4b7c1e276d3), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuItemCollection : IUnknown
     {
-        /// The number of `ContextMenuItem` objects contained in the `ContextMenuItemCollection`.
+        /// Gets the number of `ContextMenuItem` objects contained in the `ContextMenuItemCollection`.
         [propget] HRESULT Count([out, retval] UINT32* value);
 
         /// Gets the `ContextMenuItem` at the specified index.
