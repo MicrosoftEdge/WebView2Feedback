@@ -17,17 +17,19 @@ listen for Status bar updates which are triggered by activity on the WebView, an
 
 Developers will be able to register an even handler for changes to the status bar message.
 # Examples
-## Win32 C++ Registering a listener for status bar showing
+## Win32 C++ Registering a listener for status bar message changes
 ```
 CHECK_FAILURE(m_webView->add_StatusBarMessageChanged(
-    Microsoft::WRL::Callback<ICoreWebView2StatusBarMessageChangedStagingEventHandler>(
-    [this](ICoreWebView2* sender, ICoreWebView2StatusBarMessageChangedStagingEventArgs* args) -> HRESULT {
+    Microsoft::WRL::Callback<ICoreWebView2StatusBarMessageChangedEventHandler>(
+    [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+        
         LPWSTR value;
-        CHECK_FAILURE(args->get_Message(&value));
+        CHECK_FAILURE(sender->get_StatusBarMessage(&value));
+        if (wcslen(value) != 0) {
 
-        if (value[0] != 0) {
             m_statusBar.show(value);
         } else {
+            
             m_statusBar.hide();
         }
 
@@ -36,13 +38,13 @@ CHECK_FAILURE(m_webView->add_StatusBarMessageChanged(
 ).Get(),
 &m_statusBarMessageChangedToken));
 ```
-## .NET / WinRT Registering a listener for status bar showing
+## .NET / WinRT Registering a listener for status bar message changes
 ```
-webView.CoreWebView2.StatusBarMessageChanged += (object sender, CoreWebView2StatusBarMessageChangedEventArgs arg) =>
+webView.CoreWebView2.StatusBarMessageChanged += (CoreWebView2 sender, Object arg) =>
 {
-    string value = args.value;
+    string value = sender.statusBarMessage;
     /// Handle status bar text in value
-    if(value != "") {
+    if(value.Length != 0) {
         statusBar.show(value);
     } else {
         statusBar.hide();
@@ -55,21 +57,14 @@ See [API Details](#api-details) Section below for API reference
 # API Details
 ## Win32 C++
 ```
-///  Interface for the statusbar showing event args
-///  The value property contains the status bar text
-[uuid(56acdbb8-ceac-11eb-b8bc-0242ac130003), object, pointer_default(unique)]
-interface ICoreWebView2StatusBarMessageChangedEventArgs : IUnknown {
-    [propget] HRESULT Value([out, retval] LPWSTR* value);
-}   
-
-/// Interface for the status bar showing event handler
+/// Interface for the status bar message changed event handler
 [uuid(85c8b75a-ceac-11eb-b8bc-0242ac130003), object, pointer_default(unique)]
 interface ICoreWebView2StatusBarMessageChangedEventHandler : IUnknown {
   /// Called to provide the implementer with the event args for the
   /// corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2* sender,
-      [in] ICoreWebView2StatusBarMessageChangedEventArgs* args);
+      [in] IUnknown* args);
 }
 
 [uuid(b2c01782-ceaf-11eb-b8bc-0242ac130003), object, pointer_default(unique)]
@@ -84,22 +79,24 @@ interface ICoreWebView2_5 : ICoreWebView2_4 {
   /// Removing the event handler for `StatusBarMessageChanged` event
   HRESULT remove_StatusBarMessageChanged(
       [in] EventRegistrationToken token);
-       
+
+  /// used to access the current value of the status bar message
+  [propget] HRESULT StatusBarMessage([out, retval] LPWSTR* value);
 }
 ```
 ## .Net/ WinRT
 ```
 namespace Microsoft.Web.WebView2.Core {
 
-///   Interface for the statusbar showing event args
+///   Interface for the statusbar message changed event args
 ///   The value property contains the status bar text
     runtimeclass CoreWebView2StatusBarMessageChangedEventArgs {
-        string value {get;};
+        string statusBarMessage {get;};
     }
 
-/// Interface for the status bar showing event handler
+/// Interface for the status bar message changed event handler
     runtimeclass CoreWebView2 {
-        event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2StatusBarMessageChangedEventArgs> StatusBarMessageChanged;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> StatusBarMessageChanged;
     }
 }
 ```
