@@ -122,7 +122,7 @@ The developer can use the data provided in the Event arguments to display a cust
                     POINT locationInScreenCoordinates;
                     CHECK_FAILURE(parameters->get_Location(&locationInControlCoordinates));
                     // get_Location returns coordinates in relation to upper left Bounds of the WebView2.Controller. Will need to convert to Screen coordinates to display the popup menu in the correct location.
-                    ConvertToScreenCoordinates(locationInControlCoordinates, &locationInScreenCoordinates);
+                    ConvertToScreenCoordinates(locationInControlCoordinates, locationInScreenCoordinates);
                     UINT32 selectedCommandId = TrackPopupMenu(hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD, locationInScreenCoordinates.x, locationInScreenCoordinates.y, 0, hWnd, NULL);
                     CHECK_FAILURE(args->put_SelectedCommandId(selectedCommandId));
                 };
@@ -514,7 +514,7 @@ The developer can use the data provided in the Event arguments to display a cust
         /// For more information regarding paramters, see `ContextMenuItem`.
         HRESULT CreateContextMenuItem(
             [in] LPCWSTR label,
-            [in] LPCWSTR shorctutKeyDescription,
+            [in] LPCWSTR shortcutKeyDescription,
             [in] IStream* iconStream,
             [in] COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND kind,
             [in] BOOL isEnabled,
