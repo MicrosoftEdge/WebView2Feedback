@@ -1,10 +1,10 @@
 # Background
-When open a PDF file in Edge, there will be a toolbar at the top. The toolbar provide the functionality like print, save and annotation.
-And this PDF viewer is also available in WebView2. And we provide the API to enable users to customization the PDF toolbar.
+When opening a PDF file in Edge, there will be a toolbar at the top. The toolbar provides functionality like print, save and adding annotations.
+This PDF viewer is also available in WebView2. And we provide this new API to enable end developers to customize the PDF toolbar.
 
 
 # Description
-We add a new `HiddenPdfToolbarItems` property in `CoreWebView2Settings`. This API allows users to hide buttons on the PDF toolbar. 
+We add a new `HiddenPdfToolbarItems` property in `CoreWebView2Settings`. This API allows end developers to hide buttons on the PDF toolbar. 
 Currently, this API can hide the _save button_, _save as button_, and _print button_.
 By default, `HiddenPdfToolbarItems` is equal to `None` which means no button will be hidden.
 
@@ -85,7 +85,9 @@ cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(COREWEBVIEW2_PDF_TOOLBAR_ITEM);")
 
 [uuid(183e7052-1d03-43a0-ab99-98e043b66b39), object, pointer_default(unique)]
 interface ICoreWebView2Settings6 : ICoreWebView2Settings5 {
-  /// `HiddenPdfToolbarItems` is used to customize the PDF toolbar items. By default, it displays all of the items.
+  /// `HiddenPdfToolbarItems` is used to customize the PDF toolbar items. By default, it is COREWEBVIEW2_PDF_TOOLBAR_ITEM_NONE and so it displays all of the items.
+  /// Changes to this property apply to all CoreWebView2s in the same environment and using the same profile.
+  /// Changes to this setting apply only after the next navigation.
   /// \snippet SettingsComponent.cpp ToggleHidePdfToolbarItems
 
   [propget] HRESULT HiddenPdfToolbarItems([out, retval] COREWEBVIEW2_PDF_TOOLBAR_ITEM* hidden_pdf_toolbar_items);
