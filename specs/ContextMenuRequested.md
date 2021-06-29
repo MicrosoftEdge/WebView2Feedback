@@ -247,25 +247,53 @@ The developer can use the data provided in the Event arguments to display a cust
  ```c#
     webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
-        CoreWebView2Deferral deferral = args.GetDeferral();
         IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
+        CoreWebView2Deferral deferral = args.GetDeferral();
         args.Handled = true;
-        ContextMenu cm = this.FindResource("ContextMenu") as ContextMenu;
-        cm.Items.Clear();
+        ContextMenu cm = new ContextMenu();
+        cm.Closed += (s, ex) => deferral.Complete();
+        PopulateContextMenu(args, menuList, cm);
+        cm.IsOpen = true;
+    };
+    void PopulateContextMenu(CoreWebView2ContextMenuRequestedEventArgs args, 
+    IList<CoreWebView2ContextMenuItem> menuList, ItemsControl cm)
+    {
         for (int i = 0; i < menuList.Count; i++)
         {
             CoreWebView2ContextMenuItem current = menuList[i];
-            MenuItem newItem = new MenuItem();
-            newItem.Header = current.Label;
-            newItem.Click += (s, ex) => 
+            if (current.Kind == CoreWebView2ContextMenuItemKind.Separator)
             {
-                args.SelectedCommandId = current.CommandId;
-                deferral.Complete();
-            };
+                Separator sep = new Separator();
+                cm.Items.Add(sep);
+                continue;
+            }
+            MenuItem newItem = new MenuItem();
+            // The accessibility key is the key after the & in the label
+            // Replace with '_' so it is underlined in the label
+            newItem.Header = current.Label.Replace('&', '_');
+            newItem.InputGestureText = current.ShortcutKeyDescription;
+            newItem.IsEnabled = current.IsEnabled;
+            if (current.Kind == CoreWebView2ContextMenuItemKind.Submenu)
+            {
+                PopulateContextMenu(args, current.Children, newItem);
+            }
+            else
+            {
+                if (current.Kind == CoreWebView2ContextMenuItemKind.Checkbox
+                || current.Kind == CoreWebView2ContextMenuItemKind.Radio)
+                {
+                    newItem.IsCheckable = true;
+                    newItem.IsChecked = current.IsChecked;
+                }
+
+                newItem.Click += (s, ex) =>
+                {
+                    args.SelectedCommandId = current.CommandId;
+                };
+            }
             cm.Items.Add(newItem);
         }
-        cm.IsOpen = true;
-    };
+    }
 ```
 # Remarks
 
@@ -311,7 +339,7 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Context menu item descriptor for "Print" action.
         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_PRINT,
 
-        /// Context menu item descriptor for "Creating a QR code" action.
+        /// Context menu item descriptor for "Create a QR code" action.
         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_CREATE_QR_CODE,
 
         /// Context menu item descriptor for "Inspect" action.
