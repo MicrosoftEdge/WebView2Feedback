@@ -69,7 +69,7 @@ interface ICoreWebView2StatusBarMessageChangedEventHandler : IUnknown {
 
 [uuid(b2c01782-ceaf-11eb-b8bc-0242ac130003), object, pointer_default(unique)]
 interface ICoreWebView2_5 : ICoreWebView2_4 {
-   /// Add an event handler for the `StatusBarMessageChanged` event.
+  /// Add an event handler for the `StatusBarMessageChanged` event.
   /// `StatusBarMessageChanged` runs when the WebView statusbar content changes
   /// status bar
   HRESULT add_StatusBarMessageChanged(
