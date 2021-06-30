@@ -12,7 +12,7 @@ settings.
 Developers would also like to be able to opt in to intercept the messages which would 
 normally be displayed by the Status bar, and show it using thier own custom UI. 
 # Description
-We propose two new events for WebView2 that would allow developers to 
+We propose a new event for WebView2 that would allow developers to 
 listen for Status bar updates which are triggered by activity on the WebView, and then handle those updates however they want in their applications.
 
 Developers will be able to register an even handler for changes to the status bar message.
@@ -89,15 +89,10 @@ interface ICoreWebView2_5 : ICoreWebView2_4 {
 ```
 namespace Microsoft.Web.WebView2.Core {
 
-///   Interface for the statusbar message changed event args
-///   The value property contains the status bar text
-    runtimeclass CoreWebView2StatusBarMessageChangedEventArgs {
-        string statusBarMessage {get;};
-    }
-
 /// Interface for the status bar message changed event handler
     runtimeclass CoreWebView2 {
         event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> StatusBarMessageChanged;
+        string statusBarMessage {get;};
     }
 }
 ```
