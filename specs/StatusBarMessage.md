@@ -92,7 +92,7 @@ namespace Microsoft.Web.WebView2.Core {
 /// Interface for the status bar message changed event handler
     runtimeclass CoreWebView2 {
         event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> StatusBarMessageChanged;
-        string statusBarMessage {get;};
+        string StatusBarMessage {get;};
     }
 }
 ```
