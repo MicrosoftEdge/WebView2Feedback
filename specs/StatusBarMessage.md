@@ -21,7 +21,8 @@ Developers will be able to register an even handler for changes to the status ba
 ```
 CHECK_FAILURE(m_webView->add_StatusBarMessageChanged(
     Microsoft::WRL::Callback<ICoreWebView2StatusBarMessageChangedEventHandler>(
-    [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+    [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT
+    {
         
         LPWSTR value;
         CHECK_FAILURE(sender->get_StatusBarMessage(&value));
