@@ -51,9 +51,9 @@ The developer can provide the authentication credentials on behalf of the user w
                 args->GetDeferral(&deferral);
                 ShowCustomLoginUI().then([web_auth_args, deferral](LPCWSTR userName, LPCWSTR password) {
                     wil::com_ptr<ICoreWebView2WebAuthenticationResponse> webAuthenticationResponse;
-                    webviewEnvironment->CreateWebAuthenticationResponse(
-                        userName, password, &webAuthenticationResponse);
-                    args->put_Response(webAuthenticationResponse.get());
+                    args->get_Response(&webAuthenticationResponse);
+                    webAuthenticationResponse->put_UserName(userName);
+                    webAuthenticationResponse->put_Password(password);
                     deferral->Complete();
                 }
                 
@@ -68,9 +68,8 @@ webView.CoreWebView2.WebAuthenticationRequested += delegate (object sender, Core
 {
     CoreWebView2Deferral deferral = args.GetDeferral();
     Credential credential = await ShowCustomLoginUIAsync();
-    CoreWebView2WebAuthenticationResponse response = _coreWebView2Environment.CreateWebAuthenticationResponse(
-        credential.username, credential.password);
-    args.Response = response;
+    args.Response.UserName = credential.UserName;
+    args.Response.Password = credential.Password;
     deferral.Complete();
 };
 ```
@@ -152,7 +151,7 @@ interface ICoreWebView2_4 : ICoreWebView2_3
   ///
   /// The host can provide a response with credentials for the authentication or
   /// cancel the request. If the host doesn't set the Cancel property to true or
-  /// set the Response property, then WebView2 will show the default
+  /// populate the Response property, then WebView2 will show the default
   /// authorization challenge dialog prompt to the user.
   ///
   HRESULT add_WebAuthenticationRequested(
@@ -202,13 +201,12 @@ interface ICoreWebView2WebAuthenticationRequestedEventArgs : IUnknown
   /// The authorization challenge string
   [propget] HRESULT Challenge([out, retval] LPWSTR* challenge);
 
-  /// Response to the authentication request with credentials.
+  /// Response to the authentication request with credentials. This object will be populated by the app
+  /// if the host would like to provide authentication credentials.
   [propget] HRESULT Response([out, retval] ICoreWebView2WebAuthenticationResponse** response);
-  /// Set the Response property.
-  [propput] HRESULT Response([in] ICoreWebView2WebAuthenticationResponse* response);
-
+  
   /// Cancel the authentication request. False by default.
-  /// If set to true, Response will be ignored.
+  /// If set to true, Response set will be ignored.
   [propget] HRESULT Cancel([out, retval] BOOL* cancel);
   /// Set the Cancel property.
   [propput] HRESULT Cancel([in] BOOL cancel);
@@ -218,33 +216,11 @@ interface ICoreWebView2WebAuthenticationRequestedEventArgs : IUnknown
   HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 }
 
-[uuid(0cec3e32-36aa-4859-9bbe-f9c116ad4721), object, pointer_default(unique)]
-interface ICoreWebView2Environment3 : ICoreWebView2Environment2
-{
-  /// Create a WebAuthenticationResponse object used to provide credentials for
-  /// WebAuthenticationRequested event
-  HRESULT CreateWebAuthenticationResponse(
-    [in] LPCWSTR userName,
-    [in] LPCWSTR password,
-    [out, retval] ICoreWebView2WebAuthenticationResponse** response);
-}
-
 ```
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2Environment
-    {
-        ...
-
-        /// Create a WebAuthenticationResponse object used to provide credentials for
-        /// WebAuthenticationRequested event
-        public CoreWebView2WebAuthenticationResponse CreateWebAuthenticationResponse(
-            String userName,
-            String password);
-    }
-
     /// Event args for the WebAuthorizationRequested event. Will contain the
     /// request that led to the HTTP authorization challenge, the challenge
     /// and allows the host to provide authentication response or cancel the request.
@@ -260,8 +236,9 @@ namespace Microsoft.Web.WebView2.Core
         /// If set to true, Response will be ignored.
         bool Cancel { get; set; };
 
-        /// Response to the authentication request with credentials.
-        CoreWebView2WebAuthenticationResponse Response { get; set; };
+        /// Response to the authentication request with credentials. This object will be populated by the app
+        /// if the host would like to provide authentication credentials.
+        CoreWebView2WebAuthenticationResponse Response { get; };
     }
 
     /// Represents a Basic HTTP authentication response that contains a user name
@@ -283,7 +260,7 @@ namespace Microsoft.Web.WebView2.Core
         /// WebAuthenticationRequested event is raised when WebView encountered a Basic HTTP
         /// Authentication request.
         ///
-        /// The host can provide a response with credentials for the authentication or
+        /// The host can populate the response object with credentials it wants to use for the authentication or
         /// cancel the request. If the host doesn't handle the event, WebView will show
         /// the authorization challenge dialog prompt to user.
         ///
