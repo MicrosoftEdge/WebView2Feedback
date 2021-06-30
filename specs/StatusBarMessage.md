@@ -15,7 +15,7 @@ normally be displayed by the Status bar, and show it using thier own custom UI.
 We propose a new event for WebView2 that would allow developers to 
 listen for Status bar updates which are triggered by activity on the WebView, and then handle those updates however they want in their applications.
 
-Developers will be able to register an even handler for changes to the status bar message.
+Developers will be able to register an event handler for changes to the status bar message.
 # Examples
 ## Win32 C++ Registering a listener for status bar message changes
 ```
