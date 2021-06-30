@@ -44,7 +44,7 @@ CHECK_FAILURE(m_webView->add_StatusBarMessageChanged(
 webView.CoreWebView2.StatusBarMessageChanged += (CoreWebView2 sender, Object arg) =>
 {
     string value = sender.statusBarMessage;
-    /// Handle status bar text in value
+    // Handle status bar text in value
     if(value.Length != 0) {
         statusBar.show(value);
     } else {
