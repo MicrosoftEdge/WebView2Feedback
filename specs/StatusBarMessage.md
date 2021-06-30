@@ -26,7 +26,8 @@ CHECK_FAILURE(m_webView->add_StatusBarMessageChanged(
         
         LPWSTR value;
         CHECK_FAILURE(sender->get_StatusBarMessage(&value));
-        if (wcslen(value) != 0) {
+        if (wcslen(value) != 0)
+        {
 
             m_statusBar.show(value);
         } else {
