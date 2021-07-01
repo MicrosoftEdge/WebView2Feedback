@@ -36,13 +36,13 @@ The developer can add or remove entries to the default WebView context menu. For
                 CHECK_FAILURE(args->get_MenuItems(&items));
                 wil::com_ptr<ICoreWebView2ContextMenuInfo> info;
                 CHECK_FAILURE(args->get_ContextMenuInfo(&info));
-                COREWEBVIEW2_CONTEXT_TYPE context;
-                CHECK_FAILURE(info->get_ContextType(&context));
+                COREWEBVIEW2_CONTEXT_KIND context;
+                CHECK_FAILURE(info->get_ContextKind(&context));
                 CHECK_FAILURE(args->put_Handled(false));
                 UINT32 itemsCount;
                 CHECK_FAILURE(items->get_Count(&itemsCount));
                 // Removing the 'Save image as' context menu item for image context selections.
-                if (context == COREWEBVIEW2_CONTEXT_TYPE_IMAGE)
+                if (context == COREWEBVIEW2_CONTEXT_KIND_IMAGE)
                 {
                     UINT32 removeIndex = itemsCount;
                     wil::com_ptr<ICoreWebView2ContextMenuItem> current;
@@ -62,7 +62,7 @@ The developer can add or remove entries to the default WebView context menu. For
                     }
                 }
                 // Adding a custom context menu item for links that will display the link's URI.
-                else if (context == COREWEBVIEW2_CONTEXT_TYPE_LINK)
+                else if (context == COREWEBVIEW2_CONTEXT_KIND_LINK)
                 {
                     wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
                     CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
@@ -74,9 +74,9 @@ The developer can add or remove entries to the default WebView context menu. For
                             ICoreWebView2* sender,
                             IUnknown* args)
                             {
-                                wil::unique_cotaskmem_string linkUrl;
-                                CHECK_FAILURE(info->get_LinkUrl(&linkUrl));
-                                std::wstring linkString = linkUrl.get();
+                                wil::unique_cotaskmem_string linkUri;
+                                CHECK_FAILURE(info->get_LinkUri(&linkUri));
+                                std::wstring linkString = linkUri.get();
                                 m_appWindow->RunAsync([this, linkString]()
                                 {
                                     MessageBox(
@@ -217,24 +217,24 @@ The developer can use the data provided in the Event arguments to display a cust
     webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
-        CoreWebView2ContextType context = args.ContextMenuInfo.ContextType;
+        CoreWebView2ContextKind context = args.ContextMenuInfo.ContextKind;
         args.Handled = false;
-        if (context == CoreWebView2ContextType.Image)
+        if (context == CoreWebView2ContextKind.Image)
         {
             // removes the last item in the collection
             menuList.RemoveAt(menuList.Count - 1);
         }
-        else if (context == CoreWebView2ContextType.Link)
+        else if (context == CoreWebView2ContextKind.Link)
         {
             // add new item to end of collection
             CoreWebView2ContextMenuItem newItem = webView.CoreWebView2.Environment.CreateContextMenuItem(
                 "Display Link", "Shorcut", null, CoreWebView2ContextMenuItemKind.Normal,1, 0);
                 newItem.CustomItemSelected += delegate (object send, Object ex)
                 {
-                    string linkUrl = args.ContextMenuInfo.LinkUrl;
+                    string linkUri = args.ContextMenuInfo.LinkUri;
                     System.Threading.SynchronizationContext.Current.Post((_) =>
                     {
-                        MessageBox.Show(linkUrl, "Display Link", MessageBoxButton.YesNo);
+                        MessageBox.Show(linkUri, "Display Link", MessageBoxButton.YesNo);
                     }, null);
                 }
             menuList.Insert(menuList.Count, newItem);
@@ -394,32 +394,32 @@ The developer can use the data provided in the Event arguments to display a cust
         COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_OTHER,
     } COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR;
     
-    /// Indicates the type of context for which the context menu was created
-    /// for the `ICoreWebView2ContextMenuInfo::get_ContextType` method
+    /// Indicates the kind of context for which the context menu was created
+    /// for the `ICoreWebView2ContextMenuInfo::get_ContextKind` method
     [v1_enum]
-    typedef enum COREWEBVIEW2_CONTEXT_TYPE
+    typedef enum COREWEBVIEW2_CONTEXT_KIND
     {
         /// Indicates that the context menu was created for the page without any additional content.
-        COREWEBVIEW2_CONTEXT_TYPE_PAGE,
+        COREWEBVIEW2_CONTEXT_KIND_PAGE,
 
         /// Indicates that the context menu was created for a selection.
-        COREWEBVIEW2_CONTEXT_TYPE_SELECTION,
+        COREWEBVIEW2_CONTEXT_KIND_SELECTION,
 
         /// Indicates that the context menu was created for a link.
-        COREWEBVIEW2_CONTEXT_TYPE_LINK,
+        COREWEBVIEW2_CONTEXT_KIND_LINK,
 
         /// Indicates that the context menu was created for an editable component.
-        COREWEBVIEW2_CONTEXT_TYPE_EDITABLE,
+        COREWEBVIEW2_CONTEXT_KIND_EDITABLE,
         
         /// Indicates that the context menu was created for an audio element.
-        COREWEBVIEW2_CONTEXT_TYPE_AUDIO,
+        COREWEBVIEW2_CONTEXT_KIND_AUDIO,
 
         /// Indicates that the context menu was created for an image element.
-        COREWEBVIEW2_CONTEXT_TYPE_IMAGE,
+        COREWEBVIEW2_CONTEXT_KIND_IMAGE,
         
         /// Indicates that the context menu was created for a video element.
-        COREWEBVIEW2_CONTEXT_TYPE_VIDEO,
-    } COREWEBVIEW2_CONTEXT_TYPE;
+        COREWEBVIEW2_CONTEXT_KIND_VIDEO,
+    } COREWEBVIEW2_CONTEXT_KIND;
 
     /// Specifies the menu item kind
     /// for the `ICoreWebView2StagingContextMenuItem::get_Kind` method
@@ -618,24 +618,24 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Gets the coordinates where the context menu request occured in relation to the upper left corner of the webview bounds.
         [propget] HRESULT Location([out, retval] POINT* value);
 
-        /// Gets the type of context that the user selected.
-        [propget] HRESULT ContextType([out, retval] COREWEBVIEW2_CONTEXT_TYPE* value);
+        /// Gets the kind of context that the user selected.
+        [propget] HRESULT ContextKind([out, retval] COREWEBVIEW2_CONTEXT_KIND* value);
 
         /// Returns TRUE if the context menu was requested on the main frame and
         /// FALSE if invoked on another frame.
         [propget] HRESULT IsMainFrame([out, retval] BOOL* value);
 
-        /// Gets the url of the page.
-        [propget] HRESULT PageUrl([out, retval] LPWSTR* value);
+        /// Gets the uri of the page.
+        [propget] HRESULT PageUri([out, retval] LPWSTR* value);
 
-        /// Gets the url of the frame. Will match the PageUrl is `get_IsMainFrame` is TRUE.
-        [propget] HRESULT FrameUrl([out, retval] LPWSTR* value);
+        /// Gets the uri of the frame. Will match the PageUri is `get_IsMainFrame` is TRUE.
+        [propget] HRESULT FrameUri([out, retval] LPWSTR* value);
 
-        /// Gets the source url of element (if context menu requested on a media element, null otherwise).
-        [propget] HRESULT SourceUrl([out, retval] LPWSTR* value);
+        /// Gets the source uri of element (if context menu requested on a media element, null otherwise).
+        [propget] HRESULT SourceUri([out, retval] LPWSTR* value);
 
-        /// Gets the url of the link (if context menu requested on a link, null otherwise).
-        [propget] HRESULT LinkUrl([out, retval] LPWSTR* value);
+        /// Gets the uri of the link (if context menu requested on a link, null otherwise).
+        [propget] HRESULT LinkUri([out, retval] LPWSTR* value);
 
         /// Gets the text of the link (if context menu requested on a link, null otherwise).
         [propget] HRESULT LinkText([out, retval] LPWSTR * value);
@@ -683,7 +683,7 @@ namespace Microsoft.Web.WebView2.Core
         Other = 31,
     };
 
-    enum CoreWebView2ContextType
+    enum CoreWebView2ContextKind
     {
         Page = 0,
         Selection = 1,
@@ -708,18 +708,18 @@ namespace Microsoft.Web.WebView2.Core
         Boolean Handled { get; set; }
         CoreWebView2ContextMenuInfo ContextMenuInfo { get; }
         IVector<CoreWebView2ContextMenuItem> MenuItems { get; }
-        CoreWebView2ContextMenuItem SelectedCommand { get; set; }
+        Int32 SelectedCommandId { get; set; }
         Windows.Foundation.Deferral GetDeferral();
     };
     
     runtimeclass CoreWebView2ContextMenuInfo
     {
         Point Location { get; }
-        CoreWebView2ContextType ContextType { get; }
-        String PageUrl { get; }
-        String FrameUrl { get; }
-        String SourceUrl { get; }
-        String LinkUrl { get; }
+        CoreWebView2ContextKind ContextKind { get; }
+        String PageUri { get; }
+        String FrameUri { get; }
+        String SourceUri { get; }
+        String LinkUri { get; }
         String LinkText { get; }
         String SelectionText { get; }
     };
