@@ -16,7 +16,7 @@ manager is already opened, this method will do nothing.
 ``` cpp
 wil::com_ptr<ICoreWebView2_5> m_webview;
 
-// This method could be called from a menu, such as 
+// This method could be called from a menu bar item, such as 
 // [Script -> Show Task Manager]. 
 void ScriptComponent::ShowTaskManager()
 {
@@ -30,7 +30,7 @@ void ScriptComponent::ShowTaskManager()
 ```c#
 private WebView2 m_webview;
 
-// This method could be called from a menu, such as 
+// This method could be called from a menu bar item, such as 
 // [Script -> Show Task Manager]. 
 void ShowTaskManager()
 {
