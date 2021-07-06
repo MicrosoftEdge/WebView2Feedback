@@ -61,27 +61,27 @@ The developer can add or remove entries to the default WebView context menu. For
                         CHECK_FAILURE(items->RemoveValueAtIndex(removeIndex));
                     }
                 }
-                // Adding a custom context menu item for links that will display the link's URI.
-                else if (context == COREWEBVIEW2_CONTEXT_KIND_LINK)
+                // Adding a custom context menu item for the page that will display the page's URI.
+                else if (context == COREWEBVIEW2_CONTEXT_KIND_PAGE)
                 {
                     wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
                     CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
                         IID_PPV_ARGS(&webviewEnvironment)));
                     wil::com_ptr<ICoreWebView2ContextMenuItem> newMenuItem;
-                    CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(L"Display Link", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, true, false, &newMenuItem));
+                    CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(L"Display page Uri", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, true, false, &newMenuItem));
                     newMenuItem->add_CustomItemSelected(Callback<ICoreWebView2CustomItemSelectedEventHandler>(
                         [this, info](
                             ICoreWebView2* sender,
                             IUnknown* args)
                             {
-                                wil::unique_cotaskmem_string linkUri;
-                                CHECK_FAILURE(info->get_LinkUri(&linkUri));
-                                std::wstring linkString = linkUri.get();
-                                m_appWindow->RunAsync([this, linkString]()
+                                wil::unique_cotaskmem_string pageUri;
+                                CHECK_FAILURE(info->get_PageUri(&pageUri));
+                                std::wstring pageString = pageUri.get();
+                                m_appWindow->RunAsync([this, pageString]()
                                 {
                                     MessageBox(
-                                        m_appWindow->GetMainWindow(), linkString.c_str(),
-                                        L"Display Link", MB_OK);
+                                        m_appWindow->GetMainWindow(), pageString.c_str(),
+                                        L"Display Page Uri", MB_OK);
                                 });
                                 return S_OK;
                             })
@@ -114,7 +114,7 @@ The developer can use the data provided in the Event arguments to display a cust
                     HMENU hPopupMenu = CreatePopupMenu();
                     AddMenuItems(hPopupMenu, items);
                     HWND hWnd;
-                    CHECK_FAILURE(m_appWindow->GetWebViewController()->get_ParentWindow(&hWnd));
+                    m_controller->get_ParentWindow(&hWnd);
                     SetForegroundWindow(hWnd);
                     wil::com_ptr<ICoreWebView2ContextMenuInfo> parameters;
                     CHECK_FAILURE(args->get_ContextMenuInfo(&parameters));
@@ -224,17 +224,17 @@ The developer can use the data provided in the Event arguments to display a cust
             // removes the last item in the collection
             menuList.RemoveAt(menuList.Count - 1);
         }
-        else if (context == CoreWebView2ContextKind.Link)
+        else if (context == CoreWebView2ContextKind.Page)
         {
             // add new item to end of collection
             CoreWebView2ContextMenuItem newItem = webView.CoreWebView2.Environment.CreateContextMenuItem(
-                "Display Link", "Shorcut", null, CoreWebView2ContextMenuItemKind.Normal,1, 0);
+                "Display Page Uri", "Shorcut", null, CoreWebView2ContextMenuItemKind.Normal,1, 0);
                 newItem.CustomItemSelected += delegate (object send, Object ex)
                 {
-                    string linkUri = args.ContextMenuInfo.LinkUri;
+                    string pageUri = args.ContextMenuInfo.PageUri;
                     System.Threading.SynchronizationContext.Current.Post((_) =>
                     {
-                        MessageBox.Show(linkUri, "Display Link", MessageBoxButton.YesNo);
+                        MessageBox.Show(pageUri, "Page Uri", MessageBoxButton.YesNo);
                     }, null);
                 }
             menuList.Insert(menuList.Count, newItem);
@@ -404,9 +404,6 @@ The developer can use the data provided in the Event arguments to display a cust
 
         /// Indicates that the context menu was created for a selection.
         COREWEBVIEW2_CONTEXT_KIND_SELECTION,
-
-        /// Indicates that the context menu was created for a link.
-        COREWEBVIEW2_CONTEXT_KIND_LINK,
 
         /// Indicates that the context menu was created for an editable component.
         COREWEBVIEW2_CONTEXT_KIND_EDITABLE,
@@ -625,10 +622,14 @@ The developer can use the data provided in the Event arguments to display a cust
         /// FALSE if invoked on another frame.
         [propget] HRESULT IsMainFrame([out, retval] BOOL* value);
 
+        /// Returns TRUE if the context menu request occured on a component 
+        /// that contained a link.
+        [propget] HRESULT ContainsLink([out, retval] BOOL* value);
+
         /// Gets the uri of the page.
         [propget] HRESULT PageUri([out, retval] LPWSTR* value);
 
-        /// Gets the uri of the frame. Will match the PageUri is `get_IsMainFrame` is TRUE.
+        /// Gets the uri of the frame. Will match the PageUri if `get_IsMainFrame` is TRUE.
         [propget] HRESULT FrameUri([out, retval] LPWSTR* value);
 
         /// Gets the source uri of element (if context menu requested on a media element, null otherwise).
@@ -687,11 +688,10 @@ namespace Microsoft.Web.WebView2.Core
     {
         Page = 0,
         Selection = 1,
-        Link = 2,
-        Editable = 3,
-        Audio = 4,
-        Image = 5,
-        Video = 6,
+        Editable = 2,
+        Audio = 3,
+        Image = 4,
+        Video = 5,
     };
 
     enum CoreWebView2ContextMenuItemKind
@@ -716,6 +716,8 @@ namespace Microsoft.Web.WebView2.Core
     {
         Point Location { get; }
         CoreWebView2ContextKind ContextKind { get; }
+        Boolean IsMainFrame { get; }
+        Boolean ContainsLink { get; }
         String PageUri { get; }
         String FrameUri { get; }
         String SourceUri { get; }
