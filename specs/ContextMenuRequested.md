@@ -5,9 +5,9 @@ There currently is no method using WebView2 APIs to customize the default contex
 # Description
 We propose two new events for WebView2, `CoreWebView2ContextMenuRequested` that will allow developers to listen to context menus being requested by the end user in the WebView2 and `CoreWebView2CustomItemSelected` that will notify the developer that one of their inserted context menu items was selected. When a context menu is requested in WebView2, the app developer will receive:
 
-1. The list of default ContextMenuItem objects (contains name, Descriptor, kind/type, Shorcut Desc and other properties)
+1. The list of default ContextMenuItem objects (contains name, Descriptor, kind, Shortcut Desc and other properties)
 2. The coordinates where the context menu was requested. For instance where the end user right clicked.
-3. A selection object that will include the type of context selected, and the appropriate context menu parameter data.
+3. A selection object that will include the kind of context selected, and the appropriate context menu parameter data.
 
 and have the choice to: 
 
@@ -68,7 +68,7 @@ The developer can add or remove entries to the default WebView context menu. For
                     CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
                         IID_PPV_ARGS(&webviewEnvironment)));
                     wil::com_ptr<ICoreWebView2ContextMenuItem> newMenuItem;
-                    CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(L"Display page Uri", L"Shorcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, true, false, &newMenuItem));
+                    CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(L"Display page Uri", L"Shortcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, true, false, &newMenuItem));
                     newMenuItem->add_CustomItemSelected(Callback<ICoreWebView2CustomItemSelectedEventHandler>(
                         [this, info](
                             ICoreWebView2* sender,
@@ -228,7 +228,7 @@ The developer can use the data provided in the Event arguments to display a cust
         {
             // add new item to end of collection
             CoreWebView2ContextMenuItem newItem = webView.CoreWebView2.Environment.CreateContextMenuItem(
-                "Display Page Uri", "Shorcut", null, CoreWebView2ContextMenuItemKind.Normal,1, 0);
+                "Display Page Uri", "Shortcut", null, CoreWebView2ContextMenuItemKind.Normal,1, 0);
                 newItem.CustomItemSelected += delegate (object send, Object ex)
                 {
                     string pageUri = args.ContextMenuInfo.PageUri;
@@ -402,17 +402,14 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Indicates that the context menu was created for the page without any additional content.
         COREWEBVIEW2_CONTEXT_KIND_PAGE,
 
-        /// Indicates that the context menu was created for a selection.
-        COREWEBVIEW2_CONTEXT_KIND_SELECTION,
+        /// Indicates that the context menu was created for an image element.
+        COREWEBVIEW2_CONTEXT_KIND_IMAGE,
 
-        /// Indicates that the context menu was created for an editable component.
-        COREWEBVIEW2_CONTEXT_KIND_EDITABLE,
+        /// Indicates that the context menu was created for selected text.
+        COREWEBVIEW2_CONTEXT_KIND_SELECTED_TEXT,
         
         /// Indicates that the context menu was created for an audio element.
         COREWEBVIEW2_CONTEXT_KIND_AUDIO,
-
-        /// Indicates that the context menu was created for an image element.
-        COREWEBVIEW2_CONTEXT_KIND_IMAGE,
         
         /// Indicates that the context menu was created for a video element.
         COREWEBVIEW2_CONTEXT_KIND_VIDEO,
@@ -535,7 +532,7 @@ The developer can use the data provided in the Event arguments to display a cust
     interface ICoreWebView2Environment : IUnknown
     {
         /// Create a `ContextMenuItem` object to insert into the WebView context menu.
-        /// The `IsChecked` property will only be used if the menu item type is Radio or Checkbox.
+        /// The `IsChecked` property will only be used if the menu item kind is Radio or Checkbox.
         /// For more information regarding paramters, see `ContextMenuItem`.
         HRESULT CreateContextMenuItem(
             [in] LPCWSTR label,
@@ -622,8 +619,13 @@ The developer can use the data provided in the Event arguments to display a cust
         /// FALSE if invoked on another frame.
         [propget] HRESULT IsMainFrame([out, retval] BOOL* value);
 
-        /// Returns TRUE if the context menu request occured on a component 
-        /// that contained a link.
+        /// Returns TRUE if the context menu is requested on a selection.
+        [propget] HRESULT HasSelection([out, retval] BOOL* value);
+
+        /// Returns TRUE if the context menu is requested on an editable component.
+        [propget] HRESULT IsEditable([out, retval] BOOL* value);
+
+        /// Returns TRUE if the context menu is requested on a component that contains a link.
         [propget] HRESULT ContainsLink([out, retval] BOOL* value);
 
         /// Gets the uri of the page.
@@ -641,7 +643,7 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Gets the text of the link (if context menu requested on a link, null otherwise).
         [propget] HRESULT LinkText([out, retval] LPWSTR * value);
 
-        /// Gets the selected text (if context menu was invoked on a selection, null otherwise).
+        /// Gets the selected text (available when HasSelection is TRUE, null otherwise).
         [propget] HRESULT SelectionText([out, retval] LPWSTR* value);
     }
 ```
@@ -687,11 +689,10 @@ namespace Microsoft.Web.WebView2.Core
     enum CoreWebView2ContextKind
     {
         Page = 0,
-        Selection = 1,
-        Editable = 2,
+        Image = 1,
+        SelectedText = 2,
         Audio = 3,
-        Image = 4,
-        Video = 5,
+        Video = 4,
     };
 
     enum CoreWebView2ContextMenuItemKind
@@ -717,6 +718,8 @@ namespace Microsoft.Web.WebView2.Core
         Point Location { get; }
         CoreWebView2ContextKind ContextKind { get; }
         Boolean IsMainFrame { get; }
+        Boolean HasSelection { get; }
+        Boolean IsEditable { get; }
         Boolean ContainsLink { get; }
         String PageUri { get; }
         String FrameUri { get; }
