@@ -42,7 +42,7 @@ private WebView2 _webView;
 void ToggleHidePdfToolbarButtons(object target, ExecutedRoutedEventArgs e)
 {
     var coreWebView2Settings = _webView.CoreWebView2.Settings;
-    if(WebViewSettings.HiddenPdfToolbarItems == CoreWebView2PdfToolbarItem.Save | CoreWebView2PdfToolbarItem.Print)
+    if(coreWebView2Settings.HiddenPdfToolbarItems.HasFlag(CoreWebView2PdfToolbarItem.Save | CoreWebView2PdfToolbarItem.Print))
     {
         WebViewSettings.HiddenPdfToolbarItems = CoreWebView2PdfToolbarItem.None;
     }
