@@ -3,8 +3,10 @@ Currently the drag&drop functionality is default enabled in webview2 and there i
 based upon their scenarios. According to such feature requirements, we add the new API to provide developers with the capability to configure the drag&drop functionality.
 
 # Description
-We add a new `AllowDrop` property in `CoreWebView2Controller`. This API allows end developers to toggle the drag&drop functionality easily.
-If it's disabled, any drag&drop actions will keep out of work. By default, it's disabled to accommodate to conventions.
+We add a new `AllowDrop` property in `CoreWebView2Controller`. 
+This API allows end developers to toggle the drag&drop functionality easily.
+If it's disabled, any drag&drop actions will keep out of work. 
+By default, it's enabled to keep consistent with the behavior we had before the API is added.
 
 # Examples
 ## C++
@@ -42,7 +44,7 @@ void ToggleAllowDrop(object target, ExecutedRoutedEventArgs e)
 {
     // Get webView's controller
     var controller = _webView.CoreWebView2Controller;
-    if(controller.AllowDrop)
+    if (controller.AllowDrop)
     {
         controller.AllowDrop = false;
     }
@@ -56,7 +58,7 @@ void ToggleAllowDrop(object target, ExecutedRoutedEventArgs e)
 # Remarks
 The `AllowDrop` property already exists in some controls of .net UI framework like WPF and WinForms. 
 The .net control wrapper for webview2 natively inherits this property. 
-But actually it doesn't really work until this new API is added.
+But actually it doesn't really takes effect until this new API is added.
 When the new API is promoted to public, we will adjust the WPF/WinForms webview2 control to consume the new API accordingly.
 
 
@@ -72,10 +74,13 @@ See [API Details](#api-details) section below for API reference.
 interface ICoreWebView2Controller : IUnknown {
   /// Gets the `AllowDrop` property which is used to configure the capability
   /// that dropping files into webview2 is allowed or permitted.
-  [propget] HRESULT AllowDrop([out, retval] BOOL * allowDrop);
+  /// The default value is TRUE if not ever set.
+  ///
+  /// \snippet SettingsComponent.cpp ToggleAllowDrop
+  [propget] HRESULT AllowDrop([out, retval] BOOL* value);
   /// Sets the `AllowDrop` property which is used to configure the capability
   /// that dropping files into webview2 is allowed or permitted.
-  [propput] HRESULT AllowDrop([in] BOOL allowDrop);
+  [propput] HRESULT AllowDrop([in] BOOL value);
 }
 ```
 
