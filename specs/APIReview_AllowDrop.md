@@ -58,7 +58,7 @@ void ToggleAllowDrop(object target, ExecutedRoutedEventArgs e)
 # Remarks
 The `AllowDrop` property already exists in some controls of .net UI framework like WPF and WinForms. 
 The .net control wrapper for webview2 natively inherits this property. 
-But actually it doesn't really takes effect until this new API is added.
+But actually it doesn't really take effect until this new API is added.
 When the new API is promoted to public, we will adjust the WPF/WinForms webview2 control to consume the new API accordingly.
 
 
