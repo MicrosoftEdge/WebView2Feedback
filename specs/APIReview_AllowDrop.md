@@ -74,7 +74,7 @@ See [API Details](#api-details) section below for API reference.
 interface ICoreWebView2Controller : IUnknown {
   /// Gets the `AllowDrop` property which is used to configure the capability
   /// that dropping files into webview2 is allowed or permitted.
-  /// The default value is TRUE if not ever set.
+  /// The default value is TRUE.
   ///
   /// \snippet SettingsComponent.cpp ToggleAllowDrop
   [propget] HRESULT AllowDrop([out, retval] BOOL* value);
@@ -96,7 +96,7 @@ namespace Microsoft.Web.WebView2.Core
         //
         // Remarks:
         //     The AllowDrop is to configure the capability that dropping files into webview2
-        //     is allowed or permitted.
+        //     is allowed or permitted. The default value is true.
         public bool AllowDrop { get; set; }
     }
 }
