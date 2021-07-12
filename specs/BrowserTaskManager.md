@@ -1,6 +1,14 @@
 # Background
 The WebView2 team has been asked to provide an API to expose the Browser Task
-Manager. At the current time, it is expected that the user will close the Task 
+Manager. The Browser Task Manager is a window helpful for debugging that 
+displays the different processes associated with the current browser process and 
+what they're used for. For instance, it could denote that a particular process 
+is a renderer process and would show the different web pages rendered by that 
+process. In a chromium browser it can be opened by the end user by pressing 
+`Shift+Esc` or from the browser's title bar's context menu's 
+`Browser task manager` entry.
+
+At the current time, it is expected that the user will close the Task 
 Manager manually, so we do not need to provide an API to close it.
 
 In this document we describe the updated API. We'd appreciate your feedback.
@@ -20,7 +28,7 @@ wil::com_ptr<ICoreWebView2_5> m_webview;
 // [Script -> Show Task Manager]. 
 void ScriptComponent::ShowTaskManager()
 {
-    CHECK_FAILURE(m_webview->ShowTaskManager())
+    CHECK_FAILURE(m_webview->ShowTaskManager());
 }
 
 
