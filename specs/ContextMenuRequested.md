@@ -14,16 +14,13 @@ and have the choice to:
 1. Add or remove entries to the default context menu provided by the WebView
 2. Use their own UI to display their custom context menu (can either handle the selection on their own or return the selected option to the WebView)
 
-If one of the entries added by the end developer is selected, the CustomMenuItemSelected event will be raised and will include in the event args: 
-
-1. The developer-provided ID for the context menu selected
-2. The selection object with the appropriate data for the end developer to use to carry out custom commands
+If one of the entries inserted by the end developer is selected, the CustomMenuItemSelected event will be raised on the context menu item object that was selected.
 
 # Examples
 
 ## Win32 C++ Add or Remove Entries From WebView Menu
 
-The developer can add or remove entries to the default WebView context menu. For this case, the developer specifies Handled to be false and is able to add or remove items to the collection of context menu items.
+The developer can add or remove entries to the default WebView context menu. For this case, the developer specifies Handled to be false and is able to add or remove items from the collection of context menu items.
 
  ```cpp
     webview2->add_ContextMenuRequested(
