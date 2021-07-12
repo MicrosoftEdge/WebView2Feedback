@@ -60,7 +60,7 @@ interface ICoreWebView2_5 : ICoreWebView2_4 {
       [in] EventRegistrationToken token);
 
   /// used to access the current value of the favicon
-  [propget] HRESULT FaviconUrl([out, retval] LPWSTR* value);
+  [propget] HRESULT FaviconUri([out, retval] LPWSTR* value);
 }
 ```
 
