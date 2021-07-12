@@ -1,38 +1,59 @@
 # Background
-A Favicon is an asset which is a part of every webpage, and typically displayed on each tab. Developers would
-like to have an API which allows them to retrieve the Favicon of a webpage, as well as get an update whenever
+A Favicon is an asset which is a part of a  webpage, and typically displayed on each tab. Developers would
+like to have an API which allows them to retrieve the Favicon of a webpage, if it has one, as well as get an update whenever
 the favicon has changed.
 
 # Description
-We propose a new Webview2 event which would allow developers to get access to the current Favicon of a page, 
+We propose a new Webview2 event which would allow developers access the current Favicon of a page, 
 as well as be notified when the favicon changes.
 
 # Examples
 ## Win32 C++ Registering a listener for favicon changes
-    ```cpp
-        CHECK_FAILURE(m_webView->add_FaviconChanged(
-            Microsoft::WRL::Callback<ICoreWebView2FaviconUpdateEventHandler>(
-            [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT
-            {
+```cpp
+    CHECK_FAILURE(m_webViewStaging4->add_FaviconChanged(
+        Callback<ICoreWebView2StagingFaviconChangedEventHandler>(
+            [this](ICoreWebView2Staging4* sender, IUnknown* args) -> HRESULT {
                 
-                LPWSTR value;
-                CHECK_FAILURE(sender->get_FaviconUrl(&value));
+                wil::unique_cotaskmem_string url;
+                CHECK_FAILURE(sender->get_FaviconUri(&url));
+                wil::com_ptr<IStream> pStream = SHCreateMemStream(nullptr, 0);
 
+                sender->GetFavicon(
+                    COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG, 
+                    pStream,
+                    Callback<
+                        ICoreWebView2StagingGetFaviconCompletedHandler>(
+                        [&pStream, this](HRESULT code) -> HRESULT {
+                                    Gdiplus::Bitmap* pBitmap = new Gdiplus::Bitmap(pStream);
+                                    HICON icon;
+                                    pBitmap->GetHICON(&icon);
+                                    SendMessage(
+                                        m_appWindow->GetMainWindow(), WM_SETICON, ICON_SMALL,
+                                        (LPARAM)icon);
+                            return S_OK;
+                        })
+                        .Get());
 
                 return S_OK;
-            }
-         ).Get(),
+            })
+            .Get(),
         &m_faviconChangedToken));  
-    ```
+```
 ## .NET / WinRT Registering a listener for favicon changes
 ```c#
-webView.CoreWebView2.FaviconChanged += (CoreWebView2 sender, Object arg) =>
+webView.CoreWebView2.FaviconUriChanged += (CoreWebView2 sender, Object arg) =>
 {
-    string  value = sender.faviconUrl;
+    System.IO.Stream stream = new System.IO.MemoryStream();
+    await webView.CoreWebView2.GetFaviconAsync(
+        CoreWebView2FaviconImageFormat.Png,
+        stream);
+    // setting the window Icon to the bitmap
+    this.Icon = BitmapFrame.Create(stream); 
 
 };
 ```
 # API Notes
+If a Web page does not have a Favicon, then the event is not fired.
 See [API Details](#api-details) Section below for API reference
 # API Details
 ## Win32 C++
@@ -47,6 +68,13 @@ interface ICoreWebView2FaviconChangedEventHandler : IUnknown {
       [in] IUnknown* args);
 }
 
+[uuid(93ACC5AD-DC22-419E-9A3F-75D96A1538E4), object, pointer_default(unique)]
+interface ICoreWebView2GetFaviconCompletedHandler : IUnknown {
+  /// Called to provide the implementer with the event args for the
+  /// corresponding event.
+  HRESULT Invoke([in] HRESULT error_code);
+}
+
 [uuid(DC838C64-F64B-4DC7-98EC-0992108E2157), object, pointer_default(unique)]
 interface ICoreWebView2_5 : ICoreWebView2_4 {
   /// Add an event handler for the `FaviconChanged` event.
@@ -59,8 +87,25 @@ interface ICoreWebView2_5 : ICoreWebView2_4 {
   HRESULT remove_FaviconChanged(
       [in] EventRegistrationToken token);
 
+/// Async function for getting the actual image data of the favicon
+ HRESULT GetFaviconAsync(
+        [in] COREWEBVIEW2_FAVICON_IMAGE_FORMAT format,
+        [in] IStream * imageStream,
+        [in] ICoreWebView2GetFaviconCompletedHandler* eventHandler
+ );
+
   /// used to access the current value of the favicon
+  /// If a page has no favicon then this returns a nullptr
   [propget] HRESULT FaviconUri([out, retval] LPWSTR* value);
+
+}
+[v1_enum]
+typedef enum COREWEBVIEW2_FAVICON_IMAGE_FORMAT {
+    /// Indicates that the function should return the favicon in PNG format
+    COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG,
+
+    /// Indicates that the function should return the favicon in JPG format
+    COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_JPEG,
 }
 ```
 
@@ -68,10 +113,17 @@ interface ICoreWebView2_5 : ICoreWebView2_4 {
 ```c#
 namespace Microsoft.Web.WebView2.Core {
 
-/// Interface for the Favicon changed event handler
+     enum CoreWebView2FaviconImageFormat
+    {
+        Png = 0,
+        Jpeg = 1,
+    };
+
+/// Interface for the Favicon uri changed event handler
     runtimeclass CoreWebView2 {
+        Windows.Foundation.IAsyncAction GetFaviconAsync(CoreWebView2FaviconImageFormat imageFormat, Windows.Storage.Streams.IRandomAccessStream imageStream);
         event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> FaviconChanged;
-        string FaviconUrl {get;};
+        string FaviconUri {get;};
     }
 }
 ```
