@@ -5,7 +5,9 @@ displays the different processes associated with the current browser process and
 what they're used for. For instance, it could denote that a particular process 
 is a renderer process and would show the different web pages rendered by that 
 process. In a chromium browser it can be opened by the end user by pressing 
-`Shift+Esc` or from the browser's title bar's context menu's 
+`Shift+Esc` or from the DevTools window's title bar's context menu entry 
+`Browser task manager`. For WebView2 applications, we block the 
+`Shift+Esc` shortcut, but the task manager can still be opened via the 
 `Browser task manager` entry.
 
 At the current time, it is expected that the user will close the Task 
@@ -14,35 +16,33 @@ Manager manually, so we do not need to provide an API to close it.
 In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
-We propose extending `CoreWebView2` to provide a `ShowTaskManager` method.
+We propose extending `CoreWebView2` to provide an `OpenTaskManager` method.
 This method will open a new window containing the task manager. If the task 
 manager is already opened, this method will do nothing.
 
 # Examples
-## C++: Show Task Manager
+## C++: Open Task Manager
 
 ``` cpp
 wil::com_ptr<ICoreWebView2_5> m_webview;
 
 // This method could be called from a menu bar item, such as 
-// [Script -> Show Task Manager]. 
-void ScriptComponent::ShowTaskManager()
+// [Script -> Open Task Manager]. 
+void ScriptComponent::OpenTaskManager()
 {
-    CHECK_FAILURE(m_webview->ShowTaskManager());
+    CHECK_FAILURE(m_webview->OpenTaskManager());
 }
-
-
 ```
 
-## C#: Show Task Manager
+## C#: Open Task Manager
 ```c#
 private WebView2 m_webview;
 
 // This method could be called from a menu bar item, such as 
-// [Script -> Show Task Manager]. 
-void ShowTaskManager()
+// [Script -> Open Task Manager]. 
+void OpenTaskManager()
 {
-    m_webview.CoreWebView2.ShowTaskManager();
+    m_webview.CoreWebView2.OpenTaskManager();
 }
 ```
 
@@ -52,9 +52,13 @@ void ShowTaskManager()
 /// This is a continuation of the `ICoreWebView2_4` interface
 [uuid(20d02d59-6df2-42dc-bd06-f98a694b1302), object, pointer_default(unique)]
 interface ICoreWebView2_5 : ICoreWebView2_4 {
-    /// Shows the Browser Task Manager view as a new window. Does nothing
+    /// Opens the Browser Task Manager view as a new window. Does nothing
     /// if run when the Browser Task Manager is already open.
-    HRESULT ShowTaskManager();
+    /// WebView2 currently blocks the `Shift+Esc` shortcut for opening the
+    /// task manager. An end user can open the browser task manager manually
+    /// via the `Browser task manager` entry of the DevTools window's title 
+    /// bar's context menu.
+    HRESULT OpenTaskManager();
 }
 ```
 
@@ -70,7 +74,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_5")]
         {
             // ICoreWebView2_5 members
-            void ShowTaskManager();
+            void OpenTaskManager();
         }
     }
 }
