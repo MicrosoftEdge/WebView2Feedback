@@ -8,15 +8,16 @@ In this document we describe the updated API. We'd appreciate your feedback.
 # Description
 This API consists of an asynchronous PrintToPdf method and a PrintSettings object. The PrintToPdf method accepts a path that the PDF file should be saved to.
 
-Use the CreateDefaultPrintSettings method to create a PrintSettings object with default values, which can be modified. The settings consist of: orientation, scale, page height and width, margins, printing of backgrounds, printing selection only, printing header and footer, header title, and footer URI. See API Details below for the default values.
+Use the CreateDefaultPrintSettings method to create a PrintSettings object with default values, which can be modified. The settings consist of: orientation, scale factor, page height and width, margins, printing of backgrounds, printing selection only, printing header and footer, header title, and footer URI. See API Details below for the default values.
 
 Currently other programmatic printing is not supported.
 
 # Examples
 ```cpp
 // Shows the user a file selection dialog, then uses the selected path when
-// printing to PDF.
-void FileComponent::PrintToPdf()
+// printing to PDF. If `useDefaultOrientation` is true, the page is printed
+// in portrait mode, otherwise the page is printed in landscape mode.
+void FileComponent::PrintToPdf(bool useDefaultOrientation)
 {
     WCHAR defaultName[MAX_PATH] = L"WebView2_PrintedPdf.pdf";
     OPENFILENAME openFileName = CreateOpenFileName(defaultName,
@@ -36,6 +37,11 @@ void FileComponent::PrintToPdf()
 
         if (printSettings)
         {
+            if (!useDefaultOrientation)
+            {
+                CHECK_FAILURE(printSettings->put_Orientation(
+                    COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE));
+            }
             CHECK_FAILURE(m_webView4->PrintToPdf(
                 openFileName.lpstrFile, printSettings.get(),
                 Callback<ICoreWebView2PrintToPdfCompletedHandler>(
@@ -54,11 +60,20 @@ void FileComponent::PrintToPdf()
 ```
 
 ```c#
-// Prints current page to PDF using the default path.
+// Prints current page to PDF using the default path and settings. If requested,
+// the orientation is changed to landscape.
 async void PrintToPdfCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
     CoreWebView2PrintSettings printSettings =
         WebViewEnvironment.CreateDefaultPrintSettings();
+
+    string orientationString = e.Parameter.ToString();
+    if (orientationString == "Landscape")
+    {
+        printSettings.Orientation =
+            CoreWebView2PrintOrientation.Landscape;
+    }
+    printSettings.Orientation = orientation;
     string resultFilePath = await webView.CoreWebView2.PrintToPdfAsync(
         "" /* use default path*/, printSettings);
     MessageBox.Show(this, resultFilePath, "Print To PDF Completed");
@@ -135,10 +150,10 @@ interface ICoreWebView2PrintSettings : IUnknown {
       [in] COREWEBVIEW2_PRINT_ORIENTATION orientation);
 
   /// The scale factor is a value between 0.1-2.0. The default is 1.0.
-  [propget] HRESULT Scale([out, retval] double* scale);
+  [propget] HRESULT ScaleFactor([out, retval] double* scaleFactor);
 
-  /// Sets the `Scale` property.
-  [propput] HRESULT Scale([in] double scale);
+  /// Sets the `ScaleFactor` property.
+  [propput] HRESULT ScaleFactor([in] double scaleFactor);
 
   /// The page width in inches. The default width is 8.5 inches.
   [propget] HRESULT PageWidth([out, retval] double* pageWidth);
@@ -217,7 +232,7 @@ interface ICoreWebView2Environment5 : IUnknown
     /// Creates the `ICoreWebView2PrintSettings` used by the `PrintToPdf`
     /// method with the following default values:
     /// - pageOrientation: COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT
-    /// - scale: 1.0
+    /// - scaleFactor: 1.0
     /// - pageWidth: 8.5 (inches)
     /// - pageHeight: 11 (inches)
     /// - marginTop: 0.4 (inches)
@@ -251,7 +266,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ICoreWebView2PrintSettings members
         CoreWebView2PrintOrientation Orientation { get; set; };
-        Double Scale { get; set; };
+        Double ScaleFactor { get; set; };
         Double PageWidth { get; set; };
         Double PageHeight { get; set; };
         Double MarginTop { get; set; };
