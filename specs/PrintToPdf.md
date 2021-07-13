@@ -68,12 +68,11 @@ async void PrintToPdfCmdExecuted(object target, ExecutedRoutedEventArgs e)
         WebViewEnvironment.CreateDefaultPrintSettings();
 
     string orientationString = e.Parameter.ToString();
-    if (orientationString == "Landscape")
+    if (printSettings != null && orientationString == "Landscape")
     {
         printSettings.Orientation =
             CoreWebView2PrintOrientation.Landscape;
     }
-    printSettings.Orientation = orientation;
     string resultFilePath = await webView.CoreWebView2.PrintToPdfAsync(
         "" /* use default path*/, printSettings);
     MessageBox.Show(this, resultFilePath, "Print To PDF Completed");
