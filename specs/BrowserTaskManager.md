@@ -16,9 +16,9 @@ Manager manually, so we do not need to provide an API to close it.
 In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
-We propose extending `CoreWebView2` to provide an `OpenTaskManager` method.
-This method will open a new window containing the task manager. If the task 
-manager is already opened, this method will do nothing.
+We propose extending `CoreWebView2` to provide an `OpenTaskManagerWindow` 
+method. This method will open a new window containing the task manager. 
+If the task manager is already opened, this method will do nothing.
 
 # Examples
 ## C++: Open Task Manager
@@ -27,10 +27,10 @@ manager is already opened, this method will do nothing.
 wil::com_ptr<ICoreWebView2_5> m_webview;
 
 // This method could be called from a menu bar item, such as 
-// [Script -> Open Task Manager]. 
-void ScriptComponent::OpenTaskManager()
+// [Script -> Open Task Manager Window]. 
+void ScriptComponent::OpenTaskManagerWindow()
 {
-    CHECK_FAILURE(m_webview->OpenTaskManager());
+    CHECK_FAILURE(m_webview->OpenTaskManagerWindow());
 }
 ```
 
@@ -39,10 +39,10 @@ void ScriptComponent::OpenTaskManager()
 private WebView2 m_webview;
 
 // This method could be called from a menu bar item, such as 
-// [Script -> Open Task Manager]. 
-void OpenTaskManager()
+// [Script -> Open Task Manager Window]. 
+void OpenTaskManagerWindow()
 {
-    m_webview.CoreWebView2.OpenTaskManager();
+    m_webview.CoreWebView2.OpenTaskManagerWindow();
 }
 ```
 
@@ -58,7 +58,7 @@ interface ICoreWebView2_5 : ICoreWebView2_4 {
     /// task manager. An end user can open the browser task manager manually
     /// via the `Browser task manager` entry of the DevTools window's title 
     /// bar's context menu.
-    HRESULT OpenTaskManager();
+    HRESULT OpenTaskManagerWindow();
 }
 ```
 
@@ -74,7 +74,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_5")]
         {
             // ICoreWebView2_5 members
-            void OpenTaskManager();
+            void OpenTaskManagerWindow();
         }
     }
 }
