@@ -53,7 +53,7 @@ void ViewComponent::OnBecomingActive()
 ```
 
 # Remarks
-See API details.
+See [API Details](#api-details) section below for more details.
 
 # API Notes
 See [API Details](#api-details) section below for API reference.
