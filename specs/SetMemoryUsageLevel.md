@@ -96,7 +96,7 @@ typedef enum COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL {
 interface ICoreWebView2_6 : ICoreWebView2 {
 
   /// `MemoryUsageTargetLevel` indicates desired memory comsumption level of WebView.
-  HRESULT get_MemoryUsageTargetLevel([in] COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL level);
+  HRESULT get_MemoryUsageTargetLevel([in] COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL* level);
   
   /// An app may set `MemoryUsageTargetLevel` to indicate desired memory
   /// comsumption level of WebView. Scripts will not be impacted and continue to run.
