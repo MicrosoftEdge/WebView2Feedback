@@ -45,7 +45,7 @@ interface ICoreWebView2EnvironmentOptions_2 : IUnknown {
   /// with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// When set to FALSE, `TrySuspend` could potentially do more optimization on reducing
   /// CPU usage for suspended WebViews.
-  [propput] HRESULT IsForSingleAppHost([in] BOOL value);
+  [propput] HRESULT AreMultipleHostProcessesAllowed([in] BOOL value);
 
 }
 
