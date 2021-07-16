@@ -11,7 +11,7 @@ but still wants to have script running or monitoring requests from network.
 ```c#
 async protected void OnBecomingInactive()
 {
-    // CanSuspendWebPage() checks whether the current web contents in WebView can be suspended.
+    // CanSuspendWebPage() uses app specific logic to check whether the current web contents in the WebView2 can be suspended.
     if (CanSuspendWebView()) {
         await webView.CoreWebView2.TrySuspendAsync();
     } else {
