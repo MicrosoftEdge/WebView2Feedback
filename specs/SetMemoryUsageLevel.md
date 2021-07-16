@@ -115,7 +115,7 @@ interface ICoreWebView2_6 : ICoreWebView2 {
   /// Setting memory usage level back to normal will not happen automatically.
   /// An app should choose to use either the combination of `TrySuspend` and `Resume` or the combination
   /// of setting MemoryUsageTargetLevel to low and normal. It is not advisable to mix them.
-  /// Suspend and resume opertaion is a superset of setting MemoryUsageTargetLevel.
+  /// The TrySuspend and Resume methods will change the MemoryUsageTargetLevel.
   /// TrySuspend will automatically set MemoryUsageTargetLevel to low while Resume on suspended WebView
   /// will automatically set MemoryUsageTargetLevel to normal.
   /// Calling `Resume` when the WebView is not suspended would not change MemoryUsageTargetLevel.
