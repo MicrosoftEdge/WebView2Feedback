@@ -31,7 +31,8 @@ See API details.
 # API Details
 ## Win32 C++
 ```cpp
-interface ICoreWebView2EnvironmentOptions_2 : IUnknown {
+interface ICoreWebView2EnvironmentOptions_2 : IUnknown
+{
 
   /// Whether other processes can create WebView2 sharing the same WebView browser
   /// process instance by using WebView2Environment created with the same user data folder.
