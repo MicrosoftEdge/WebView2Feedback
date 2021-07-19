@@ -96,7 +96,8 @@ See [API Details](#api-details) section below for API reference.
 ```IDL
 /// Specifies memory usage target level of WebView.
 [v1_enum]
-typedef enum COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL {
+typedef enum COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL
+{
     /// Specifies normal memory usage target level.
     COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL,
 
@@ -106,7 +107,8 @@ typedef enum COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL {
 
 } COREWEBVIEW2_MEMORY_USAGE_LEVEL;
 
-interface ICoreWebView2_6 : ICoreWebView2 {
+interface ICoreWebView2_6 : ICoreWebView2
+{
 
   /// `MemoryUsageTargetLevel` indicates desired memory comsumption level of WebView.
   HRESULT get_MemoryUsageTargetLevel([in] COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL* level);
