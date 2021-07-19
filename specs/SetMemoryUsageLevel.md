@@ -15,15 +15,20 @@ async protected void OnBecomingInactive()
     if (CanSuspendWebView())
     {
         await webView.CoreWebView2.TrySuspendAsync();
-    } else {
+    }
+    else
+    {
         webView.CoreWebView2.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low;
     }
 }
 async protected void OnBecomingActive()
 {
-    if (webView.CoreWebView2.IsSuspended) {
+    if (webView.CoreWebView2.IsSuspended)
+    {
         webView.CoreWebView2.Resume();
-    } else if (webView.CoreWebView2.MemoryUsageTargetLevel == CoreWebView2MemoryUsageTargetLevel.Low) {
+    }
+    else if (webView.CoreWebView2.MemoryUsageTargetLevel == CoreWebView2MemoryUsageTargetLevel.Low)
+    {
         webView.CoreWebView2.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Normal;
     }
 }
@@ -49,9 +54,12 @@ bool ViewComponent::HandleWindowMessage(
 void ViewComponent::OnBecomingInactive()
 {
     // CanSuspendWebView() uses app specific logic to check whether the current web contents in the WebView2 can be suspended.
-    if (CanSuspendWebView()) {
+    if (CanSuspendWebView())
+    {
         CHECK_FAILURE(m_webView->TrySuspend(nullptr));
-    } else {
+    }
+    else
+    {
         CHECK_FAILURE(m_webView->put_MemoryUsageTargetLevel(COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW);
     }
 }
@@ -60,12 +68,16 @@ void ViewComponent::OnBecomingActive()
 {
   BOOL isSuspended = FALSE;
   CHECK_FAILURE(m_webview->get_IsSuspended(&isSuspended));
-  if (isSuspended) {
+  if (isSuspended)
+  {
      CHECK_FAILURE(m_webView->Resume());
-  } else {
+  }
+  else
+  {
      COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL memoryUsageTargetLevel = COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW;
      CHECK_FAILURE(m_webview->get_MemoryUsageTargetLevel(&memoryUsageTargetLevel));
-     if (memoryUsageTargetLevel == COREWEBVIEW2_MEMORY_USAGE_LEVEL_LOW) {
+     if (memoryUsageTargetLevel == COREWEBVIEW2_MEMORY_USAGE_LEVEL_LOW)
+     {
          CHECK_FAILURE(m_webView->put_MemoryUsageTargetLevel(COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL));
      }
   }
