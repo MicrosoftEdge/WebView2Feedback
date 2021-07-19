@@ -12,7 +12,8 @@ but still wants to have script running or monitoring requests from network.
 async protected void OnBecomingInactive()
 {
     // CanSuspendWebView() uses app specific logic to check whether the current web contents in the WebView2 can be suspended.
-    if (CanSuspendWebView()) {
+    if (CanSuspendWebView())
+    {
         await webView.CoreWebView2.TrySuspendAsync();
     } else {
         webView.CoreWebView2.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low;
