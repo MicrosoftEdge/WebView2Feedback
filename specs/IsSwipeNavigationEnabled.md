@@ -56,21 +56,22 @@ See [API Details](#api-details) section below for API reference.
 ```cpp
 [uuid(45b1f964-f703-47ac-a19a-b589dd0c5559), object, pointer_default(unique)]
 interface ICoreWebView2Settings6 : ICoreWebView2Settings5 {
-  /// Swiping gesture navigation on touch screen includes:
-  /// 1. Swipe left/right (swipe horizontally) to navigate to previous/next
-  /// page in navigation history.
-  /// 2. Pull to refresh (swipe vertically) the current page. (This feature is
-  /// currently disabled by default in the browser, to enable in WebView2, use
-  /// `put_AdditionalBrowserArguments` api with "--pull-to-refresh" switch).
-  ///
   /// The `IsSwipeNavigationEnabled` property enables or disables the ability of the
   /// end user to use swiping gesture on touch input enabled devices to
   /// navigate in WebView2. It defaults to `TRUE`.
+  ///
+  /// When this property is TRUE, then all configured navigation gestures are enabled: 
+  /// 1. Swiping left and right to navigate forward and backward is always configured.
+  /// 2. Swiping down to refresh is off by default and not exposed via our API currently, 
+  /// it requires the --pull-to-refresh option to be included in the additional browser 
+  /// arguments to be configured. (See put_AdditionalBrowserArguments.)
+  ///
   /// When set to `FALSE`, the end user cannot swipe to navigate or pull to refresh.
   /// This API only affects the overscrolling navigation functionality and has no
   /// effect on the scrolling interaction used to explore the web content shown
   /// in WebView2.
-  /// Disabling/Enabling IsSwipeNavigationEnabled does not take effect until the
+  ///
+  /// Disabling/Enabling IsSwipeNavigationEnabled takes effect after the
   /// next navigation.
   ///
   /// \snippet SettingsComponent.cpp ToggleSwipeNavigationEnabled
