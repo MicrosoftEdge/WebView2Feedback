@@ -138,7 +138,6 @@ interface ICoreWebView2_6 : ICoreWebView2
   /// TrySuspend will automatically set MemoryUsageTargetLevel to low while Resume on suspended WebView
   /// will automatically set MemoryUsageTargetLevel to normal.
   /// Calling `Resume` when the WebView is not suspended would not change MemoryUsageTargetLevel.
-  /// Setting MemoryUsageTargetLevel to normal on suspended WebView will auto resume WebView.
   HRESULT put_MemoryUsageTargetLevel([in] COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL level);
 }
 
