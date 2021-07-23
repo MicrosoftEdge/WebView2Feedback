@@ -130,7 +130,7 @@ interface ICoreWebView2_6 : ICoreWebView2
   /// be impacted.
   /// Therefore, it is important for the app to set the level back to `COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL`
   /// when the app becomes active again to have a smooth user experience.
-  /// Setting memory usage level back to normal will not happen automatically.
+  /// Setting memory usage target level back to normal will not happen automatically.
   /// An app should choose to use either the combination of `TrySuspend` and `Resume` or the combination
   /// of setting `MemoryUsageTargetLevel` to low and normal. It is not advisable to mix them.
   /// Trying to set `MemoryUsageTargetLevel` while suspended will be ignored.
