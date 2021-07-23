@@ -1,18 +1,17 @@
 # Background
-While WebViews from different app processes normally don't share the same WebView browser process instance, app processes from the same product suite may share the same webview browser process
-instance by specifying the same user data folder when creating WebView2Environment object.
-The `ExclusiveUserDataFolderAccess` property is for the developer to express the sharing intent, so that we could provide optimized security and performance according expected usage.
+WebViews which use the same user data folder can share browser processes. The `ExclusiveUserDataFolderAccess` property specifies that the WebView environment obtains exclusive access to the user data folder. If the user data folder is already being used by another WebView environment, the WebView creation will fail. Setting exclusive data folder access therefore has the effect of preventing the browser processes from being shared with WebViews associated with other WebView environments.
 
 # Description
-The `ExclusiveUserDataFolderAccess` property indicates whether other processes can create WebView2 sharing the same WebView browser process instance by using WebView2Environment created with the same user data folder.
+The `ExclusiveUserDataFolderAccess` property specifies whether other WebViews can be created with the same user data folder. Setting exclusive access prevents the WebView browser processes from being shared with those belonging to other environments because sharing occurs only between instances that use the same user data folder and the same exclusive access setting.
 Default is FALSE.
 
 # Examples
 ## Win32 C++
 ```cpp
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-    // Don't expect any other process to share the WebView browser process instance.
-    CHECK_FAILURE(options->put_ExclusiveUserDataFolderAccess(TRUE);
+    // Don't allow any other WebView environments to use the same user data folder.
+    // This prevents other processes from sharing WebView browser process instances with our WebView.
+    CHECK_FAILURE(options->put_ExclusiveUserDataFolderAccess(TRUE));
     HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
         nullptr, m_userDataFolder.c_str(), options.Get(),
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
@@ -34,22 +33,25 @@ See API details.
 interface ICoreWebView2EnvironmentOptions_2 : IUnknown
 {
 
-  /// Whether other processes can create WebView2 sharing the same WebView browser
-  /// process instance by using WebView2Environment created with the same user data folder.
+  /// Whether other processes can create WebView2 from WebView2Environment created with the
+  /// same user data folder and therefore sharing the same WebView browser process instance.
   /// Default is FALSE.
   [propget] HRESULT ExclusiveUserDataFolderAccess([out, retval] BOOL* value);
 
   /// Sets the `ExclusiveUserDataFolderAccess` property.
-  /// When set as TRUE, no other process can create WebView sharing the same browser
-  /// process instance. When another process tries to create WebView2Controller from
-  /// an WebView2Environment objct created with the same user data folder, it will fail
-  /// with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
-  /// When the same user data folder is used, if there is already a WebView running,
-  /// creating a WebView using WebView2Environment object with a different value for
-  /// this property from that of the WebView2Environment object of the existing WebView
-  /// will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
-  /// When set to TRUE, `TrySuspend` could potentially do more optimization on reducing
-  /// CPU usage for suspended WebViews.
+  /// The `ExclusiveUserDataFolderAccess` property specifies that the WebView environment
+  /// obtains exclusive access to the user data folder.
+  /// If the user data folder is already being used by another WebView environment with
+  /// different value for `ExclusiveUserDataFolderAccess` property, the creation of WebView2Controller
+  /// using the environmen object will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// When set as TRUE, no other WebView can be created from other process using WebView2Environment
+  /// objects with the same UserDataFolder. This prevents other processes from creating WebViews
+  /// which share the same browser process instance, since sharing is performed among
+  /// WebViews that have the same UserDataFolder. When another process tries to create
+  /// WebView2Controller from an WebView2Environment objct created with the same user data folder,
+  /// it will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// Exclusive data folder access also opens optimization opportunities, such as more aggressive
+  /// CPU reduction for suspended WebViews.
   [propput] HRESULT ExclusiveUserDataFolderAccess([in] BOOL value);
 
 }
