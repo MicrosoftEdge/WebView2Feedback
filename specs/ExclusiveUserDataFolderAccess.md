@@ -48,7 +48,7 @@ interface ICoreWebView2EnvironmentOptions_2 : IUnknown
   /// objects with the same UserDataFolder. This prevents other processes from creating WebViews
   /// which share the same browser process instance, since sharing is performed among
   /// WebViews that have the same UserDataFolder. When another process tries to create
-  /// WebView2Controller from an WebView2Environment objct created with the same user data folder,
+  /// WebView2Controller from an WebView2Environment object created with the same user data folder,
   /// it will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// Exclusive data folder access also opens optimization opportunities, such as more aggressive
   /// CPU reduction for suspended WebViews.
