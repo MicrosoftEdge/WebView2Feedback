@@ -124,12 +124,16 @@ interface ICoreWebView2_6 : ICoreWebView2
   /// It is not neccesary to set CoreWebView2Controller's IsVisible property to false when calling the API.
   /// It is a best effort operation to change memory usage level, and the API will return before the operation completes.
   /// Setting the level to `COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW` could potentially cause
-  /// memory for some WebView browser processes to be swapped out to disk when needed. Therefore,
-  /// it is important for the app to set the level back to `COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL`
+  /// memory for some WebView browser processes to be swapped out to disk when needed.
+  /// It is a best effort to reduce memory usage as much as possible. If script runs after we swapped
+  /// related memory out, we will swap the memory in to ensure script can still run. But performance might
+  /// be impacted.
+  /// Therefore, it is important for the app to set the level back to `COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL`
   /// when the app becomes active again to have a smooth user experience.
   /// Setting memory usage level back to normal will not happen automatically.
   /// An app should choose to use either the combination of `TrySuspend` and `Resume` or the combination
-  /// of setting MemoryUsageTargetLevel to low and normal. It is not advisable to mix them.
+  /// of setting `MemoryUsageTargetLevel` to low and normal. It is not advisable to mix them.
+  /// Trying to set `MemoryUsageTargetLevel`while suspended will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// The TrySuspend and Resume methods will change the MemoryUsageTargetLevel.
   /// TrySuspend will automatically set MemoryUsageTargetLevel to low while Resume on suspended WebView
   /// will automatically set MemoryUsageTargetLevel to normal.
