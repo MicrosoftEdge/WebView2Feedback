@@ -52,12 +52,12 @@ void OpenTaskManagerWindow()
 /// This is a continuation of the `ICoreWebView2_4` interface
 [uuid(20d02d59-6df2-42dc-bd06-f98a694b1302), object, pointer_default(unique)]
 interface ICoreWebView2_5 : ICoreWebView2_4 {
-    /// Opens the Browser Task Manager view as a new window. Does nothing
-    /// if run when the Browser Task Manager is already open.
-    /// WebView2 currently blocks the `Shift+Esc` shortcut for opening the
-    /// task manager. An end user can open the browser task manager manually
-    /// via the `Browser task manager` entry of the DevTools window's title 
-    /// bar's context menu.
+    /// Opens the Browser Task Manager view as a new window in the foreground. 
+    /// If the Browser Task Manager is already open, this will bring it into
+    /// the foreground. WebView2 currently blocks the `Shift+Esc` shortcut for 
+    /// opening the task manager. An end user can open the browser task manager 
+    /// manually via the `Browser task manager` entry of the DevTools window's 
+    /// title bar's context menu.
     HRESULT OpenTaskManagerWindow();
 }
 ```
