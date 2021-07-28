@@ -4,7 +4,7 @@ Currently the functionality of dragging and dropping external objects(e.g. files
 # Description
 We add a new `AllowExternalDrop` property in `CoreWebView2Controller`. 
 This API allows end developers to toggle the external drag&drop functionality easily.
-If it's disabled, drag&drop objects from outside into current webview2 will be permitted.
+If it's disabled, drag&drop objects from outside into current webview2 will be forbidden.
 To be more specific, some behaviors listed below will be impacted by the toggle of this property.
 
 * Drag&Drop files on disk to webview2  
