@@ -1,5 +1,5 @@
 <!-- 
-    Before submitting, delete all "<!-- TEMPLATE marked" comments in this file,
+    Before submitting, delete all "<!-- TEMPLATE" marked comments in this file,
     and the following quote banner:
 -->
 > See comments in Markdown for how to use this spec template
