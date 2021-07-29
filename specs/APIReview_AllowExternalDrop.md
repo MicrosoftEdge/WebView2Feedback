@@ -73,7 +73,10 @@ void OnNavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs
 
 void OnNavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs args)
 {
-    controller.AllowExternalDrop = allowExternalDropOnNavigationCompleted;
+    if (controller != null)
+    {
+        controller.AllowExternalDrop = allowExternalDropOnNavigationCompleted;
+    }
 }
 ```
 
