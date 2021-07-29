@@ -1,5 +1,5 @@
 # Background
-
+WebView2 team were getting request from partner team and GitHub feedbacks on request media related support. This spec contain details on what mediea related feature are being added and how it can be used.
 
 # Description
 Enable end developer to `Mute`, `Unmute` a webview content. And ability to check for the `IsMuted` and `IsCurrentlyAudible`.
