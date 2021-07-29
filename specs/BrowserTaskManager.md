@@ -30,12 +30,17 @@ wil::com_ptr<ICoreWebView2> m_webview;
 // [Script -> Open Task Manager Window]. 
 void ScriptComponent::OpenTaskManagerWindow()
 {
-    // Assume OpenTaskManagerWindow is available if we support ICoreWebView2_5.
     auto webview5 = m_webview.try_query<ICoreWebView2_5>();
     if (webview5) 
     {
         CHECK_FAILURE(webview5->OpenTaskManagerWindow());
     }
+}
+
+// Assume OpenTaskManagerWindow is available if the WebView supports ICoreWebView2_5.
+bool ScriptComponent::ShouldShowOpenTaskManagerWindowMenuItem()
+{
+    return m_webview.try_query<ICoreWebView2_5>();
 }
 ```
 
