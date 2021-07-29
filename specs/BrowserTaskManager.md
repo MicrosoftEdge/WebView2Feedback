@@ -24,13 +24,18 @@ If the task manager is already opened, this method will do nothing.
 ## C++: Open Task Manager
 
 ``` cpp
-wil::com_ptr<ICoreWebView2_5> m_webview;
+wil::com_ptr<ICoreWebView2> m_webview;
 
 // This method could be called from a menu bar item, such as 
 // [Script -> Open Task Manager Window]. 
 void ScriptComponent::OpenTaskManagerWindow()
 {
-    CHECK_FAILURE(m_webview->OpenTaskManagerWindow());
+    // Assume OpenTaskManagerWindow is available if we support ICoreWebView2_5.
+    auto webview5 = m_webview.try_query<ICoreWebView2_5>();
+    if (webview5) 
+    {
+        CHECK_FAILURE(webview5->OpenTaskManagerWindow());
+    }
 }
 ```
 
