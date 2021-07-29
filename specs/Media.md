@@ -2,7 +2,7 @@
 
 
 # Description
-Enable user ability to play, pause, mute, unmute, get the volume of a media content.
+Enable end developer to `Mute`, `Unmute` a webview content. And ability to check for the `IsMuted` and `IsCurrentlyAudible`.
 
 # Examples
 
@@ -11,13 +11,55 @@ The following code snippet demonstrates how the Media related API can be used:
 ## Win32 C++
 
 ```cpp
-// sample usage
+bool ViewComponent::HandleWindowMessage(
+    HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT* result)
+{
+    if (message == WM_COMMAND)
+    {
+        case IDM_MUTE:
+            m_webView->Mute();
+            return true;
+        case IDM_UNMUTE:
+            m_webView->Unmute();
+            return true;
+        case IDM_IS_MUTED:
+            BOOL isMuted;
+            m_webView->get_IsMuted(&isMuted);
+            MessageBox(nullptr, isMuted ? L"Yes" : L"No", L"Is Muted", MB_OK);
+            return true;
+        case IDM_IS_CURRENTLY_AUDIBLE:
+            BOOL isAudible;
+            m_webView->get_IsCurrentlyAudible(&isAudible);
+            MessageBox(nullptr, isAudible ? L"Yes" : L"No", L"Is Audible", MB_OK);
+            return true;
+    }
+}
 ```
 
 ## .NET and WinRT
 
 ```c#
-// sample usage
+    void MuteCmdExecuted(object target, ExecutedRoutedEventArgs e)
+    {
+        webView.CoreWebView2.Mute();
+    }
+
+    void UnmuteCmdExecuted(object target, ExecutedRoutedEventArgs e)
+    {
+        webView.CoreWebView2.Unmute();
+    }
+
+    void IsMutedCmdExecuted(object target, ExecutedRoutedEventArgs e)
+    {
+        bool is_muted = webView.CoreWebView2.IsMuted;
+        MessageBox.Show(this, is_muted? "Is muted": "Is Not muted", "Is Muted or Not");
+    }
+
+    void IsCurrentlyAudibleCmdExecuted(object target, ExecutedRoutedEventArgs e)
+    {
+        bool is_currently_audible = webView.CoreWebView2.IsCurrentlyAudible;
+        MessageBox.Show(this, is_currently_audible ? "Is audible" : "Is not audible", "Is Currently Audible or Not");
+    }
 ```
 
 # API Notes
@@ -29,34 +71,61 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
 
 ```IDL
-interface ICoreWebView2;
-interface ICoreWebView2_2;
-interface ICoreWebView2VolumeChangedEventHandler;
+interface ICoreWebView2StagingIsMutedChangedEventHandler;
+interface ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler;
 
 [uuid(76eceacb-0462-4d94-ac83-423a6793775e), object, pointer_default(unique)]
 interface ICoreWebView2_2 : ICoreWebView2 {
-  /// 
-  HRESULT add_VolumeChanged(
-      [in] ICoreWebView2StagingVolumeChangedEventHandler* eventHandler,
+  /// Adds an event handler for the `IsMutedChanged` event.
+  /// `IsMutedChanged` runs when the mute state changes. The event may run 
+  /// when `Mute` and `Unmute` are called.
+  HRESULT add_IsMutedChanged(
+      [in] ICoreWebView2StagingIsMutedChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  /// Remove an event handler previously added with add_VolumeChanged.
-  HRESULT remove_VolumeChanged(
+
+  /// Remove an event handler previously added with `add_IsMutedChanged`.
+  HRESULT remove_IsMutedChanged(
       [in] EventRegistrationToken token);
 
-  ///
-  [propget] HRESULT Volume([out, retval] double* volume);
-  [propput] HRESULT Volume([in] double volume);
-
-  ///
-  HRESULT Play();
-  HRESULT Pause();
-  
-  ///
+  /// Mutes all audio output from this CoreWebView2.
   HRESULT Mute();
-  HRESULT UnMute();
+  /// Unmutes all audio output from this CoreWebView2.
+  HRESULT Unmute();
+  /// Indicates whether all audio output from this CoreWebView2 is muted or not.
+  [propget] HRESULT IsMuted([out, retval] BOOL* isMuted);
+  
+  /// Adds an event handler for the `IsCurrentlyAudibleChanged` event.
+  /// `IsCurrentlyAudibleChanged` runs when the audible state changes.
+  HRESULT add_IsCurrentlyAudibleChanged(
+      [in] ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
 
-  ///
+  /// Remove an event handler previously added with `add_IsCurrentlyAudibleChanged`.
+  HRESULT remove_IsCurrentlyAudibleChanged(
+      [in] EventRegistrationToken token);
+  
+  /// Indicates whether any audio output from this CoreWebView2 is audible.
+  /// CoreWebView2 can be audible when muted, IsCurrentlyAudible is used to indicate
+  /// if there are audio/media currently playing.
   [propget] HRESULT IsCurrentlyAudible([out, retval] BOOL* isAudible);
+}
+
+/// Implements the interface to receive `IsMutedChanged` events.  Use the
+/// IsMuted method to get the mute state.
+[uuid(B357DC3B-D4C3-4FDE-BF45-C11ECE606B98), object, pointer_default(unique)]
+interface ICoreWebView2StagingIsMutedChangedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.  No event args exist
+  /// and the `args` parameter is set to `null`.
+  HRESULT Invoke([in] ICoreWebView2Staging2* sender, [in] IUnknown* args);
+}
+
+/// Implements the interface to receive `IsCurrentlyAudibleChanged` events.  Use the
+/// IsCurrentlyAudible method to get the audible state.
+[uuid(5DEF109A-2F4B-49FA-B7F6-11C39E513328), object, pointer_default(unique)]
+interface ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.  No event args exist
+  /// and the `args` parameter is set to `null`.
+  HRESULT Invoke([in] ICoreWebView2Staging2* sender, [in] IUnknown* args);
 }
 ```
 
@@ -68,11 +137,9 @@ namespace Microsoft.Web.WebView2.Core
     public partial class CoreWebView2
     {
         // There are other API in this interface that we are not showing 
-        public void Play();
-        public void Pause();
-        public double Volume { get; set; };
         public void Mute();
         public void UnMute();
+        public bool IsMuted { get; };
         public bool IsCurrentlyAudible { get; };
     }
 }
