@@ -111,11 +111,13 @@ interface ICoreWebView2_4 : IUnknown {
   ///
   /// Use `resultFilePath` to specify the path to the PDF file. The host should
   /// provide an absolute path, including file name. If the path
-  /// points to an existing file, the file will be overwritten. If the directory
-  /// does not exist, it is created. If `resultFilePath` is empty, the default
-  /// path will be used.
+  /// points to an existing file, the file will be overwritten. If
+  /// `resultFilePath` is invalid, `isSuccessful` in
+  /// `ICoreWebView2PrintToPdfCompletedHandler` is set to `FALSE` and the
+  /// returned `resultFilePath` is an empty string.
   ///
-  /// When `PrintToPdf` completes, the `ICoreWebView2PrintToPdfCompletedHandler`
+  /// The async `PrintToPdf` operation completes when the data has been written
+  /// to the PDF file. At this time the `ICoreWebView2PrintToPdfCompletedHandler`
   /// is invoked.
   ///
   /// \snippet FileComponent.cpp PrintToPdf
@@ -151,7 +153,8 @@ interface ICoreWebView2PrintSettings : IUnknown {
   /// The scale factor is a value between 0.1-2.0. The default is 1.0.
   [propget] HRESULT ScaleFactor([out, retval] double* scaleFactor);
 
-  /// Sets the `ScaleFactor` property.
+  /// Sets the `ScaleFactor` property. In an invalid value is provided, the
+  /// default is used.
   [propput] HRESULT ScaleFactor([in] double scaleFactor);
 
   /// The page width in inches. The default width is 8.5 inches.
@@ -169,35 +172,46 @@ interface ICoreWebView2PrintSettings : IUnknown {
   /// The top margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginTop([out, retval] double* marginTop);
 
-  /// Sets the `MarginTop` property.
+  /// Sets the `MarginTop` property. A margin cannot be less than zero, and the
+  /// sum of the top and bottom margins cannot exceed the page height without
+  /// header and footer. If an invalid value is provided, the default is used.
   [propput] HRESULT MarginTop([in] double marginTop);
 
   /// The bottom margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginBottom([out, retval] double* marginBottom);
 
-  /// Sets the `MarginBottom` property.
+  /// Sets the `MarginBottom` property. A margin cannot be less than zero, and
+  /// the sum of the top and bottom margins cannot exceed the page height
+  /// without header and footer. If an invalid value is provided, the default
+  /// is used.
   [propput] HRESULT MarginBottom([in] double marginBottom);
 
   /// The left margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginLeft([out, retval] double* marginLeft);
 
-  /// Sets the `MarginLeft` property.
+  /// Sets the `MarginLeft` property. The sum of the left and right margins
+  /// cannot exceed the page width. If an invalid value is provided, the default
+  /// is used.
   [propput] HRESULT MarginLeft([in] double marginLeft);
 
   /// The right margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginRight([out, retval] double* marginRight);
 
-  /// Set the `MarginRight` property.
+  /// Set the `MarginRight` property.The sum of the left margin and right margins
+  /// cannot exceed the page width. If an invalid value is provided, the
+  /// default is used.
   [propput] HRESULT MarginRight([in] double marginRight);
 
-  /// `TRUE` if backgrounds should be printed. The default value is `FALSE`.
+  /// `TRUE` if background colors and images should be printed. The default value
+  /// is `FALSE`.
   [propget] HRESULT ShouldPrintBackgrounds(
       [out, retval] BOOL* shouldPrintBackgrounds);
 
   /// Set the `ShouldPrintBackgrounds` property.
   [propput] HRESULT ShouldPrintBackgrounds([in] BOOL shouldPrintBackgrounds);
 
-  /// `TRUE` if only the selection should be printed. The default value is `FALSE`.
+  /// `TRUE` if only the current end user's selection of HTML in the document
+  /// should be printed. The default value is `FALSE`.
   [propget] HRESULT ShouldPrintSelectionOnly(
       [out, retval] BOOL* shouldPrintSelectionOnly);
 
@@ -206,22 +220,30 @@ interface ICoreWebView2PrintSettings : IUnknown {
       [in] BOOL shouldPrintSelectionOnly);
 
   /// `TRUE` if header and footer should be printed. The default value is `FALSE`.
-  [propget] HRESULT ShouldPrintHeaderFooter(
-      [out, retval] BOOL* shouldPrintHeaderFooter);
+  /// The header consists of the date and time of printing, and the title of the
+  /// page. The footer consists of the URI and page number. The height of the
+  /// header and footer is 0.5 cm, or ~0.2 inches.
+  [propget] HRESULT ShouldPrintHeaderAndFooter(
+      [out, retval] BOOL* shouldPrintHeaderAndFooter);
 
-  /// Set the `ShouldPrintHeaderFooter` property.
-  [propput] HRESULT ShouldPrintHeaderFooter([in] BOOL shouldPrintHeaderFooter);
+  /// Set the `ShouldPrintHeaderAndFooter` property.
+  [propput] HRESULT ShouldPrintHeaderAndFooter(
+      [in] BOOL shouldPrintHeaderAndFooter);
 
-  /// The title in the header if `ShouldPrintHeaderFooter` is `TRUE`.
+  /// The title in the header if `ShouldPrintHeaderAndFooter` is `TRUE`. The
+  /// default value is the title of the current document.
   [propget] HRESULT HeaderTitle([out, retval] LPWSTR* headerTitle);
 
-  /// Set the `HeaderTitle` property.
+  /// Set the `HeaderTitle` property. If an empty string or null value is
+  /// provided, no title is shown in the header.
   [propput] HRESULT HeaderTitle([in] LPCWSTR headerTitle);
 
-  /// The URI in the footer if `ShouldPrintHeaderFooter` is `TRUE`.
+  /// The URI in the footer if `ShouldPrintHeaderAndFooter` is `TRUE`. The
+  /// default value is the current URI.
   [propget] HRESULT FooterUri([out, retval] LPWSTR* footerUri);
 
-  /// Set the `FooterUri` property.
+  /// Set the `FooterUri` property. If an empty string or null value is
+  /// provided, no URI is shown in the footer.
   [propput] HRESULT FooterUri([in] LPCWSTR footerUri);
 }
 
@@ -229,21 +251,8 @@ interface ICoreWebView2PrintSettings : IUnknown {
 interface ICoreWebView2Environment5 : IUnknown
 {
     /// Creates the `ICoreWebView2PrintSettings` used by the `PrintToPdf`
-    /// method with the following default values:
-    /// - pageOrientation: COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT
-    /// - scaleFactor: 1.0
-    /// - pageWidth: 8.5 (inches)
-    /// - pageHeight: 11 (inches)
-    /// - marginTop: 0.4 (inches)
-    /// - marginBotoom: 0.4 (inches)
-    /// - marginLeft: 0.4 (inches)
-    /// - marginRight: 0.4 (inches)
-    /// - shouldPrintBackgrounds: FALSE
-    /// - shouldPrintSelectionOnly: FALSE
-    /// - shouldPrintHeaderFooter: FALSE
-    /// - headerTitle: ""
-    /// - footerUri: ""
-    HRESULT CreateDefaultPrintSettings(
+    /// method with default values.
+    HRESULT CreatePrintSettings(
         [out, retval] ICoreWebView2PrintSettings** printSettings);
 }
 ```
@@ -274,14 +283,14 @@ namespace Microsoft.Web.WebView2.Core
         Double MarginRight { get; set; };
         Boolean ShouldPrintBackgrounds { get; set; };
         Boolean ShouldPrintSelectionOnly { get; set; };
-        Boolean ShouldPrintHeaderFooter { get; set; };
+        Boolean ShouldPrintHeaderAndFooter { get; set; };
         String HeaderTitle { get; set; };
         String FooterUri { get; set; };
     };
 
     runtimeclass CoreWebView2Environment
     {
-        CoreWebView2PrintSettings CreateDefaultPrintSettings();
+        CoreWebView2PrintSettings CreatePrintSettings();
     }
 
     runtimeclass CoreWebView2
