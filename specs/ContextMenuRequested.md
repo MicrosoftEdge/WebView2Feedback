@@ -5,16 +5,19 @@ There currently is no method using WebView2 APIs to customize the default contex
 # Description
 We propose two new events for WebView2, `CoreWebView2ContextMenuRequested` that will allow developers to listen to context menus being requested by the end user in the WebView2 and `CoreWebView2CustomItemSelected` that will notify the developer that one of their inserted context menu items was selected. When a context menu is requested in WebView2, the app developer will receive:
 
-1. The list of default ContextMenuItem objects (contains name, Descriptor, kind, Shortcut Desc and other properties)
-2. The coordinates where the context menu was requested. For instance where the end user right clicked.
+1. An ordered list of ContextMenuItem objects (contains name, label, kind, Shortcut Desc and other properties) to be shown in the context menu.
+2. The coordinates where the context menu was requested in relation to the upper left corner of the webview bounds.
 3. A selection object that will include the kind of context selected, and the appropriate context menu parameter data.
 
-and have the choice to: 
+and have the option of performing the following, in any combination:
 
 1. Add or remove entries to the default context menu provided by the WebView
-2. Use their own UI to display their custom context menu (can either handle the selection on their own or return the selected option to the WebView)
+2. Use their own UI to display their custom context menu (can either handle the user-selected menu item on their own or return the menu item to the WebView)
 
-If one of the entries inserted by the end developer is selected, the CustomMenuItemSelected event will be raised on the context menu item object that was selected.
+If one of the entries inserted by the end developer is selected, the CustomMenuItemSelected event will be raised on the context menu item object that was selected in these cases:
+
+1. App adds custom menu items but defers the context menu UI to the WebView platform.
+2. App adds custom menu items, shows custom UI, and sets the SelectedCommandId property to the ID of the custom menu item.
 
 # Examples
 
@@ -23,7 +26,8 @@ If one of the entries inserted by the end developer is selected, the CustomMenuI
 The developer can add or remove entries to the default WebView context menu. For this case, the developer specifies Handled to be false and is able to add or remove items from the collection of context menu items.
 
  ```cpp
-    webview2->add_ContextMenuRequested(
+    m_webView2_4 = m_webView.try_query<ICoreWebView2_4>();
+    webview2_4->add_ContextMenuRequested(
         Callback<ICoreWebView2ContextMenuRequestedEventHandler>(
             [this](
                 ICoreWebView2* sender,
@@ -35,13 +39,11 @@ The developer can add or remove entries to the default WebView context menu. For
                 CHECK_FAILURE(args->get_ContextMenuInfo(&info));
                 COREWEBVIEW2_CONTEXT_KIND context;
                 CHECK_FAILURE(info->get_ContextKind(&context));
-                CHECK_FAILURE(args->put_Handled(false));
                 UINT32 itemsCount;
                 CHECK_FAILURE(items->get_Count(&itemsCount));
                 // Removing the 'Save image as' context menu item for image context selections.
                 if (context == COREWEBVIEW2_CONTEXT_KIND_IMAGE)
                 {
-                    UINT32 removeIndex = itemsCount;
                     wil::com_ptr<ICoreWebView2ContextMenuItem> current;
                     for(UINT32 i = 0; i < itemsCount; i++) 
                     {
@@ -50,22 +52,19 @@ The developer can add or remove entries to the default WebView context menu. For
                         CHECK_FAILURE(current->get_Descriptor(&desc));
                         if (desc == COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_IMAGE_AS)
                         {
-                            removeIndex = i;
+                            CHECK_FAILURE(items->RemoveValueAtIndex(i));
+                            break;
                         }
-                    }
-                    if (removeIndex < itemsCount)
-                    {
-                        CHECK_FAILURE(items->RemoveValueAtIndex(removeIndex));
                     }
                 }
                 // Adding a custom context menu item for the page that will display the page's URI.
                 else if (context == COREWEBVIEW2_CONTEXT_KIND_PAGE)
                 {
-                    wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
+                    wil::com_ptr<ICoreWebView2Environment5> webviewEnvironment;
                     CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
                         IID_PPV_ARGS(&webviewEnvironment)));
                     wil::com_ptr<ICoreWebView2ContextMenuItem> newMenuItem;
-                    CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(L"Display page Uri", L"Shortcut", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL, true, false, &newMenuItem));
+                    CHECK_FAILURE(webviewEnvironment->CreateContextMenuItem(L"Display page Uri", nullptr, COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_COMMAND, &newMenuItem));
                     newMenuItem->add_CustomItemSelected(Callback<ICoreWebView2CustomItemSelectedEventHandler>(
                         [this, info](
                             ICoreWebView2* sender,
@@ -83,8 +82,8 @@ The developer can add or remove entries to the default WebView context menu. For
                                 return S_OK;
                             })
                             .Get(),
-                        &m_customItemSelectedToken);
-                    CHECK_FAILURE(items->AddValueAtIndex(itemsCount, newMenuItem.get()));
+                        nullptr);
+                    CHECK_FAILURE(items->InsertValueAtIndex(itemsCount, newMenuItem.get()));
                 }
                 return S_OK;
             })
@@ -97,31 +96,34 @@ The developer can add or remove entries to the default WebView context menu. For
 The developer can use the data provided in the Event arguments to display a custom context menu with entries of their choice. For this case, the developer specifies Handled to be true and requests a deferral. Deferral of this event should be completed when the user selects a context menu item (either the app developer will handle the case, or can return the selected option to the WebView) or when the end user dismisses the context menu by clicking outside of the context menu for example.
 
  ```cpp
-    webview2->add_ContextMenuRequested(
+    m_webView2_4 = m_webView.try_query<ICoreWebView2_4>();
+    webview2_4->add_ContextMenuRequested(
         Callback<ICoreWebView2ContextMenuRequestedEventHandler>(
             [this](
                 ICoreWebView2* sender,
                 ICoreWebView2ContextMenuRequestedEventArgs* args)
             {
-                auto showMenu = [this, args]
+                auto showMenu = [this, args = 
+                wil::com_ptr<ICoreWebView2ContextMenuRequestedEventArgs>(args)]
                 {
                     wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
                     CHECK_FAILURE(args->get_MenuItems(&items));
                     CHECK_FAILURE(args->put_Handled(true));
-                    HMENU hPopupMenu = CreatePopupMenu();
+                    HMENU hPopupMenu = CHECK_POINTER(CreatePopupMenu());
                     AddMenuItems(hPopupMenu, items);
                     HWND hWnd;
                     m_controller->get_ParentWindow(&hWnd);
-                    SetForegroundWindow(hWnd);
-                    wil::com_ptr<ICoreWebView2ContextMenuInfo> parameters;
-                    CHECK_FAILURE(args->get_ContextMenuInfo(&parameters));
+                    wil::com_ptr<ICoreWebView2ContextMenuInfo> info;
+                    CHECK_FAILURE(args->get_ContextMenuInfo(&info));
                     POINT locationInControlCoordinates;
                     POINT locationInScreenCoordinates;
-                    CHECK_FAILURE(parameters->get_Location(&locationInControlCoordinates));
+                    CHECK_FAILURE(info->get_Location(&locationInControlCoordinates));
                     // get_Location returns coordinates in relation to upper left Bounds of the WebView2.Controller. Will need to convert to Screen coordinates to display the popup menu in the correct location.
                     ConvertToScreenCoordinates(locationInControlCoordinates, locationInScreenCoordinates);
                     UINT32 selectedCommandId = TrackPopupMenu(hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD, locationInScreenCoordinates.x, locationInScreenCoordinates.y, 0, hWnd, NULL);
-                    CHECK_FAILURE(args->put_SelectedCommandId(selectedCommandId));
+                    if (selectedCommandId != 0) {
+                        CHECK_FAILURE(args->put_SelectedCommandId(selectedCommandId));
+                    }
                 };
                 wil::com_ptr<ICoreWebView2Deferral> deferral;
                 CHECK_FAILURE(args->GetDeferral(&deferral));
@@ -148,6 +150,13 @@ The developer can use the data provided in the Event arguments to display a cust
                 wil::unique_cotaskmem_string label;
                 CHECK_FAILURE(current->get_Label(&label));
                 std::wstring labelString = label.get();
+                wil::unique_cotaskmem_string shortcut;
+                CHECK_FAILURE(current->get_ShortcutKeyDescription(&shortcut));
+                std::wstring shortcutString = shortcut.get();
+                if (!shortcutString.empty())
+                {
+                    labelString = labelString + L"\t" + shortcutString;
+                }
                 BOOL isEnabled;
                 CHECK_FAILURE(current->get_IsEnabled(&isEnabled));
                 BOOL isChecked;
@@ -156,53 +165,53 @@ The developer can use the data provided in the Event arguments to display a cust
                 CHECK_FAILURE(current->get_CommandId(&commandId));
                 if (kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_SEPARATOR)
                 {
-                    AppendMenu(hPopupMenu, MF_SEPARATOR, 0, nullptr);
+                    CHECK_BOOL(AppendMenu(hPopupMenu, MF_SEPARATOR, 0, nullptr));
                 }
                 else if (kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_SUBMENU)
                 {
-                    HMENU newMenu = CreateMenu();
+                    HMENU newMenu = CHECK_POINTER(CreateMenu());
                     wil::com_ptr<ICoreWebView2ContextMenuItemCollection> submenuItems;
                     CHECK_FAILURE(current->get_Children(&submenuItems));
                     AddMenuItems(newMenu, submenuItems);
-                    AppendMenu(hPopupMenu, MF_POPUP, (UINT_PTR)newMenu, labelString.c_str());
-                }
-                else if (kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL)
-                {
-                    if (isEnabled)
-                    {
-                        AppendMenu(hPopupMenu, MF_BYPOSITION | MF_STRING, commandId, labelString.c_str());
-                    }
-                    else
-                    {
-                        AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING, commandId, labelString.c_str());
-                    }
+                    CHECK_BOOL(AppendMenu(hPopupMenu, MF_POPUP, (UINT_PTR)newMenu, labelString.c_str()));
                 }
                 else if (
-                    kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_CHECKBOX ||
+                    kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_CHECK_BOX ||
                     kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_RADIO)
                 {
                     if (isEnabled)
                     {
                         if (isChecked)
                         {
-                            AppendMenu(hPopupMenu, MF_CHECKED | MF_STRING, commandId, labelString.c_str());
+                            CHECK_BOOL(AppendMenu(hPopupMenu, MF_CHECKED | MF_STRING, commandId, labelString.c_str()));
                         }
                         else
                         {
-                            AppendMenu(hPopupMenu, MF_BYPOSITION | MF_STRING, commandId, labelString.c_str());
+                            CHECK_BOOL(AppendMenu(hPopupMenu, MF_BYPOSITION | MF_STRING, commandId, labelString.c_str()));
                         }
                     }
                     else
                     {
                         if (isChecked)
                         {
-                            AppendMenu(
-                                hPopupMenu, MF_CHECKED | MF_GRAYED | MF_STRING, commandId, labelString.c_str());
+                            CHECK_BOOL(AppendMenu(
+                                hPopupMenu, MF_CHECKED | MF_GRAYED | MF_STRING, commandId, labelString.c_str()));
                         }
                         else
                         {
-                            AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING, commandId, labelString.c_str());
+                            CHECK_BOOL(AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING, commandId, labelString.c_str()));
                         }
+                    }
+                }
+                else if (kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_COMMAND)
+                {
+                    if (isEnabled)
+                    {
+                        CHECK_BOOL(AppendMenu(hPopupMenu, MF_BYPOSITION | MF_STRING, commandId, labelString.c_str()));
+                    }
+                    else
+                    {
+                        CHECK_BOOL(AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING, commandId, labelString.c_str()));
                     }
                 }
             }
@@ -215,23 +224,28 @@ The developer can use the data provided in the Event arguments to display a cust
     {
         IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
         CoreWebView2ContextKind context = args.ContextMenuInfo.ContextKind;
-        args.Handled = false;
         if (context == CoreWebView2ContextKind.Image)
         {
-            // removes the last item in the collection
-            menuList.RemoveAt(menuList.Count - 1);
+            for (int index = 0; index < menuList.Count; index++)
+            {
+                if (menuList[index].Descriptor == CoreWebView2ContextMenuItemDescriptor.SaveImageAs)
+                {
+                    menuList.RemoveAt(index);
+                    break;
+                }
+            }
         }
         else if (context == CoreWebView2ContextKind.Page)
         {
             // add new item to end of collection
             CoreWebView2ContextMenuItem newItem = webView.CoreWebView2.Environment.CreateContextMenuItem(
-                "Display Page Uri", "Shortcut", null, CoreWebView2ContextMenuItemKind.Normal,1, 0);
+                "Display Page Uri", null, CoreWebView2ContextMenuItemKind.Command);
                 newItem.CustomItemSelected += delegate (object send, Object ex)
                 {
                     string pageUri = args.ContextMenuInfo.PageUri;
                     System.Threading.SynchronizationContext.Current.Post((_) =>
                     {
-                        MessageBox.Show(pageUri, "Page Uri", MessageBoxButton.YesNo);
+                        MessageBox.Show(pageUri, "Page Uri", MessageBoxButton.OK);
                     }, null);
                 }
             menuList.Insert(menuList.Count, newItem);
@@ -276,7 +290,7 @@ The developer can use the data provided in the Event arguments to display a cust
             }
             else
             {
-                if (current.Kind == CoreWebView2ContextMenuItemKind.Checkbox
+                if (current.Kind == CoreWebView2ContextMenuItemKind.CheckBox
                 || current.Kind == CoreWebView2ContextMenuItemKind.Radio)
                 {
                     newItem.IsCheckable = true;
@@ -294,102 +308,28 @@ The developer can use the data provided in the Event arguments to display a cust
 ```
 # Remarks
 
+1. Developers should only use command IDs from context menu items for the relevant context menu and event arg. Attempting to mix will result in unexpected and invalid outputs.
+
+2. Developers should never add an item as a child of itself, this will cause undefined results.
+
 # API Notes
+
+1. The `ContextMenuRequested` event will only be raised if the page allows the context menu to appear. If the settings option for `AreDefaultContextMenusEnabled` is set to false, then the `ContextMenuRequested` event will not be raised.
+
+2. The Label uses ampersands as a prefix to indicate the accelator key.
+
+3. Command Ids will be unique for custom menu items and no guarantee they will be the same for each menu item case, must always use the command Id given by the event arg.
 
 # API Details
  ```cpp
     interface ICoreWebView2_4;
-    interface ICoreWebView2Environment;
+    interface ICoreWebView2Environment5;
     interface ICoreWebView2ContextMenuItem;
     interface ICoreWebView2ContextMenuItemCollection;
     interface ICoreWebView2ContextMenuInfo;
     interface ICoreWebView2ContextMenuRequestedEventArgs;
     interface ICoreWebView2ContextMenuRequestedEventHandler;
     interface ICoreWebView2CustomItemSelectedEventHandler;
-
-    /// Defines the context menu items' descriptors
-    /// for the `ICoreWebView2StagingContextMenuItem::get_Descriptor` method
-    [v1_enum]
-    typedef enum COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR
-    {
-        /// Context menu item descriptor for items added by host (Custom context menu item).
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_CUSTOM,
-
-        /// Context menu item descriptor for items added by extensions.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_EXTENSION,
-
-        /// Context menu item descriptor for spellcheck suggestions.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SPELLCHECK_SUGGESTION,
-
-        /// Context menu item descriptor for "Back" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_BACK,
-
-        /// Context menu item descriptor for "Forward" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_FORWARD,
-
-        /// Context menu item descriptor for "Reload" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_RELOAD,
-        
-        /// Context menu item descriptor for "Save as" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_AS,
-
-        /// Context menu item descriptor for "Print" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_PRINT,
-
-        /// Context menu item descriptor for "Create a QR code" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_CREATE_QR_CODE,
-
-        /// Context menu item descriptor for "Inspect" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_INSPECT,
-
-        /// Context menu item descriptor for "Emoji menu" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_EMOJI,
-
-        /// Context menu item descriptor for "Redo" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_REDO,
-
-        /// Context menu item descriptor for "Undo" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_UNDO,
-
-        /// Context menu item descriptor for "Cut" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_CUT,
-
-        /// Context menu item descriptor for "Copy" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_COPY,
-
-        /// Context menu item descriptor for "Paste" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_PASTE,
-
-        /// Context menu item descriptor for "Paste as plain text" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_PASTE_AS_PLAIN_TEXT,
-
-        /// Context menu item descriptor for "Select all" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SELECT_ALL,
-
-        /// Context menu item descriptor for "Open link in new window" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_OPEN_LINK_NEW_WINDOW,
-
-        /// Context menu item descriptor for "Save link as" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_LINK_AS,
-
-        /// Context menu item descriptor for "Copy link" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_COPY_LINK,
-
-        /// Context menu item descriptor for "Save image as" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_IMAGE_AS,
-
-        /// Context menu item descriptor for "Copy image" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_COPY_IMAGE,
-
-        /// Context menu item descriptor for "Copy image link" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_COPY_IMAGE_LINK,
-
-        /// Context menu item descriptor for "Save media as" action.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_MEDIA_AS,
-
-        /// Context menu item descriptor for other commands not corresponding with any of the enums above.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_OTHER,
-    } COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR;
     
     /// Indicates the kind of context for which the context menu was created
     /// for the `ICoreWebView2ContextMenuInfo::get_ContextKind` method
@@ -417,12 +357,12 @@ The developer can use the data provided in the Event arguments to display a cust
     [v1_enum]
     typedef enum COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND
     {
-        /// Specifies a normal menu item kind.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_NORMAL,
+        /// Specifies a command menu item kind.
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_COMMAND,
 
-        /// Specifies a checkbox menu item kind. `ContextMenuItem` objects of this kind
-        /// will need the `IsChecked` property to determine current state of the checkbox.
-        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_CHECKBOX,
+        /// Specifies a check box menu item kind. `ContextMenuItem` objects of this kind
+        /// will need the `IsChecked` property to determine current state of the check box.
+        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_CHECK_BOX,
 
         /// Specifies a radio button menu item kind. `ContextMenuItem` objects of this kind
         /// will need the `IsChecked` property to determine current state of the radio button.
@@ -441,26 +381,26 @@ The developer can use the data provided in the Event arguments to display a cust
     [uuid(7aed49e3-a93f-497a-811c-749c6b6b6c65), object, pointer_default(unique)]
     interface ICoreWebView2ContextMenuItem : IUnknown
     {
-        /// Gets the localized label for the `ContextMenuItem`.
-        [propget] HRESULT Label([out, retval] LPWSTR* value);
-
-        /// Gets the unlocalized name for the `ContextMenuItem`. Use this to distinguish items with 
-        /// same Descriptor such as Extension items and items with Other as descriptor.
+        
+        /// Gets the unlocalized name for the `ContextMenuItem`. Use this to distinguish
+        /// between context menu item types.
         [propget] HRESULT Name([out, retval] LPWSTR* value);
-
-        /// Gets the descriptor for the `ContextMenuItem`.
-        [propget] HRESULT Descriptor([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR* value);
+        
+        /// Gets the localized label for the `ContextMenuItem`. Will contain an ampersand for characters to be used
+        /// as keyboard accelerator.
+        [propget] HRESULT Label([out, retval] LPWSTR* value);
 
         /// Gets the Command ID for the `ContextMenuItem`. Use this to report the `SelectedCommandId` in `ContextMenuRequested` event.
         [propget] HRESULT CommandId([out, retval] INT32* value);
 
-        /// Gets the keyboard shortcut for this ContextMenuItem. It will be the empty
+        /// Gets the localized keyboard shortcut for this ContextMenuItem. It will be the empty
         /// string if there is no keyboard shortcut.
         /// This is text intended to be displayed to the end user to show the keyboard shortcut. 
         /// For example this property is `Ctrl+Shift+I` for the "Inspect" `ContextMenuItem`.
         [propget] HRESULT ShortcutKeyDescription([out, retval] LPWSTR* value);
 
         /// Gets the Icon for the `ContextMenuItem` in PNG format in the form of an IStream.
+        /// Stream will be rewound to the start of the PNG.
         [propget] HRESULT Icon([out, retval] IStream** value);
 
         /// Gets the `ContextMenuItem` kind.
@@ -469,7 +409,7 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Gets the enabled property of the `ContextMenuItem`.
         [propget] HRESULT IsEnabled([out, retval] BOOL* value);
 
-        /// Gets the checked property of the `ContextMenuItem`, used if the kind is Checkbox or Radio.
+        /// Gets the checked property of the `ContextMenuItem`, used if the kind is Check box or Radio.
         [propget] HRESULT IsChecked([out, retval] BOOL* value);
 
         /// Gets the list of children menu items through a `ContextMenuItemCollection` 
@@ -478,6 +418,7 @@ The developer can use the data provided in the Event arguments to display a cust
 
         /// Add an event handler for the `CustomItemSelected` event.
         /// `CustomItemSelected` event is raised when the user selects this `ContextMenuItem`.
+        /// Will only be raised for end developer created context menu items
         HRESULT add_CustomItemSelected(
             [in] ICoreWebView2StagingCustomItemSelectedEventHandler* eventHandler,
             [out] EventRegistrationToken* token);
@@ -503,7 +444,7 @@ The developer can use the data provided in the Event arguments to display a cust
         HRESULT RemoveValueAtIndex([in] UINT32 index);
 
         /// Inserts the `ContextMenuItem` at the specified index.
-        HRESULT AddValueAtIndex([in] UINT32 index, [in] ICoreWebView2ContextMenuItem* value);
+        HRESULT InsertValueAtIndex([in] UINT32 index, [in] ICoreWebView2ContextMenuItem* value);
     }
 
     [uuid(76eceacb-0462-4d94-ac83-423a6793775e), object, pointer_default(unique)]
@@ -526,18 +467,16 @@ The developer can use the data provided in the Event arguments to display a cust
 
     /// A continuation of the ICoreWebView2Environment interface.
     [uuid(04d4fe1d-ab87-42fb-a898-da241d35b63c), object, pointer_default(unique)]
-    interface ICoreWebView2Environment : IUnknown
+    interface ICoreWebView2Environment5 : ICoreWebView2Environment4
     {
         /// Create a `ContextMenuItem` object to insert into the WebView context menu.
-        /// The `IsChecked` property will only be used if the menu item kind is Radio or Checkbox.
-        /// For more information regarding paramters, see `ContextMenuItem`.
+        /// CoreWebView2 will rewind the stream before decoding. Command Id for new 
+        /// custom menu items will be unique for the lifespan of the ContextMenuRequested
+        /// event. They will be a unique value between 52600 and 52650.
         HRESULT CreateContextMenuItem(
             [in] LPCWSTR label,
-            [in] LPCWSTR shortcutKeyDescription,
             [in] IStream* iconStream,
             [in] COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND kind,
-            [in] BOOL isEnabled,
-            [in] BOOL isChecked,
             [out, retval] ICoreWebView2ContextMenuItem** item);
     }
 
@@ -652,36 +591,6 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ContextMenuItem;
     runtimeclass CoreWebView2ContextMenuInfo;
     runtimeclass CoreWebView2ContextMenuRequestedEventArgs;
-    
-    enum CoreWebView2ContextMenuItemDescriptor
-    {
-        Custom = 0,
-        Extension = 1,
-        SpellcheckSuggestion = 2,
-        Back = 3,
-        Forward = 4,
-        Reload = 5,
-        SaveAs = 6,
-        Print = 7,
-        CreateQrCode = 8,
-        Inspect = 9,
-        Emoji = 10,
-        Redo = 11,
-        Undo = 12,
-        Cut = 13,
-        Copy = 14,
-        Paste = 15,
-        PasteAsPlainText = 16,
-        SelectAll = 17,
-        OpenLinkNewWindow = 24,
-        SaveLinkAs = 25,
-        CopyLink = 26,
-        SaveImageAs = 27,
-        CopyImage = 28,
-        CopyImageLink = 29,
-        SaveMediaAs = 30,
-        Other = 31,
-    };
 
     enum CoreWebView2ContextKind
     {
@@ -694,8 +603,8 @@ namespace Microsoft.Web.WebView2.Core
 
     enum CoreWebView2ContextMenuItemKind
     {
-        Normal = 0,
-        Checkbox = 1,
+        Command = 0,
+        CheckBox = 1,
         Radio = 2,
         Separator = 3,
         Submenu = 4,
@@ -732,7 +641,6 @@ namespace Microsoft.Web.WebView2.Core
         String Name { get; }
         String ShortcutKeyDescription { get; }
         Int32 CommandId { get; }
-        CoreWebView2ContextMenuItemDescriptor Descriptor { get; }
         Stream Icon { get; }
         CoreWebView2ContextMenuItemKind Kind { get; }
         Boolean IsEnabled { get; }
@@ -746,11 +654,8 @@ namespace Microsoft.Web.WebView2.Core
     {
         public CoreWebView2ContextMenuItem CreateContextMenuItem(
             String Label,
-            String ShortcutKeyDescription,
             Stream Icon,
-            CoreWebView2ContextMenuItemKind Kind,
-            Boolean IsEnabled,
-            Boolean IsChecked);
+            CoreWebView2ContextMenuItemKind Kind);
     };
 
     runtimeclass CoreWebView2
