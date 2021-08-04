@@ -10,10 +10,10 @@
 
     There are two audiences for the spec. The first are people that want to evaluate and
     give feedback on the API, as part of the submission process.
-    When the PR is complete, the content within the 'Conceptual Pages' section of the review spec will be incorporated into the public documentation at
-    http://docs.microsoft.com (DMC).
     So the second audience is everyone that reads there to learn how and why to use this API.
     Some of this text also shows up in Visual Studio Intellisense.
+    When the PR is complete, the content within the 'Conceptual Pages' section of the review spec will be incorporated into the public documentation at
+    http://docs.microsoft.com (DMC).
 
     For example, much of the examples and descriptions in the `RadialGradientBrush` API spec
     (https://github.com/microsoft/microsoft-ui-xaml-specs/blob/master/active/RadialGradientBrush/RadialGradientBrush.md)
