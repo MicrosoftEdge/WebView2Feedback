@@ -111,7 +111,8 @@ interface ICoreWebView2_6 : ICoreWebView2
 {
 
   /// `MemoryUsageTargetLevel` indicates desired memory comsumption level of WebView.
-  HRESULT get_MemoryUsageTargetLevel([in] COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL* level);
+  [propget] HRESULT MemoryUsageTargetLevel(
+      [out, retval] COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL* level);
   
   /// An app may set `MemoryUsageTargetLevel` to indicate desired memory
   /// comsumption level of WebView. Scripts will not be impacted and continue to run.
@@ -138,7 +139,7 @@ interface ICoreWebView2_6 : ICoreWebView2
   /// TrySuspend will automatically set MemoryUsageTargetLevel to low while Resume on suspended WebView
   /// will automatically set MemoryUsageTargetLevel to normal.
   /// Calling `Resume` when the WebView is not suspended would not change MemoryUsageTargetLevel.
-  HRESULT put_MemoryUsageTargetLevel([in] COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL level);
+  [propput] HRESULT MemoryUsageTargetLevel([in] COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL level);
 }
 
 ```
