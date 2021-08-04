@@ -10,7 +10,7 @@
 
     There are two audiences for the spec. The first are people that want to evaluate and
     give feedback on the API, as part of the submission process.
-    When it's complete it will be incorporated into the public documentation at
+    When the PR is complete, the content within the 'Conceptual Pages' section of the review spec will be incorporated into the public documentation at
     http://docs.microsoft.com (DMC).
     So the second audience is everyone that reads there to learn how and why to use this API.
     Some of this text also shows up in Visual Studio Intellisense.
