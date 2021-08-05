@@ -3,7 +3,7 @@
 There currently is no method using WebView2 APIs to customize the default context menu experience. Currently, the only option using WebView2 APIs is to show or disable the default context menu. We have been requested by WebView2 app developers to allow for customization of the context menu experience. This has produced two different customization paths for context menus. The first option is to allow the app developers to create their own context menu UI using data passed from the WebView and the second is to allow app developers to add and remove items from the default context menus.
 
 # Description
-We propose two new events for WebView2, `CoreWebView2ContextMenuRequested` that will allow developers to listen to context menus being requested by the end user in the WebView2 and `CoreWebView2CustomItemSelected` that will notify the developer that one of their inserted context menu items was selected. When a context menu is requested in WebView2, the app developer will receive:
+We propose two new events for WebView2, `CoreWebView2ContextMenuRequested` that will allow developers to listen to context menus being requested by the end user in the WebView2 and `CoreWebView2CustomItemSelected` that will notify the developer that one of their inserted context menu items was selected. `CoreWebView2ContextMenuRequested` will only be raised if the page allows the context menu to appear. If the WebView2 `AreDefaultContextMenusEnabled` setting is set to `False`, this event will not be raised. When a context menu is requested in WebView2, the app developer will receive:
 
 1. An ordered list of ContextMenuItem objects (contains name, label, kind, Shortcut Desc and other properties) to be shown in the context menu.
 2. The coordinates where the context menu was requested in relation to the upper left corner of the webview bounds.
@@ -315,25 +315,7 @@ The developer can use the data provided in the Event arguments to display a cust
 ```
 # Remarks
 
-1. Developers should only use command IDs from context menu items for the relevant context menu and event arg. Attempting to mix will result in unexpected and invalid outputs.
-
-2. Developers should never add an item as a child of itself, this will cause undefined results.
-
-3. Forbidden usage of the IsEnabled property include setting the property for menu items that are not a custom menu item or of type separator.
-
-4. Forbidden usage of the IsChecked property include setting the property for menu items that are not a custom context menu item or not of type Check Box and Radio.
-
-5. The `ContextMenuTargetKind` will always represent the active element that caused the context menu request. If there is a selection with multiple images, audio and text, for example, the element that the user selects within this selection will still be the option represented by the `ContextMenuTargetKind` enum.
-
 # API Notes
-
-1. The `ContextMenuRequested` event will only be raised if the page allows the context menu to appear. If the settings option for `AreDefaultContextMenusEnabled` is set to false, then the `ContextMenuRequested` event will not be raised.
-
-2. The Label uses ampersands as a prefix to indicate the accelator key.
-
-3. Command Ids will be unique for custom menu items and no guarantee they will be the same for each menu item case, must always use the command Id given by the event arg.
-
-4. When creating a new custom context menu item using `CreateContextMenuItem`, the item's `IsEnabled` property will default to `TRUE` and `IsChecked` property will default to `FALSE`.
 
 # API Details
  ```cpp
@@ -348,6 +330,9 @@ The developer can use the data provided in the Event arguments to display a cust
     
     /// Indicates the kind of context for which the context menu was created
     /// for the `ICoreWebView2ContextMenuTarget::get_Kind` method.
+    /// This enum will always represent the active element that caused the context menu request. 
+    /// If there is a selection with multiple images, audio and text, for example, the element that 
+    /// the end user right clicks on within this selection will be the option represented by this enum.
     [v1_enum]
     typedef enum COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND
     {
@@ -421,14 +406,14 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Gets the `ContextMenuItem` kind.
         [propget] HRESULT Kind([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND* value);
 
-        /// Sets the enabled property of the `ContextMenuItem`. Should only be used in the case of a 
+        /// Sets the enabled property of the `ContextMenuItem`. Must only be used in the case of a 
         /// custom context menu item. The default value for this is `TRUE`.
         [propput] HRESULT IsEnabled([in] BOOL value);
 
         /// Gets the enabled property of the `ContextMenuItem`.
         [propget] HRESULT IsEnabled([out, retval] BOOL* value);
 
-        /// Sets the checked property of the `ContextMenuItem`. Should only used for custom context 
+        /// Sets the checked property of the `ContextMenuItem`. Must only be used for custom context 
         /// menu items that are of type Check box or Radio.
         [propput] HRESULT isChecked([in] BOOL value);
 
@@ -496,6 +481,8 @@ The developer can use the data provided in the Event arguments to display a cust
         /// CoreWebView2 will rewind the stream before decoding. Command Id for new 
         /// custom menu items will be unique for the lifespan of the ContextMenuRequested
         /// event. They will be a unique value between 52600 and 52650.
+        /// The returned `ContextMenuItem` object's `IsEnabled` property will default to `TRUE`
+        /// and `IsChecked` property will default to `FALSE`.
         HRESULT CreateContextMenuItem(
             [in] LPCWSTR label,
             [in] IStream* iconStream,
@@ -543,7 +530,9 @@ The developer can use the data provided in the Event arguments to display a cust
         [propget] HRESULT Location([out, retval] POINT* value);
 
         /// Sets the selected command for the WebView to execute. The value is
-        /// obtained via the `ContextMenuItem` CommandId property
+        /// obtained via the `ContextMenuItem` CommandId property.
+        /// This value should always be from context menu items for the relevant context menu and 
+        /// event arg. Attempting to mix will result in invalid outputs.
         /// The default value is -1 which means that no selected occured.
         [propput] HRESULT SelectedCommandId([in] INT32 value);
 
