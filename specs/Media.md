@@ -1,5 +1,5 @@
 # Background
-WebView2 team were getting request from partner team and GitHub feedbacks on request media related support. This spec contain details on what mediea related feature are being added and how it can be used.
+WebView2 is a control that developers can implement for part of, or for the entirety of their app. In the either case, developers may need the ability to control the media within the webview's bounds. This API will allow developers to control the sound of each webview2 instance by enabling the mute/unmute of the media within the webview. There will also be the ability to check if the sound is muted or audible.
 
 # Description
 Enable end developer to `Mute`, `Unmute` a webview content. And ability to check for the `IsMuted` and `IsCurrentlyAudible`.
