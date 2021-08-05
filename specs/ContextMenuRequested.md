@@ -35,14 +35,14 @@ The developer can add or remove entries to the default WebView context menu. For
             {
                 wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
                 CHECK_FAILURE(args->get_MenuItems(&items));
-                wil::com_ptr<ICoreWebView2ContextMenuInfo> info;
-                CHECK_FAILURE(args->get_ContextMenuInfo(&info));
-                COREWEBVIEW2_CONTEXT_KIND context;
-                CHECK_FAILURE(info->get_ContextKind(&context));
+                wil::com_ptr<ICoreWebView2ContextMenuTarget> target;
+                CHECK_FAILURE(args->get_ContextMenuTarget(&target));
+                COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND context_kind;
+                CHECK_FAILURE(target->get_Kind(&context_kind));
                 UINT32 itemsCount;
                 CHECK_FAILURE(items->get_Count(&itemsCount));
                 // Removing the 'Save image as' context menu item for image context selections.
-                if (context == COREWEBVIEW2_CONTEXT_KIND_IMAGE)
+                if (context_kind == COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND_IMAGE)
                 {
                     wil::com_ptr<ICoreWebView2ContextMenuItem> current;
                     for(UINT32 i = 0; i < itemsCount; i++) 
@@ -58,7 +58,7 @@ The developer can add or remove entries to the default WebView context menu. For
                     }
                 }
                 // Adding a custom context menu item for the page that will display the page's URI.
-                else if (context == COREWEBVIEW2_CONTEXT_KIND_PAGE)
+                else if (context_kind == COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND_PAGE)
                 {
                     wil::com_ptr<ICoreWebView2Environment5> webviewEnvironment;
                     CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
@@ -113,11 +113,9 @@ The developer can use the data provided in the Event arguments to display a cust
                     AddMenuItems(hPopupMenu, items);
                     HWND hWnd;
                     m_controller->get_ParentWindow(&hWnd);
-                    wil::com_ptr<ICoreWebView2ContextMenuInfo> info;
-                    CHECK_FAILURE(args->get_ContextMenuInfo(&info));
                     POINT locationInControlCoordinates;
                     POINT locationInScreenCoordinates;
-                    CHECK_FAILURE(info->get_Location(&locationInControlCoordinates));
+                    CHECK_FAILURE(args->get_Location(&locationInControlCoordinates));
                     // get_Location returns coordinates in relation to upper left Bounds of the WebView2.Controller. Will need to convert to Screen coordinates to display the popup menu in the correct location.
                     ConvertToScreenCoordinates(locationInControlCoordinates, locationInScreenCoordinates);
                     UINT32 selectedCommandId = TrackPopupMenu(hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD, locationInScreenCoordinates.x, locationInScreenCoordinates.y, 0, hWnd, NULL);
@@ -172,8 +170,17 @@ The developer can use the data provided in the Event arguments to display a cust
                     HMENU newMenu = CHECK_POINTER(CreateMenu());
                     wil::com_ptr<ICoreWebView2ContextMenuItemCollection> submenuItems;
                     CHECK_FAILURE(current->get_Children(&submenuItems));
-                    AddMenuItems(newMenu, submenuItems);
-                    CHECK_BOOL(AppendMenu(hPopupMenu, MF_POPUP, (UINT_PTR)newMenu, labelString.c_str()));
+                    BOOL isEnabled;
+                    CHECK_FAILURE(current->get_IsEnabled(&isEnabled));
+                    if (isEnabled)
+                    {
+                        AddMenuItems(newMenu, submenuItems);
+                        CHECK_BOOL(AppendMenu(hPopupMenu, MF_POPUP, (UINT_PTR)newMenu, labelString.c_str()));
+                    }
+                    else
+                    {
+                        CHECK_BOOL(AppendMenu(hPopupMenu, MF_POPUP | MF_GRAYED, (UINT_PTR)newMenu, labelString.c_str()));
+                    }
                 }
                 else if (
                     kind == COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_CHECK_BOX ||
@@ -223,8 +230,8 @@ The developer can use the data provided in the Event arguments to display a cust
     webView.CoreWebView2.ContextMenuRequested += delegate (object sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
         IList<CoreWebView2ContextMenuItem> menuList = args.MenuItems;
-        CoreWebView2ContextKind context = args.ContextMenuInfo.ContextKind;
-        if (context == CoreWebView2ContextKind.Image)
+        CoreWebView2ContextMenuTargetKind context = args.ContextMenuTarget.Kind;
+        if (context == CoreWebView2ContextMenuTargetKind.Image)
         {
             for (int index = 0; index < menuList.Count; index++)
             {
@@ -235,14 +242,14 @@ The developer can use the data provided in the Event arguments to display a cust
                 }
             }
         }
-        else if (context == CoreWebView2ContextKind.Page)
+        else if (context == CoreWebView2ContextMenuTargetKind.Page)
         {
             // add new item to end of collection
             CoreWebView2ContextMenuItem newItem = webView.CoreWebView2.Environment.CreateContextMenuItem(
                 "Display Page Uri", null, CoreWebView2ContextMenuItemKind.Command);
                 newItem.CustomItemSelected += delegate (object send, Object ex)
                 {
-                    string pageUri = args.ContextMenuInfo.PageUri;
+                    string pageUri = args.ContextMenuTarget.PageUri;
                     System.Threading.SynchronizationContext.Current.Post((_) =>
                     {
                         MessageBox.Show(pageUri, "Page Uri", MessageBoxButton.OK);
@@ -312,6 +319,12 @@ The developer can use the data provided in the Event arguments to display a cust
 
 2. Developers should never add an item as a child of itself, this will cause undefined results.
 
+3. Forbidden usage of the IsEnabled property include setting the property for menu items that are not a custom menu item or of type separator.
+
+4. Forbidden usage of the IsChecked property include setting the property for menu items that are not a custom context menu item or not of type Check Box and Radio.
+
+5. The `ContextMenuTargetKind` will always represent the active element that caused the context menu request. If there is a selection with multiple images, audio and text, for example, the element that the user selects within this selection will still be the option represented by the `ContextMenuTargetKind` enum.
+
 # API Notes
 
 1. The `ContextMenuRequested` event will only be raised if the page allows the context menu to appear. If the settings option for `AreDefaultContextMenusEnabled` is set to false, then the `ContextMenuRequested` event will not be raised.
@@ -320,37 +333,39 @@ The developer can use the data provided in the Event arguments to display a cust
 
 3. Command Ids will be unique for custom menu items and no guarantee they will be the same for each menu item case, must always use the command Id given by the event arg.
 
+4. When creating a new custom context menu item using `CreateContextMenuItem`, the item's `IsEnabled` property will default to `TRUE` and `IsChecked` property will default to `FALSE`.
+
 # API Details
  ```cpp
     interface ICoreWebView2_4;
     interface ICoreWebView2Environment5;
     interface ICoreWebView2ContextMenuItem;
     interface ICoreWebView2ContextMenuItemCollection;
-    interface ICoreWebView2ContextMenuInfo;
     interface ICoreWebView2ContextMenuRequestedEventArgs;
     interface ICoreWebView2ContextMenuRequestedEventHandler;
+    interface ICoreWebView2ContextMenuTarget;
     interface ICoreWebView2CustomItemSelectedEventHandler;
     
     /// Indicates the kind of context for which the context menu was created
-    /// for the `ICoreWebView2ContextMenuInfo::get_ContextKind` method
+    /// for the `ICoreWebView2ContextMenuTarget::get_Kind` method.
     [v1_enum]
-    typedef enum COREWEBVIEW2_CONTEXT_KIND
+    typedef enum COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND
     {
         /// Indicates that the context menu was created for the page without any additional content.
-        COREWEBVIEW2_CONTEXT_KIND_PAGE,
+        COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND_PAGE,
 
         /// Indicates that the context menu was created for an image element.
-        COREWEBVIEW2_CONTEXT_KIND_IMAGE,
+        COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND_IMAGE,
 
         /// Indicates that the context menu was created for selected text.
-        COREWEBVIEW2_CONTEXT_KIND_SELECTED_TEXT,
+        COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND_SELECTED_TEXT,
         
         /// Indicates that the context menu was created for an audio element.
-        COREWEBVIEW2_CONTEXT_KIND_AUDIO,
+        COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND_AUDIO,
         
         /// Indicates that the context menu was created for a video element.
-        COREWEBVIEW2_CONTEXT_KIND_VIDEO,
-    } COREWEBVIEW2_CONTEXT_KIND;
+        COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND_VIDEO,
+    } COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND;
 
     /// Specifies the menu item kind
     /// for the `ICoreWebView2StagingContextMenuItem::get_Kind` method
@@ -406,8 +421,16 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Gets the `ContextMenuItem` kind.
         [propget] HRESULT Kind([out, retval] COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND* value);
 
+        /// Sets the enabled property of the `ContextMenuItem`. Should only be used in the case of a 
+        /// custom context menu item. The default value for this is `TRUE`.
+        [propput] HRESULT IsEnabled([in] BOOL value);
+
         /// Gets the enabled property of the `ContextMenuItem`.
         [propget] HRESULT IsEnabled([out, retval] BOOL* value);
+
+        /// Sets the checked property of the `ContextMenuItem`. Should only used for custom context 
+        /// menu items that are of type Check box or Radio.
+        [propput] HRESULT isChecked([in] BOOL value);
 
         /// Gets the checked property of the `ContextMenuItem`, used if the kind is Check box or Radio.
         [propget] HRESULT IsChecked([out, retval] BOOL* value);
@@ -511,9 +534,13 @@ The developer can use the data provided in the Event arguments to display a cust
         /// See `ICoreWebView2ContextMenuItemCollection` for more details.
         [propget] HRESULT MenuItems([out, retval] ICoreWebView2ContextMenuItemCollection** value);
 
-        /// Gets the information associated with the requested context menu. 
-        /// See `ICoreWebView2ContextMenuInfo` for more details.
-        [propget] HRESULT ContextMenuInfo([out, retval] ICoreWebView2ContextMenuInfo** value);
+        /// Gets the target information associated with the requested context menu. 
+        /// See `ICoreWebView2ContextMenuTarget` for more details.
+        [propget] HRESULT ContextMenuTarget([out, retval] ICoreWebView2ContextMenuTarget** value);
+
+        /// Gets the coordinates where the context menu request occured in relation to the upper 
+        /// left corner of the webview bounds.
+        [propget] HRESULT Location([out, retval] POINT* value);
 
         /// Sets the selected command for the WebView to execute. The value is
         /// obtained via the `ContextMenuItem` CommandId property
@@ -540,46 +567,49 @@ The developer can use the data provided in the Event arguments to display a cust
         HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
     }
 
-    /// Represents the information regarding the context menu. Includes the location of the request, 
-    /// the context selected and the appropriate data used for the actions of a context menu.
+    /// Represents the information regarding the context menu target.
+    /// Includes the context selected and the appropriate data used for the actions of a context menu.
     [uuid(b8611d99-eed6-4f3f-902c-a198502ad472), object, pointer_default(unique)]
-    interface ICoreWebView2ContextMenuInfo : IUnknown
+    interface ICoreWebView2ContextMenuTarget : IUnknown
     {
-        /// Gets the coordinates where the context menu request occured in relation to the upper left corner of the webview bounds.
-        [propget] HRESULT Location([out, retval] POINT* value);
-
         /// Gets the kind of context that the user selected.
-        [propget] HRESULT ContextKind([out, retval] COREWEBVIEW2_CONTEXT_KIND* value);
-
-        /// Returns TRUE if the context menu was requested on the main frame and
-        /// FALSE if invoked on another frame.
-        [propget] HRESULT IsMainFrame([out, retval] BOOL* value);
-
-        /// Returns TRUE if the context menu is requested on a selection.
-        [propget] HRESULT HasSelection([out, retval] BOOL* value);
+        [propget] HRESULT Kind([out, retval] COREWEBVIEW2_CONTEXT_MENU_TARGET_KIND* value);
 
         /// Returns TRUE if the context menu is requested on an editable component.
         [propget] HRESULT IsEditable([out, retval] BOOL* value);
 
-        /// Returns TRUE if the context menu is requested on a component that contains a link.
-        [propget] HRESULT ContainsLink([out, retval] BOOL* value);
-
+        /// Returns TRUE if the context menu was requested on the main frame and
+        /// FALSE if invoked on another frame.
+        [propget] HRESULT IsRequestedForMainFrame([out, retval] BOOL* value);
+        
         /// Gets the uri of the page.
         [propget] HRESULT PageUri([out, retval] LPWSTR* value);
 
-        /// Gets the uri of the frame. Will match the PageUri if `get_IsMainFrame` is TRUE.
+        /// Gets the uri of the frame. Will match the PageUri if `get_IsRequestedForMainFrame` is TRUE.
         [propget] HRESULT FrameUri([out, retval] LPWSTR* value);
 
-        /// Gets the source uri of element (if context menu requested on a media element, null otherwise).
-        [propget] HRESULT SourceUri([out, retval] LPWSTR* value);
+        /// Returns TRUE if the context menu is requested on HTML containing an anchor tag.
+        [propget] HRESULT HasLinkUri([out, retval] BOOL* value);
 
-        /// Gets the uri of the link (if context menu requested on a link, null otherwise).
+        /// Gets the uri of the link (if `HasLinkUri` is TRUE, null otherwise).
         [propget] HRESULT LinkUri([out, retval] LPWSTR* value);
 
-        /// Gets the text of the link (if context menu requested on a link, null otherwise).
+        /// Returns TRUE if the context menu is requested on text element that contains an anchor tag.
+        [propget] HRESULT HasLinkText([out, retval] BOOL* value);
+
+        /// Gets the text of the link (if `HasLinkText` is TRUE, null otherwise).
         [propget] HRESULT LinkText([out, retval] LPWSTR * value);
 
-        /// Gets the selected text (available when HasSelection is TRUE, null otherwise).
+        /// Returns TRUE if the context menu is requested on HTML containing a source uri.
+        [propget] HRESULT HasSourceUri([out, retval] BOOL* value);
+
+        /// Gets the active source uri of element (if `HasSourceUri` is TRUE, null otherwise).
+        [propget] HRESULT SourceUri([out, retval] LPWSTR* value);
+
+        /// Returns TRUE if the context menu is requested on a selection.
+        [propget] HRESULT HasSelection([out, retval] BOOL* value);
+
+        /// Gets the selected text (if `HasSelection` is TRUE, null otherwise).
         [propget] HRESULT SelectionText([out, retval] LPWSTR* value);
     }
 ```
@@ -589,10 +619,10 @@ namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2Environment;
     runtimeclass CoreWebView2ContextMenuItem;
-    runtimeclass CoreWebView2ContextMenuInfo;
     runtimeclass CoreWebView2ContextMenuRequestedEventArgs;
+    runtimeclass CoreWebView2ContextMenuTarget;
 
-    enum CoreWebView2ContextKind
+    enum CoreWebView2ContextMenuTargetKind
     {
         Page = 0,
         Image = 1,
@@ -613,25 +643,26 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ContextMenuRequestedEventArgs
     {
         Boolean Handled { get; set; }
-        CoreWebView2ContextMenuInfo ContextMenuInfo { get; }
+        CoreWebView2ContextMenuTarget ContextMenuTarget { get; }
         IVector<CoreWebView2ContextMenuItem> MenuItems { get; }
+        Point Location { get; }
         Int32 SelectedCommandId { get; set; }
         Windows.Foundation.Deferral GetDeferral();
     };
     
-    runtimeclass CoreWebView2ContextMenuInfo
+    runtimeclass CoreWebView2ContextMenuTarget
     {
-        Point Location { get; }
-        CoreWebView2ContextKind ContextKind { get; }
-        Boolean IsMainFrame { get; }
-        Boolean HasSelection { get; }
+        CoreWebView2ContextMenuTargetKind Kind { get; }
         Boolean IsEditable { get; }
-        Boolean ContainsLink { get; }
+        Boolean IsRequestedForMainFrame { get; }
         String PageUri { get; }
         String FrameUri { get; }
-        String SourceUri { get; }
+        Boolean HasLink { get; }
         String LinkUri { get; }
         String LinkText { get; }
+        Boolean HasSourceUri { get; }
+        String SourceUri { get; }
+        Boolean HasSelection { get; }
         String SelectionText { get; }
     };
     
@@ -643,8 +674,8 @@ namespace Microsoft.Web.WebView2.Core
         Int32 CommandId { get; }
         Stream Icon { get; }
         CoreWebView2ContextMenuItemKind Kind { get; }
-        Boolean IsEnabled { get; }
-        Boolean IsChecked { get; }
+        Boolean IsEnabled { get; set; }
+        Boolean IsChecked { get; set; }
         IVector<CoreWebView2ContextMenuItem> Children { get; }
 
         event Windows.Foundation.TypedEventHandler<CoreWebView2ContextMenuItem, Object> CustomItemSelected;
