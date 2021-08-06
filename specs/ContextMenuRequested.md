@@ -48,9 +48,9 @@ The developer can add or remove entries to the default WebView context menu. For
                     for(UINT32 i = 0; i < itemsCount; i++) 
                     {
                         CHECK_FAILURE(items->GetValueAtIndex(i, &current));
-                        COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR desc;
-                        CHECK_FAILURE(current->get_Descriptor(&desc));
-                        if (desc == COREWEBVIEW2_CONTEXT_MENU_ITEM_DESCRIPTOR_SAVE_IMAGE_AS)
+                        wil::unique_cotaskmem_string name;
+                        CHECK_FAILURE(current->get_Name(&name));
+                        if (wcsmp(name.get(), L"saveImageAs") == 0)
                         {
                             CHECK_FAILURE(items->RemoveValueAtIndex(i));
                             break;
@@ -235,7 +235,7 @@ The developer can use the data provided in the Event arguments to display a cust
         {
             for (int index = 0; index < menuList.Count; index++)
             {
-                if (menuList[index].Descriptor == CoreWebView2ContextMenuItemDescriptor.SaveImageAs)
+                if (menuList[index].Name == "saveImageAs")
                 {
                     menuList.RemoveAt(index);
                     break;
@@ -383,7 +383,10 @@ The developer can use the data provided in the Event arguments to display a cust
     {
         
         /// Gets the unlocalized name for the `ContextMenuItem`. Use this to distinguish
-        /// between context menu item types.
+        /// between context menu item types. This will be the English label of the menu item in 
+        /// lower camel case. For example, the "Save as" menu item will be "saveAs", extension menu items
+        /// will be the name of the specific extension label so "Download image" will be "downloadImage".
+        /// Custom menu items will be "custom" and spellcheck items will be "spellCheck".
         [propget] HRESULT Name([out, retval] LPWSTR* value);
         
         /// Gets the localized label for the `ContextMenuItem`. Will contain an ampersand for characters to be used
@@ -480,7 +483,9 @@ The developer can use the data provided in the Event arguments to display a cust
         /// Create a `ContextMenuItem` object to insert into the WebView context menu.
         /// CoreWebView2 will rewind the stream before decoding. Command Id for new 
         /// custom menu items will be unique for the lifespan of the ContextMenuRequested
-        /// event. They will be a unique value between 52600 and 52650.
+        /// event. There is a limit of 1000 context menu items that can be created per Event instance. The specific 
+        /// command ID values may change from build to build so do not rely on the actual value, but instead use
+        /// the value given from the object `get_CommandId` instead.
         /// The returned `ContextMenuItem` object's `IsEnabled` property will default to `TRUE`
         /// and `IsChecked` property will default to `FALSE`.
         HRESULT CreateContextMenuItem(
