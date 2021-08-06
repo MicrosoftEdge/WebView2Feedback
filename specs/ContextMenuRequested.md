@@ -651,8 +651,9 @@ namespace Microsoft.Web.WebView2.Core
         Boolean IsRequestedForMainFrame { get; }
         String PageUri { get; }
         String FrameUri { get; }
-        Boolean HasLink { get; }
+        Boolean HasLinkUri { get; }
         String LinkUri { get; }
+        Boolean HasLinkText { get; }
         String LinkText { get; }
         Boolean HasSourceUri { get; }
         String SourceUri { get; }
