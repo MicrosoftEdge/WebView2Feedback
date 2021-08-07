@@ -5,29 +5,24 @@
 Allow end developer to get the child process list from `GetChildProcessesInfo` and iterate through it to `GetChildProcessIdAtIndex` and `GetChildProcessTypeAtIndex` of each child process. Also provide `Count` to get the number of child processes. 
 
 # Examples
-
 The following code snippet demonstrates how the Media related API can be used:
 
 ## Win32 C++
-
 ```cpp
 // sample to be added
 ```
 
 ## .NET and WinRT
-
 ```c#
 // sample to be added
 ```
 
 # API Notes
-
 See [API Details](#api-details) section below for API reference.
 
 # API Details
 
 ## Win32 C++
-
 ```IDL
 interface ICoreWebView2StagingChildProcessList;
 interface ICoreWebView2StagingGetChildProcessesInfoCompletedHandler;
@@ -89,7 +84,6 @@ interface ICoreWebView2StagingGetChildProcessesInfoCompletedHandler : IUnknown {
 ```
 
 ## .NET and WinRT
-
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
