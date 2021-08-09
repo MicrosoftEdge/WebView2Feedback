@@ -11,29 +11,52 @@ The following code snippet demonstrates how the Media related API can be used:
 ## Win32 C++
 
 ```cpp
-bool ViewComponent::HandleWindowMessage(
-    HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT* result)
+AudioComponent::AudioComponent(AppWindow* appWindow)
+    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
-    if (message == WM_COMMAND)
-    {
-        case IDM_MUTE:
-            m_webView->Mute();
-            return true;
-        case IDM_UNMUTE:
-            m_webView->Unmute();
-            return true;
-        case IDM_IS_MUTED:
-            BOOL isMuted;
-            m_webView->get_IsMuted(&isMuted);
-            MessageBox(nullptr, isMuted ? L"Yes" : L"No", L"Is Muted", MB_OK);
-            return true;
-        case IDM_IS_CURRENTLY_AUDIBLE:
-            BOOL isAudible;
-            m_webView->get_IsCurrentlyAudible(&isAudible);
-            MessageBox(nullptr, isAudible ? L"Yes" : L"No", L"Is Audible", MB_OK);
-            return true;
-    }
+    //! [IsCurrentlyAudibleChanged]
+    // Register a handler for the IsCurrentlyAudibleChanged event.
+    // This handler just announces the audible state on the window's title bar.
+    CHECK_FAILURE(m_webView->add_IsCurrentlyAudibleChanged(
+        Callback<ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler>(
+            [this](ICoreWebView2Staging2* sender, IUnknown* args) -> HRESULT {
+                BOOL isAudible;
+                CHECK_FAILURE(sender->get_IsCurrentlyAudible(&isAudible));
+
+                wil::unique_cotaskmem_string title;
+                m_webView->get_DocumentTitle(&title);
+                std::wstring result = (isAudible ? L"🔊 " : L"") + std::wstring(title.get());
+
+                SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
+                return S_OK;
+            })
+            .Get(),
+        &m_isCurrentlyAudibleChangedToken));
+    //! [IsCurrentlyAudibleChanged]
 }
+
+//! [Mute]
+// Mute the current window and show a mute icon on the title bar
+ void AudioComponent::Mute()
+ {
+     m_webView->Mute();
+     wil::unique_cotaskmem_string title;
+     m_webView->get_DocumentTitle(&title);
+     std::wstring result = std::wstring(title.get()) + L" 🔇";
+     SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
+ }
+//! [Mute]
+
+//! [Unmute]
+// Unmute the current window and hide the mute icon on the title bar
+ void AudioComponent::Unmute()
+ {
+     m_webView->Unmute();
+     wil::unique_cotaskmem_string title;
+     m_webView->get_DocumentTitle(&title);
+     SetWindowText(m_appWindow->GetMainWindow(), title.get());
+ }
+ //! [Unmute]
 ```
 
 ## .NET and WinRT
