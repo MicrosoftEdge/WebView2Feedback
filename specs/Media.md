@@ -134,13 +134,18 @@ interface ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    public partial class CoreWebView2
+
+    runtimeclass CoreWebView2
     {
-        // There are other API in this interface that we are not showing 
-        public void Mute();
-        public void UnMute();
-        public bool IsMuted { get; };
-        public bool IsCurrentlyAudible { get; };
+        // ...
+        Boolean IsMuted { get; };
+        Boolean IsCurrentlyAudible { get; };
+        void Mute();
+        void Unmute();
+
+        Windows.Foundation.IAsyncOperation<CoreWebView2ChildProcessList> GetChildProcessesInfoAsync();
+
+        // ...
     }
 }
 ```
