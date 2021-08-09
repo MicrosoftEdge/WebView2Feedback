@@ -138,7 +138,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // There are other API in this interface that we are not showing 
         public void Mute();
-        public void UnMute();
+        public void Unmute();
         public bool IsMuted { get; };
         public bool IsCurrentlyAudible { get; };
     }
