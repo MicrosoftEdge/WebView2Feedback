@@ -105,7 +105,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
       [in] EventRegistrationToken token);
   
   /// Indicates whether any audio output from this CoreWebView2 is audible.
-  /// CoreWebView2 can be audible when muted, IsCurrentlyAudible is used to indicate
+  /// IsCurrentlyAudible is used to indicate if there is audio or media currently playing and can be true even if IsMuted is true or the volume is turned off.
   /// if there are audio/media currently playing.
   [propget] HRESULT IsCurrentlyAudible([out, retval] BOOL* isAudible);
 }
