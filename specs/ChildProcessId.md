@@ -113,6 +113,9 @@ namespace Microsoft.Web.WebView2.Core
     /// Provides a set of properties that are used to manage a CoreWebView2ChildProcess.
     runtimeclass CoreWebView2ChildProcess
     {
+        /// Child process count.
+        UInt Count { get; };
+
         /// Child process id.
         UInt32 ProcessId { get; };
 
