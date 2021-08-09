@@ -88,39 +88,42 @@ interface ICoreWebView2StagingGetChildProcessesInfoCompletedHandler : IUnknown {
 namespace Microsoft.Web.WebView2.Core
 {
     // ...
+    runtimeclass CoreWebView2ChildProcessList;
 
     /// Kind of process type used in the CoreWebView2ChildProcess.
     enum CoreWebView2ProcessKind
     {
-        Browser,
-        Renderer,
-        Utility,
-        SandBoxHelper,
-        GPU,
-        PPAPIPlugin,
-        PPAPIBroker,
-        Unknown
+        BrowserProcess = 0,
+        RendererProcess = 1,
+        RenderProcessUnresponsive = 2,
+        FrameRenderProcess = 3,
+        UtilityProcess = 4,
+        SandboxHelperProcess = 5,
+        GpuProcess = 6,
+        PpapiPluginProcess = 7,
+        PpapiBrokerProcess = 8,
+        UnknownProcess = 9,
     };
 
     runtimeclass CoreWebView2
     {
         /// Gets a list of child process.
-        Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ChildProcess>> GetChildProcessesInfoAsync();
+        Windows.Foundation.IAsyncOperation<CoreWebView2ChildProcessList> GetChildProcessesInfoAsync();
 
         // ...
     }
 
     /// Provides a set of properties that are used to manage a CoreWebView2ChildProcess.
-    runtimeclass CoreWebView2ChildProcess
+    runtimeclass CoreWebView2ChildProcessList
     {
         /// Child process count.
-        UInt Count { get; };
+        UInt32 Count { get; };
 
         /// Child process id.
-        UInt32 ProcessId { get; };
+        UInt32 GetChildProcessIdAtIndex(UInt32 index);
 
         /// Child process type.
-        CoreWebView2ProcessKind ProcessType { get; };
+        CoreWebView2ProcessKind GetChildProcessTypeAtIndex(UInt32 index);
     }
 
     // ...
