@@ -187,8 +187,6 @@ namespace Microsoft.Web.WebView2.Core
         void Mute();
         void Unmute();
 
-        Windows.Foundation.IAsyncOperation<CoreWebView2ChildProcessList> GetChildProcessesInfoAsync();
-
         // ...
     }
 }
