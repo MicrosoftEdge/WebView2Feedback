@@ -23,9 +23,13 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
                 BOOL isAudible;
                 CHECK_FAILURE(sender->get_IsCurrentlyAudible(&isAudible));
 
+                BOOL isMuted;
+                CHECK_FAILURE(sender->get_IsMuted(&isMuted));
+
                 wil::unique_cotaskmem_string title;
                 m_webView->get_DocumentTitle(&title);
-                std::wstring result = (isAudible ? L"🔊 " : L"") + std::wstring(title.get());
+                std::wstring result = (isAudible ? L"🔊 " : L"") + std::wstring(title.get()) +
+                                      (isMuted ? L" 🔇" : L"");
 
                 SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
                 return S_OK;
@@ -33,6 +37,30 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
             .Get(),
         &m_isCurrentlyAudibleChangedToken));
     //! [IsCurrentlyAudibleChanged]
+
+    //! [IsMutedChanged]
+    // Register a handler for the IsMutedChanged event.
+    // This handler just announces the mute state on the window's title bar.
+    CHECK_FAILURE(m_webView->add_IsMutedChanged(
+        Callback<ICoreWebView2StagingIsMutedChangedEventHandler>(
+            [this](ICoreWebView2Staging2* sender, IUnknown* args) -> HRESULT {
+                BOOL isAudible;
+                CHECK_FAILURE(sender->get_IsCurrentlyAudible(&isAudible));
+                
+                BOOL isMuted;
+                CHECK_FAILURE(sender->get_IsMuted(&isMuted));
+
+                wil::unique_cotaskmem_string title;
+                m_webView->get_DocumentTitle(&title);
+                std::wstring result = (isAudible ? L"🔊 " : L"") + std::wstring(title.get()) + 
+                    (isMuted ? L" 🔇" : L"");
+
+                SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
+                return S_OK;
+            })
+            .Get(),
+        &m_isMutedChangedToken));
+    //! [IsMutedChanged]
 }
 
 //! [Mute]
@@ -40,10 +68,6 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
  void AudioComponent::Mute()
  {
      m_webView->Mute();
-     wil::unique_cotaskmem_string title;
-     m_webView->get_DocumentTitle(&title);
-     std::wstring result = std::wstring(title.get()) + L" 🔇";
-     SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
  }
 //! [Mute]
 
@@ -52,9 +76,6 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
  void AudioComponent::Unmute()
  {
      m_webView->Unmute();
-     wil::unique_cotaskmem_string title;
-     m_webView->get_DocumentTitle(&title);
-     SetWindowText(m_appWindow->GetMainWindow(), title.get());
  }
  //! [Unmute]
 ```
