@@ -83,6 +83,22 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
 ## .NET and WinRT
 
 ```c#
+    void WebView_IsMutedChanged(object sender, object e)
+    {
+        bool is_muted = webView.CoreWebView2.IsMuted;
+        string currentDocumentTitle = webView.CoreWebView2.DocumentTitle;
+        _isMuted = is_muted;
+        this.Title = (_isAudible ? "🔊 " : "") + currentDocumentTitle + (is_muted ? " 🔇" : "");
+
+    }
+
+    void WebView_IsCurrentlyAudibleChanged(object sender, object e)
+    {
+        bool is_currently_audible = webView.CoreWebView2.IsCurrentlyAudible;
+        string currentDocumentTitle = webView.CoreWebView2.DocumentTitle;
+        _isAudible = is_currently_audible;
+        this.Title = (is_currently_audible ? "🔊 " : "") + currentDocumentTitle + (_isMuted ? " 🔇" : "");
+    }
     void MuteCmdExecuted(object target, ExecutedRoutedEventArgs e)
     {
         webView.CoreWebView2.Mute();
@@ -91,18 +107,6 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
     void UnmuteCmdExecuted(object target, ExecutedRoutedEventArgs e)
     {
         webView.CoreWebView2.Unmute();
-    }
-
-    void IsMutedCmdExecuted(object target, ExecutedRoutedEventArgs e)
-    {
-        bool is_muted = webView.CoreWebView2.IsMuted;
-        MessageBox.Show(this, is_muted? "Is muted": "Is Not muted", "Is Muted or Not");
-    }
-
-    void IsCurrentlyAudibleCmdExecuted(object target, ExecutedRoutedEventArgs e)
-    {
-        bool is_currently_audible = webView.CoreWebView2.IsCurrentlyAudible;
-        MessageBox.Show(this, is_currently_audible ? "Is audible" : "Is not audible", "Is Currently Audible or Not");
     }
 ```
 
