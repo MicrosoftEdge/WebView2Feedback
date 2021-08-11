@@ -14,53 +14,48 @@ The following code snippet demonstrates how the Media related API can be used:
 AudioComponent::AudioComponent(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
-    //! [IsCurrentlyAudibleChanged]
+    //! [IsAudioPlayingChanged]
     // Register a handler for the IsCurrentlyAudibleChanged event.
     // This handler just announces the audible state on the window's title bar.
-    CHECK_FAILURE(m_webView->add_IsCurrentlyAudibleChanged(
-        Callback<ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler>(
+    CHECK_FAILURE(m_webViewStaging2->add_IsAudioPlayingChanged(
+        Callback<ICoreWebView2StagingIsAudioPlayingChangedEventHandler>(
             [this](ICoreWebView2Staging2* sender, IUnknown* args) -> HRESULT {
-                BOOL isAudible;
-                CHECK_FAILURE(sender->get_IsCurrentlyAudible(&isAudible));
+                BOOL isAudioPlaying;
+                CHECK_FAILURE(sender->get_IsAudioPlaying(&isAudioPlaying));
 
                 BOOL isMuted;
                 CHECK_FAILURE(sender->get_IsMuted(&isMuted));
 
                 wil::unique_cotaskmem_string title;
                 m_webView->get_DocumentTitle(&title);
-                std::wstring result = (isAudible ? L"🔊 " : L"") + std::wstring(title.get()) +
-                                      (isMuted ? L" 🔇" : L"");
+                std::wstring result = L"";
+
+                //! [IsAudioPlaying]
+                if (isAudioPlaying)
+                {
+                    //! [IsMuted]
+                    if (isMuted)
+                    {
+                        result = L"🔇 " + std::wstring(title.get());
+                    }
+                    else
+                    {
+                        result = L"🔊 " + std::wstring(title.get());
+                    }
+                    //! [IsMuted]
+                }
+                else
+                {
+                    result = std::wstring(title.get());
+                }
+                //! [IsAudioPlaying]
 
                 SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
                 return S_OK;
             })
             .Get(),
-        &m_isCurrentlyAudibleChangedToken));
-    //! [IsCurrentlyAudibleChanged]
-
-    //! [IsMutedChanged]
-    // Register a handler for the IsMutedChanged event.
-    // This handler just announces the mute state on the window's title bar.
-    CHECK_FAILURE(m_webView->add_IsMutedChanged(
-        Callback<ICoreWebView2StagingIsMutedChangedEventHandler>(
-            [this](ICoreWebView2Staging2* sender, IUnknown* args) -> HRESULT {
-                BOOL isAudible;
-                CHECK_FAILURE(sender->get_IsCurrentlyAudible(&isAudible));
-                
-                BOOL isMuted;
-                CHECK_FAILURE(sender->get_IsMuted(&isMuted));
-
-                wil::unique_cotaskmem_string title;
-                m_webView->get_DocumentTitle(&title);
-                std::wstring result = (isAudible ? L"🔊 " : L"") + std::wstring(title.get()) + 
-                    (isMuted ? L" 🔇" : L"");
-
-                SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
-                return S_OK;
-            })
-            .Get(),
-        &m_isMutedChangedToken));
-    //! [IsMutedChanged]
+        &m_isAudioPlayingChangedToken));
+    //! [IsAudioPlayingChanged]
 }
 
 //! [Mute]
@@ -83,22 +78,28 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
 ## .NET and WinRT
 
 ```c#
-    void WebView_IsMutedChanged(object sender, object e)
+    void WebView_IsAudioPlayingChanged(object sender, object e)
     {
+        bool is_audio_playing = webView.CoreWebView2.IsAudioPlaying;
         bool is_muted = webView.CoreWebView2.IsMuted;
         string currentDocumentTitle = webView.CoreWebView2.DocumentTitle;
-        _isMuted = is_muted;
-        this.Title = (_isAudible ? "🔊 " : "") + currentDocumentTitle + (is_muted ? " 🔇" : "");
-
+        if (is_audio_playing)
+        {
+            if (is_muted)
+            {
+                this.Title = "🔇 " + currentDocumentTitle;
+            }
+            else
+            {
+                this.Title = "🔊 " + currentDocumentTitle;
+            }
+        }
+        else
+        {
+            this.Title = currentDocumentTitle;
+        }
     }
-
-    void WebView_IsCurrentlyAudibleChanged(object sender, object e)
-    {
-        bool is_currently_audible = webView.CoreWebView2.IsCurrentlyAudible;
-        string currentDocumentTitle = webView.CoreWebView2.DocumentTitle;
-        _isAudible = is_currently_audible;
-        this.Title = (is_currently_audible ? "🔊 " : "") + currentDocumentTitle + (_isMuted ? " 🔇" : "");
-    }
+    
     void MuteCmdExecuted(object target, ExecutedRoutedEventArgs e)
     {
         webView.CoreWebView2.Mute();
@@ -120,13 +121,15 @@ See [API Details](#api-details) section below for API reference.
 
 ```IDL
 interface ICoreWebView2StagingIsMutedChangedEventHandler;
-interface ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler;
+interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler;
 
 [uuid(76eceacb-0462-4d94-ac83-423a6793775e), object, pointer_default(unique)]
 interface ICoreWebView2_2 : ICoreWebView2 {
   /// Adds an event handler for the `IsMutedChanged` event.
   /// `IsMutedChanged` runs when the mute state changes. The event may run 
   /// when `Mute` and `Unmute` are called.
+  ///
+  /// \snippet AudioComponent.cpp IsMutedChanged
   HRESULT add_IsMutedChanged(
       [in] ICoreWebView2StagingIsMutedChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
@@ -136,26 +139,33 @@ interface ICoreWebView2_2 : ICoreWebView2 {
       [in] EventRegistrationToken token);
 
   /// Mutes all audio output from this CoreWebView2.
+  ///
+  /// \snippet AudioComponent.cpp Mute
   HRESULT Mute();
+
   /// Unmutes all audio output from this CoreWebView2.
+  ///
+  /// \snippet AudioComponent.cpp Unmute
   HRESULT Unmute();
-  /// Indicates whether all audio output from this CoreWebView2 is muted or not.
-  [propget] HRESULT IsMuted([out, retval] BOOL* isMuted);
   
-  /// Adds an event handler for the `IsCurrentlyAudibleChanged` event.
-  /// `IsCurrentlyAudibleChanged` runs when the audible state changes.
-  HRESULT add_IsCurrentlyAudibleChanged(
-      [in] ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler* eventHandler,
+  /// Adds an event handler for the `IsAudioPlayingChanged` event.
+  /// `IsAudioPlayingChanged` runs when the audible state changes.
+  ///
+  /// \snippet AudioComponent.cpp IsAudioPlayingChanged
+  HRESULT add_IsAudioPlayingChanged(
+      [in] ICoreWebView2StagingIsAudioPlayingChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Remove an event handler previously added with `add_IsCurrentlyAudibleChanged`.
-  HRESULT remove_IsCurrentlyAudibleChanged(
+  /// Remove an event handler previously added with `add_IsAudioPlayingChanged`.
+  HRESULT remove_IsAudioPlayingChanged(
       [in] EventRegistrationToken token);
   
   /// Indicates whether any audio output from this CoreWebView2 is audible.
-  /// IsCurrentlyAudible is used to indicate if there is audio or media currently playing and can be true even if IsMuted is true or the volume is turned off.
-  /// if there are audio/media currently playing.
-  [propget] HRESULT IsCurrentlyAudible([out, retval] BOOL* isAudible);
+  /// CoreWebView2 can be audible when muted, IsAudioPlaying is used to indicate
+  /// if there are audio currently playing.
+  ///
+  /// \snippet AudioComponent.cpp IsAudioPlaying
+  [propget] HRESULT IsAudioPlaying([out, retval] BOOL* isAudioPlaying);
 }
 
 /// Implements the interface to receive `IsMutedChanged` events.  Use the
@@ -167,10 +177,10 @@ interface ICoreWebView2StagingIsMutedChangedEventHandler : IUnknown {
   HRESULT Invoke([in] ICoreWebView2Staging2* sender, [in] IUnknown* args);
 }
 
-/// Implements the interface to receive `IsCurrentlyAudibleChanged` events.  Use the
-/// IsCurrentlyAudible method to get the audible state.
+/// Implements the interface to receive `IsAudioPlayingChanged` events.  Use the
+/// IsAudioPlaying method to get the audible state.
 [uuid(5DEF109A-2F4B-49FA-B7F6-11C39E513328), object, pointer_default(unique)]
-interface ICoreWebView2StagingIsCurrentlyAudibleChangedEventHandler : IUnknown {
+interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
   /// and the `args` parameter is set to `null`.
   HRESULT Invoke([in] ICoreWebView2Staging2* sender, [in] IUnknown* args);
@@ -186,10 +196,12 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2
     {
         // ...
-        Boolean IsMuted { get; };
-        Boolean IsCurrentlyAudible { get; };
-        void Mute();
-        void Unmute();
+            Boolean IsMuted { get; };
+            Boolean IsAudioPlaying { get; };
+
+            event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2WebAuthenticationRequestedEventArgs> WebAuthenticationRequested;event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> IsMutedChanged;event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> IsAudioPlayingChanged;
+            void Mute();
+            void Unmute();
 
         // ...
     }
