@@ -17,7 +17,7 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
     //! [IsAudioPlayingChanged]
     // Register a handler for the IsCurrentlyAudibleChanged event.
     // This handler just announces the audible state on the window's title bar.
-    CHECK_FAILURE(m_webViewStaging2->add_IsAudioPlayingChanged(
+    CHECK_FAILURE(m_webView->add_IsAudioPlayingChanged(
         Callback<ICoreWebView2StagingIsAudioPlayingChangedEventHandler>(
             [this](ICoreWebView2Staging2* sender, IUnknown* args) -> HRESULT {
                 BOOL isAudioPlaying;
@@ -120,23 +120,7 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
 
 ```IDL
-interface ICoreWebView2StagingIsMutedChangedEventHandler;
 interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler;
-
-[uuid(76eceacb-0462-4d94-ac83-423a6793775e), object, pointer_default(unique)]
-interface ICoreWebView2_2 : ICoreWebView2 {
-  /// Adds an event handler for the `IsMutedChanged` event.
-  /// `IsMutedChanged` runs when the mute state changes. The event may run 
-  /// when `Mute` and `Unmute` are called.
-  ///
-  /// \snippet AudioComponent.cpp IsMutedChanged
-  HRESULT add_IsMutedChanged(
-      [in] ICoreWebView2StagingIsMutedChangedEventHandler* eventHandler,
-      [out] EventRegistrationToken* token);
-
-  /// Remove an event handler previously added with `add_IsMutedChanged`.
-  HRESULT remove_IsMutedChanged(
-      [in] EventRegistrationToken token);
 
   /// Mutes all audio output from this CoreWebView2.
   ///
@@ -168,15 +152,6 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   [propget] HRESULT IsAudioPlaying([out, retval] BOOL* isAudioPlaying);
 }
 
-/// Implements the interface to receive `IsMutedChanged` events.  Use the
-/// IsMuted method to get the mute state.
-[uuid(B357DC3B-D4C3-4FDE-BF45-C11ECE606B98), object, pointer_default(unique)]
-interface ICoreWebView2StagingIsMutedChangedEventHandler : IUnknown {
-  /// Provides the event args for the corresponding event.  No event args exist
-  /// and the `args` parameter is set to `null`.
-  HRESULT Invoke([in] ICoreWebView2Staging2* sender, [in] IUnknown* args);
-}
-
 /// Implements the interface to receive `IsAudioPlayingChanged` events.  Use the
 /// IsAudioPlaying method to get the audible state.
 [uuid(5DEF109A-2F4B-49FA-B7F6-11C39E513328), object, pointer_default(unique)]
@@ -199,7 +174,7 @@ namespace Microsoft.Web.WebView2.Core
             Boolean IsMuted { get; };
             Boolean IsAudioPlaying { get; };
 
-            event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2WebAuthenticationRequestedEventArgs> WebAuthenticationRequested;event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> IsMutedChanged;event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> IsAudioPlayingChanged;
+            event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> IsAudioPlayingChanged;
             void Mute();
             void Unmute();
 
