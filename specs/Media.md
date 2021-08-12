@@ -149,7 +149,7 @@ interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler;
   /// if there are audio currently playing.
   ///
   /// \snippet AudioComponent.cpp IsAudioPlaying
-  [propget] HRESULT IsAudioPlaying([out, retval] BOOL* isAudioPlaying);
+  [propget] HRESULT IsAudioPlaying([out, retval] BOOL* value);
 }
 
 /// Implements the interface to receive `IsAudioPlayingChanged` events.  Use the
