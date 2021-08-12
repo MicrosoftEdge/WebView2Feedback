@@ -81,11 +81,11 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
     void WebView_IsAudioPlayingChanged(object sender, object e)
     {
         bool isAudioPlaying = webView.CoreWebView2.IsAudioPlaying;
-        bool is_muted = webView.CoreWebView2.IsMuted;
+        bool isMuted = webView.CoreWebView2.IsMuted;
         string currentDocumentTitle = webView.CoreWebView2.DocumentTitle;
         if (is_audio_playing)
         {
-            if (is_muted)
+            if (isMuted)
             {
                 this.Title = "🔇 " + currentDocumentTitle;
             }
@@ -122,6 +122,8 @@ See [API Details](#api-details) section below for API reference.
 ```IDL
 interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler;
 
+[uuid(71c906d9-4a4d-4dbe-aa1b-db64f4de594e), object, pointer_default(unique)]
+interface ICoreWebView2_2 : ICoreWebView2 {
   /// Mutes all audio output from this CoreWebView2.
   ///
   /// \snippet AudioComponent.cpp Mute
@@ -131,6 +133,11 @@ interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler;
   ///
   /// \snippet AudioComponent.cpp Unmute
   HRESULT Unmute();
+
+  /// Indicates whether all audio output from this CoreWebView2 is muted or not.
+  ///
+  /// \snippet AudioComponent_Staging.cpp IsMuted
+  [propget] HRESULT IsMuted([out, retval] BOOL* value);
   
   /// Adds an event handler for the `IsAudioPlayingChanged` event.
   /// `IsAudioPlayingChanged` runs when the audible state changes.
