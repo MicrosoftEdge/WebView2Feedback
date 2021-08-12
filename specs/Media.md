@@ -80,7 +80,7 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
 ```c#
     void WebView_IsAudioPlayingChanged(object sender, object e)
     {
-        bool is_audio_playing = webView.CoreWebView2.IsAudioPlaying;
+        bool isAudioPlaying = webView.CoreWebView2.IsAudioPlaying;
         bool is_muted = webView.CoreWebView2.IsMuted;
         string currentDocumentTitle = webView.CoreWebView2.DocumentTitle;
         if (is_audio_playing)
