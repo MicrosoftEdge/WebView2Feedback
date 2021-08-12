@@ -29,7 +29,7 @@ interface ICoreWebView2StagingGetChildProcessesInfoCompletedHandler;
 
 [v1_enum]
 typedef enum COREWEBVIEW2_PROCESS_KIND {
-  /// Indicates the browser process kind. (to be removed if rename the enum to child process)
+  /// Indicates the browser process kind.
   COREWEBVIEW2_PROCESS_KIND_BROWSER_PROCESS,
 
   /// Indicates the renderer process kind.
@@ -60,7 +60,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
 }
 
 /// A list containing child process id and corresponding child process type.
-/// \snippet ScenarioChildProcess.cpp GetChildProcessesInfo
+/// \snippet ProcessComponent.cpp GetChildProcessesInfo
 [uuid(5356F3B3-4859-4763-9C95-837CDEEE8912), object, pointer_default(unique)]
 interface ICoreWebView2StagingChildProcessList : IUnknown {
   /// The number of child process contained in the ICoreWebView2StagingChildProcessList.
@@ -95,14 +95,12 @@ namespace Microsoft.Web.WebView2.Core
     {
         BrowserProcess = 0,
         RendererProcess = 1,
-        RenderProcessUnresponsive = 2,
-        FrameRenderProcess = 3,
-        UtilityProcess = 4,
-        SandboxHelperProcess = 5,
-        GpuProcess = 6,
-        PpapiPluginProcess = 7,
-        PpapiBrokerProcess = 8,
-        UnknownProcess = 9,
+        UtilityProcess = 2,
+        SandboxHelperProcess = 3,
+        GpuProcess = 4,
+        PpapiPluginProcess = 5,
+        PpapiBrokerProcess = 6,
+        UnknownProcess = 7,
     };
 
     runtimeclass CoreWebView2
