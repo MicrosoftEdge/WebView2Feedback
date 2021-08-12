@@ -15,7 +15,7 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
     //! [IsAudioPlayingChanged]
-    // Register a handler for the IsCurrentlyAudibleChanged event.
+    // Register a handler for the IsAudioPlayingChanged event.
     // This handler just announces the audible state on the window's title bar.
     CHECK_FAILURE(m_webView->add_IsAudioPlayingChanged(
         Callback<ICoreWebView2StagingIsAudioPlayingChangedEventHandler>(
