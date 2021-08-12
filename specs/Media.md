@@ -11,20 +11,18 @@ The following code snippet demonstrates how the Media related API can be used:
 ## Win32 C++
 
 ```cpp
+//! [IsAudioPlayingChanged] [IsAudioPlaying] [IsMuted] [Mute] [Unmute]
 AudioComponent::AudioComponent(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
-    //! [IsAudioPlayingChanged]
     // Register a handler for the IsAudioPlayingChanged event.
     // This handler just announces the audible state on the window's title bar.
     CHECK_FAILURE(m_webView->add_IsAudioPlayingChanged(
         Callback<ICoreWebView2StagingIsAudioPlayingChangedEventHandler>(
             [this](ICoreWebView2Staging2* sender, IUnknown* args) -> HRESULT {
-                //! [IsAudioPlaying]
                 BOOL isAudioPlaying;
                 CHECK_FAILURE(sender->get_IsAudioPlaying(&isAudioPlaying));
 
-                //! [IsMuted]
                 BOOL isMuted;
                 CHECK_FAILURE(sender->get_IsMuted(&isMuted));
 
@@ -47,32 +45,26 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
                 {
                     result = std::wstring(title.get());
                 }
-                //! [IsMuted]
-                //! [IsAudioPlaying]
 
                 SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
                 return S_OK;
             })
             .Get(),
         &m_isAudioPlayingChangedToken));
-        //! [IsAudioPlayingChanged]
 }
 
-//! [Mute]
 // Mute the current window and show a mute icon on the title bar
  void AudioComponent::Mute()
  {
      m_webView->Mute();
  }
-//! [Mute]
 
-//! [Unmute]
 // Unmute the current window and hide the mute icon on the title bar
  void AudioComponent::Unmute()
  {
      m_webView->Unmute();
  }
- //! [Unmute]
+ //! [IsAudioPlayingChanged] [IsAudioPlaying] [IsMuted] [Mute] [Unmute]
 ```
 
 ## .NET and WinRT
