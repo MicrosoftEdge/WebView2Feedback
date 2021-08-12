@@ -20,9 +20,11 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
     CHECK_FAILURE(m_webView->add_IsAudioPlayingChanged(
         Callback<ICoreWebView2StagingIsAudioPlayingChangedEventHandler>(
             [this](ICoreWebView2Staging2* sender, IUnknown* args) -> HRESULT {
+                //! [IsAudioPlaying]
                 BOOL isAudioPlaying;
                 CHECK_FAILURE(sender->get_IsAudioPlaying(&isAudioPlaying));
 
+                //! [IsMuted]
                 BOOL isMuted;
                 CHECK_FAILURE(sender->get_IsMuted(&isMuted));
 
@@ -30,10 +32,8 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
                 m_webView->get_DocumentTitle(&title);
                 std::wstring result = L"";
 
-                //! [IsAudioPlaying]
                 if (isAudioPlaying)
                 {
-                    //! [IsMuted]
                     if (isMuted)
                     {
                         result = L"🔇 " + std::wstring(title.get());
@@ -42,12 +42,12 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
                     {
                         result = L"🔊 " + std::wstring(title.get());
                     }
-                    //! [IsMuted]
                 }
                 else
                 {
                     result = std::wstring(title.get());
                 }
+                //! [IsMuted]
                 //! [IsAudioPlaying]
 
                 SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
@@ -55,7 +55,7 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
             })
             .Get(),
         &m_isAudioPlayingChangedToken));
-    //! [IsAudioPlayingChanged]
+        //! [IsAudioPlayingChanged]
 }
 
 //! [Mute]
