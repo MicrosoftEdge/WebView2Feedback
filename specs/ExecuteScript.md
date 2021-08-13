@@ -14,153 +14,71 @@ Using ExecuteScript user can run script in the context of a calling frame and re
 If ExecuteScript is run during the navigation it should be called after ContentLoading event.
 
 # Examples
-## ExecuteScript
+## DOMContentLoaded event and ExecuteScript
+DOMContentLoaded is raised when the initial HTML document has been parsed.
 
 ## .NET, WinRT
 ```c#
-async void InjectScriptIFrameCmdExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    string iframesData = WebViewFrames_ToString();
-    string iframesInfo = "Enter iframe to run the JavaScript code in.\r\nAvailable iframes: " + iframesData;
-    var dialogIFrames = new TextInputDialog(
-        title: "Inject Script Into IFrame",
-        description: iframesInfo,
-        defaultInput: "0");
-    if (dialogIFrames.ShowDialog() == true)
+    webView.CoreWebView2.FrameCreated += (sender, args) =>
     {
-        int iframeNumber = -1;
-        try
+        args.Frame.DOMContentLoaded += (frameSender, DOMContentLoadedArgs) =>
         {
-            iframeNumber = Int32.Parse(dialogIFrames.Input.Text);
-        }
-        catch (FormatException)
-        {
-            Console.WriteLine("Can not convert " + dialogIFrames.Input.Text + " to int");
-        }
-        if (iframeNumber >= 0 && iframeNumber < _webViewFrames.Count)
-        {
-            var dialog = new TextInputDialog(
-                title: "Inject Script",
-                description: "Enter some JavaScript to be executed in the context of iframe " + dialogIFrames.Input.Text,
-                defaultInput: "window.getComputedStyle(document.body).backgroundColor");
-            if (dialog.ShowDialog() == true)
-            {
-                string scriptResult = await _webViewFrames[iframeNumber].ExecuteScriptAsync(dialog.Input.Text);
-                MessageBox.Show(this, scriptResult, "Script Result");
-            }
-        }
-    }
-}
+            args.Frame.ExecuteScriptAsync(
+                "let content = document.createElement(\"h2\");" +
+                "content.style.color = 'blue';" +
+                "content.textContent = \"The url of the iframe is \" + window.location.href.toString();" +
+                "document.body.appendChild(content);");
+        };
+    };
 ```
 
 ## Win32 C++
 ```cpp
-void SampleClass::ExecuteScriptInIframe()
-{
-    std::wstring iframesEnterCode =
-            L"Enter the JavaScript code to run in the iframe " + dialogIFrame.input;
-    TextInputDialog dialogScript(
-            m_appWindow->GetMainWindow(), L"Inject Script Into IFrame", L"Enter script code:",
-            iframesEnterCode.c_str(),
-            L"window.getComputedStyle(document.body).backgroundColor");
-    if (dialogScript.confirmed)
+    CHECK_FAILURE(m_appWindow->GetWebView()->QueryInterface(IID_PPV_ARGS(&m_webView2)));
+    wil::com_ptr<ICoreWebView2_4> webview2_4 = m_webView.try_query<ICoreWebView2_4>();
+    if (webview2_4)
     {
-        wil::com_ptr<ICoreWebView2Frame> frame;
-        CHECK_FAILURE(m_frames[index]->QueryInterface(IID_PPV_ARGS(&frame)));
-        frame->ExecuteScript(
-            dialogScript.input.c_str(),
-            Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-                [](HRESULT error, PCWSTR result) -> HRESULT {
-                    if (error != S_OK)
+        CHECK_FAILURE(webview2_4->add_FrameCreated(
+            Callback<ICoreWebView2FrameCreatedEventHandler>(
+                [](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args)
+                    -> HRESULT {
+                    wil::com_ptr<ICoreWebView2Frame> webviewFrame;
+                    CHECK_FAILURE(args->get_Frame(&webviewFrame));
+                    wil::com_ptr<ICoreWebView2ExperimentalFrame> frameExperimental =
+                        webviewFrame.try_query<ICoreWebView2ExperimentalFrame>();
+                    if (frameExperimental)
                     {
-                        ShowFailure(error, L"ExecuteScript failed");
+                        frameExperimental->add_DOMContentLoaded(
+                            Callback<
+                                ICoreWebView2ExperimentalFrameDOMContentLoadedEventHandler>(
+                                [](
+                                    ICoreWebView2Frame* frame,
+                                    ICoreWebView2DOMContentLoadedEventArgs* args) -> HRESULT {
+                                    wil::com_ptr<ICoreWebView2ExperimentalFrame> frameExperimental;
+                                    frame->QueryInterface(IID_PPV_ARGS(&frameExperimental));
+
+                                    frameExperimental->ExecuteScript(
+                                        LR"~(
+                                        let content = document.createElement("h2");
+                                        content.style.color = 'blue';
+                                        content.textContent = "The url of the iframe is " + window.location.href.toString();
+                                        document.body.appendChild(content);
+                                        )~",
+                                        Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
+                                            [](HRESULT error, PCWSTR result) -> HRESULT {
+                                                return S_OK;
+                                            })
+                                            .Get());
+                                    return S_OK;
+                                })
+                                .Get(),
+                            NULL);
                     }
-                    MessageBox(nullptr, result, L"ExecuteScript Result", MB_OK);
                     return S_OK;
                 })
-                .Get());
+                .Get(),
+            NULL));
     }
-}
-```
-
-## Navigation starting
-
-NavigationStarting is raised when the current frame is requesting permission to navigate to a different URI.
-
-## Win32 C++
-```cpp
-    frame->add_NavigationStarting(
-        Callback<ICoreWebView2FrameNavigationStartingEventHandler>(
-            [this](ICoreWebView2Frame* sender, ICoreWebView2NavigationStartingEventArgs* args)
-                -> HRESULT {
-                std::wstring message = NavigationStartingArgsToJsonString(
-                    m_webviewEventSource.get(), args, L"CoreWebView2Frame::NavigationStarting");
-                PostEventMessage(message);
-
-                return S_OK;
-            })
-            .Get(),
-        NULL);
-```
-
-## Content loading
-
-ContentLoading is raised before any content is loaded, including all scripts.
-
-## Win32 C++
-```cpp
-    frame->add_ContentLoading(
-        Callback<ICoreWebView2FrameContentLoadingEventHandler>(
-            [this](ICoreWebView2Frame* sender, ICoreWebView2ContentLoadingEventArgs* args)
-                -> HRESULT {
-                std::wstring message = ContentLoadingArgsToJsonString(
-                    m_webviewEventSource.get(), args, L"CoreWebView2Frame::ContentLoading");
-                PostEventMessage(message);
-
-                return S_OK;
-            })
-            .Get(),
-        NULL);
-```
-
-## Navigation completed
-
-NavigationCompleted is raised when the current frame has completely loaded (<c>body.onload</c> has been raised) or loading stopped with error.
-
-## Win32 C++
-```cpp
-    frame->add_NavigationCompleted(
-        Callback<ICoreWebView2FrameNavigationCompletedEventHandler>(
-            [this](ICoreWebView2Frame* sender, ICoreWebView2NavigationCompletedEventArgs* args)
-                -> HRESULT {
-                std::wstring message = NavigationCompletedArgsToJsonString(
-                    m_webviewEventSource.get(), args, L"CoreWebView2Frame::NavigationCompleted");
-                PostEventMessage(message);
-
-                return S_OK;
-            })
-            .Get(),
-        NULL);
-```
-
-## DOMContentLoaded event
-
-DOMContentLoaded is raised when the initial HTML document has been parsed.
-
-## Win32 C++
-```cpp
-    frame->add_DOMContentLoaded(
-        Callback<ICoreWebView2FrameDOMContentLoadedEventHandler>(
-            [this](ICoreWebView2Frame* sender, ICoreWebView2DOMContentLoadedEventArgs* args)
-                -> HRESULT {
-                std::wstring message = DOMContentLoadedArgsToJsonString(
-                    m_webviewEventSource.get(), args, L"CoreWebView2Frame::DOMContentLoaded");
-                PostEventMessage(message);
-
-                return S_OK;
-            })
-            .Get(),
-        NULL);
 ```
 
 # API Notes
