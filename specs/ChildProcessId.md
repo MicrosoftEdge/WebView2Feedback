@@ -5,7 +5,7 @@
 Allow end developer to get the child process list from `GetChildProcessesInfo` and iterate through it to `GetChildProcessIdAtIndex` and `GetChildProcessTypeAtIndex` of each child process. Also provide `Count` to get the number of child processes. 
 
 # Examples
-The following code snippet demonstrates how the Media related API can be used:
+The following code snippet demonstrates how the GetChildProcessesInfo API can be used:
 
 ## Win32 C++
 ```cpp
