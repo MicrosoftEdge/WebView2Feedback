@@ -43,15 +43,13 @@ The developer can provide the authentication credentials on behalf of the user w
                 ICoreWebView2* sender,
                 ICoreWebView2BasicAuthenticationRequestedEventArgs* args)
             {
-                wil::com_ptr<ICoreWebView2Environment> webviewEnvironment;
-                m_appWindow->GetWebViewEnvironment()->QueryInterface(
-                    IID_PPV_ARGS(&webviewEnvironment));
                 wil::com_ptr<ICoreWebView2Deferral> deferral;
                 wil::com_ptr<ICoreWebView2BasicAuthenticationRequestedEventArgs> web_auth_args = args;
                 args->GetDeferral(&deferral);
-                ShowCustomLoginUI().then([web_auth_args, deferral](LPCWSTR userName, LPCWSTR password) {
+                ShowCustomLoginUI().then([web_auth_args, deferral](LPCWSTR userName, LPCWSTR password)
+                {
                     wil::com_ptr<ICoreWebView2BasicAuthenticationResponse> basicAuthenticationResponse;
-                    args->get_Response(&basicAuthenticationResponse);
+                    web_auth_args->get_Response(&basicAuthenticationResponse);
                     basicAuthenticationResponse->put_UserName(userName);
                     basicAuthenticationResponse->put_Password(password);
                     deferral->Complete();
@@ -110,7 +108,8 @@ webview2->add_BasicAuthenticationRequested(
             ICoreWebView2BasicAuthenticationRequestedEventArgs* args)
         {
             args->get_Challenge(&challenge);
-            if (!ValidateChallenge(challenge.get())) { // Check the challenge string
+            if (!ValidateChallenge(challenge.get()))
+            { // Check the challenge string
                 args->put_Cancel(true);
             }
             return S_OK;
@@ -122,7 +121,8 @@ webview2->add_BasicAuthenticationRequested(
 ```c#
 webView.CoreWebView2.BasicAuthenticationRequested += delegate (object sender, CoreWebView2BasicAuthenticationRequestedEventArgs args)
 {
-    if (args.Challenge.Equals("Expected login credentials")) {
+    if (ValidateChallenge(args.Challenge))
+    {
         args.Cancel = true;
     }
 };
@@ -211,8 +211,8 @@ interface ICoreWebView2BasicAuthenticationRequestedEventArgs : IUnknown
   /// Set the Cancel property.
   [propput] HRESULT Cancel([in] BOOL cancel);
 
-  /// Returns an `ICoreWebView2Deferral` object.  Use this operation to
-  /// complete the event at a later time.
+  /// Returns an `ICoreWebView2Deferral` object. Use this deferral to
+  /// defer the decision to show the Basic Authentication dialog.
   HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 }
 
@@ -239,6 +239,10 @@ namespace Microsoft.Web.WebView2.Core
         /// Response to the authentication request with credentials. This object will be populated by the app
         /// if the host would like to provide authentication credentials.
         CoreWebView2BasicAuthenticationResponse Response { get; };
+
+        /// Returns an `ICoreWebView2Deferral` object. Use this deferral to
+        /// defer the decision to show the Basic Authentication dialog.
+        CoreWebView2Deferral Deferral { get; };
     }
 
     /// Represents a Basic HTTP authentication response that contains a user name
