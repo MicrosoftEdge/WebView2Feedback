@@ -9,7 +9,47 @@ The following code snippet demonstrates how the Media related API can be used:
 
 ## Win32 C++
 ```cpp
-// sample to be added
+  CHECK_FAILURE(m_webView->GetChildProcessesInfo(
+      Callback<ICoreWebView2StagingGetChildProcessesInfoCompletedHandler>(
+          [this](
+              HRESULT error_code, ICoreWebView2StagingChildProcessList* list) -> HRESULT {
+              CHECK_FAILURE(error_code);
+
+              std::wstring result;
+              UINT child_process_list_size;
+              CHECK_FAILURE(list->get_Count(&child_process_list_size));
+
+              if (child_process_list_size == 0)
+              {
+                  result += L"No child process found.";
+              }
+              else
+              {
+                  result += std::to_wstring(child_process_list_size) +
+                            L" child process(s) found";
+                  result += L"\n\n";
+                  for (UINT i = 0; i < child_process_list_size; ++i)
+                  {
+                      UINT32 childProcessId = 0;
+                      CHECK_FAILURE(list->GetChildProcessIdAtIndex(i, &childProcessId));
+
+                      WCHAR buffer[4096] = L"";
+                      StringCchPrintf(
+                          buffer, ARRAYSIZE(buffer), L"Process ID: %u\n", childProcessId);
+
+                      result += buffer;
+
+                      COREWEBVIEW2_PROCESS_KIND kind;
+                      CHECK_FAILURE(list->GetChildProcessTypeAtIndex(i, &kind));
+
+                      result += L"Process Kind: " + ProcessKindToString(kind);
+                      result += L"\n";
+                  }
+              }
+              MessageBox(nullptr, result.c_str(), L"GetChildProcessesInfo Result", MB_OK);
+              return S_OK;
+          })
+          .Get()));
 ```
 
 ## .NET and WinRT
