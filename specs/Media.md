@@ -75,7 +75,7 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
         bool isAudioPlaying = webView.CoreWebView2.IsAudioPlaying;
         bool isMuted = webView.CoreWebView2.IsMuted;
         string currentDocumentTitle = webView.CoreWebView2.DocumentTitle;
-        if (is_audio_playing)
+        if (isAudioPlaying)
         {
             if (isMuted)
             {
