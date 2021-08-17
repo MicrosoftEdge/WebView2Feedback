@@ -1,95 +1,16 @@
-<!-- 
-    Before submitting, delete all "<!-- TEMPLATE" marked comments in this file,
-    and the following quote banner:
--->
-> See comments in Markdown for how to use this spec template
-
-<!-- TEMPLATE
-    The purpose of this spec is to describe new APIs, in a way
-    that will transfer to docs.microsoft.com (https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
-
-    There are two audiences for the spec. The first are people that want to evaluate and
-    give feedback on the API, as part of the submission process.
-    So the second audience is everyone that reads there to learn how and why to use this API.
-    Some of this text also shows up in Visual Studio Intellisense.
-    When the PR is complete, the content within the 'Conceptual Pages' section of the review spec will be incorporated into the public documentation at
-    http://docs.microsoft.com (DMC).
-
-    For example, much of the examples and descriptions in the `RadialGradientBrush` API spec
-    (https://github.com/microsoft/microsoft-ui-xaml-specs/blob/master/active/RadialGradientBrush/RadialGradientBrush.md)
-    were carried over to the public API page on DMC
-    (https://docs.microsoft.com/windows/winui/api/microsoft.ui.xaml.media.radialgradientbrush?view=winui-2.5)
-
-    Once the API is on DMC, that becomes the official copy, and this spec becomes an archive.
-    For example if the description is updated, that only needs to happen on DMC and needn't
-    be duplicated here.
-
-    Examples:
-    * New set of classes and APIs (Custom Downloads):
-      https://github.com/MicrosoftEdge/WebView2Feedback/blob/master/specs/CustomDownload.md
-    * New member on an existing class (BackgroundColor):
-      https://github.com/MicrosoftEdge/WebView2Feedback/blob/master/specs/BackgroundColor.md
-
-    Style guide:
-    * Use second person; speak to the developer who will be learning/using this API.
-    (For example "you use this to..." rather than "the developer uses this to...")
-    * Use hard returns to keep the page width within ~100 columns.
-    (Otherwise it's more difficult to leave comments in a GitHub PR.)
-    * Talk about an API's behavior, not its implementation.
-    (Speak to the developer using this API, not to the team implementing it.)
-    * A picture is worth a thousand words.
-    * An example is worth a million words.
-    * Keep examples realistic but simple; don't add unrelated complications.
-    (An example that passes a stream needn't show the process of launching the File-Open dialog.)
-    * Use GitHub flavored Markdown: https://guides.github.com/features/mastering-markdown/
-
--->
-
-Title
+API spec for multiple profile support
 ===
 
 # Background
-<!-- TEMPLATE
-    Use this section to provide background context for the new API(s)
-    in this spec. Try to briefly provide enough information to be able to read
-    the rest of the document.
 
-    This section and the appendix are the only sections that likely
-    do not get copied into any official documentation, they're just an aid
-    to reading this spec. If you find useful information in the background
-    or appendix consider moving it to documentation.
-    
-    If you're modifying an existing API, included a link here to the
-    existing page(s) or spec documentation.
+Currently, all WebView2s can only use one fixed Edge profile in the browser process, which is
+normally the **Default** profile or the profile specified by the **--profile-directory** command
+line switch. Regarding this we have got a bunch of requests to support multiple profiles, so we're
+adding these new APIs.
 
-    For example, this section is a place to explain why you're adding this
-    API rather than modifying an existing API.
-
-    For example, this is a place to provide a brief explanation of some dependent
-    area, just explanation enough to understand this new API, rather than telling
-    the reader "go read 100 pages of background information posted at ...". 
--->
-
-# Conceptual pages (How To)
-
-_(This is conceptual documentation that will go to docs.microsoft.com "how to" page)_
-
-<!-- TEMPLATE
-    (Optional)
-
-    All APIs have reference docs, but some APIs or groups of APIs have an additional high level,
-    conceptual page (called a "how-to" page). This section can be used for that content.
-
-    For example, there are several navigation events each with their own reference doc, but then
-    there's also a concept doc on navigation
-    (https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events).
-
-    Sometimes it's difficult to decide if text belongs on a how-to page or an API page.
-    Because our API reference documentation is automatically turned into reference docs you can
-    lean towards including text in the API documentation below instead of in this conceptual
-    section.
--->
-
+With this you can have different WebView2s running with separate profiles under a given user data
+directory, which means separate cookies, user preference settings, and various data storage etc.,
+to enable you to build a more wonderful experience for your application.
 
 # Examples
 <!-- TEMPLATE
@@ -145,64 +66,81 @@ _(This is conceptual documentation that will go to docs.microsoft.com "how to" p
 -->
 
 # API Details
-<!-- TEMPLATE
-    The exact API, in IDL format for our COM API and
-    in MIDL3 format (https://docs.microsoft.com/en-us/uwp/midl-3/)
-    when possible.
 
-    Include every new or modified type but use // ... to remove any methods,
-    properties, or events that are unchanged.
+## Win32 C++
 
-    For the MIDL3 parts, after running build-apiwriter, open the generated
-    `Microsoft.Web.WebView2.Core.idl` and find the new or modified portions
-    generated from your modifications to the COM IDL.
+```IDL
+interface ICoreWebView2Staging6;
+interface ICoreWebView2StagingCreateControllerOptions;
+interface ICoreWebView2StagingEnvironment4;
+interface ICoreWebView2StagingProfile;
 
-    (GitHub's markdown syntax formatter does not (yet) know about MIDL3, so
-    use ```c# instead even when writing MIDL3.)
-
-    Example:
-    
-```
-[uuid(B625A89E-368F-43F5-BCBA-39AA6234CCF8), object, pointer_default(unique)]
-interface ICoreWebView2Settings4 : ICoreWebView2Settings3 {
-  /// The IsPinchZoomEnabled property enables or disables the ability of 
-  /// the end user to use a pinching motion on touch input enabled devices
-  /// to scale the web content in the WebView2. It defaults to TRUE.
-  /// When set to FALSE, the end user cannot pinch zoom.
-  /// This API only affects the Page Scale zoom and has no effect on the
-  /// existing browser zoom properties (IsZoomControlEnabled and ZoomFactor)
-  /// or other end user mechanisms for zooming.
-  ///
-  /// \snippet SettingsComponent.cpp TogglePinchZooomEnabled
-  [propget] HRESULT IsPinchZoomEnabled([out, retval] BOOL* enabled);
-  /// Set the IsPinchZoomEnabled property
-  [propput] HRESULT IsPinchZoomEnabled([in] BOOL enabled);
-}
-```
-
-```c# (but really MIDL3)
-namespace Microsoft.Web.WebView2.Core
+[uuid(57FD205C-39D5-4BA1-8E7B-3E53C323EA87), object, pointer_default(unique)]
+interface ICoreWebView2StagingEnvironment4 : IUnknown
 {
-    runtimeclass CoreWebView2Settings
-    {
-        // ...
+  /// Create a new ICoreWebView2StagingCreateControllerOptions to be passed as a parameter of
+  /// CreateCoreWebView2ControllerWithOptions and CreateCoreWebView2CompositionControllerWithOptions.
+  HRESULT CreateCoreWebView2CreateControllerOptions(
+      [in] LPCWSTR profileName,
+      [in] BOOL inPrivateModeEnabled,
+      [out, retval] ICoreWebView2StagingCreateControllerOptions** options);
 
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Settings5")]
-        {
-            Boolean IsPinchZoomEnabled { get; set; };
-        }
-    }
+  /// Create a new WebView with options.
+  HRESULT CreateCoreWebView2ControllerWithOptions(
+      [in] HWND parentWindow,
+      [in] ICoreWebView2StagingCreateControllerOptions* options,
+      [in] ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* handler);
+
+  /// Create a new WebView in visual hosting mode with options.
+  HRESULT CreateCoreWebView2CompositionControllerWithOptions(
+      [in] HWND parentWindow,
+      [in] ICoreWebView2StagingCreateControllerOptions* options,
+      [in] ICoreWebView2CreateCoreWebView2CompositionControllerCompletedHandler* handler);
+}
+
+[uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
+interface ICoreWebView2StagingCreateControllerOptions : IUnknown {
+  /// `ProfileName` property is to specify a profile name, which is only allowed to contain
+  /// the following ASCII characters with the maximum length as 64 and will be treated in a
+  /// case insensitive way.
+  ///    alphabet characters: a-z and A-Z
+  ///    digit characters: 0-9
+  ///    and '#', '@', '$', '(', ')', '+', '-', '_', '~', '.', ' ' (space).
+  /// Note: the text must not end with a period '.' or ' ' (space). And, although upper case letters are
+  /// allowed, they're treated just as lower case couterparts because the profile name will be mapped to
+  /// the real profile directory path on disk and Windows file system handles path names in a case-insensitive way.
+  [propget] HRESULT ProfileName([out, retval] LPWSTR* value);
+  /// Sets the `ProfileName` property.
+  [propput] HRESULT ProfileName([in] LPCWSTR value);
+
+  /// `InPrivateModeEnabled` property is to enable/disable InPrivate mode.
+  [propget] HRESULT InPrivateModeEnabled([out, retval] BOOL* enabled);
+  /// Sets the `InPrivateModeEnabled` property.
+  [propput] HRESULT InPrivateModeEnabled([in] BOOL enabled);
+}
+
+[uuid(6E5CE5F0-16E6-4A05-97D8-4E256B3EB609), object, pointer_default(unique)]
+interface ICoreWebView2Staging6 : IUnknown {
+  /// The associated `ICoreWebView2StagingProfile` object.
+  [propget] HRESULT Profile([out, retval] ICoreWebView2StagingProfile** profile);
+}
+
+[uuid(3B9A2AF2-E703-4C81-9D25-FCE44312E960), object, pointer_default(unique)]
+interface ICoreWebView2StagingProfile : IUnknown {
+  /// Name of the profile.
+  [propget] HRESULT ProfileName([out, retval] LPWSTR* value);
+
+  /// InPrivate mode is enabled or not.
+  [propget] HRESULT InPrivateModeEnabled([out, retval] BOOL* enabled);
+
+  /// Full path of the profile directory.
+  [propget] HRESULT ProfilePath([out, retval] LPWSTR* value);
+
+  /// TODO: All profile-wide operations/settings will be put below.
 }
 ```
--->
-
 
 # Appendix
-<!-- TEMPLATE
-  Anything else that you want to write down about implementation notes and for posterity,
-  but that isn't necessary to understand the purpose and usage of the API.
-  
-  This or the Background section are a good place to describe alternative designs
-  and why they were rejected, any relevant implementation details, or links to other
-  resources.
--->
+
+Next we'll consolidate all profile-wide operations/settings into the interface
+`ICoreWebView2StagingProfile`, and will also add support for erasing a profile completely.
