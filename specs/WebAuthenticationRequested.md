@@ -37,23 +37,25 @@ The developer can provide the authentication credentials on behalf of the user w
 
 ```cpp
 
-    webview2->add_BasicAuthenticationRequested(
+    CHECK_HRESULT(webview2->add_BasicAuthenticationRequested(
         Callback<ICoreWebView2BasicAuthenticationRequestedEventHandler>(
             [this](
                 ICoreWebView2* sender,
                 ICoreWebView2BasicAuthenticationRequestedEventArgs* args)
             {
                 wil::com_ptr<ICoreWebView2Deferral> deferral;
+
+                // Ensure the event args are retained for the lambda.
                 wil::com_ptr<ICoreWebView2BasicAuthenticationRequestedEventArgs> web_auth_args = args;
                 args->GetDeferral(&deferral);
                 ShowCustomLoginUI().then([web_auth_args, deferral](LPCWSTR userName, LPCWSTR password)
                 {
                     wil::com_ptr<ICoreWebView2BasicAuthenticationResponse> basicAuthenticationResponse;
-                    web_auth_args->get_Response(&basicAuthenticationResponse);
-                    basicAuthenticationResponse->put_UserName(userName);
-                    basicAuthenticationResponse->put_Password(password);
+                    CHECK_HRESULT(web_auth_args->get_Response(&basicAuthenticationResponse));
+                    CHECK_HRESULT(basicAuthenticationResponse->put_UserName(userName));
+                    CHECK_HRESULT(basicAuthenticationResponse->put_Password(password));
                     deferral->Complete();
-                }
+                });
                 
                 return S_OK;
             })
@@ -76,13 +78,13 @@ webView.CoreWebView2.BasicAuthenticationRequested += delegate (object sender, Co
 The developer can block the authentication request. In this case, the default login dialog prompt will no longer be shown to the user and the server will respond as if the user clicked cancel.
 
 ```cpp
-    webview2->add_BasicAuthenticationRequested(
+    CHECK_HRESULT(webview2->add_BasicAuthenticationRequested(
         Callback<ICoreWebView2BasicAuthenticationRequestedEventHandler>(
             [this](
                 ICoreWebView2* sender,
                 ICoreWebView2BasicAuthenticationRequestedEventArgs* args)
             {
-                args->put_Cancel(true);
+                CHECK_HRESULT(args->put_Cancel(true));
 
                 return S_OK;
             })
@@ -107,10 +109,10 @@ webview2->add_BasicAuthenticationRequested(
             ICoreWebView2* sender,
             ICoreWebView2BasicAuthenticationRequestedEventArgs* args)
         {
-            args->get_Challenge(&challenge);
+            CHECK_HRESULT(args->get_Challenge(&challenge));
             if (!ValidateChallenge(challenge.get()))
             { // Check the challenge string
-                args->put_Cancel(true);
+                CHECK_HRESULT(args->put_Cancel(true));
             }
             return S_OK;
         })
@@ -121,7 +123,7 @@ webview2->add_BasicAuthenticationRequested(
 ```c#
 webView.CoreWebView2.BasicAuthenticationRequested += delegate (object sender, CoreWebView2BasicAuthenticationRequestedEventArgs args)
 {
-    if (ValidateChallenge(args.Challenge))
+    if (!ValidateChallenge(args.Challenge))
     {
         args.Cancel = true;
     }
