@@ -27,7 +27,7 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
                 CHECK_FAILURE(sender->get_IsMuted(&isMuted));
 
                 wil::unique_cotaskmem_string title;
-                m_webView->get_DocumentTitle(&title);
+                CHECK_FAILURE(m_webView->get_DocumentTitle(&title));
                 std::wstring result = L"";
 
                 if (isAudioPlaying)
@@ -56,13 +56,13 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
 // Mute the current window and show a mute icon on the title bar
  void AudioComponent::Mute()
  {
-     m_webView->Mute();
+    CHECK_FAILURE(m_webView->Mute());
  }
 
 // Unmute the current window and hide the mute icon on the title bar
  void AudioComponent::Unmute()
  {
-     m_webView->Unmute();
+    CHECK_FAILURE(m_webView->Unmute());
  }
  //! [IsAudioPlayingChanged] [IsAudioPlaying] [IsMuted] [Mute] [Unmute]
 ```
@@ -157,7 +157,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
 interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
   /// and the `args` parameter is set to `null`.
-  HRESULT Invoke([in] ICoreWebView2Staging2* sender, [in] IUnknown* args);
+  HRESULT Invoke([in] ICoreWebView2* sender, [in] IUnknown* args);
 }
 ```
 
