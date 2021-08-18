@@ -48,9 +48,19 @@ void FileComponent::PrintToPdf(bool useDefaultOrientation)
                     [](HRESULT errorCode, LPCWSTR resultFilePath) -> HRESULT {
                         CHECK_FAILURE(errorCode);
                         std::wstringstream formattedMessage;
-                        formattedMessage << "ResultFilePath: " << resultFilePath;
-                        MessageBox(nullptr, formattedMessage.str().c_str(),
-                            L"Print to PDF Completed", MB_OK);
+                        if (!wcslen(resultFilePath) == 0)
+                        {
+                            formattedMessage << "ResultFilePath: " << resultFilePath;
+                        }
+                        else
+                        {
+                            formattedMessage << "Print to PDF failed.";
+                        }
+                        auto showDialog = [formattedMessage = formattedMessage.str()] {
+                            MessageBox(nullptr, formattedMessage.c_str(),
+                                L"Print to PDF Completed", MB_OK);
+                        };
+                        m_appWindow->RunAsync([showDialog]() { showDialog(); });
                         return S_OK;
                     })
                     .Get()));
@@ -73,9 +83,20 @@ async void PrintToPdfCmdExecuted(object target, ExecutedRoutedEventArgs e)
         printSettings.Orientation =
             CoreWebView2PrintOrientation.Landscape;
     }
-    string resultFilePath = await webView.CoreWebView2.PrintToPdfAsync(
-        "" /* use default path*/, printSettings);
-    MessageBox.Show(this, resultFilePath, "Print To PDF Completed");
+
+    Microsoft.Win32.SaveFileDialog openFileDialog =
+        new Microsoft.Win32.SaveFileDialog();
+    openFileDialog.InitialDirectory = "C:\\";
+    openFileDialog.Filter = "Pdf Files|*.pdf";
+    Nullable<bool> result = openFileDialog.ShowDialog();
+    if (result == true) {
+        string resultFilePath = await webView.CoreWebView2.PrintToPdfAsync(
+            openFileDialog.FileName, printSettings);
+        string message = (resultFilePath == string.Empty) ?
+            "Print to PDF failed" : "ResultFilePath: ";
+        MessageBox.Show(this, message + resultFilePath,
+                        "Print To PDF Completed");
+    }
 }
 ```
 # Remarks
@@ -111,10 +132,9 @@ interface ICoreWebView2_4 : IUnknown {
   ///
   /// Use `resultFilePath` to specify the path to the PDF file. The host should
   /// provide an absolute path, including file name. If the path
-  /// points to an existing file, the file will be overwritten. If
-  /// `resultFilePath` is invalid, `isSuccessful` in
-  /// `ICoreWebView2PrintToPdfCompletedHandler` is set to `FALSE` and the
-  /// returned `resultFilePath` is an empty string.
+  /// points to an existing file, the file will be overwritten. If the path is
+  /// not valid, the page is not saved and `resultFilePath` in
+  /// `ICoreWebView2PrintToPdfCompletedHandler` is an empty string.
   ///
   /// The async `PrintToPdf` operation completes when the data has been written
   /// to the PDF file. At this time the `ICoreWebView2PrintToPdfCompletedHandler`
@@ -128,7 +148,8 @@ interface ICoreWebView2_4 : IUnknown {
 }
 
 /// Receives the result of the `PrintToPdf` method. The `resultFilePath`
-/// contains the final path of the PDF file.
+/// contains the final path of the PDF file or an empty string if the
+/// `PrintToPdf` operation failed.
 [uuid(4808ac58-c372-4d3d-be5e-900df2593835), object, pointer_default(unique)]
 interface ICoreWebView2PrintToPdfCompletedHandler : IUnknown {
 
@@ -150,11 +171,11 @@ interface ICoreWebView2PrintSettings : IUnknown {
   [propput] HRESULT Orientation(
       [in] COREWEBVIEW2_PRINT_ORIENTATION orientation);
 
-  /// The scale factor is a value between 0.1-2.0. The default is 1.0.
+  /// The scale factor is a value between 0.1 and 2.0. The default is 1.0.
   [propget] HRESULT ScaleFactor([out, retval] double* scaleFactor);
 
-  /// Sets the `ScaleFactor` property. In an invalid value is provided, the
-  /// default is used.
+  /// Sets the `ScaleFactor` property. If an invalid value is provided, the
+  /// current value is not updated.
   [propput] HRESULT ScaleFactor([in] double scaleFactor);
 
   /// The page width in inches. The default width is 8.5 inches.
@@ -174,7 +195,8 @@ interface ICoreWebView2PrintSettings : IUnknown {
 
   /// Sets the `MarginTop` property. A margin cannot be less than zero, and the
   /// sum of the top and bottom margins cannot exceed the page height without
-  /// header and footer. If an invalid value is provided, the default is used.
+  /// header and footer. If an invalid value is provided, the current value is
+  /// not changed.
   [propput] HRESULT MarginTop([in] double marginTop);
 
   /// The bottom margin in inches. The default is 1 cm, or ~0.4 inches.
@@ -182,24 +204,24 @@ interface ICoreWebView2PrintSettings : IUnknown {
 
   /// Sets the `MarginBottom` property. A margin cannot be less than zero, and
   /// the sum of the top and bottom margins cannot exceed the page height
-  /// without header and footer. If an invalid value is provided, the default
-  /// is used.
+  /// without header and footer. If an invalid value is provided, the current
+  /// value is not changed.
   [propput] HRESULT MarginBottom([in] double marginBottom);
 
   /// The left margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginLeft([out, retval] double* marginLeft);
 
-  /// Sets the `MarginLeft` property. The sum of the left and right margins
-  /// cannot exceed the page width. If an invalid value is provided, the default
-  /// is used.
+  /// Sets the `MarginLeft` property. A margin cannot be less than zero, and
+  /// the sum of the left and right margins cannot exceed the page width. If an
+  /// invalid value is provided, the current value is not changed.
   [propput] HRESULT MarginLeft([in] double marginLeft);
 
   /// The right margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginRight([out, retval] double* marginRight);
 
-  /// Set the `MarginRight` property.The sum of the left margin and right margins
-  /// cannot exceed the page width. If an invalid value is provided, the
-  /// default is used.
+  /// Set the `MarginRight` property.A margin cannot be less than zero, and the
+  /// sum of the left margin and right margins cannot exceed the page width. If
+  /// an invalid value is provided, the current value is not changed.
   [propput] HRESULT MarginRight([in] double marginRight);
 
   /// `TRUE` if background colors and images should be printed. The default value
