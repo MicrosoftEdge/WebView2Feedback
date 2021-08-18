@@ -144,7 +144,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
       [in] EventRegistrationToken token);
   
   /// Indicates whether any audio output from this CoreWebView2 is audible.
-  /// CoreWebView2 can be audible when muted, IsAudioPlaying is used to indicate
+  /// This property will be true if audio is playing even if IsMuted is true.
   /// if there are audio currently playing.
   ///
   /// \snippet AudioComponent.cpp IsAudioPlaying
