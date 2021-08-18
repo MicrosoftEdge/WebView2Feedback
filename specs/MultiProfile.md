@@ -136,7 +136,7 @@ interface ICoreWebView2StagingProfile : IUnknown {
   /// Full path of the profile directory.
   [propget] HRESULT ProfilePath([out, retval] LPWSTR* value);
 
-  /// TODO: All profile-wide operations/settings will be put below.
+  // TODO: All profile-wide operations/settings will be put below.
 }
 ```
 
