@@ -89,31 +89,31 @@ void ProcessComponent::ProcessInfo()
 
     if (process_list_size == 0)
     {
-        result += L"No child process found.";
+        result += L"No process found.";
     }
     else
     {
-        result += std::to_wstring(process_list_size) + L" child process(s) found";
+        result += std::to_wstring(process_list_size) + L" process(s) found";
         result += L"\n\n";
         for (UINT i = 0; i < process_list_size; ++i)
         {
-            UINT32 childProcessId = 0;
+            UINT32 processId = 0;
             CHECK_FAILURE(
-                m_processCollection->GetChildProcessIdAtIndex(i, &childProcessId));
+                m_processCollection->GetProcessIdAtIndex(i, &processId));
 
             WCHAR buffer[4096] = L"";
-            StringCchPrintf(buffer, ARRAYSIZE(buffer), L"Process ID: %u\n", childProcessId);
+            StringCchPrintf(buffer, ARRAYSIZE(buffer), L"Process ID: %u\n", processId);
 
             result += buffer;
 
             COREWEBVIEW2_PROCESS_KIND kind;
-            CHECK_FAILURE(m_processCollection->GetChildProcessTypeAtIndex(i, &kind));
+            CHECK_FAILURE(m_processCollection->GetProcessTypeAtIndex(i, &kind));
 
             result += L"Process Kind: " + ProcessKindToString(kind);
             result += L"\n";
         }
     }
-    MessageBox(nullptr, result.c_str(), L"GetChildProcessesInfo Result", MB_OK);
+    MessageBox(nullptr, result.c_str(), L"GetProcessesInfo Result", MB_OK);
 }
 //! [ProcessRequested]
 ```
