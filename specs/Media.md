@@ -132,7 +132,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   [propget] HRESULT IsMuted([out, retval] BOOL* value);
   
   /// Adds an event handler for the `IsAudioPlayingChanged` event.
-  /// `IsAudioPlayingChanged` runs when the audible state changes.
+  /// `IsAudioPlayingChanged` is raised when the IsAudioPlaying property changes value.
   ///
   /// \snippet AudioComponent.cpp IsAudioPlayingChanged
   HRESULT add_IsAudioPlayingChanged(
