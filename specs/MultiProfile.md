@@ -3,14 +3,21 @@ API spec for multiple profile support
 
 # Background
 
-Currently, all WebView2s can only use one fixed Edge profile in the browser process, which is
+Previously, all WebView2s can only use one fixed Edge profile in the browser process, which is
 normally the **Default** profile or the profile specified by the **--profile-directory** command
-line switch. Regarding this we have got a bunch of requests to support multiple profiles, so we're
-adding these new APIs.
+line switch. It means different WebView2s share a single profile directory on disk for data storage,
+which might bring security concerns over cookies, autofill data, and password management etc.. Also,
+they might also interfere with each other in terms of user preference settings.
 
-With this you can have different WebView2s running with separate profiles under a given user data
-directory, which means separate cookies, user preference settings, and various data storage etc.,
-to enable you to build a more wonderful experience for your application.
+Although you can make your WebView2s use different user data directories to achieve data separation,
+in such way you'll have to be running multiple browser instances (each including a browser process
+and a bunch of child processes), which means much more consumption for system resources including
+memory, CPU footprint, disk space etc. so it is not desirable.
+
+With all above, we're adding these new APIs to support multiple profiles, so that you can have
+multiple WebView2s running with separate profiles under a single user data directory (i.e. a single
+browser instance at runtime), which means separate cookies, user preference settings, and various
+data storage etc., to help you build a more wonderful experience for your application.
 
 # Examples
 <!-- TEMPLATE
@@ -70,36 +77,36 @@ to enable you to build a more wonderful experience for your application.
 ## Win32 C++
 
 ```IDL
-interface ICoreWebView2Staging6;
-interface ICoreWebView2StagingCreateControllerOptions;
-interface ICoreWebView2StagingEnvironment4;
-interface ICoreWebView2StagingProfile;
+interface ICoreWebView2_7;
+interface ICoreWebView2ControllerOptions;
+interface ICoreWebView2Environment5;
+interface ICoreWebView2Profile;
 
 [uuid(57FD205C-39D5-4BA1-8E7B-3E53C323EA87), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironment4 : IUnknown
+interface ICoreWebView2Environment5 : IUnknown
 {
-  /// Create a new ICoreWebView2StagingCreateControllerOptions to be passed as a parameter of
+  /// Create a new ICoreWebView2ControllerOptions to be passed as a parameter of
   /// CreateCoreWebView2ControllerWithOptions and CreateCoreWebView2CompositionControllerWithOptions.
   HRESULT CreateCoreWebView2ControllerOptions(
       [in] LPCWSTR profileName,
       [in] BOOL inPrivateModeEnabled,
-      [out, retval] ICoreWebView2StagingCreateControllerOptions** options);
+      [out, retval] ICoreWebView2ControllerOptions** options);
 
   /// Create a new WebView with options.
   HRESULT CreateCoreWebView2ControllerWithOptions(
       [in] HWND parentWindow,
-      [in] ICoreWebView2StagingCreateControllerOptions* options,
+      [in] ICoreWebView2ControllerOptions* options,
       [in] ICoreWebView2CreateCoreWebView2ControllerCompletedHandler* handler);
 
   /// Create a new WebView in visual hosting mode with options.
   HRESULT CreateCoreWebView2CompositionControllerWithOptions(
       [in] HWND parentWindow,
-      [in] ICoreWebView2StagingCreateControllerOptions* options,
+      [in] ICoreWebView2ControllerOptions* options,
       [in] ICoreWebView2CreateCoreWebView2CompositionControllerCompletedHandler* handler);
 }
 
 [uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
-interface ICoreWebView2StagingCreateControllerOptions : IUnknown {
+interface ICoreWebView2ControllerOptions : IUnknown {
   /// `ProfileName` property is to specify a profile name, which is only allowed to contain
   /// the following ASCII characters with the maximum length as 64 and will be treated in a
   /// case insensitive way.
@@ -120,13 +127,13 @@ interface ICoreWebView2StagingCreateControllerOptions : IUnknown {
 }
 
 [uuid(6E5CE5F0-16E6-4A05-97D8-4E256B3EB609), object, pointer_default(unique)]
-interface ICoreWebView2Staging6 : IUnknown {
-  /// The associated `ICoreWebView2StagingProfile` object.
-  [propget] HRESULT Profile([out, retval] ICoreWebView2StagingProfile** profile);
+interface ICoreWebView2_7 : IUnknown {
+  /// The associated `ICoreWebView2Profile` object.
+  [propget] HRESULT Profile([out, retval] ICoreWebView2Profile** profile);
 }
 
 [uuid(3B9A2AF2-E703-4C81-9D25-FCE44312E960), object, pointer_default(unique)]
-interface ICoreWebView2StagingProfile : IUnknown {
+interface ICoreWebView2Profile : IUnknown {
   /// Name of the profile.
   [propget] HRESULT ProfileName([out, retval] LPWSTR* value);
 
@@ -136,11 +143,11 @@ interface ICoreWebView2StagingProfile : IUnknown {
   /// Full path of the profile directory.
   [propget] HRESULT ProfilePath([out, retval] LPWSTR* value);
 
-  // TODO: All profile-wide operations/settings will be put below.
+  // TODO: All profile-wide operations/settings will be put below in the future.
 }
 ```
 
 # Appendix
 
 Next we'll consolidate all profile-wide operations/settings into the interface
-`ICoreWebView2StagingProfile`, and will also add support for erasing a profile completely.
+`ICoreWebView2Profile`, and will also add support for erasing a profile completely.
