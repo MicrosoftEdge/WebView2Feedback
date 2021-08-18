@@ -143,7 +143,7 @@ interface ICoreWebView2_2 : ICoreWebView2 {
   HRESULT remove_IsAudioPlayingChanged(
       [in] EventRegistrationToken token);
   
-  /// Indicates whether any audio output from this CoreWebView2 is audible.
+  /// Indicates whether any audio output from this CoreWebView2 is playing.
   /// This property will be true if audio is playing even if IsMuted is true.
   /// if there are audio currently playing.
   ///
