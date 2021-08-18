@@ -23,79 +23,100 @@ Process Info
     the reader "go read 100 pages of background information posted at ...". 
 -->
 
-# Conceptual pages (How To)
-
-_(This is conceptual documentation that will go to docs.microsoft.com "how to" page)_
-
-<!-- TEMPLATE
-    (Optional)
-
-    All APIs have reference docs, but some APIs or groups of APIs have an additional high level,
-    conceptual page (called a "how-to" page). This section can be used for that content.
-
-    For example, there are several navigation events each with their own reference doc, but then
-    there's also a concept doc on navigation
-    (https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events).
-
-    Sometimes it's difficult to decide if text belongs on a how-to page or an API page.
-    Because our API reference documentation is automatically turned into reference docs you can
-    lean towards including text in the API documentation below instead of in this conceptual
-    section.
--->
-
-
 # Examples
-<!-- TEMPLATE
-    Use this section to explain the features of the API, showing
-    example code with each description in both C# (for our WinRT API or .NET API) and
-    in C++ for our COM API. Use snippets of the sample code you wrote for the sample apps.
-    The sample code for C++ and C# should demonstrate the same thing.
+## ProcessRequested
 
-    The general format is:
+Feature explanation text goes here, including why an app would use it, how it
+replaces or supplements existing functionality.
 
-    ## FirstFeatureName
-
-    Feature explanation text goes here, including why an app would use it, how it
-    replaces or supplements existing functionality.
-
-    ```c#
-    void SampleMethod()
-    {
-        var show = new AnExampleOf();
-        show.SomeMembers = AndWhyItMight(be, interesting)
-    }
+```c#
+void SampleMethod()
+{
+    var show = new AnExampleOf();
+    show.SomeMembers = AndWhyItMight(be, interesting)
+}
     ```
     
-    ```cpp
-    void SampleClass::SampleMethod()
+```cpp
+ProcessComponent::ProcessComponent(AppWindow* appWindow)
+    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
+{
+    // Register a handler for the ProcessRequested event.
+    //! [ProcessRequested]
+    CHECK_FAILURE(m_webView->add_ProcessRequested(
+        Callback<ICoreWebView2StagingProcessRequestedEventHandler>(
+            [this](
+                ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+                CHECK_FAILURE(m_webView->get_ProcessInfo(&m_processCollection));
+
+                return S_OK;
+            })
+            .Get(),
+        &m_processRequestedToken));
+    //! [ProcessRequested]
+}
+
+std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KIND kind)
+{
+    switch (kind)
     {
-        winrt::com_ptr<ICoreWebView2> webview2 = ...
+#define KIND_ENTRY(kindValue)                                                                  \
+    case kindValue:                                                                            \
+        return L#kindValue;
+
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_BROWSER_PROCESS);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_RENDERER_PROCESS);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_UTILITY_PROCESS);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_SANDBOX_HELPER_PROCESS);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_GPU_PROCESS);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_PPAPI_PLUGIN_PROCESS);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_PPAPI_BROKER_PROCESS);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_UNKNOWN_PROCESS);
+
+#undef KIND_ENTRY
     }
-    ```
 
-    ## SecondFeatureName
+    return L"PROCESS KIND: " + std::to_wstring(static_cast<uint32_t>(kind));
+}
 
-    Feature explanation text goes here, including why an app would use it, how it
-    replaces or supplements existing functionality.
+// Get the process info
+//! [ProcessRequested]
+void ProcessComponent::ProcessInfo()
+{
+    std::wstring result;
+    UINT process_list_size;
+    CHECK_FAILURE(m_processCollection->get_Count(&process_list_size));
 
-    ```c#
-    void SampleMethod()
+    if (process_list_size == 0)
     {
-        var show = new AnExampleOf();
-        show.SomeMembers = AndWhyItMight(be, interesting)
+        result += L"No child process found.";
     }
-    ```
-    
-    ```cpp
-    void SampleClass::SampleMethod()
+    else
     {
-        winrt::com_ptr<ICoreWebView2> webview2 = ...
-    }
-    ```
+        result += std::to_wstring(process_list_size) + L" child process(s) found";
+        result += L"\n\n";
+        for (UINT i = 0; i < process_list_size; ++i)
+        {
+            UINT32 childProcessId = 0;
+            CHECK_FAILURE(
+                m_processCollection->GetChildProcessIdAtIndex(i, &childProcessId));
 
-    As an example of this section, see the Examples section for the Custom Downloads
-    APIs (https://github.com/MicrosoftEdge/WebView2Feedback/blob/master/specs/CustomDownload.md). 
--->
+            WCHAR buffer[4096] = L"";
+            StringCchPrintf(buffer, ARRAYSIZE(buffer), L"Process ID: %u\n", childProcessId);
+
+            result += buffer;
+
+            COREWEBVIEW2_PROCESS_KIND kind;
+            CHECK_FAILURE(m_processCollection->GetChildProcessTypeAtIndex(i, &kind));
+
+            result += L"Process Kind: " + ProcessKindToString(kind);
+            result += L"\n";
+        }
+    }
+    MessageBox(nullptr, result.c_str(), L"GetChildProcessesInfo Result", MB_OK);
+}
+//! [ProcessRequested]
+```
 
 # API Details    
 ```
