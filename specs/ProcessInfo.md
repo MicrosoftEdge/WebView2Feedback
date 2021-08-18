@@ -30,10 +30,26 @@ Feature explanation text goes here, including why an app would use it, how it
 replaces or supplements existing functionality.
 
 ```c#
-void SampleMethod()
+void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    var show = new AnExampleOf();
-    show.SomeMembers = AndWhyItMight(be, interesting)
+    CoreWebView2ProcessCollection processList = webView.CoreWebView2.ProcessInfo;
+    string result;
+    uint processListSize = processList.Count;
+    if (processListSize == 0)
+    {
+        result = "No process found.";
+    }
+    else
+    {
+        result = $"{processListSize} child process(s) found\n\n";
+        for (uint i = 0; i < processListSize; ++i)
+        {
+            uint processId = processList.GetProcessIdAtIndex(i);
+            CoreWebView2ProcessKind kind = processList.GetProcessTypeAtIndex(i);
+            result = result + $"Process ID: {processId}\nProcess Kind: {kind}\n";
+        }
+    }
+    MessageBox.Show(this, result, "Process List");
 }
     ```
     
