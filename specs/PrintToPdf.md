@@ -31,7 +31,7 @@ void FileComponent::PrintToPdf(bool useDefaultOrientation)
         wil::com_ptr<ICoreWebView2SPrintSettings> printSettings;
         if (webViewEvironment5)
         {
-            CHECK_FAILURE(webviewEnvironment5->CreateDefaultPrintSettings(
+            CHECK_FAILURE(webviewEnvironment5->CreatePrintSettings(
                 &printSettings));
         }
 
@@ -75,7 +75,7 @@ void FileComponent::PrintToPdf(bool useDefaultOrientation)
 async void PrintToPdfCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
     CoreWebView2PrintSettings printSettings =
-        WebViewEnvironment.CreateDefaultPrintSettings();
+        WebViewEnvironment.CreatePrintSettings();
 
     string orientationString = e.Parameter.ToString();
     if (printSettings != null && orientationString == "Landscape")
