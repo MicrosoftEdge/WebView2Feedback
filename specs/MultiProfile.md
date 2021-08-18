@@ -80,7 +80,7 @@ interface ICoreWebView2StagingEnvironment4 : IUnknown
 {
   /// Create a new ICoreWebView2StagingCreateControllerOptions to be passed as a parameter of
   /// CreateCoreWebView2ControllerWithOptions and CreateCoreWebView2CompositionControllerWithOptions.
-  HRESULT CreateCoreWebView2CreateControllerOptions(
+  HRESULT CreateCoreWebView2ControllerOptions(
       [in] LPCWSTR profileName,
       [in] BOOL inPrivateModeEnabled,
       [out, retval] ICoreWebView2StagingCreateControllerOptions** options);
