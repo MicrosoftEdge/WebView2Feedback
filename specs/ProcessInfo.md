@@ -2,26 +2,7 @@ Process Info
 ===
 
 # Background
-<!-- TEMPLATE
-    Use this section to provide background context for the new API(s)
-    in this spec. Try to briefly provide enough information to be able to read
-    the rest of the document.
-
-    This section and the appendix are the only sections that likely
-    do not get copied into any official documentation, they're just an aid
-    to reading this spec. If you find useful information in the background
-    or appendix consider moving it to documentation.
-    
-    If you're modifying an existing API, included a link here to the
-    existing page(s) or spec documentation.
-
-    For example, this section is a place to explain why you're adding this
-    API rather than modifying an existing API.
-
-    For example, this is a place to provide a brief explanation of some dependent
-    area, just explanation enough to understand this new API, rather than telling
-    the reader "go read 100 pages of background information posted at ...". 
--->
+Provide end developer a new API to get all browser and child process ID and type. End developers can use this API to do perf count, instead of trying to hook up with task manager API to do that. 
 
 # Examples
 ## ProcessRequested
