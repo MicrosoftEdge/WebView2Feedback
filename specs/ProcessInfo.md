@@ -58,7 +58,7 @@ ProcessComponent::ProcessComponent(AppWindow* appWindow)
     environment = appWindow->GetWebViewEnvironment();
     CHECK_FAILURE(environment->add_ProcessRequested(
         Callback<ICoreWebView2StagingProcessRequestedEventHandler>(
-            [this,environment](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+            [this,environment](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT {
                 CHECK_FAILURE(environment->get_ProcessInfo(&m_processCollection));
 
                 return S_OK;
