@@ -77,10 +77,31 @@ data storage etc., to help you build a more wonderful experience for your applic
 ## Win32 C++
 
 ```IDL
-interface ICoreWebView2_7;
 interface ICoreWebView2ControllerOptions;
 interface ICoreWebView2Environment5;
+interface ICoreWebView2_7;
 interface ICoreWebView2Profile;
+
+[uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
+interface ICoreWebView2ControllerOptions : IUnknown {
+  /// `ProfileName` property is to specify a profile name, which is only allowed to contain
+  /// the following ASCII characters with the maximum length as 64 and will be treated in a
+  /// case insensitive way.
+  ///    alphabet characters: a-z and A-Z
+  ///    digit characters: 0-9
+  ///    and '#', '@', '$', '(', ')', '+', '-', '_', '~', '.', ' ' (space).
+  /// Note: the text must not end with a period '.' or ' ' (space). And, although upper case letters are
+  /// allowed, they're treated just as lower case couterparts because the profile name will be mapped to
+  /// the real profile directory path on disk and Windows file system handles path names in a case-insensitive way.
+  [propget] HRESULT ProfileName([out, retval] LPWSTR* value);
+  /// Sets the `ProfileName` property.
+  [propput] HRESULT ProfileName([in] LPCWSTR value);
+
+  /// `InPrivateModeEnabled` property is to enable/disable InPrivate mode.
+  [propget] HRESULT InPrivateModeEnabled([out, retval] BOOL* enabled);
+  /// Sets the `InPrivateModeEnabled` property.
+  [propput] HRESULT InPrivateModeEnabled([in] BOOL enabled);
+}
 
 [uuid(57FD205C-39D5-4BA1-8E7B-3E53C323EA87), object, pointer_default(unique)]
 interface ICoreWebView2Environment5 : IUnknown
@@ -105,27 +126,6 @@ interface ICoreWebView2Environment5 : IUnknown
       [in] ICoreWebView2CreateCoreWebView2CompositionControllerCompletedHandler* handler);
 }
 
-[uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
-interface ICoreWebView2ControllerOptions : IUnknown {
-  /// `ProfileName` property is to specify a profile name, which is only allowed to contain
-  /// the following ASCII characters with the maximum length as 64 and will be treated in a
-  /// case insensitive way.
-  ///    alphabet characters: a-z and A-Z
-  ///    digit characters: 0-9
-  ///    and '#', '@', '$', '(', ')', '+', '-', '_', '~', '.', ' ' (space).
-  /// Note: the text must not end with a period '.' or ' ' (space). And, although upper case letters are
-  /// allowed, they're treated just as lower case couterparts because the profile name will be mapped to
-  /// the real profile directory path on disk and Windows file system handles path names in a case-insensitive way.
-  [propget] HRESULT ProfileName([out, retval] LPWSTR* value);
-  /// Sets the `ProfileName` property.
-  [propput] HRESULT ProfileName([in] LPCWSTR value);
-
-  /// `InPrivateModeEnabled` property is to enable/disable InPrivate mode.
-  [propget] HRESULT InPrivateModeEnabled([out, retval] BOOL* enabled);
-  /// Sets the `InPrivateModeEnabled` property.
-  [propput] HRESULT InPrivateModeEnabled([in] BOOL enabled);
-}
-
 [uuid(6E5CE5F0-16E6-4A05-97D8-4E256B3EB609), object, pointer_default(unique)]
 interface ICoreWebView2_7 : IUnknown {
   /// The associated `ICoreWebView2Profile` object.
@@ -144,6 +144,58 @@ interface ICoreWebView2Profile : IUnknown {
   [propget] HRESULT ProfilePath([out, retval] LPWSTR* value);
 
   // TODO: All profile-wide operations/settings will be put below in the future.
+}
+```
+
+## .NET and WinRT
+
+```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    runtimeclass CoreWebView2ControllerOptions;
+    runtimeclass CoreWebView2Environment;
+    runtimeclass CoreWebView2;
+    runtimeclass CoreWebView2Profile;
+
+    runtimeclass CoreWebView2ControllerOptions
+    {        
+        String ProfileName { get; set; };
+
+        Int32 InPrivateModeEnabled { get; set; };
+    }
+    
+    runtimeclass CoreWebView2Environment
+    {
+        // ...
+    
+        CoreWebView2ControllerOptions CreateCoreWebView2ControllerOptions(
+            String ProfileName, Int32 InPrivateModeEnabled);
+        
+        Windows.Foundation.IAsyncOperation<CoreWebView2Controller>
+        CreateCoreWebView2ControllerWithOptionsAsync(
+            CoreWebView2ControllerWindowReference ParentWindow,
+            CoreWebView2ControllerOptions options);
+        
+        Windows.Foundation.IAsyncOperation<CoreWebView2CompositionController>
+        CreateCoreWebView2CompositionControllerWithOptionsAsync(
+            CoreWebView2ControllerWindowReference ParentWindow,
+            CoreWebView2ControllerOptions options);
+    }
+    
+    runtimeclass CoreWebView2
+    {
+        // ...
+        CoreWebView2Profile Profile { get; };
+    }
+    
+    runtimeclass CoreWebView2Profile
+    {
+        String ProfileName { get; };
+
+        Int32 InPrivateModeEnabled { get; };
+
+        String ProfilePath { get; };
+    }
 }
 ```
 
