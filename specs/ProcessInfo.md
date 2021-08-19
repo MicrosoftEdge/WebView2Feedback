@@ -76,14 +76,14 @@ std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KI
     case kindValue:                                                                            \
         return L#kindValue;
 
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_BROWSER_PROCESS);
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_RENDERER_PROCESS);
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_UTILITY_PROCESS);
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_SANDBOX_HELPER_PROCESS);
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_GPU_PROCESS);
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_PPAPI_PLUGIN_PROCESS);
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_PPAPI_BROKER_PROCESS);
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_UNKNOWN_PROCESS);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_BROWSER);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_RENDERER);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_UTILITY);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_SANDBOX_HELPER);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_GPU);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_PPAPI_PLUGIN);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_PPAPI_BROKER);
+        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_UNKNOWN);
 
 #undef KIND_ENTRY
     }
@@ -139,28 +139,28 @@ interface ICoreWebView2StagingProcessRequestedEventHandler;
 [v1_enum]
 typedef enum COREWEBVIEW2_PROCESS_KIND {
   /// Indicates the browser process kind.
-  COREWEBVIEW2_PROCESS_KIND_BROWSER_PROCESS,
+  COREWEBVIEW2_PROCESS_KIND_BROWSER,
 
   /// Indicates the render process kind.
-  COREWEBVIEW2_PROCESS_KIND_RENDERER_PROCESS,
+  COREWEBVIEW2_PROCESS_KIND_RENDERER,
 
   /// Indicates the utility process kind.
-  COREWEBVIEW2_PROCESS_KIND_UTILITY_PROCESS,
+  COREWEBVIEW2_PROCESS_KIND_UTILITY,
 
   /// Indicates the sandbox helper process kind.
-  COREWEBVIEW2_PROCESS_KIND_SANDBOX_HELPER_PROCESS,
+  COREWEBVIEW2_PROCESS_KIND_SANDBOX_HELPER,
 
   /// Indicates the GPU process kind.
-  COREWEBVIEW2_PROCESS_KIND_GPU_PROCESS,
+  COREWEBVIEW2_PROCESS_KIND_GPU,
 
   /// Indicates the PPAPI plugin process kind.
-  COREWEBVIEW2_PROCESS_KIND_PPAPI_PLUGIN_PROCESS,
+  COREWEBVIEW2_PROCESS_KIND_PPAPI_PLUGIN,
 
   /// Indicates the PPAPI plugin broker process kind.
-  COREWEBVIEW2_PROCESS_KIND_PPAPI_BROKER_PROCESS,
+  COREWEBVIEW2_PROCESS_KIND_PPAPI_BROKER,
 
   /// Indicates the process of unspecified kind.
-  COREWEBVIEW2_PROCESS_KIND_UNKNOWN_PROCESS,
+  COREWEBVIEW2_PROCESS_KIND_UNKNOWN,
 } COREWEBVIEW2_PROCESS_KIND;
 
 [uuid(20856F87-256B-41BE-BD64-AB1C36E3D944), object, pointer_default(unique)]
@@ -213,14 +213,14 @@ namespace Microsoft.Web.WebView2.Core
     /// Kind of process type used in the CoreWebView2ProcessCollection.
     enum CoreWebView2ProcessKind
     {
-        BrowserProcess = 0,
-        RendererProcess = 1,
-        UtilityProcess = 2,
-        SandboxHelperProcess = 3,
-        GpuProcess = 4,
-        PpapiPluginProcess = 5,
-        PpapiBrokerProcess = 6,
-        UnknownProcess = 7,
+        Browser = 0,
+        Renderer = 1,
+        Utility = 2,
+        SandboxHelper = 3,
+        Gpu = 4,
+        PpapiPlugin = 5,
+        PpapiBroker = 6,
+        Unknown = 7,
     };
 
     runtimeclass CoreWebView2
