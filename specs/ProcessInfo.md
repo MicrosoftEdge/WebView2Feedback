@@ -162,8 +162,9 @@ typedef enum COREWEBVIEW2_PROCESS_KIND {
   COREWEBVIEW2_PROCESS_KIND_UNKNOWN_PROCESS,
 } COREWEBVIEW2_PROCESS_KIND;
 
-[uuid(B625A89E-368F-43F5-BCBA-39AA6234CCF8), object, pointer_default(unique)]
-interface ICoreWebView2Staging2 : ICoreWebView2Staging {
+[uuid(20856F87-256B-41BE-BD64-AB1C36E3D944), object, pointer_default(unique)]
+interface ICoreWebView2StagingEnvironment5 : IUnknown
+{
   /// Adds an event handler for the `ProcessRequested` event.
   /// 
   /// \snippet ProcessComponent.cpp ProcessRequested
