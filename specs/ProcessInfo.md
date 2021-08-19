@@ -132,6 +132,7 @@ void ProcessComponent::ProcessInfo()
 
 # API Details    
 ```
+interface ICoreWebView2StagingEnvironment5;
 interface ICoreWebView2StagingProcessCollection;
 interface ICoreWebView2StagingProcessRequestedEventHandler;
 
