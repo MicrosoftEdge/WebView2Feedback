@@ -30,11 +30,26 @@ Feature explanation text goes here, including why an app would use it, how it
 replaces or supplements existing functionality.
 
 ```c#
+CoreWebView2ProcessCollection _processList;
+
+void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
+{
+    if (e.IsSuccess)
+    {
+        // ...
+        WebViewEnvironment.ProcessRequested += WebView_ProcessRequested;
+    }
+}
+
+void WebView_ProcessRequested(object sender, object e)
+{
+    _processList = WebViewEnvironment.ProcessInfo;
+}
+
 void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    CoreWebView2ProcessCollection processList = webView.CoreWebView2.ProcessInfo;
     string result;
-    uint processListSize = processList.Count;
+    uint processListSize = _processList.Count;
     if (processListSize == 0)
     {
         result = "No process found.";
@@ -44,14 +59,14 @@ void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
         result = $"{processListSize} child process(s) found\n\n";
         for (uint i = 0; i < processListSize; ++i)
         {
-            uint processId = processList.GetProcessIdAtIndex(i);
-            CoreWebView2ProcessKind kind = processList.GetProcessTypeAtIndex(i);
+            uint processId = _processList.GetProcessIdAtIndex(i);
+            CoreWebView2ProcessKind kind = _processList.GetProcessTypeAtIndex(i);
             result = result + $"Process ID: {processId}\nProcess Kind: {kind}\n";
         }
     }
     MessageBox.Show(this, result, "Process List");
 }
-    ```
+```
     
 ```cpp
 ProcessComponent::ProcessComponent(AppWindow* appWindow)
@@ -59,11 +74,11 @@ ProcessComponent::ProcessComponent(AppWindow* appWindow)
 {
     // Register a handler for the ProcessRequested event.
     //! [ProcessRequested]
-    CHECK_FAILURE(m_webView->add_ProcessRequested(
+    environment = appWindow->GetWebViewEnvironment();
+    CHECK_FAILURE(environment->add_ProcessRequested(
         Callback<ICoreWebView2StagingProcessRequestedEventHandler>(
-            [this](
-                ICoreWebView2* sender, IUnknown* args) -> HRESULT {
-                CHECK_FAILURE(m_webView->get_ProcessInfo(&m_processCollection));
+            [this,environment](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+                CHECK_FAILURE(environment->get_ProcessInfo(&m_processCollection));
 
                 return S_OK;
             })
