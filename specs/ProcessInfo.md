@@ -18,11 +18,11 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
     if (e.IsSuccess)
     {
         // ...
-        WebViewEnvironment.ProcessRequested += WebView_ProcessRequested;
+        WebViewEnvironment.ProcessInfoChanged += WebView_ProcessInfoChanged;
     }
 }
 
-void WebView_ProcessRequested(object sender, object e)
+void WebView_ProcessInfoChanged(object sender, object e)
 {
     _processList = WebViewEnvironment.ProcessInfo;
 }
@@ -53,19 +53,19 @@ void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
 ProcessComponent::ProcessComponent(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
-    // Register a handler for the ProcessRequested event.
-    //! [ProcessRequested]
+    // Register a handler for the ProcessInfoChanged event.
+    //! [ProcessInfoChanged]
     environment = appWindow->GetWebViewEnvironment();
-    CHECK_FAILURE(environment->add_ProcessRequested(
-        Callback<ICoreWebView2StagingProcessRequestedEventHandler>(
+    CHECK_FAILURE(environment->add_ProcessInfoChanged(
+        Callback<ICoreWebView2StagingProcessInfoChangedEventHandler>(
             [this,environment](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT {
                 CHECK_FAILURE(environment->get_ProcessInfo(&m_processCollection));
 
                 return S_OK;
             })
             .Get(),
-        &m_processRequestedToken));
-    //! [ProcessRequested]
+        &m_processInfoChangedToken));
+    //! [ProcessInfoChanged]
 }
 
 std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KIND kind)
@@ -92,7 +92,7 @@ std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KI
 }
 
 // Get the process info
-//! [ProcessRequested]
+//! [ProcessInfoChanged]
 void ProcessComponent::ProcessInfo()
 {
     std::wstring result;
@@ -127,14 +127,14 @@ void ProcessComponent::ProcessInfo()
     }
     MessageBox(nullptr, result.c_str(), L"GetProcessesInfo Result", MB_OK);
 }
-//! [ProcessRequested]
+//! [ProcessInfoChanged]
 ```
 
 # API Details    
 ```
 interface ICoreWebView2StagingEnvironment5;
 interface ICoreWebView2StagingProcessCollection;
-interface ICoreWebView2StagingProcessRequestedEventHandler;
+interface ICoreWebView2StagingProcessInfoChangedEventHandler;
 
 [v1_enum]
 typedef enum COREWEBVIEW2_PROCESS_KIND {
@@ -166,15 +166,15 @@ typedef enum COREWEBVIEW2_PROCESS_KIND {
 [uuid(20856F87-256B-41BE-BD64-AB1C36E3D944), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironment5 : IUnknown
 {
-  /// Adds an event handler for the `ProcessRequested` event.
+  /// Adds an event handler for the `ProcessInfoChanged` event.
   /// 
-  /// \snippet ProcessComponent.cpp ProcessRequested
-  HRESULT add_ProcessRequested(
-      [in] ICoreWebView2StagingProcessRequestedEventHandler* eventHandler,
+  /// \snippet ProcessComponent.cpp ProcessInfoChanged
+  HRESULT add_ProcessInfoChanged(
+      [in] ICoreWebView2StagingProcessInfoChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Remove an event handler previously added with `add_ProcessRequested`.
-  HRESULT remove_ProcessRequested(
+  /// Remove an event handler previously added with `add_ProcessInfoChanged`.
+  HRESULT remove_ProcessInfoChanged(
       [in] EventRegistrationToken token);
 
   /// Returns the `ICoreWebView2StagingProcessCollection`
@@ -195,9 +195,9 @@ interface ICoreWebView2StagingProcessCollection : IUnknown {
   HRESULT GetProcessTypeAtIndex([in] UINT index, [out, retval] COREWEBVIEW2_PROCESS_KIND* processKind);
 }
 
-/// An event handler for the `ProcessRequested` event.
+/// An event handler for the `ProcessInfoChanged` event.
 [uuid(CFF13C72-2E3B-4812-96FB-DFDDE67FBE90), object, pointer_default(unique)]
-interface ICoreWebView2StagingProcessRequestedEventHandler : IUnknown {
+interface ICoreWebView2StagingProcessInfoChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
   /// and the `args` parameter is set to `null`.
   HRESULT Invoke([in] ICoreWebView2* sender, [in] IUnknown* args);
@@ -227,7 +227,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         /// Gets a list of process.
         CoreWebView2ProcessCollection ProcessInfo { get; };
-        event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> ProcessRequested;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> ProcessInfoChanged;
 
         // ...
     }
