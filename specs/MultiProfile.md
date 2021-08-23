@@ -20,57 +20,92 @@ browser instance at runtime), which means separate cookies, user preference sett
 data storage etc., to help you build a more wonderful experience for your application.
 
 # Examples
-<!-- TEMPLATE
-    Use this section to explain the features of the API, showing
-    example code with each description in both C# (for our WinRT API or .NET API) and
-    in C++ for our COM API. Use snippets of the sample code you wrote for the sample apps.
-    The sample code for C++ and C# should demonstrate the same thing.
 
-    The general format is:
+## Provide options to create WebView2 with a specific profile
 
-    ## FirstFeatureName
+### Win32 C++
 
-    Feature explanation text goes here, including why an app would use it, how it
-    replaces or supplements existing functionality.
+```cpp
+HRESULT AppWindow::CreateControllerWithOptions()
+{
+    auto webViewEnvironment4 =
+        m_webViewEnvironment.try_query<ICoreWebView2Environment4>();
 
-    ```c#
-    void SampleMethod()
+    Microsoft::WRL::ComPtr<ICoreWebView2ControllerOptions> options;
+    HRESULT hr = webViewEnvironment4->CreateCoreWebView2ControllerOptions(
+        m_webviewOption.profile.c_str(), m_webviewOption.isInPrivate, options.GetAddressOf());
+    if (hr == E_INVALIDARG)
     {
-        var show = new AnExampleOf();
-        show.SomeMembers = AndWhyItMight(be, interesting)
+        ShowFailure(hr, L"Invalid profile name, create WebView failed! Window is closing.");
+        CloseAppWindow();
+        return S_FALSE;
     }
-    ```
+    CHECK_FAILURE(hr);
+
+#ifdef USE_WEBVIEW2_WIN10
+    if (webViewEnvironment4 && (m_dcompDevice || m_wincompCompositor))
+#else
+    if (webViewEnvironment4 && m_dcompDevice)
+#endif
+    {
+        CHECK_FAILURE(webViewEnvironment4->CreateCoreWebView2CompositionControllerWithOptions(
+            m_mainWindow, options.Get(),
+            Callback<ICoreWebView2CreateCoreWebView2CompositionControllerCompletedHandler>(
+                [this](
+                    HRESULT result,
+                    ICoreWebView2CompositionController* compositionController) -> HRESULT {
+                    auto controller =
+                        wil::com_ptr<ICoreWebView2CompositionController>(compositionController)
+                            .query<ICoreWebView2Controller>();
+                    return OnCreateCoreWebView2ControllerCompleted(result, controller.get());
+                })
+                .Get()));
+    }
+    else
+    {
+        CHECK_FAILURE(webViewEnvironment4->CreateCoreWebView2ControllerWithOptions(
+            m_mainWindow, options.Get(),
+            Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                this, &AppWindow::OnCreateCoreWebView2ControllerCompleted)
+                .Get()));
+    }
+
+    return S_OK;
+}
+```
+
+## Access the profile property of WebView2
+
+### Win32 C++
+
+```cpp
+HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICoreWebView2Controller* controller)
+{
+    // ...
+
+    m_controller = controller;
     
-    ```cpp
-    void SampleClass::SampleMethod()
-    {
-        winrt::com_ptr<ICoreWebView2> webview2 = ...
-    }
-    ```
-
-    ## SecondFeatureName
-
-    Feature explanation text goes here, including why an app would use it, how it
-    replaces or supplements existing functionality.
-
-    ```c#
-    void SampleMethod()
-    {
-        var show = new AnExampleOf();
-        show.SomeMembers = AndWhyItMight(be, interesting)
-    }
-    ```
+    // Gets the webview object from controller.
+    wil::com_ptr<ICoreWebView2> coreWebView2;
+    CHECK_FAILURE(m_controller->get_CoreWebView2(&coreWebView2));
+    coreWebView2.query_to(&m_webView);
+    m_webView3 = coreWebView2.try_query<ICoreWebView2_3>();
     
-    ```cpp
-    void SampleClass::SampleMethod()
-    {
-        winrt::com_ptr<ICoreWebView2> webview2 = ...
-    }
-    ```
-
-    As an example of this section, see the Examples section for the Custom Downloads
-    APIs (https://github.com/MicrosoftEdge/WebView2Feedback/blob/master/specs/CustomDownload.md). 
--->
+    // Gets the profile property of webview.
+    wil::com_ptr<ICoreWebView2Profile> profile;
+    CHECK_FAILURE(m_webView3->get_Profile(&profile));
+    
+    // Accesses the profile object.
+    wil::unique_cotaskmem_string name;
+    CHECK_FAILURE(profile->get_ProfileName(&name));
+    BOOL inPrivateModeEnabled;
+    CHECK_FAILURE(profile->get_InPrivateModeEnablede(&inPrivateModeEnabled));
+    wil::unique_cotaskmem_string path;
+    CHECK_FAILURE(profile->get_ProfilePath(&path));
+    
+    // ...
+}
+```
 
 # API Details
 
