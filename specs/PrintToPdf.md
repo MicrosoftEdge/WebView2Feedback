@@ -133,12 +133,12 @@ interface ICoreWebView2_4 : IUnknown {
   /// Use `resultFilePath` to specify the path to the PDF file. The host should
   /// provide an absolute path, including file name. If the path
   /// points to an existing file, the file will be overwritten. If the path is
-  /// not valid, the page is not saved and `resultFilePath` in
-  /// `ICoreWebView2PrintToPdfCompletedHandler` is an empty string.
+  /// not valid, the method fails with `E_INVALIDARG`.
   ///
   /// The async `PrintToPdf` operation completes when the data has been written
-  /// to the PDF file. At this time the `ICoreWebView2PrintToPdfCompletedHandler`
-  /// is invoked.
+  /// to the PDF file. At this time the
+  /// `ICoreWebView2StagingPrintToPdfCompletedHandler` is invoked. Only one
+  /// `PrintToPdf` operation can be in progress at a time.
   ///
   /// \snippet FileComponent.cpp PrintToPdf
   HRESULT PrintToPdf(
