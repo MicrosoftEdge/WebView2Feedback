@@ -115,7 +115,7 @@ See [API Details](#api-details) section below for API reference.
 interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler;
 
 [uuid(71c906d9-4a4d-4dbe-aa1b-db64f4de594e), object, pointer_default(unique)]
-interface ICoreWebView2_2 : ICoreWebView2 {
+interface ICoreWebView2_6 : ICoreWebView2 {
   /// Mutes all audio output from this CoreWebView2.
   ///
   /// \snippet AudioComponent.cpp Mute
