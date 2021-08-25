@@ -120,8 +120,8 @@ interface ICoreWebView2Profile;
 [uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
 interface ICoreWebView2ControllerOptions : IUnknown {
   /// `ProfileName` property is to specify a profile name, which is only allowed to contain
-  /// the following ASCII characters. It has a maximum length of 64 characters. It is ASCII case insensitive.
-  /// case insensitive way.
+  /// the following ASCII characters. It has a maximum length of 64 characters excluding the null terminator. It is
+  /// ASCII case insensitive.
   ///    alphabet characters: a-z and A-Z
   ///    digit characters: 0-9
   ///    and '#', '@', '$', '(', ')', '+', '-', '_', '~', '.', ' ' (space).
