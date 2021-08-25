@@ -26,7 +26,6 @@ Using this returned directory is safer for the long run so that if WebView2
 changes the underlying path default logic the application will be able to adapt 
 automatically.
 
-
 # Description
 
 Returns the user data folder that all CoreWebView2's created from this 
