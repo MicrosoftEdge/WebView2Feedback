@@ -120,7 +120,7 @@ interface ICoreWebView2Profile;
 [uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
 interface ICoreWebView2ControllerOptions : IUnknown {
   /// `ProfileName` property is to specify a profile name, which is only allowed to contain
-  /// the following ASCII characters with the maximum length as 64 and will be treated in a
+  /// the following ASCII characters. It has a maximum length of 64 characters. It is ASCII case insensitive.
   /// case insensitive way.
   ///    alphabet characters: a-z and A-Z
   ///    digit characters: 0-9
@@ -133,9 +133,9 @@ interface ICoreWebView2ControllerOptions : IUnknown {
   [propput] HRESULT ProfileName([in] LPCWSTR value);
 
   /// `InPrivateModeEnabled` property is to enable/disable InPrivate mode.
-  [propget] HRESULT InPrivateModeEnabled([out, retval] BOOL* enabled);
+  [propget] HRESULT IsInPrivateModeEnabled([out, retval] BOOL* value);
   /// Sets the `InPrivateModeEnabled` property.
-  [propput] HRESULT InPrivateModeEnabled([in] BOOL enabled);
+  [propput] HRESULT IsInPrivateModeEnabled([in] BOOL value);
 }
 
 [uuid(57FD205C-39D5-4BA1-8E7B-3E53C323EA87), object, pointer_default(unique)]
@@ -164,7 +164,7 @@ interface ICoreWebView2Environment5 : IUnknown
 [uuid(6E5CE5F0-16E6-4A05-97D8-4E256B3EB609), object, pointer_default(unique)]
 interface ICoreWebView2_7 : IUnknown {
   /// The associated `ICoreWebView2Profile` object.
-  [propget] HRESULT Profile([out, retval] ICoreWebView2Profile** profile);
+  [propget] HRESULT Profile([out, retval] ICoreWebView2Profile** value);
 }
 
 [uuid(3B9A2AF2-E703-4C81-9D25-FCE44312E960), object, pointer_default(unique)]
@@ -173,7 +173,7 @@ interface ICoreWebView2Profile : IUnknown {
   [propget] HRESULT ProfileName([out, retval] LPWSTR* value);
 
   /// InPrivate mode is enabled or not.
-  [propget] HRESULT InPrivateModeEnabled([out, retval] BOOL* enabled);
+  [propget] HRESULT IsInPrivateModeEnabled([out, retval] BOOL* value);
 
   /// Full path of the profile directory.
   [propget] HRESULT ProfilePath([out, retval] LPWSTR* value);
