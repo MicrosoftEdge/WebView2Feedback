@@ -196,7 +196,7 @@ namespace Microsoft.Web.WebView2.Core
     {        
         String ProfileName { get; set; };
 
-        Int32 InPrivateModeEnabled { get; set; };
+        Boolean IsInPrivateModeEnabled { get; set; };
     }
     
     runtimeclass CoreWebView2Environment
@@ -227,7 +227,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         String ProfileName { get; };
 
-        Int32 InPrivateModeEnabled { get; };
+        Boolean IsInPrivateModeEnabled { get; };
 
         String ProfilePath { get; };
     }
