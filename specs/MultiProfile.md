@@ -132,9 +132,9 @@ interface ICoreWebView2ControllerOptions : IUnknown {
   /// Sets the `ProfileName` property.
   [propput] HRESULT ProfileName([in] LPCWSTR value);
 
-  /// `InPrivateModeEnabled` property is to enable/disable InPrivate mode.
+  /// `IsInPrivateModeEnabled` property is to enable/disable InPrivate mode.
   [propget] HRESULT IsInPrivateModeEnabled([out, retval] BOOL* value);
-  /// Sets the `InPrivateModeEnabled` property.
+  /// Sets the `IsInPrivateModeEnabled` property.
   [propput] HRESULT IsInPrivateModeEnabled([in] BOOL value);
 }
 
@@ -145,7 +145,7 @@ interface ICoreWebView2Environment5 : IUnknown
   /// CreateCoreWebView2ControllerWithOptions and CreateCoreWebView2CompositionControllerWithOptions.
   HRESULT CreateCoreWebView2ControllerOptions(
       [in] LPCWSTR profileName,
-      [in] BOOL inPrivateModeEnabled,
+      [in] BOOL isInPrivateModeEnabled,
       [out, retval] ICoreWebView2ControllerOptions** options);
 
   /// Create a new WebView with options.
