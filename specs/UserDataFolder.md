@@ -20,7 +20,7 @@ logic into your application with an assumption where the User Data is
 located.  WebView2 changing that default can then result in a code error or 
 possible crash.
 
-This api will provide the you a way to get the directory that is 
+This api will provide you a way to get the directory that is 
 currently being used by the WebView for storage of the user data.
 
 Using this returned directory is safer for the long run so that if WebView2 
@@ -74,7 +74,7 @@ HRESULT UserDataFolder()
 [
   uuid(083CB0D7-E464-4108-807E-80AE4EAA3B28), object,
   pointer_default(unique)
-] interface ICoreWebView2Environment6 : IUnknown {
+] interface ICoreWebView2Environment6 : ICoreWebView2Environment5  {
   /// Returns the user data folder that all CoreWebView2's created from this 
   /// environment are using.
   /// This could be either the value passed in by the developer when creating the 
