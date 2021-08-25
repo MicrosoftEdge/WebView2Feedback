@@ -6,13 +6,14 @@ UserDataFolder API
 # Background
 You may have a need to cleanup or possibly add to the data being
 stored in the WebView2 user data directory.  This directory can be either 
-configured by the you during creation of the webview2 control or calculated
+configured by you during creation of the webview2 control or calculated
 at runtime by the control if it wasn't set during creation.
 
 The current WebView2 code is designed to use a the directory that the hosting 
 application is running in as the default location.  This has resulted in issues 
-if running from a secure location (IE the program files tree).  Work is in process
-to change that default and will be forthcoming in later changes
+if running from a folder for which the WebView2 process doesn't have write access 
+such as a Program Files folder.  Work is in progress to change that default and 
+will be forthcoming in later changes.
 
 With the current guidance it is possible for you to have built
 logic into your application with an assumption where the User Data is 
@@ -31,7 +32,7 @@ automatically.
 Returns the user data folder that all CoreWebView2's created from this 
 environment are using.
 This could be either the value passed in by you when creating the 
-environment object or the calculated one for default handling.  And it will
+environment object or the calculated one for default handling.  It will
 always be an absolute path.
 
 
@@ -40,27 +41,13 @@ always be an absolute path.
 ```cpp
 HRESULT UserDataFolder()
 {
-  base::ScopedTempDir temp_dir;
+    // get the current user data folder from the webview environment object
+        wil::unique_cotaskmem_string userDataFolder;
+        m_webViewEnvironment->get_UserDataFolder(&userDataFolder);
 
-  CreateCoreWebView2EnvironmentWithOptions(
-      L".", temp_dir.GetPath().value().c_str(), nullptr,
-    Microsoft::WRL::Callback<
-      ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>
-    (
-          [&temp_dir, &environment_created]
-        (HRESULT result, ICoreWebView2Environment* webview_environment) ->
-            HRESULT {
-
-            ScopedCoMemString environmentUserDataFolder;
-            webview_environment->get_UserDataFolder(
-                &environmentUserDataFolder);
-
-            return S_OK;
-    }).Get());
-
-    return S_OK;_
-}
-```
+    // using the folder
+    WriteAppLog(userDataFolder.get(), "Logging information");
+}```
 
 ```c#
 
@@ -69,7 +56,11 @@ HRESULT UserDataFolder()
     {
         if (e.IsSuccess)
         {
+            // Get the current user data folder
             String userDataFolder = webView.CoreWebView2.Environment->UserDataFolder();
+
+            // using the folder
+            WriteAppLog(userDataFolder, "Logging information");
         }
     }
 
@@ -94,4 +85,12 @@ HRESULT UserDataFolder()
 
   [propget] HRESULT UserDataFolder([ out, retval ] LPWSTR * value);
 }
+```
+
+```c# (but really MIDL3)
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment6")]
+        {
+            // ICoreWebView2ExperimentalEnvironment5 members
+            String UserDataFolder { get; };
+        }
 ```
