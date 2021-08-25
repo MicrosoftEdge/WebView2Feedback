@@ -112,7 +112,7 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
 
 ```IDL
-interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler;
+interface ICoreWebView2IsAudioPlayingChangedEventHandler;
 
 [uuid(71c906d9-4a4d-4dbe-aa1b-db64f4de594e), object, pointer_default(unique)]
 interface ICoreWebView2_6 : ICoreWebView2 {
@@ -128,7 +128,7 @@ interface ICoreWebView2_6 : ICoreWebView2 {
 
   /// Indicates whether all audio output from this CoreWebView2 is muted or not.
   ///
-  /// \snippet AudioComponent_Staging.cpp IsMuted
+  /// \snippet AudioComponent.cpp IsMuted
   [propget] HRESULT IsMuted([out, retval] BOOL* value);
   
   /// Adds an event handler for the `IsAudioPlayingChanged` event.
@@ -136,7 +136,7 @@ interface ICoreWebView2_6 : ICoreWebView2 {
   ///
   /// \snippet AudioComponent.cpp IsAudioPlayingChanged
   HRESULT add_IsAudioPlayingChanged(
-      [in] ICoreWebView2StagingIsAudioPlayingChangedEventHandler* eventHandler,
+      [in] ICoreWebView2IsAudioPlayingChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_IsAudioPlayingChanged`.
