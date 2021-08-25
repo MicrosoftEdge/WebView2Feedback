@@ -154,7 +154,7 @@ interface ICoreWebView2_6 : ICoreWebView2 {
 /// Implements the interface to receive `IsAudioPlayingChanged` events.  Use the
 /// IsAudioPlaying method to get the audible state.
 [uuid(5DEF109A-2F4B-49FA-B7F6-11C39E513328), object, pointer_default(unique)]
-interface ICoreWebView2StagingIsAudioPlayingChangedEventHandler : IUnknown {
+interface ICoreWebView2IsAudioPlayingChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
   /// and the `args` parameter is set to `null`.
   HRESULT Invoke([in] ICoreWebView2* sender, [in] IUnknown* args);
