@@ -69,7 +69,7 @@ HRESULT UserDataFolder()
 # API Details
 ```c# (but really MIDL3)
 /// This interface is an extension of the ICoreWebView2Environment. An object
-/// implementing the ICoreWebView2Environment5 interface will also
+/// implementing the ICoreWebView2Environment6 interface will also
 /// implement ICoreWebView2Environment.
 [
   uuid(083CB0D7-E464-4108-807E-80AE4EAA3B28), object,
@@ -88,9 +88,15 @@ HRESULT UserDataFolder()
 ```
 
 ```c# (but really MIDL3)
+namespace Microsoft.Web.WebView2.Core
+{
+    runtimeclass CoreWebView2Environment
+    {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment6")]
         {
             // ICoreWebView2ExperimentalEnvironment5 members
             String UserDataFolder { get; };
         }
+    }
+}
 ```
