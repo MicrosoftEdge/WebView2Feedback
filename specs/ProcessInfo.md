@@ -11,7 +11,7 @@ Feature explanation text goes here, including why an app would use it, how it
 replaces or supplements existing functionality.
 
 ```c#
-CoreWebView2ProcessCollection _processList;
+IReadOnlyList<CoreWebView2ProcessInfo> _processList;
 
 void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
@@ -30,7 +30,7 @@ void WebView_ProcessInfoChanged(object sender, object e)
 void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
     string result;
-    uint processListSize = _processList.Count;
+    int processListSize = _processList.Count;
     if (processListSize == 0)
     {
         result = "No process found.";
@@ -38,10 +38,10 @@ void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
     else
     {
         result = $"{processListSize} child process(s) found\n\n";
-        for (uint i = 0; i < processListSize; ++i)
+        for (int i = 0; i < processListSize; ++i)
         {
-            uint processId = _processList.GetProcessIdAtIndex(i);
-            CoreWebView2ProcessKind kind = _processList.GetProcessTypeAtIndex(i);
+            uint processId = _processList[i].Id;
+            CoreWebView2ProcessKind kind = _processList[i].Kind;
             result = result + $"Process ID: {processId}\nProcess Kind: {kind}\n";
         }
     }
@@ -226,23 +226,18 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2
     {
         /// Gets a list of process.
-        CoreWebView2ProcessCollection ProcessInfo { get; };
+        IVectorView<CoreWebView2ProcessInfo> ProcessInfo { get; };
         event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> ProcessInfoChanged;
 
         // ...
     }
 
-    runtimeclass CoreWebView2ProcessCollection
+    runtimeclass CoreWebView2ProcessInfo
     {
-        // ICoreWebView2ProcessCollection members
-        /// Process count.
-        UInt32 Count { get; };
+        public CoreWebView2ProcessInfo(UInt32 id, CoreWebView2ProcessKind kind);
 
-        /// Process id.
-        UInt32 GetProcessIdAtIndex(UInt32 index);
-
-        /// Process type.
-        CoreWebView2ProcessKind GetProcessTypeAtIndex(UInt32 index);
+        UInt32 Id;
+        CoreWebView2ProcessKind Kind;
     }
 
     // ...
