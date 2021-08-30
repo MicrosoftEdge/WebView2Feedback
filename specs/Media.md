@@ -15,9 +15,10 @@ The following code snippet demonstrates how the Media related API can be used:
 AudioComponent::AudioComponent(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
+    webview6 = m_webView.try_query<ICoreWebView2_6>();
     // Register a handler for the IsAudioPlayingChanged event.
     // This handler just announces the audible state on the window's title bar.
-    CHECK_FAILURE(m_webView->add_IsAudioPlayingChanged(
+    CHECK_FAILURE(webview6->add_IsAudioPlayingChanged(
         Callback<ICoreWebView2StagingIsAudioPlayingChangedEventHandler>(
             [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
                 BOOL isAudioPlaying;
@@ -56,13 +57,13 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
 // Mute the current window and show a mute icon on the title bar
  void AudioComponent::Mute()
  {
-    CHECK_FAILURE(m_webView->Mute());
+    CHECK_FAILURE(webview6->Mute());
  }
 
 // Unmute the current window and hide the mute icon on the title bar
  void AudioComponent::Unmute()
  {
-    CHECK_FAILURE(m_webView->Unmute());
+    CHECK_FAILURE(webview6->Unmute());
  }
  //! [IsAudioPlayingChanged] [IsAudioPlaying] [IsMuted] [Mute] [Unmute]
 ```
