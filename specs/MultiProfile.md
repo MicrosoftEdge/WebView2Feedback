@@ -30,6 +30,11 @@ HRESULT AppWindow::CreateControllerWithOptions()
 {
     auto webViewEnvironment4 =
         m_webViewEnvironment.try_query<ICoreWebView2Environment4>();
+    if (!webViewEnvironment4)
+    {
+        FeatureNotAvailable();
+        return S_OK;
+    }
 
     Microsoft::WRL::ComPtr<ICoreWebView2ControllerOptions> options;
     HRESULT hr = webViewEnvironment4->CreateCoreWebView2ControllerOptions(
@@ -43,9 +48,9 @@ HRESULT AppWindow::CreateControllerWithOptions()
     CHECK_FAILURE(hr);
 
 #ifdef USE_WEBVIEW2_WIN10
-    if (webViewEnvironment4 && (m_dcompDevice || m_wincompCompositor))
+    if (m_dcompDevice || m_wincompCompositor)
 #else
-    if (webViewEnvironment4 && m_dcompDevice)
+    if (m_dcompDevice)
 #endif
     {
         CHECK_FAILURE(webViewEnvironment4->CreateCoreWebView2CompositionControllerWithOptions(
@@ -88,21 +93,31 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
     // Gets the webview object from controller.
     wil::com_ptr<ICoreWebView2> coreWebView2;
     CHECK_FAILURE(m_controller->get_CoreWebView2(&coreWebView2));
-    coreWebView2.query_to(&m_webView);
-    m_webView3 = coreWebView2.try_query<ICoreWebView2_3>();
-    
-    // Gets the profile property of webview.
-    wil::com_ptr<ICoreWebView2Profile> profile;
-    CHECK_FAILURE(m_webView3->get_Profile(&profile));
-    
-    // Accesses the profile object.
-    wil::unique_cotaskmem_string name;
-    CHECK_FAILURE(profile->get_ProfileName(&name));
-    BOOL inPrivateModeEnabled;
-    CHECK_FAILURE(profile->get_InPrivateModeEnablede(&inPrivateModeEnabled));
-    wil::unique_cotaskmem_string path;
-    CHECK_FAILURE(profile->get_ProfilePath(&path));
-    
+
+    auto webview7 = coreWebView2.try_query<ICoreWebView2_7>();
+    if (webview7)
+    {
+        // Gets the profile property of webview.
+        wil::com_ptr<ICoreWebView2Profile> profile;
+        CHECK_FAILURE(webview7->get_Profile(&profile));
+
+        // Accesses the profile object.
+        wil::unique_cotaskmem_string name;
+        CHECK_FAILURE(profile->get_ProfileName(&name));
+        BOOL inPrivateModeEnabled = FALSE;
+        CHECK_FAILURE(profile->get_InPrivateModeEnablede(&inPrivateModeEnabled));
+        wil::unique_cotaskmem_string profile_path;
+        CHECK_FAILURE(profile->get_ProfilePath(&profile_path));
+        std::wstring str(profile_path.get());
+        m_profileName = str.substr(str.find_last_of(L'\\') + 1);
+        
+        // update window title
+        UpdateAppTitle();
+
+        // update window icon
+        SetAppIcon(inPrivate);        
+    }
+  
     // ...
 }
 ```
