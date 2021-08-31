@@ -36,7 +36,7 @@ HRESULT AppWindow::CreateControllerWithOptions()
         m_webviewOption.profile.c_str(), m_webviewOption.isInPrivate, options.GetAddressOf());
     if (hr == E_INVALIDARG)
     {
-        ShowFailure(hr, L"Invalid profile name, create WebView failed! Window is closing.");
+        ShowFailure(hr, L"Unable to create WebView2 due to an invalid profile name.");
         CloseAppWindow();
         return S_FALSE;
     }
