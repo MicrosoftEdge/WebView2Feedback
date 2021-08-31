@@ -38,7 +38,7 @@ HRESULT AppWindow::CreateControllerWithOptions()
     {
         ShowFailure(hr, L"Unable to create WebView2 due to an invalid profile name.");
         CloseAppWindow();
-        return S_FALSE;
+        return S_OK;
     }
     CHECK_FAILURE(hr);
 
