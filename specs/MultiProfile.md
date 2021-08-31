@@ -143,6 +143,7 @@ interface ICoreWebView2Environment5 : IUnknown
 {
   /// Create a new ICoreWebView2ControllerOptions to be passed as a parameter of
   /// CreateCoreWebView2ControllerWithOptions and CreateCoreWebView2CompositionControllerWithOptions.
+  /// Returns E_INVALIDARG only in case of invalid profile name.
   HRESULT CreateCoreWebView2ControllerOptions(
       [in] LPCWSTR profileName,
       [in] BOOL isInPrivateModeEnabled,
