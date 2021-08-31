@@ -258,7 +258,7 @@ if strongly requested. The idea is roughly illustrated as below.
 
 ## Win32 C++
 
-```cpp
+```IDL
 [uuid(3B9A2AF2-E703-4C81-9D25-FCE44312E960), object, pointer_default(unique)]
 interface ICoreWebView2Profile : IUnknown {
   // ...
