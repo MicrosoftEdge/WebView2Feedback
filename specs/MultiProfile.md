@@ -105,7 +105,7 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
         wil::unique_cotaskmem_string name;
         CHECK_FAILURE(profile->get_ProfileName(&name));
         BOOL inPrivateModeEnabled = FALSE;
-        CHECK_FAILURE(profile->get_InPrivateModeEnablede(&inPrivateModeEnabled));
+        CHECK_FAILURE(profile->get_IsInPrivateModeEnabled(&inPrivateModeEnabled));
         wil::unique_cotaskmem_string profile_path;
         CHECK_FAILURE(profile->get_ProfilePath(&profile_path));
         std::wstring str(profile_path.get());
