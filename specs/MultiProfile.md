@@ -254,36 +254,4 @@ namespace Microsoft.Web.WebView2.Core
 
 Next we'll consolidate all profile-wide operations/settings into the interface
 `ICoreWebView2Profile`, and will also add support for erasing a profile completely
-if strongly requested. The idea is roughly illustrated as below.
-
-## Win32 C++
-
-```IDL
-[uuid(3B9A2AF2-E703-4C81-9D25-FCE44312E960), object, pointer_default(unique)]
-interface ICoreWebView2Profile : IUnknown {
-  // ...
-  
-  /// Gets the cookie manager object for this profile.
-  /// See ICoreWebView2CookieManager.
-  [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
-
-  /// Clears browsing data based on a specific data type. The completed handler
-  /// will be invoked when the browsing data has been cleared and will indicate
-  /// if the specified data was properly cleared.
-  HRESULT ClearBrowsingData(
-      [in] COREWEBVIEW2_BROWSING_DATA_KIND dataKind,
-      [in] ICoreWebView2ClearBrowsingDataCompletedHandler *handler);
-
-  /// Toggles whether autosave for password information is enabled. Disabled by default.
-  HRESULT TogglePasswordAutosaveEnabled([in] BOOL enable);
-
-  /// Toggles whether autofill for information like names, street and email addresses, phone
-  /// numbers, and arbitrary input is enabled. This excludes password and credit card
-  /// information. Enabled by default. 
-  HRESULT ToggleGeneralAutofillEnabled([in] BOOL enable);
-
-  /// Erase the profile completely. All webviews on this profile will be closed and the profile
-  /// directory on disk will be deleted.
-  HRESULT Erase([in] ICoreWebView2ProfileEraseCompletedHandler *handler);
-}
-```
+if strongly requested.
