@@ -9,13 +9,13 @@ stored in the WebView2 user data directory.  This directory can be either
 configured by you during creation of the webview2 control or calculated
 at runtime by the control if it wasn't set during creation.
 
-The current WebView2 code is designed to use a the directory that the hosting 
-application is running in as the default location.  This has resulted in issues 
+The current WebView2 code defaults the user data folder to the directory that
+ contains the hosting application's executable.   This has resulted in issues 
 if running from a folder for which the WebView2 process doesn't have write access 
 such as a Program Files folder.  Work is in progress to change that default and 
 will be forthcoming in later changes.
 
-With the current guidance it is possible for you to have built
+With the current implementation it is possible for you to have built
 logic into your application with an assumption where the User Data is 
 located.  WebView2 changing that default can then result in a code error or 
 possible crash.
@@ -41,12 +41,18 @@ always be an absolute path.
 ```cpp
 HRESULT UserDataFolder()
 {
-    // get the current user data folder from the webview environment object
-        wil::unique_cotaskmem_string userDataFolder;
-        m_webViewEnvironment->get_UserDataFolder(&userDataFolder);
+        Microsoft::WRL::ComPtr<ICoreWebView2Environment6> WebViewEnvironment6;
+        m_webViewEnvironment->QueryInterface(IID_PPV_ARGS(&WebViewEnvironment6));
 
-    // using the folder
-    WriteAppLog(userDataFolder.get(), "Logging information");
+        if (WebViewEnvironment6 != NULLPTR)
+        {
+            // get the current user data folder from the webview environment object
+            wil::unique_cotaskmem_string userDataFolder;
+            WebViewEnvironment6->get_UserDataFolder(&userDataFolder);
+
+            // using the folder
+            WriteAppLog(userDataFolder.get(), "Logging information");
+        }
 }```
 
 ```c#
@@ -57,7 +63,7 @@ HRESULT UserDataFolder()
         if (e.IsSuccess)
         {
             // Get the current user data folder
-            String userDataFolder = webView.CoreWebView2.Environment->UserDataFolder();
+            String userDataFolder = webView.CoreWebView2.Environment.UserDataFolder();
 
             // using the folder
             WriteAppLog(userDataFolder, "Logging information");
