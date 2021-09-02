@@ -40,7 +40,7 @@ void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
         result = $"{processListSize} child process(s) found\n\n";
         for (int i = 0; i < processListSize; ++i)
         {
-            uint processId = _processList[i].Id;
+            uint processId = _processList[i].id;
             CoreWebView2ProcessKind kind = _processList[i].Kind;
             result = result + $"Process ID: {processId}\nProcess Kind: {kind}\n";
         }
@@ -109,17 +109,18 @@ void ProcessComponent::ProcessInfo()
         result += L"\n\n";
         for (UINT i = 0; i < process_list_size; ++i)
         {
+            wil::com_ptr<ICoreWebView2StagingProcessInfo> processInfo;
+            CHECK_FAILURE(m_processCollection->GetValueAtIndex(i, &processInfo));
+
             UINT32 processId = 0;
-            CHECK_FAILURE(
-                m_processCollection->GetProcessIdAtIndex(i, &processId));
+            COREWEBVIEW2_PROCESS_KIND kind;
+            CHECK_FAILURE(processInfo->get_Id(&processId));
+            CHECK_FAILURE(processInfo->get_Kind(&kind));
 
             WCHAR buffer[4096] = L"";
             StringCchPrintf(buffer, ARRAYSIZE(buffer), L"Process ID: %u\n", processId);
 
             result += buffer;
-
-            COREWEBVIEW2_PROCESS_KIND kind;
-            CHECK_FAILURE(m_processCollection->GetProcessTypeAtIndex(i, &kind));
 
             result += L"Process Kind: " + ProcessKindToString(kind);
             result += L"\n";
@@ -133,7 +134,8 @@ void ProcessComponent::ProcessInfo()
 # API Details    
 ```
 interface ICoreWebView2StagingEnvironment5;
-interface ICoreWebView2StagingProcessCollection;
+interface ICoreWebView2StagingProcessInfo;
+interface ICoreWebView2StagingProcessInfoCollection;
 interface ICoreWebView2StagingProcessInfoChangedEventHandler;
 
 [v1_enum]
@@ -164,7 +166,7 @@ typedef enum COREWEBVIEW2_PROCESS_KIND {
 } COREWEBVIEW2_PROCESS_KIND;
 
 [uuid(20856F87-256B-41BE-BD64-AB1C36E3D944), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironment5 : IUnknown
+interface ICoreWebView2Environment6 : ICoreWebView2Environment5
 {
   /// Adds an event handler for the `ProcessInfoChanged` event.
   /// 
@@ -177,22 +179,31 @@ interface ICoreWebView2StagingEnvironment5 : IUnknown
   HRESULT remove_ProcessInfoChanged(
       [in] EventRegistrationToken token);
 
-  /// Returns the `ICoreWebView2StagingProcessCollection`
-  [propget] HRESULT ProcessInfo([out, retval]ICoreWebView2StagingProcessCollection** value);
+  /// Returns the `ICoreWebView2StagingProcessInfoCollection`
+  [propget] HRESULT ProcessInfo([out, retval]ICoreWebView2StagingProcessInfoCollection** value);
+}
+
+/// Provides a set of properties for a process in the `ICoreWebView2Environment`.
+[uuid(7798D399-52A1-4823-AD6A-1F3EDD74B0B6), object, pointer_default(unique)]
+interface ICoreWebView2StagingProcessInfo : IUnknown {
+
+  /// The process id in the process.
+  [propget] HRESULT Id([out, retval] UINT32* value);
+
+  /// The process type in the process.
+  [propget] HRESULT Kind([out, retval] COREWEBVIEW2_PROCESS_KIND* kind);
 }
 
 /// A list containing process id and corresponding process type.
-/// \snippet ProcessComponent.cpp get_ProcessInfo
 [uuid(5356F3B3-4859-4763-9C95-837CDEEE8912), object, pointer_default(unique)]
-interface ICoreWebView2StagingProcessCollection : IUnknown {
-  /// The number of process contained in the ICoreWebView2StagingProcessCollection.
+interface ICoreWebView2StagingProcessInfoCollection : IUnknown {
+  /// The number of process contained in the ICoreWebView2StagingProcessInfoCollection.
   [propget] HRESULT Count([out, retval] UINT* count);
 
-  /// Gets the process id at the given index.
-  HRESULT GetProcessIdAtIndex([in] UINT index, [out, retval] UINT32* value);
-
-  /// Gets the process type at the given index.
-  HRESULT GetProcessTypeAtIndex([in] UINT index, [out, retval] COREWEBVIEW2_PROCESS_KIND* processKind);
+  /// Gets the `ICoreWebView2StagingProcessInfo` located in the `ICoreWebView2StagingProcessInfoCollection`
+  /// at the given index.
+  HRESULT GetValueAtIndex([in] UINT32 index,
+                          [out, retval] ICoreWebView2StagingProcessInfo** processInfo);
 }
 
 /// An event handler for the `ProcessInfoChanged` event.
@@ -208,7 +219,8 @@ interface ICoreWebView2StagingProcessInfoChangedEventHandler : IUnknown {
 namespace Microsoft.Web.WebView2.Core
 {
     // ...
-    runtimeclass CoreWebView2ProcessCollection;
+    runtimeclass CoreWebView2ProcessInfoCollection;
+    runtimeclass CoreWebView2ProcessInfo;
 
     /// Kind of process type used in the CoreWebView2ProcessCollection.
     enum CoreWebView2ProcessKind
@@ -223,6 +235,22 @@ namespace Microsoft.Web.WebView2.Core
         Unknown = 7,
     };
 
+    runtimeclass CoreWebView2ProcessInfoCollection
+    {
+        // ICoreWebView2ProcessInfoCollection members
+        UInt32 Count { get; };
+
+        CoreWebView2ProcessInfo GetValueAtIndex(UInt32 index);
+    }
+
+    runtimeclass CoreWebView2ProcessInfo
+    {
+        // ICoreWebView2ProcessInfo members
+        UInt32 id { get; };
+
+        CoreWebView2ProcessKind Kind { get; };
+    }
+
     runtimeclass CoreWebView2
     {
         /// Gets a list of process.
@@ -230,14 +258,6 @@ namespace Microsoft.Web.WebView2.Core
         event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> ProcessInfoChanged;
 
         // ...
-    }
-
-    runtimeclass CoreWebView2ProcessInfo
-    {
-        public CoreWebView2ProcessInfo(UInt32 id, CoreWebView2ProcessKind kind);
-
-        UInt32 Id;
-        CoreWebView2ProcessKind Kind;
     }
 
     // ...
