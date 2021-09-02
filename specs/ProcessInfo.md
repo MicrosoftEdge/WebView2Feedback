@@ -24,7 +24,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_ProcessInfoChanged(object sender, object e)
 {
-    _processList = WebViewEnvironment.ProcessInfo;
+    _processList = WebViewEnvironment.processInfo;
 }
 
 void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
