@@ -220,7 +220,7 @@ namespace Microsoft.Web.WebView2.Core
         // ...
     
         CoreWebView2ControllerOptions CreateCoreWebView2ControllerOptions(
-            String ProfileName, Int32 InPrivateModeEnabled);
+            String ProfileName, Boolean InPrivateModeEnabled);
         
         Windows.Foundation.IAsyncOperation<CoreWebView2Controller>
         CreateCoreWebView2ControllerWithOptionsAsync(
