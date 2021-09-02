@@ -102,16 +102,14 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
         CHECK_FAILURE(webview7->get_Profile(&profile));
 
         // Accesses the profile object.
-        wil::unique_cotaskmem_string name;
-        CHECK_FAILURE(profile->get_ProfileName(&name));
         BOOL inPrivateModeEnabled = FALSE;
         CHECK_FAILURE(profile->get_IsInPrivateModeEnabled(&inPrivateModeEnabled));
         wil::unique_cotaskmem_string profile_path;
         CHECK_FAILURE(profile->get_ProfilePath(&profile_path));
         std::wstring str(profile_path.get());
-        m_profileName = str.substr(str.find_last_of(L'\\') + 1);
+        m_profileDirName = str.substr(str.find_last_of(L'\\') + 1);
         
-        // update window title with m_profileName
+        // update window title with m_profileDirName
         UpdateAppTitle();
 
         // update window icon
