@@ -24,7 +24,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_ProcessInfoChanged(object sender, object e)
 {
-    _processList = WebViewEnvironment.processInfo;
+    _processList = WebViewEnvironment.ProcessInfo;
 }
 
 void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
@@ -40,7 +40,7 @@ void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
         result = $"{processListSize} child process(s) found\n\n";
         for (int i = 0; i < processListSize; ++i)
         {
-            uint processId = _processList[i].id;
+            uint processId = _processList[i].Id;
             CoreWebView2ProcessKind kind = _processList[i].Kind;
             result = result + $"Process ID: {processId}\nProcess Kind: {kind}\n";
         }
@@ -246,7 +246,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ProcessInfo
     {
         // ICoreWebView2ProcessInfo members
-        UInt32 id { get; };
+        UInt32 Id { get; };
 
         CoreWebView2ProcessKind Kind { get; };
     }
