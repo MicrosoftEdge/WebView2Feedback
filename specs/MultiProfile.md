@@ -111,7 +111,7 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
         std::wstring str(profile_path.get());
         m_profileName = str.substr(str.find_last_of(L'\\') + 1);
         
-        // update window title
+        // update window title with m_profileName
         UpdateAppTitle();
 
         // update window icon
