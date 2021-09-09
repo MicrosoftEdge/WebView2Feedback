@@ -21,9 +21,9 @@ data storage etc., to help you build a more wonderful experience for your applic
 
 # Examples
 
-## Provide options to create WebView2 with a specific profile
+## Win32 C++
 
-### Win32 C++
+### Provide options to create WebView2 with a specific profile
 
 ```cpp
 HRESULT AppWindow::CreateControllerWithOptions()
@@ -79,9 +79,7 @@ HRESULT AppWindow::CreateControllerWithOptions()
 }
 ```
 
-## Access the profile property of WebView2
-
-### Win32 C++
+### Access the profile property of WebView2
 
 ```cpp
 HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICoreWebView2Controller* controller)
@@ -117,6 +115,27 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
     }
   
     // ...
+}
+```
+## .NET and WinRT
+
+### Create WebView2 with a specific profile, then access the profile property of WebView2
+
+```csharp
+CoreWebView2Environment _webViewEnvironment;
+public CreateWebView2ControllerWithOptions(IntPtr parentHWND, string profileName, bool isInPrivate)
+{
+    CoreWebView2ControllerOptions options = _webViewEnvironment.CreateCoreWebView2ControllerOptions(profileName, isInPrivate);
+    CoreWebView2Controller webView2Controller = await _webViewEnvironment.CreateCoreWebView2ControllerWithOptionsAsync(parentHWND, options);
+    string profilePath = webView2Controller.CoreWebView2.Profile.ProfilePath;
+    string profileDirName = profilePath.Substring(profilePath.LastIndexOf('\\') + 1);
+    bool inPrivate = webView2Controller.CoreWebView2.Profile.IsInPrivateModeEnabled;
+
+    // update window title with profileDirName
+    UpdateAppTitle();
+
+    // update window icon
+    SetAppIcon(inPrivate);
 }
 ```
 
