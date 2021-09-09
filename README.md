@@ -1,4 +1,4 @@
-# WebView Feedback
+# WebView2 Feedback
 
 A place for developers to report feedback or search existing issues for [Microsoft Edge WebView2 control](https://aka.ms/webview). Open an [issue](https://github.com/MicrosoftEdge/WebViewFeedback/issues/new) to submit a feature request or bug report. Any "feature request" or "bug" that has the "tracked" label added means that we are also tracking the issue on our internal backlog.
 
