@@ -187,10 +187,10 @@ interface ICoreWebView2Environment6 : ICoreWebView2Environment5
 [uuid(7798D399-52A1-4823-AD6A-1F3EDD74B0B6), object, pointer_default(unique)]
 interface ICoreWebView2StagingProcessInfo : IUnknown {
 
-  /// The process id in the process.
+  /// The process id of the process.
   [propget] HRESULT Id([out, retval] UINT32* value);
 
-  /// The process type in the process.
+  /// The kind of the process.
   [propget] HRESULT Kind([out, retval] COREWEBVIEW2_PROCESS_KIND* kind);
 }
 
