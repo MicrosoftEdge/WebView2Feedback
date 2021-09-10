@@ -8,56 +8,51 @@ In this document we describe the updated API. We'd appreciate your feedback.
 # Description
 This API consists of an asynchronous PrintToPdf method and a PrintSettings object. The PrintToPdf method accepts a path that the PDF file should be saved to.
 
-Use the CreateDefaultPrintSettings method to create a PrintSettings object with default values, which can be modified. The settings consist of: orientation, scale factor, page height and width, margins, printing of backgrounds, printing selection only, printing header and footer, header title, and footer URI. See API Details below for the default values.
+Use the CreatePrintSettings method to create a PrintSettings object with default values, which can be modified. The settings consist of: orientation, scale factor, page height and width, margins, printing of backgrounds, printing selection only, printing header and footer, header title, and footer URI. See API Details below for the default values.
 
 Currently other programmatic printing is not supported.
 
 # Examples
 ```cpp
 // Shows the user a file selection dialog, then uses the selected path when
-// printing to PDF. If `useDefaultOrientation` is true, the page is printed
-// in portrait mode, otherwise the page is printed in landscape mode.
-void FileComponent::PrintToPdf(bool useDefaultOrientation)
+// printing to PDF. If `enableLandscape` is true, the page is printed
+// in landscape mode, otherwise the page is printed in portrait mode.
+void FileComponent::PrintToPdf(bool enableLandscape)
 {
     WCHAR defaultName[MAX_PATH] = L"WebView2_PrintedPdf.pdf";
-    OPENFILENAME openFileName = CreateOpenFileName(defaultName,
-                                                   L"PDF File\0*.pdf\0");
+    OPENFILENAME openFileName = CreateOpenFileName(defaultName, L"PDF File\0*.pdf\0");
     if (GetSaveFileName(&openFileName))
     {
-        wil::com_ptr<ICoreWebView2Environment5> webviewEnvironment5;
-        CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
-            IID_PPV_ARGS(&webviewEnvironment5)));
-
-        wil::com_ptr<ICoreWebView2SPrintSettings> printSettings;
-        if (webViewEvironment5)
+        wil::com_ptr<ICoreWebView2PrintSettings> printSettings = nullptr;
+        if (enableLandscape)
         {
-            CHECK_FAILURE(webviewEnvironment5->CreatePrintSettings(
-                &printSettings));
+            wil::com_ptr<ICoreWebView2Environment5> webviewEnvironment5;
+            CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
+                IID_PPV_ARGS(&webviewEnvironment5)));
+            if (webviewEnvironment5)
+            {
+                CHECK_FAILURE(webviewEnvironment5->CreatePrintSettings(&printSettings));
+                CHECK_FAILURE(
+                    printSettings->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE));
+            }
         }
 
-        if (printSettings)
+        wil::com_ptr<ICoreWebView2_4> webview2_4;
+        CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webview2_4)));
+        if (webview2_4)
         {
-            if (!useDefaultOrientation)
-            {
-                CHECK_FAILURE(printSettings->put_Orientation(
-                    COREWEBVIEW2_PRINT_ORIENTATION_LANDSCAPE));
-            }
-            CHECK_FAILURE(m_webView4->PrintToPdf(
+            m_printToPdfInProgress = true;
+            CHECK_FAILURE(webview2_4->PrintToPdf(
                 openFileName.lpstrFile, printSettings.get(),
                 Callback<ICoreWebView2PrintToPdfCompletedHandler>(
-                    [](HRESULT errorCode, LPCWSTR resultFilePath) -> HRESULT {
+                    [this](HRESULT errorCode, BOOL isSuccessful) -> HRESULT {
                         CHECK_FAILURE(errorCode);
-                        std::wstringstream formattedMessage;
-                        if (!wcslen(resultFilePath) == 0)
-                        {
-                            formattedMessage << "ResultFilePath: " << resultFilePath;
-                        }
-                        else
-                        {
-                            formattedMessage << "Print to PDF failed.";
-                        }
-                        auto showDialog = [formattedMessage = formattedMessage.str()] {
-                            MessageBox(nullptr, formattedMessage.c_str(),
+                        m_printToPdfInProgress = false;
+                        auto showDialog = [isSuccessful] {
+                            MessageBox(
+                                nullptr,
+                                (isSuccessful) ? L"Print to PDF succeeded"
+                                               : L"Print to PDF failed",
                                 L"Print to PDF Completed", MB_OK);
                         };
                         m_appWindow->RunAsync([showDialog]() { showDialog(); });
@@ -74,28 +69,33 @@ void FileComponent::PrintToPdf(bool useDefaultOrientation)
 // the orientation is changed to landscape.
 async void PrintToPdfCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    CoreWebView2PrintSettings printSettings =
-        WebViewEnvironment.CreatePrintSettings();
-
-    string orientationString = e.Parameter.ToString();
-    if (printSettings != null && orientationString == "Landscape")
+    if (_isPrintToPdfInProgress)
     {
+        MessageBox.Show(this, "Print to PDF in progress", "Print To PDF");
+        return;
+    }
+    CoreWebView2PrintSettings printSettings = null;
+    string orientationString = e.Parameter.ToString();
+    if (orientationString == "Landscape")
+    {
+        printSettings = WebViewEnvironment.CreatePrintSettings();
         printSettings.Orientation =
             CoreWebView2PrintOrientation.Landscape;
     }
 
-    Microsoft.Win32.SaveFileDialog openFileDialog =
+    Microsoft.Win32.SaveFileDialog saveFileDialog =
         new Microsoft.Win32.SaveFileDialog();
-    openFileDialog.InitialDirectory = "C:\\";
-    openFileDialog.Filter = "Pdf Files|*.pdf";
-    Nullable<bool> result = openFileDialog.ShowDialog();
+    saveFileDialog.InitialDirectory = "C:\\";
+    saveFileDialog.Filter = "Pdf Files|*.pdf";
+    Nullable<bool> result = saveFileDialog.ShowDialog();
     if (result == true) {
-        string resultFilePath = await webView.CoreWebView2.PrintToPdfAsync(
-            openFileDialog.FileName, printSettings);
-        string message = (resultFilePath == string.Empty) ?
-            "Print to PDF failed" : "ResultFilePath: ";
-        MessageBox.Show(this, message + resultFilePath,
-                        "Print To PDF Completed");
+        _isPrintToPdfInProgress = true;
+        bool isSuccessful = await webView.CoreWebView2.PrintToPdfAsync(
+            saveFileDialog.FileName, printSettings);
+        _isPrintToPdfInProgress = false;
+        string message = (isSuccessful) ?
+            "Print to PDF succeeded" : "Print to PDF failed";
+        MessageBox.Show(this, message, "Print To PDF Completed");
     }
 }
 ```
@@ -127,8 +127,9 @@ typedef enum COREWEBVIEW2_PRINT_ORIENTATION
 
 [uuid(9eae81c3-fe02-4084-b475-903a4ed9252e), object, pointer_default(unique)]
 interface ICoreWebView2_4 : IUnknown {
-  /// Print the current page to PDF asynchronously with the provided settings.
-  /// See `ICoreWebView2PrintSettings` for description of settings.
+  /// Print the current page to PDF asynchronously with the provided settings. See
+  /// `ICoreWebView2PrintSettings` for description of settings. Passing
+  /// nullptr for `printSettings` results in default print settings used.
   ///
   /// Use `resultFilePath` to specify the path to the PDF file. The host should
   /// provide an absolute path, including file name. If the path
@@ -137,8 +138,11 @@ interface ICoreWebView2_4 : IUnknown {
   ///
   /// The async `PrintToPdf` operation completes when the data has been written
   /// to the PDF file. At this time the
-  /// `ICoreWebView2StagingPrintToPdfCompletedHandler` is invoked. Only one
-  /// `PrintToPdf` operation can be in progress at a time.
+  /// `ICoreWebView2PrintToPdfCompletedHandler` is invoked. If the
+  /// application exits before printing is complete, the file is not saved.
+  /// Only one `PrintToPdf` operation can be in progress at a time. If
+  /// `PrintToPdf` is called while a print to PDF job is in progress, the
+  /// completed handler is immediately invoked with `isSuccessful` set to FALSE.
   ///
   /// \snippet FileComponent.cpp PrintToPdf
   HRESULT PrintToPdf(
@@ -147,9 +151,10 @@ interface ICoreWebView2_4 : IUnknown {
     [in] ICoreWebView2PrintToPdfCompletedHandler* handler);
 }
 
-/// Receives the result of the `PrintToPdf` method. The `resultFilePath`
-/// contains the final path of the PDF file or an empty string if the
-/// `PrintToPdf` operation failed.
+/// Receives the result of the `PrintToPdf` method. If the print to PDF
+/// operation succeeds, `isSuccessful` is true. Otherwise, if the operation
+/// failed, `isSuccessful` is set to false. An invalid path returns
+/// `E_INVALIDARG`.
 [uuid(4808ac58-c372-4d3d-be5e-900df2593835), object, pointer_default(unique)]
 interface ICoreWebView2PrintToPdfCompletedHandler : IUnknown {
 
@@ -174,54 +179,54 @@ interface ICoreWebView2PrintSettings : IUnknown {
   /// The scale factor is a value between 0.1 and 2.0. The default is 1.0.
   [propget] HRESULT ScaleFactor([out, retval] double* scaleFactor);
 
-  /// Sets the `ScaleFactor` property. If an invalid value is provided, the
-  /// current value is not updated.
+  /// Sets the `ScaleFactor` property. Returns `E_INVALIDARG` if an invalid
+  /// value is provided, and the current value is not changed.
   [propput] HRESULT ScaleFactor([in] double scaleFactor);
 
   /// The page width in inches. The default width is 8.5 inches.
   [propget] HRESULT PageWidth([out, retval] double* pageWidth);
 
-  /// Sets the `PageWidth` property.
+  /// Sets the `PageWidth` property. Returns `E_INVALIDARG` if the page width is
+  /// less than or equal to zero, and the current value is not changed.
   [propput] HRESULT PageWidth([in] double pageWidth);
 
   /// The page height in inches. The default height is 11 inches.
   [propget] HRESULT PageHeight([out, retval] double* pageHeight);
 
-  /// Sets the `PageHeight` property.
+  /// Sets the `PageHeight` property. Returns `E_INVALIARG` if the page height
+  /// is less than or equal to zero, and the current value is not changed.
   [propput] HRESULT PageHeight([in] double pageHeight);
 
   /// The top margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginTop([out, retval] double* marginTop);
 
-  /// Sets the `MarginTop` property. A margin cannot be less than zero, and the
-  /// sum of the top and bottom margins cannot exceed the page height without
-  /// header and footer. If an invalid value is provided, the current value is
-  /// not changed.
+  /// Sets the `MarginTop` property. A margin cannot be less than zero.
+  /// Returns `E_INVALIDARG` if an invalid value is provided, and the current
+  /// value is not changed.
   [propput] HRESULT MarginTop([in] double marginTop);
 
   /// The bottom margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginBottom([out, retval] double* marginBottom);
 
-  /// Sets the `MarginBottom` property. A margin cannot be less than zero, and
-  /// the sum of the top and bottom margins cannot exceed the page height
-  /// without header and footer. If an invalid value is provided, the current
+  /// Sets the `MarginBottom` property. A margin cannot be less than zero.
+  /// Returns `E_INVALIDARG` if an invalid value is provided, and the current
   /// value is not changed.
   [propput] HRESULT MarginBottom([in] double marginBottom);
 
   /// The left margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginLeft([out, retval] double* marginLeft);
 
-  /// Sets the `MarginLeft` property. A margin cannot be less than zero, and
-  /// the sum of the left and right margins cannot exceed the page width. If an
-  /// invalid value is provided, the current value is not changed.
+  /// Sets the `MarginLeft` property. A margin cannot be less than zero.
+  /// Returns `E_INVALIDARG` if an invalid value is provided, and the current
+  /// value is not changed.
   [propput] HRESULT MarginLeft([in] double marginLeft);
 
   /// The right margin in inches. The default is 1 cm, or ~0.4 inches.
   [propget] HRESULT MarginRight([out, retval] double* marginRight);
 
-  /// Set the `MarginRight` property.A margin cannot be less than zero, and the
-  /// sum of the left margin and right margins cannot exceed the page width. If
-  /// an invalid value is provided, the current value is not changed.
+  /// Set the `MarginRight` property.A margin cannot be less than zero.
+  /// Returns `E_INVALIDARG` if an invalid value is provided, and the current
+  /// value is not changed.
   [propput] HRESULT MarginRight([in] double marginRight);
 
   /// `TRUE` if background colors and images should be printed. The default value
@@ -317,7 +322,7 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2
     {
-        Windows.Foundation.IAsyncOperation<String> PrintToPdfAsync(
+        Windows.Foundation.IAsyncOperation<bool> PrintToPdfAsync(
             String ResultFilePath, CoreWebView2PrintSettings printSettings);
     }
 }
