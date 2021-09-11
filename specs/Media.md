@@ -11,67 +11,84 @@ The following code snippet demonstrates how the Media related API can be used:
 ## Win32 C++
 
 ```cpp
- //! [IsDocumentPlayingAudioChanged] [IsDocumentPlayingAudio] [IsMuted] [Mute] [Unmute]
+ //! [IsDocumentPlayingAudioChanged] [IsDocumentPlayingAudio] [ToggleIsMuted]
 AudioComponent::AudioComponent(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
     webview6 = m_webView.try_query<ICoreWebView2_6>();
     // Register a handler for the IsDocumentPlayingAudioChanged event.
-    // This handler just announces the audible state on the window's title bar.
     CHECK_FAILURE(webview6->add_IsDocumentPlayingAudioChanged(
         Callback<ICoreWebView2StagingIsDocumentPlayingAudioChangedEventHandler>(
-            [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
-                BOOL isDocumentPlayingAudio;
-                CHECK_FAILURE(sender->get_IsDocumentPlayingAudio(&isDocumentPlayingAudio));
-
-                BOOL isMuted;
-                CHECK_FAILURE(sender->get_IsMuted(&isMuted));
-
-                wil::unique_cotaskmem_string title;
-                CHECK_FAILURE(m_webView->get_DocumentTitle(&title));
-                std::wstring result = L"";
-
-                if (isDocumentPlayingAudio)
-                {
-                    if (isMuted)
-                    {
-                        result = L"🔇 " + std::wstring(title.get());
-                    }
-                    else
-                    {
-                        result = L"🔊 " + std::wstring(title.get());
-                    }
-                }
-                else
-                {
-                    result = std::wstring(title.get());
-                }
-
-                SetWindowText(m_appWindow->GetMainWindow(), result.c_str());
+            [this, webview6](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+                UpdateTitleWithMuteState(webview6);
                 return S_OK;
             })
             .Get(),
         &m_isDocumentPlayingAudioChangedToken));
+
+    // Register a handler for the IsMutedChanged event.
+    CHECK_FAILURE(webview6->add_IsMutedChanged(
+        Callback<ICoreWebView2StagingIsMutedChangedEventHandler>(
+            [this, webview6](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+                UpdateTitleWithMuteState(webview6);
+                return S_OK;
+            })
+            .Get(),
+        &m_isMutedChangedToken));
 }
 
-// Mute the current window and show a mute icon on the title bar
- void AudioComponent::Mute()
- {
-    CHECK_FAILURE(webview6->Mute());
+// Toggle the mute state of the current window and show a mute or unmute icon on the title bar
+void AudioComponent::ToggleMuteState()
+{
+#ifdef USE_WEBVIEW2_STAGING
+     auto webview6 = m_webView.try_query<ICoreWebView2Staging2>();
+     if (webview6)
+     {
+         BOOL isMuted;
+         webview6->get_IsMuted(&isMuted);
+         CHECK_FAILURE(webview6->put_IsMuted(!isMuted));
+     }
+#endif
  }
 
-// Unmute the current window and hide the mute icon on the title bar
- void AudioComponent::Unmute()
+ void AudioComponent::UpdateTitleWithMuteState(
+     wil::com_ptr<ICoreWebView2Staging2> webview6)
  {
-    CHECK_FAILURE(webview6->Unmute());
+     BOOL isDocumentPlayingAudio;
+     CHECK_FAILURE(webview6->get_IsDocumentPlayingAudio(&isDocumentPlayingAudio));
+
+     BOOL isMuted;
+     CHECK_FAILURE(webview6->get_IsMuted(&isMuted));
+
+     wil::unique_cotaskmem_string title;
+     CHECK_FAILURE(m_webView->get_DocumentTitle(&title));
+     std::wstring result = L"";
+
+     if (isDocumentPlayingAudio)
+     {
+         if (isMuted)
+         {
+             result = L"🔇 " + std::wstring(title.get());
+         }
+         else
+         {
+             result = L"🔊 " + std::wstring(title.get());
+         }
+     }
+     else
+     {
+         result = std::wstring(title.get());
+     }
+
+     m_appWindow->SetDocumentTitle(result.c_str());
  }
- //! [IsDocumentPlayingAudioChanged] [IsDocumentPlayingAudio] [IsMuted] [Mute] [Unmute]
+ //! [IsDocumentPlayingAudioChanged] [IsDocumentPlayingAudio] [ToggleIsMuted]
 ```
 
 ## .NET and WinRT
 
 ```c#
-    void WebView_IsDocumentPlayingAudioChanged(object sender, object e)
+    void UpdateTitleWithMuteState()
     {
         bool isDocumentPlayingAudio = webView.CoreWebView2.IsDocumentPlayingAudio;
         bool isMuted = webView.CoreWebView2.IsMuted;
@@ -92,15 +109,18 @@ AudioComponent::AudioComponent(AppWindow* appWindow)
             this.Title = currentDocumentTitle;
         }
     }
-    
-    void MuteCmdExecuted(object target, ExecutedRoutedEventArgs e)
+    void WebView_IsMutedChanged(object sender, object e)
     {
-        webView.CoreWebView2.Mute();
+        UpdateTitleWithMuteState();
+    }
+    void WebView_IsDocumentPlayingAudioChanged(object sender, object e)
+    {
+        UpdateTitleWithMuteState();
     }
 
-    void UnmuteCmdExecuted(object target, ExecutedRoutedEventArgs e)
+    void ToggleMuteStateCmdExecuted(object target, ExecutedRoutedEventArgs e)
     {
-        webView.CoreWebView2.Unmute();
+        webView.CoreWebView2.IsMuted = !webView.CoreWebView2.IsMuted;
     }
 ```
 
@@ -117,20 +137,15 @@ interface ICoreWebView2StagingIsDocumentPlayingAudioChangedEventHandler;
 
 [uuid(71c906d9-4a4d-4dbe-aa1b-db64f4de594e), object, pointer_default(unique)]
 interface ICoreWebView2_6 : ICoreWebView2_5 {
-  /// Mutes all audio output from this CoreWebView2.
-  ///
-  /// \snippet AudioComponent.cpp Mute
-  HRESULT Mute();
-
-  /// Unmutes all audio output from this CoreWebView2.
-  ///
-  /// \snippet AudioComponent.cpp Unmute
-  HRESULT Unmute();
-
   /// Indicates whether all audio output from this CoreWebView2 is muted or not.
   ///
-  /// \snippet AudioComponent.cpp IsMuted
+  /// \snippet AudioComponent-Staging.cpp ToggleIsMuted
   [propget] HRESULT IsMuted([out, retval] BOOL* value);
+
+  /// Sets the `IsMuted` property.
+  ///
+  /// \snippet AudioComponent-Staging.cpp ToggleIsMuted
+  [propput] HRESULT IsMuted([in] BOOL value);
   
   /// Adds an event handler for the `IsDocumentPlayingAudioChanged` event.
   /// `IsDocumentPlayingAudioChanged` is raised when the IsDocumentPlayingAudio property changes value.
