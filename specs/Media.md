@@ -133,10 +133,23 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
 
 ```IDL
+interface ICoreWebView2StagingIsMutedChangedEventHandler;
 interface ICoreWebView2StagingIsDocumentPlayingAudioChangedEventHandler;
 
 [uuid(71c906d9-4a4d-4dbe-aa1b-db64f4de594e), object, pointer_default(unique)]
 interface ICoreWebView2_6 : ICoreWebView2_5 {
+  /// Adds an event handler for the `IsMutedChanged` event.
+  /// `IsMutedChanged` is raised when the IsMuted property changes value.
+  ///
+  /// \snippet AudioComponent-Staging.cpp IsMutedChanged
+  HRESULT add_IsMutedChanged(
+      [in] ICoreWebView2StagingIsMutedChangedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Remove an event handler previously added with `add_IsMutedChanged`.
+  HRESULT remove_IsMutedChanged(
+      [in] EventRegistrationToken token);
+
   /// Indicates whether all audio output from this CoreWebView2 is muted or not.
   ///
   /// \snippet AudioComponent-Staging.cpp ToggleIsMuted
@@ -171,6 +184,15 @@ interface ICoreWebView2_6 : ICoreWebView2_5 {
 /// IsDocumentPlayingAudio method to get the audible state.
 [uuid(5DEF109A-2F4B-49FA-B7F6-11C39E513328), object, pointer_default(unique)]
 interface ICoreWebView2StagingIsDocumentPlayingAudioChangedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.  No event args exist
+  /// and the `args` parameter is set to `null`.
+  HRESULT Invoke([in] ICoreWebView2* sender, [in] IUnknown* args);
+}
+
+/// Implements the interface to receive `IsMutedChanged` events.  Use the
+/// IsMuted method to get the mute state.
+[uuid(57D90347-CD0E-4952-A4A2-7483A2756F08), object, pointer_default(unique)]
+interface ICoreWebView2StagingIsMutedChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
   /// and the `args` parameter is set to `null`.
   HRESULT Invoke([in] ICoreWebView2* sender, [in] IUnknown* args);
