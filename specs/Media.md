@@ -208,12 +208,11 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2
     {
         // ...
-            Boolean IsMuted { get; };
+            Boolean IsMuted { get; set; };
             Boolean IsDocumentPlayingAudio { get; };
 
+            event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> IsMutedChanged;
             event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> IsDocumentPlayingAudioChanged;
-            void Mute();
-            void Unmute();
 
         // ...
     }
