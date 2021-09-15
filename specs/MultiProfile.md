@@ -4,10 +4,11 @@ API spec for multiple profile support
 # Background
 
 Previously, all WebView2s can only use one fixed Edge profile in the browser process, which is
-normally the **Default** profile by not specifying a profile path, or the profile specified by the **--profile-directory** command
-line switch. It means different WebView2s share a single profile directory on disk for data storage,
-which might bring security concerns over cookies, autofill data, and password management etc.. Also,
-they might also interfere with each other in terms of user preference settings.
+normally the **Default** profile by not specifying a profile path, or the profile specified by the
+**--profile-directory** command line switch. It means different WebView2s share a single profile
+directory on disk for data storage, which might bring security concerns over cookies, autofill data,
+and password management etc.. Also, they might also interfere with each other in terms of user
+preference settings.
 
 Although you can make your WebView2s use different user data directories to achieve data separation,
 in such way you'll have to be running multiple browser instances (each including a browser process
@@ -36,7 +37,7 @@ HRESULT AppWindow::CreateControllerWithOptions()
         return S_OK;
     }
 
-    Microsoft::WRL::ComPtr<ICoreWebView2ControllerOptions> options;
+    wil::com_ptr<ICoreWebView2ControllerOptions> options;
     HRESULT hr = webViewEnvironment4->CreateCoreWebView2ControllerOptions(
         m_webviewOption.profile.c_str(), m_webviewOption.isInPrivate, options.GetAddressOf());
     if (hr == E_INVALIDARG)
@@ -47,11 +48,7 @@ HRESULT AppWindow::CreateControllerWithOptions()
     }
     CHECK_FAILURE(hr);
 
-#ifdef USE_WEBVIEW2_WIN10
     if (m_dcompDevice || m_wincompCompositor)
-#else
-    if (m_dcompDevice)
-#endif
     {
         CHECK_FAILURE(webViewEnvironment4->CreateCoreWebView2CompositionControllerWithOptions(
             m_mainWindow, options.Get(),
@@ -126,13 +123,13 @@ CoreWebView2Environment _webViewEnvironment;
 public CreateWebView2ControllerWithOptions(IntPtr parentWindow, string profileName, bool isInPrivate)
 {
     CoreWebView2ControllerOptions options = _webViewEnvironment.CreateCoreWebView2ControllerOptions(profileName, isInPrivate);
-    CoreWebView2Controller webView2Controller = await _webViewEnvironment.CreateCoreWebView2ControllerWithOptionsAsync(parentHWND, options);
+    CoreWebView2Controller webView2Controller = await _webViewEnvironment.CreateCoreWebView2ControllerWithOptionsAsync(parentWindow, options);
     string profilePath = webView2Controller.CoreWebView2.Profile.ProfilePath;
-    string profileDirName = profilePath.Substring(profilePath.LastIndexOf('\\') + 1);
+    string profileDirName = Path.GetFileName(profilePath);
     bool inPrivate = webView2Controller.CoreWebView2.Profile.IsInPrivateModeEnabled;
 
     // update window title with profileDirName
-    UpdateAppTitle();
+    UpdateAppTitle(profileDirName);
 
     // update window icon
     SetAppIcon(inPrivate);
