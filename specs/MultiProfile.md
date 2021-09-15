@@ -102,7 +102,7 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
         wil::unique_cotaskmem_string profile_path;
         CHECK_FAILURE(profile->get_ProfilePath(&profile_path));
         std::wstring str(profile_path.get());
-        m_profileDirName = str.substr(str.find_last_of(L'\\') + 1);
+        m_profileDirName = std::filesystem::path(profile_path).filename();
         
         // update window title with m_profileDirName
         UpdateAppTitle();
