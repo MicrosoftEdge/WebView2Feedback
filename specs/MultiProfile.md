@@ -4,7 +4,7 @@ API spec for multiple profile support
 # Background
 
 Previously, all WebView2s can only use one fixed Edge profile in the browser process, which is
-normally the **Default** profile or the profile specified by the **--profile-directory** command
+normally the **Default** profile by not specifying a profile path, or the profile specified by the **--profile-directory** command
 line switch. It means different WebView2s share a single profile directory on disk for data storage,
 which might bring security concerns over cookies, autofill data, and password management etc.. Also,
 they might also interfere with each other in terms of user preference settings.
@@ -123,7 +123,7 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
 
 ```csharp
 CoreWebView2Environment _webViewEnvironment;
-public CreateWebView2ControllerWithOptions(IntPtr parentHWND, string profileName, bool isInPrivate)
+public CreateWebView2ControllerWithOptions(IntPtr parentWindow, string profileName, bool isInPrivate)
 {
     CoreWebView2ControllerOptions options = _webViewEnvironment.CreateCoreWebView2ControllerOptions(profileName, isInPrivate);
     CoreWebView2Controller webView2Controller = await _webViewEnvironment.CreateCoreWebView2ControllerWithOptionsAsync(parentHWND, options);
