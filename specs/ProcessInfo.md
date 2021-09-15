@@ -27,25 +27,55 @@ void WebView_ProcessInfoChanged(object sender, object e)
     _processList = WebViewEnvironment.ProcessInfo;
 }
 
-void ProcessInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
+void PerfCounterCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    string result;
     int processListSize = _processList.Count;
     if (processListSize == 0)
     {
-        result = "No process found.";
+        _result = "No process found.";
     }
     else
     {
-        result = $"{processListSize} child process(s) found\n\n";
+        _result = $"{processListSize} child process(s) found\n\n";
         for (int i = 0; i < processListSize; ++i)
         {
             uint processId = _processList[i].Id;
             CoreWebView2ProcessKind kind = _processList[i].Kind;
-            result = result + $"Process ID: {processId}\nProcess Kind: {kind}\n";
+            string instance = GetInstanceNameForProcessId((int)processId);
+            var counter = new PerformanceCounter("Process", "% Processor Time", instance);
+            // start capturing
+            counter.NextValue();
+            var cpu = Math.Floor(counter.NextValue() / Environment.ProcessorCount);
+            _result = _result + $"Process ID: {processId} | Process Kind: {kind} | CPU: {cpu}\n";
         }
     }
-    MessageBox.Show(this, result, "Process List");
+
+    MessageBox.Show(this, _result, "Process List");
+}
+
+string GetInstanceNameForProcessId(int processId)
+{
+    var process = Process.GetProcessById(processId);
+    string processName = System.IO.Path.GetFileNameWithoutExtension(process.ProcessName);
+
+    PerformanceCounterCategory cat = new PerformanceCounterCategory("Process");
+    string[] instances = cat.GetInstanceNames()
+    .Where(inst => inst.StartsWith(processName))
+    .ToArray();
+
+    foreach (string instance in instances)
+    {
+        using (PerformanceCounter cnt = new PerformanceCounter("Process",
+            "ID Process", instance, true))
+        {
+            int val = (int)cnt.RawValue;
+            if (val == processId)
+            {
+                return instance;
+            }
+        }
+    }
+    return null;
 }
 ```
     
