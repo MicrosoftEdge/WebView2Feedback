@@ -87,7 +87,7 @@ ProcessComponent::ProcessComponent(AppWindow* appWindow)
     //! [ProcessInfoChanged]
     environment = appWindow->GetWebViewEnvironment();
     CHECK_FAILURE(environment->add_ProcessInfoChanged(
-        Callback<ICoreWebView2StagingProcessInfoChangedEventHandler>(
+        Callback<ICoreWebView2ProcessInfoChangedEventHandler>(
             [this,environment](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT {
                 CHECK_FAILURE(environment->get_ProcessInfo(&m_processCollection));
 
@@ -139,7 +139,7 @@ void ProcessComponent::ProcessInfo()
         result += L"\n\n";
         for (UINT i = 0; i < process_list_size; ++i)
         {
-            wil::com_ptr<ICoreWebView2StagingProcessInfo> processInfo;
+            wil::com_ptr<ICoreWebView2ProcessInfo> processInfo;
             CHECK_FAILURE(m_processCollection->GetValueAtIndex(i, &processInfo));
 
             UINT32 processId = 0;
@@ -163,10 +163,10 @@ void ProcessComponent::ProcessInfo()
 
 # API Details    
 ```
-interface ICoreWebView2StagingEnvironment5;
-interface ICoreWebView2StagingProcessInfo;
-interface ICoreWebView2StagingProcessInfoCollection;
-interface ICoreWebView2StagingProcessInfoChangedEventHandler;
+interface ICoreWebView2Environment6;
+interface ICoreWebView2ProcessInfo;
+interface ICoreWebView2ProcessInfoCollection;
+interface ICoreWebView2ProcessInfoChangedEventHandler;
 
 [v1_enum]
 typedef enum COREWEBVIEW2_PROCESS_KIND {
@@ -202,20 +202,21 @@ interface ICoreWebView2Environment6 : ICoreWebView2Environment5
   /// 
   /// \snippet ProcessComponent.cpp ProcessInfoChanged
   HRESULT add_ProcessInfoChanged(
-      [in] ICoreWebView2StagingProcessInfoChangedEventHandler* eventHandler,
+      [in] ICoreWebView2ProcessInfoChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_ProcessInfoChanged`.
   HRESULT remove_ProcessInfoChanged(
       [in] EventRegistrationToken token);
 
-  /// Returns the `ICoreWebView2StagingProcessInfoCollection`
-  [propget] HRESULT ProcessInfo([out, retval]ICoreWebView2StagingProcessInfoCollection** value);
+  /// Returns the `ICoreWebView2ProcessInfoCollection`
+  /// Provide a list of all process using same user data folder.
+  [propget] HRESULT ProcessInfo([out, retval]ICoreWebView2ProcessInfoCollection** value);
 }
 
 /// Provides a set of properties for a process in the `ICoreWebView2Environment`.
 [uuid(7798D399-52A1-4823-AD6A-1F3EDD74B0B6), object, pointer_default(unique)]
-interface ICoreWebView2StagingProcessInfo : IUnknown {
+interface ICoreWebView2ProcessInfo : IUnknown {
 
   /// The process id of the process.
   [propget] HRESULT Id([out, retval] UINT32* value);
@@ -226,19 +227,19 @@ interface ICoreWebView2StagingProcessInfo : IUnknown {
 
 /// A list containing process id and corresponding process type.
 [uuid(5356F3B3-4859-4763-9C95-837CDEEE8912), object, pointer_default(unique)]
-interface ICoreWebView2StagingProcessInfoCollection : IUnknown {
-  /// The number of process contained in the ICoreWebView2StagingProcessInfoCollection.
+interface ICoreWebView2ProcessInfoCollection : IUnknown {
+  /// The number of process contained in the ICoreWebView2ProcessInfoCollection.
   [propget] HRESULT Count([out, retval] UINT* count);
 
-  /// Gets the `ICoreWebView2StagingProcessInfo` located in the `ICoreWebView2StagingProcessInfoCollection`
+  /// Gets the `ICoreWebView2ProcessInfo` located in the `ICoreWebView2ProcessInfoCollection`
   /// at the given index.
   HRESULT GetValueAtIndex([in] UINT32 index,
-                          [out, retval] ICoreWebView2StagingProcessInfo** processInfo);
+                          [out, retval] ICoreWebView2ProcessInfo** processInfo);
 }
 
 /// An event handler for the `ProcessInfoChanged` event.
 [uuid(CFF13C72-2E3B-4812-96FB-DFDDE67FBE90), object, pointer_default(unique)]
-interface ICoreWebView2StagingProcessInfoChangedEventHandler : IUnknown {
+interface ICoreWebView2ProcessInfoChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
   /// and the `args` parameter is set to `null`.
   HRESULT Invoke([in] ICoreWebView2* sender, [in] IUnknown* args);
