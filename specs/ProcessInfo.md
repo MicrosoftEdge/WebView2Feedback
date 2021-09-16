@@ -121,13 +121,18 @@ void ProcessComponent::ProcessInfo()
             CHECK_FAILURE(processInfo->get_Id(&processId));
             CHECK_FAILURE(processInfo->get_Kind(&kind));
 
-            WCHAR buffer[4096] = L"";
-            StringCchPrintf(buffer, ARRAYSIZE(buffer), L"Process ID: %u\n", processId);
+            WCHAR id[4096] = L"";
+            StringCchPrintf(id, ARRAYSIZE(id), L"Process ID: %u", processId);
 
-            result += buffer;
+            HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+            PROCESS_MEMORY_COUNTERS_EX pmc;
+            GetProcessMemoryInfo(processHandle, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+            SIZE_T virtualMemUsed = pmc.PrivateUsage / 1024 / 1024;
+            WCHAR memory[4096] = L"";
+            StringCchPrintf(memory, ARRAYSIZE(memory), L"Memory: %u", virtualMemUsed);
 
-            result += L"Process Kind: " + ProcessKindToString(kind);
-            result += L"\n";
+            result = result + id + L" | Process Kind: " + ProcessKindToString(kind) +
+                     L" | " + memory + L" MB\n";
         }
     }
     MessageBox(nullptr, result.c_str(), L"GetProcessesInfo Result", MB_OK);
