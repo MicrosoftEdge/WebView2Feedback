@@ -41,41 +41,15 @@ void PerfCounterCmdExecuted(object target, ExecutedRoutedEventArgs e)
         {
             uint processId = _processList[i].Id;
             CoreWebView2ProcessKind kind = _processList[i].Kind;
-            string instance = GetInstanceNameForProcessId((int)processId);
-            var counter = new PerformanceCounter("Process", "% Processor Time", instance);
-            // start capturing
-            counter.NextValue();
-            var cpu = Math.Floor(counter.NextValue() / Environment.ProcessorCount);
-            _result = _result + $"Process ID: {processId} | Process Kind: {kind} | CPU: {cpu}\n";
+
+            var proc = Process.GetProcessById((int)processId);
+            var memoryInBytes = proc.PrivateMemorySize64;
+            var b2mb = memoryInBytes / 1024 / 1024;
+            _result = _result + $"Process ID: {processId} | Process Kind: {kind} | Memory: {b2mb} MB\n";
         }
     }
 
     MessageBox.Show(this, _result, "Process List");
-}
-
-string GetInstanceNameForProcessId(int processId)
-{
-    var process = Process.GetProcessById(processId);
-    string processName = System.IO.Path.GetFileNameWithoutExtension(process.ProcessName);
-
-    PerformanceCounterCategory cat = new PerformanceCounterCategory("Process");
-    string[] instances = cat.GetInstanceNames()
-    .Where(inst => inst.StartsWith(processName))
-    .ToArray();
-
-    foreach (string instance in instances)
-    {
-        using (PerformanceCounter cnt = new PerformanceCounter("Process",
-            "ID Process", instance, true))
-        {
-            int val = (int)cnt.RawValue;
-            if (val == processId)
-            {
-                return instance;
-            }
-        }
-    }
-    return null;
 }
 ```
     
