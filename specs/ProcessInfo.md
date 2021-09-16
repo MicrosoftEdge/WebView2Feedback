@@ -97,7 +97,7 @@ std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KI
 
 // Get the process info
 //! [ProcessInfoChanged]
-void ProcessComponent::ProcessInfo()
+void ProcessComponent::PerformanceCounter()
 {
     std::wstring result;
     UINT process_list_size;
