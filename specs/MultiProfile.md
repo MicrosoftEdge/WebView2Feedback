@@ -38,8 +38,8 @@ HRESULT AppWindow::CreateControllerWithOptions()
     }
 
     wil::com_ptr<ICoreWebView2ControllerOptions> options;
-    HRESULT hr = webViewEnvironment4->CreateCoreWebView2ControllerOptions(
-        m_webviewOption.profile.c_str(), m_webviewOption.isInPrivate, options.GetAddressOf());
+    // The validation of name occurs when setting the property.
+    HRESULT hr = webViewEnvironment4->CreateCoreWebView2ControllerOptions(options.GetAddressOf());
     if (hr == E_INVALIDARG)
     {
         ShowFailure(hr, L"Unable to create WebView2 due to an invalid profile name.");
@@ -47,6 +47,11 @@ HRESULT AppWindow::CreateControllerWithOptions()
         return S_OK;
     }
     CHECK_FAILURE(hr);
+
+    // If call 'put_ProfileName' with an invalid profile name, the 'E_INVALIDARG' returned immediately. 
+    // ProfileName could be reused.
+    CHECK_FAILURE(options->put_ProfileName(m_webviewOption.profile.c_str()));
+    CHECK_FAILURE(options->put_IsInPrivateModeEnabled(m_webviewOption.isInPrivate));
 
     if (m_dcompDevice || m_wincompCompositor)
     {
@@ -99,16 +104,13 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
         // Accesses the profile object.
         BOOL inPrivateModeEnabled = FALSE;
         CHECK_FAILURE(profile->get_IsInPrivateModeEnabled(&inPrivateModeEnabled));
-        wil::unique_cotaskmem_string profile_path;
-        CHECK_FAILURE(profile->get_ProfilePath(&profile_path));
-        std::wstring str(profile_path.get());
-        m_profileDirName = std::filesystem::path(profile_path).filename();
+        CHECK_FAILURE(profile->get_ProfileName(&m_profileName));
         
-        // update window title with m_profileDirName
+        // update window title with m_profileName
         UpdateAppTitle();
 
         // update window icon
-        SetAppIcon(inPrivate);        
+        SetAppIcon(inPrivateModeEnabled);        
     }
   
     // ...
@@ -122,14 +124,16 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
 CoreWebView2Environment _webViewEnvironment;
 public CreateWebView2ControllerWithOptions(IntPtr parentWindow, string profileName, bool isInPrivate)
 {
-    CoreWebView2ControllerOptions options = _webViewEnvironment.CreateCoreWebView2ControllerOptions(profileName, isInPrivate);
+    CoreWebView2ControllerOptions options = _webViewEnvironment.CreateCoreWebView2ControllerOptions();
+    options.ProfileName = profileName;
+    options.IsInPrivateModeEnabled = isInPrivate;
+
     CoreWebView2Controller webView2Controller = await _webViewEnvironment.CreateCoreWebView2ControllerWithOptionsAsync(parentWindow, options);
-    string profilePath = webView2Controller.CoreWebView2.Profile.ProfilePath;
-    string profileDirName = Path.GetFileName(profilePath);
+    string profileName = webView2Controller.CoreWebView2.Profile.ProfileName;
     bool inPrivate = webView2Controller.CoreWebView2.Profile.IsInPrivateModeEnabled;
 
-    // update window title with profileDirName
-    UpdateAppTitle(profileDirName);
+    // update window title with profileName
+    UpdateAppTitle(profileName);
 
     // update window icon
     SetAppIcon(inPrivate);
@@ -146,16 +150,20 @@ interface ICoreWebView2Environment5;
 interface ICoreWebView2_7;
 interface ICoreWebView2Profile;
 
+/// This interface is used to manage profile options that created by 'CreateCoreWebView2ControllerOptions'.
 [uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
 interface ICoreWebView2ControllerOptions : IUnknown {
-  /// `ProfileName` property is to specify a profile name, which is only allowed to contain
-  /// the following ASCII characters. It has a maximum length of 64 characters excluding the null terminator. It is
-  /// ASCII case insensitive.
-  ///    alphabet characters: a-z and A-Z
-  ///    digit characters: 0-9
-  ///    and '#', '@', '$', '(', ')', '+', '-', '_', '~', '.', ' ' (space).
-  /// Note: the text must not end with a period '.' or ' ' (space). And, although upper case letters are
-  /// allowed, they're treated just as lower case couterparts because the profile name will be mapped to
+  /// The `ProfileName` property specifies the profile's name. It has a maximum length of 64 
+  /// characters excluding the null terminator and must be a valid file name.
+  /// See [Naming Files, Paths, and Namespaces](https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file)
+  /// for more information on file names. It must contain only the following ASCII characters:
+  ///
+  ///  * alphabet characters: a-z and A-Z
+  ///  * digit characters: 0-9
+  ///  * and '#', '@', '$', '(', ')', '+', '-', '_', '~', '.', ' ' (space).
+  ///
+  /// Note: the text must not end with a period '.' or ' ' (space) nor start with a ' ' (space). And, although upper case letters are
+  /// allowed, they're treated the same as their lower case counterparts because the profile name will be mapped to
   /// the real profile directory path on disk and Windows file system handles path names in a case-insensitive way.
   [propget] HRESULT ProfileName([out, retval] LPWSTR* value);
   /// Sets the `ProfileName` property.
@@ -167,15 +175,23 @@ interface ICoreWebView2ControllerOptions : IUnknown {
   [propput] HRESULT IsInPrivateModeEnabled([in] BOOL value);
 }
 
+/// This interface is used to create 'CreateCoreWebView2ControllerOptions' object, which
+/// can be passed as a parameter in 'CreateCoreWebView2ControllerWithOptions' and
+/// 'CreateCoreWebView2CompositionControllerWithOptions' function for multiple profile support.
+/// The profile will be created on disk or opened when calling 'CreateCoreWebView2ControllerWithOptions' or
+/// 'CreateCoreWebView2CompositionControllerWithOptions' no matter InPrivate mode is enabled or not, and it will be
+/// released in memory when the corresponding controller is closed but still remain on disk.
+/// If create a WebView2Controller with {ProfileName="name", InPrivate=false} and then later create another one with
+/// one with {ProfileName="name", InPrivate=true}, these two controllers using the same profile would be allowed to
+/// run at the same time.
 [uuid(57FD205C-39D5-4BA1-8E7B-3E53C323EA87), object, pointer_default(unique)]
-interface ICoreWebView2Environment5 : IUnknown
-{
+interface ICoreWebView2Environment5 : IUnknown {
   /// Create a new ICoreWebView2ControllerOptions to be passed as a parameter of
   /// CreateCoreWebView2ControllerWithOptions and CreateCoreWebView2CompositionControllerWithOptions.
-  /// Returns E_INVALIDARG only in case of invalid profile name.
+  /// The 'options' is settable and in it the default value for profile name is the empty string,
+  /// and the default value for IsInPrivateModeEnabled is false.
+  /// Also the profile name can be reused.
   HRESULT CreateCoreWebView2ControllerOptions(
-      [in] LPCWSTR profileName,
-      [in] BOOL isInPrivateModeEnabled,
       [out, retval] ICoreWebView2ControllerOptions** options);
 
   /// Create a new WebView with options.
@@ -191,9 +207,12 @@ interface ICoreWebView2Environment5 : IUnknown
       [in] ICoreWebView2CreateCoreWebView2CompositionControllerCompletedHandler* handler);
 }
 
+/// Used to get ICoreWebView2Profile object.
 [uuid(6E5CE5F0-16E6-4A05-97D8-4E256B3EB609), object, pointer_default(unique)]
 interface ICoreWebView2_7 : IUnknown {
-  /// The associated `ICoreWebView2Profile` object.
+  /// The associated `ICoreWebView2Profile` object. If this CoreWebView2 was created with a CoreWebView2ControllerOptions, the
+  /// CoreWebView2Profile will match those specified options. Otherwise if this CoreWebView2 was created without a
+  /// CoreWebView2ControllerOptions, then this will be the default CoreWebView2Profile for the corresponding CoreWebView2Environment.
   [propget] HRESULT Profile([out, retval] ICoreWebView2Profile** value);
 }
 
@@ -233,8 +252,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
     
-        CoreWebView2ControllerOptions CreateCoreWebView2ControllerOptions(
-            String ProfileName, Boolean InPrivateModeEnabled);
+        CoreWebView2ControllerOptions CreateCoreWebView2ControllerOptions();
         
         Windows.Foundation.IAsyncOperation<CoreWebView2Controller>
         CreateCoreWebView2ControllerWithOptionsAsync(
