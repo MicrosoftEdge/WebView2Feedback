@@ -162,9 +162,10 @@ interface ICoreWebView2ControllerOptions : IUnknown {
   ///  * digit characters: 0-9
   ///  * and '#', '@', '$', '(', ')', '+', '-', '_', '~', '.', ' ' (space).
   ///
-  /// Note: the text must not end with a period '.' or ' ' (space) nor start with a ' ' (space). And, although upper case letters are
-  /// allowed, they're treated the same as their lower case counterparts because the profile name will be mapped to
-  /// the real profile directory path on disk and Windows file system handles path names in a case-insensitive way.
+  /// Note: the text must not end with a period '.' or ' ' (space) nor start with a ' ' (space). And, although upper
+  /// case letters are allowed, they're treated the same as their lower case counterparts because the profile name
+  /// will be mapped to the real profile directory path on disk and Windows file system handles path names in a 
+  /// case-insensitive way.
   [propget] HRESULT ProfileName([out, retval] LPWSTR* value);
   /// Sets the `ProfileName` property.
   [propput] HRESULT ProfileName([in] LPCWSTR value);
@@ -184,6 +185,9 @@ interface ICoreWebView2ControllerOptions : IUnknown {
 /// If create a WebView2Controller with {ProfileName="name", InPrivate=false} and then later create another one with
 /// one with {ProfileName="name", InPrivate=true}, these two controllers using the same profile would be allowed to
 /// run at the same time.
+/// As WebView2 is built on top of Edge browser, it follows Edge's behavior pattern. To create an InPrivate WebView,
+/// we gets an off-the-record profile (an InPrivate profile) from a regular profile, then create the WebView with the 
+/// off-the-record profile.
 [uuid(57FD205C-39D5-4BA1-8E7B-3E53C323EA87), object, pointer_default(unique)]
 interface ICoreWebView2Environment5 : IUnknown {
   /// Create a new ICoreWebView2ControllerOptions to be passed as a parameter of
@@ -210,9 +214,10 @@ interface ICoreWebView2Environment5 : IUnknown {
 /// Used to get ICoreWebView2Profile object.
 [uuid(6E5CE5F0-16E6-4A05-97D8-4E256B3EB609), object, pointer_default(unique)]
 interface ICoreWebView2_7 : IUnknown {
-  /// The associated `ICoreWebView2Profile` object. If this CoreWebView2 was created with a CoreWebView2ControllerOptions, the
-  /// CoreWebView2Profile will match those specified options. Otherwise if this CoreWebView2 was created without a
-  /// CoreWebView2ControllerOptions, then this will be the default CoreWebView2Profile for the corresponding CoreWebView2Environment.
+  /// The associated `ICoreWebView2Profile` object. If this CoreWebView2 was created with a
+  /// CoreWebView2ControllerOptions, the CoreWebView2Profile will match those specified options.
+  /// Otherwise if this CoreWebView2 was created without a CoreWebView2ControllerOptions, then
+  /// this will be the default CoreWebView2Profile for the corresponding CoreWebView2Environment.
   [propget] HRESULT Profile([out, retval] ICoreWebView2Profile** value);
 }
 
