@@ -38,7 +38,7 @@ HRESULT AppWindow::CreateControllerWithOptions()
     }
 
     wil::com_ptr<ICoreWebView2ControllerOptions> options;
-    // The validation of name occurs when setting the property.
+    // The validation of parameters occurs when setting the properties.
     HRESULT hr = webViewEnvironment4->CreateCoreWebView2ControllerOptions(options.GetAddressOf());
     if (hr == E_INVALIDARG)
     {
