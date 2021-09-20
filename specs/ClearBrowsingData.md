@@ -20,9 +20,9 @@ HRESULT ClearBrowsingDataInTimeRange(
       [in] double endTime, 
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
 ```
-The first method takes a uint64 parameter that consists of one or more COREWEBVIEW2_BROWSING_DATA_KIND passed in as well as a handler which will indicate if the proper data has been cleared successfully. The handler will respond with one of three results, which indicate that the method was successful, interrupted, or failed. This method clears the data for all time. 
+The first method takes a uint64 parameter that consists of one or more COREWEBVIEW2_BROWSING_DATA_KIND passed in as well as a handler which will indicate if the proper data has been cleared successfully. The handler will respond with a `bool` indicating whether the option successfully cleared the intended data fully. This method clears the data for all time. 
 
-The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The double time parameters correspond to how many seconds since the UNIX epoch. 
+The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The time parameters correspond to how many seconds have passed since the UNIX epoch. 
 
 Both methods clear the data with the associated profile in which the method is called on.
  
@@ -59,6 +59,8 @@ bool EnvironmentComponent::ClearAutofillData()
         CHECK_FAILURE(webview7->get_Profile(&profile));
         double end_time = (double)std::time(nullptr);
         double start_time = end_time - 3600;
+        COREWEBVIEW2_BROWSING_DATA_KIND data_kinds = COREWEBVIEW2_BROWSING_DATA_KIND_GENERAL_AUTOFILL |
+            COREWEBVIEW2_BROWSING_DATA_KIND_PASSWORD_AUTOSAVE;
         CHECK_FAILURE(profile->ClearBrowsingDataInTimeRange(
             data_kinds, start_time, end_time,
             Callback<ICoreWebView2StagingClearBrowsingDataCompletedHandler>(
@@ -81,14 +83,17 @@ bool EnvironmentComponent::ClearAutofillData()
 private void ClearAutofillData() 
 {
     CoreWebView2Profile profile;
-    profile = webView.CoreWebView2.Profile;
-    double endTime = DateTimeOffset.Now.ToUnixTimeSeconds();
-    double startTime = endTime - 3600;
-    bool isSuccessful = await WebViewProfile.ClearBrowsingDataAsync((UInt64)dataKind, startTime, endTime);
-    MessageBox.Show(this,
-        (isSuccessful) ? "Succeeded" : "Failed",
-        "Clear Browsing Data");
-    
+    if (webView.CoreWebView2 != null) 
+    {
+        profile = webView.CoreWebView2.Profile;
+        double endTime = DateTimeOffset.Now.ToUnixTimeSeconds();
+        double startTime = endTime - 3600;
+        CoreWebView2BrowsingDataKind dataKinds =  CoreWebView2BrowsingDataKind.GeneralAutofill | CoreWebView2BrowsingDataKind.PasswordAutosave;
+        bool isSuccessful = await WebViewProfile.ClearBrowsingDataAsync((UInt64)dataKinds, startTime, endTime);
+        MessageBox.Show(this,
+            (isSuccessful) ? "Succeeded" : "Failed",
+            "Clear Browsing Data");
+    }
 }
 
 ```
@@ -102,7 +107,6 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
 
 ```IDL
-interface ICoreWebView2Profile
 interface ICoreWebView2ClearBrowsingDataCompletedHandler;
 
 /// Specifies the datatype for the
@@ -275,8 +279,9 @@ namespace Microsoft.Web.WebView2.Core
     public partial class CoreWebView2Environment
     {
         /// The ClearBrowsingDataAsync method may be overloaded to take either one parameter - dataKinds, or three parameters - dataKinds, startTime, and endTime.
+        /// NOTE TO REVIEWERS:
         /// We're taking ulong here because we need to accept orred enum values like HttpCache | DownloadHistory which isn't a value in the DataKind enum. 
-        /// We need to take ulong to get the proper masked thru, s it OK to take the enum as the parameter type here in COM, WinRT, and .NET?
+        /// We need to take ulong to get the proper masked thru, is it OK to take the enum as the parameter type here in COM, WinRT, and .NET?
         public async Task<CoreWebView2ClearBrowsingDataResultKind> ClearBrowsingDataAsync(ulong dataKinds);
         public async Task<CoreWebView2ClearBrowsingDataResultKind> ClearBrowsingDataAsync(ulong dataKinds, double startTime, double endTime);
     }
