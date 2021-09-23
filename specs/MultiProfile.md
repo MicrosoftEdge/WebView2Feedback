@@ -13,7 +13,9 @@ preference settings.
 Although you can make your WebView2s use different user data directories to achieve data separation,
 in such way you'll have to be running multiple browser instances (each including a browser process
 and a bunch of child processes), which means much more consumption for system resources including
-memory, CPU footprint, disk space etc. so it is not desirable.
+memory, CPU footprint, disk space (profiles under a single user data directory share several types
+of data, such as compiled shaders cached for a Skia GrContext and safebrowsing data) etc. so it is
+not desirable.
 
 With all above, we're adding these new APIs to support multiple profiles, so that you can have
 multiple WebView2s running with separate profiles under a single user data directory (i.e. a single
