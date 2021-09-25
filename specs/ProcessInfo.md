@@ -29,27 +29,28 @@ void WebView_ProcessInfoChanged(object sender, object e)
 
 void PerfCounterCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    int processListSize = _processList.Count;
-    if (processListSize == 0)
+    string result;
+    int processListCount = _processList.Count;
+    if (processListCount == 0)
     {
-        _result = "No process found.";
+        result = "No process found.";
     }
     else
     {
-        _result = $"{processListSize} child process(s) found\n\n";
-        for (int i = 0; i < processListSize; ++i)
+        result = $"{processListCount} child process(s) found\n\n";
+        for (int i = 0; i < processListCount; ++i)
         {
             uint processId = _processList[i].Id;
             CoreWebView2ProcessKind kind = _processList[i].Kind;
 
             var proc = Process.GetProcessById((int)processId);
             var memoryInBytes = proc.PrivateMemorySize64;
-            var b2mb = memoryInBytes / 1024 / 1024;
-            _result = _result + $"Process ID: {processId} | Process Kind: {kind} | Memory: {b2mb} MB\n";
+            var b2kb = memoryInBytes / 1024;
+            result = result + $"Process ID: {processId} | Process Kind: {kind} | Memory: {b2kb} KB\n";
         }
     }
 
-    MessageBox.Show(this, _result, "Process List");
+    MessageBox.Show(this, result, "Process List");
 }
 ```
     
@@ -100,20 +101,20 @@ std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KI
 void ProcessComponent::PerformanceCounter()
 {
     std::wstring result;
-    UINT process_list_size;
-    CHECK_FAILURE(m_processCollection->get_Count(&process_list_size));
+    UINT processListCount;
+    CHECK_FAILURE(m_processCollection->get_Count(&processListCount));
 
-    if (process_list_size == 0)
+    if (processListCount == 0)
     {
         result += L"No process found.";
     }
     else
     {
-        result += std::to_wstring(process_list_size) + L" process(s) found";
+        result += std::to_wstring(processListCount) + L" process(s) found";
         result += L"\n\n";
-        for (UINT i = 0; i < process_list_size; ++i)
+        for (UINT i = 0; i < processListCount; ++i)
         {
-            wil::com_ptr<ICoreWebView2ProcessInfo> processInfo;
+            wil::com_ptr<ICoreWebView2StagingProcessInfo> processInfo;
             CHECK_FAILURE(m_processCollection->GetValueAtIndex(i, &processInfo));
 
             UINT32 processId = 0;
@@ -126,16 +127,17 @@ void ProcessComponent::PerformanceCounter()
 
             HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
             PROCESS_MEMORY_COUNTERS_EX pmc;
-            GetProcessMemoryInfo(processHandle, (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
-            SIZE_T virtualMemUsed = pmc.PrivateUsage / 1024 / 1024;
+            GetProcessMemoryInfo(
+                processHandle, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc));
+            SIZE_T virtualMemUsed = pmc.PrivateUsage / 1024;
             WCHAR memory[4096] = L"";
             StringCchPrintf(memory, ARRAYSIZE(memory), L"Memory: %u", virtualMemUsed);
 
-            result = result + id + L" | Process Kind: " + ProcessKindToString(kind) +
-                     L" | " + memory + L" MB\n";
+            result = result + id + L" | Process Kind: " + ProcessKindToString(kind) + L" | " +
+                     memory + L" KB\n";
         }
     }
-    MessageBox(nullptr, result.c_str(), L"GetProcessesInfo Result", MB_OK);
+    MessageBox(nullptr, result.c_str(), L"Memory Usage", MB_OK);
 }
 //! [ProcessInfoChanged]
 ```
