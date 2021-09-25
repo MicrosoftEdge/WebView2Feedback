@@ -27,7 +27,7 @@ void WebView_ProcessInfoChanged(object sender, object e)
     _processList = WebViewEnvironment.ProcessInfo;
 }
 
-void PerfCounterCmdExecuted(object target, ExecutedRoutedEventArgs e)
+void PerfInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
     string result;
     int processListCount = _processList.Count;
@@ -98,7 +98,7 @@ std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KI
 
 // Get the process info
 //! [ProcessInfoChanged]
-void ProcessComponent::PerformanceCounter()
+void ProcessComponent::PerformanceInfo()
 {
     std::wstring result;
     UINT processListCount;
