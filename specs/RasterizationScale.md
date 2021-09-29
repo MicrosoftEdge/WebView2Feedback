@@ -95,12 +95,12 @@ interface ICoreWebView2Controller2 : ICoreWebView2Controller {
   /// ShouldDetectMonitorScaleChanges property determines whether the WebView
   /// attempts to track monitor DPI scale changes. When true, the WebView will
   /// track monitor DPI scale changes, update the RasterizationScale property,
-  /// and raises RasterizationScaleChanged event. Attempting to set RasterizationScale
-  /// while ShouldDetectMonitorScaleChanges is true will result in RasterizationScaleChanged
-  /// being raised and the value restored to match the monitor DPI scale.
+  /// and raises RasterizationScaleChanged event.
   /// When false, the WebView will not track monitor DPI scale changes, and the app
   /// must update the RasterizationScale property itself. RasterizationScaleChanged
-  /// event will never raise when ShouldDetectMonitorScaleChanges is false.
+  /// event will never raise when ShouldDetectMonitorScaleChanges is false. Apps that want
+  /// to set their own rasterization scale should set this property to false to avoid the
+  /// WebView2 updating the RasterizationScale property to match the monitor DPI scale.
   [propget] HRESULT ShouldDetectMonitorScaleChanges([out, retval] BOOL* value);
   /// Set the ShouldDetectMonitorScaleChanges property.
   [propput] HRESULT ShouldDetectMonitorScaleChanges([in] BOOL value);
