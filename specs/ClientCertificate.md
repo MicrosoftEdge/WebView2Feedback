@@ -2,7 +2,7 @@
 
 The WebView2 team has been asked for an API to intercept client certificates when WebView2 is
 making a request to an Http server that needs a client certificate for Http authentication.
-This event allows you to show ui if desired, replace default client certificate dialog prompt, 
+This event allows you to show ui if desired, replace default client certificate dialog prompt,
 programmatically query the certificates and select a certificate from the list to respond to the server.
 
 In this document we describe the API. We'd appreciate your feedback.
@@ -32,10 +32,10 @@ wil::com_ptr<ICoreWebView2> m_webView;
 wil::com_ptr<ICoreWebView2_3> m_webView2_3;
 EventRegistrationToken m_ClientCertificateRequestedToken = {};
 
-//! [ClientCertificateRequested1]
 // Turn off client certificate selection dialog using ClientCertificateRequested event handler
 // that disables the dialog. This example hides the default client certificate dialog and
 // always chooses the last certificate without prompting the user.
+//! [ClientCertificateRequested1]
 void SettingsComponent::EnableCustomClientCertificateSelection()
 {
   m_webView2_3 = m_webView.try_query<ICoreWebView2_3>();
@@ -90,13 +90,13 @@ void SettingsComponent::EnableCustomClientCertificateSelection()
 wil::com_ptr<ICoreWebView2> m_webView;
 wil::com_ptr<ICoreWebView2_3> m_webView2_3;
 EventRegistrationToken m_ClientCertificateRequestedToken = {};
-std::vector<ClientCertificate> client_certificates_;
+std::vector<ClientCertificate> clientCertificates_;
 
 struct ClientCertificate
 {
-    PWSTR Subject;
-    PWSTR DisplayName;
-    PWSTR Issuer;
+    wil::unique_cotaskmem_string Subject;
+    wil::unique_cotaskmem_string DisplayName;
+    wil::unique_cotaskmem_string Issuer;
     double ValidFrom;
     double ValidTo;
     PCWSTR CertificateKind;
@@ -105,12 +105,12 @@ struct ClientCertificate
 ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(SampleWindow* sampleWindow)
   : m_sampleWindow(sampleWindow), m_webView(sampleWindow->GetWebView())
 {
-  //! [ClientCertificateRequested2]
   // Register a handler for the `ClientCertificateRequested` event.
   // This example hides the default client certificate dialog and shows a custom dialog instead.
   // The dialog box displays mutually trusted certificates list and allows the user to select a certificate.
   // Selecting `OK` will continue the request with a certificate.
   // Selecting `CANCEL` will continue the request without a certificate.
+  //! [ClientCertificateRequested2]
   m_webView2_3 = m_webView.try_query<ICoreWebView2_3>();
   if (m_webView2_3)
   {
@@ -136,32 +136,32 @@ ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(SampleWin
 
             if (certificateCollectionCount > 0)
             {
-              ClientCertificate client_certificate;
+              ClientCertificate clientCertificate;
               for (UINT i = 0; i < certificateCollectionCount; i++)
               {
                 CHECK_FAILURE(certificateCollection->GetValueAtIndex(i, &certificate));
 
-                CHECK_FAILURE(certificate->get_Subject(&client_certificate.Subject));
+                CHECK_FAILURE(certificate->get_Subject(&clientCertificate.Subject));
 
-                CHECK_FAILURE(certificate->get_DisplayName(&client_certificate.DisplayName));
+                CHECK_FAILURE(certificate->get_DisplayName(&clientCertificate.DisplayName));
 
-                CHECK_FAILURE(certificate->get_Issuer(&client_certificate.Issuer));
+                CHECK_FAILURE(certificate->get_Issuer(&clientCertificate.Issuer));
 
                 COREWEBVIEW2_CLIENT_CERTIFICATE_KIND Kind;
                 CHECK_FAILURE(certificate->get_Kind(&Kind));
-                client_certificate.CertificateKind = NameOfCertificateKind(Kind);
+                clientCertificate.CertificateKind = NameOfCertificateKind(Kind);
 
-                CHECK_FAILURE(certificate->get_ValidFrom(&client_certificate.ValidFrom));
+                CHECK_FAILURE(certificate->get_ValidFrom(&clientCertificate.ValidFrom));
 
-                CHECK_FAILURE(certificate->get_ValidTo(&client_certificate.ValidTo));
+                CHECK_FAILURE(certificate->get_ValidTo(&clientCertificate.ValidTo));
 
-                client_certificates_.push_back(client_certificate);
+                clientCertificates_.push_back(clientCertificate);
               }
 
               // Display custom dialog box for the client certificate selection.
               ClientCertificateSelectionDialog dialog(
               m_sampleWindow->GetMainWindow(), L"Select a Certificate for authentication",
-              host.get(), port, client_certificates_);
+              host.get(), port, clientCertificates_);
 
               if (dialog.confirmed)
               {
@@ -214,7 +214,7 @@ ScenarioClientCertificateRequested::ScenarioClientCertificateRequested(SampleWin
 // Turn off client certificate selection dialog using ClientCertificateRequested event handler
 // that disables the dialog. This example hides the default client certificate dialog and
 // always chooses the last certificate without prompting the user.
-private bool _isCustomClientCertificateSelection = false; 
+private bool _isCustomClientCertificateSelection = false;
 void EnableCustomClientCertificateSelection()
 {
   // Safeguarding the handler when unsupported runtime is used.
@@ -246,7 +246,7 @@ void EnableCustomClientCertificateSelection()
 
 void WebView_ClientCertificateRequested(object sender, CoreWebView2ClientCertificateRequestedEventArgs e)
 {
-  IReadOnlyList<CoreWebView2ClientCertificate> certificateList = e. MutuallyTrustedCertificates; 
+  IReadOnlyList<CoreWebView2ClientCertificate> certificateList = e.MutuallyTrustedCertificates;
   if (certificateList. Count() > 0)
   {
 
@@ -265,7 +265,7 @@ void WebView_ClientCertificateRequested(object sender, CoreWebView2ClientCertifi
   }
 }
 
-``` 
+```
 
 ## .NET/ WinRT: Custom certificate selection dialog
 
@@ -314,7 +314,7 @@ void DeferredCustomClientCertificateSelectionDialog()
             else
             {
               // Continue without a certificate to respond to the server if certificate list is empty.
-              args.Handled = false;
+              args.Handled = true;
             }
           }
 
@@ -370,17 +370,18 @@ interface ICoreWebView2_3 : ICoreWebView2_2 {
   ///
   /// With this event you have several options for responding to client certificate requests:
   ///
-  /// *  You can query the mutually trusted CA certificates, and select a certificate
-  /// from the list to respond to the server.
-  /// *  You can choose to respond to the server without a certificate.
-  /// *  You can choose to display default client certificate selection dialog prompt
-  /// to let user to respond to the server.
-  /// *  You can cancel the request.
+  /// Scenario                                                   | Handled | Cancel | SelectedCertificate
+  /// ---------------------------------------------------------- | ------- | ------ | -------------------
+  /// Respond to server with a certificate                       | True    | False  | MutuallyTrustedCertificate value
+  /// Respond to server without certificate                      | True    | False  | null
+  /// Display default client certificate selection dialog prompt | False   | False  | n/a
+  /// Cancel the request                                         | n/a     | True   | n/a
   ///
   /// If you don't handle the event, WebView2 will
   /// show the default client certificate selection dialog prompt to user.
   ///
   /// \snippet SettingsComponent.cpp ClientCertificateRequested1
+  /// \snippet ScenarioClientCertificateRequested.cpp ClientCertificateRequested2
   HRESULT add_ClientCertificateRequested(
       [in] ICoreWebView2ClientCertificateRequestedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
@@ -517,7 +518,7 @@ interface ICoreWebView2ClientCertificateRequestedEventArgs : IUnknown {
 ## . NET/ WinRT
 
 ```c#
-namespace Microsoft. Web. WebView2. Core
+namespace Microsoft.Web.WebView2.Core
 {
 
     runtimeclass CoreWebView2ClientCertificateRequestedEventArgs;
@@ -558,11 +559,18 @@ namespace Microsoft. Web. WebView2. Core
         CoreWebView2ClientCertificateKind Kind { get; };
 
         String ToPemEncoding();
+        /// Converts this to a System.Security.Cryptography.X509Certificates.X509Certificate2.
+        // This is only for the .NET API, not the WinRT API.
+        System.Security.Cryptography.X509Certificates.X509Certificate2 ToX509Certificate2(CoreWebView2ClientCertificate coreWebView2ClientCertificate);
+
+        /// Converts this to a Windows.Security.Cryptography.Certificates.Certificate.
+        // This is only for the WinRT API, not the .NET API.
+        Windows.Security.Cryptography.Certificates.Certificate ToCertificate(CoreWebView2ClientCertificate coreWebView2ClientCertificate);
     }
 
     runtimeclass CoreWebView2
     {
-        event Windows. Foundation. TypedEventHandler<CoreWebView2, CoreWebView2ClientCertificateRequestedEventArgs> ClientCertificateRequested;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2ClientCertificateRequestedEventArgs> ClientCertificateRequested;
     }
 
 }
