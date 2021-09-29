@@ -124,15 +124,26 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
 
 ```csharp
 CoreWebView2Environment _webViewEnvironment;
-public CreateWebView2ControllerWithOptions(IntPtr parentWindow, string profileName, bool isInPrivate)
+WebViewCreationOptions _creationOptions;
+public CreateWebView2Controller(IntPtr parentWindow)
 {
-    CoreWebView2ControllerOptions options = _webViewEnvironment.CreateCoreWebView2ControllerOptions();
-    options.ProfileName = profileName;
-    options.IsInPrivateModeEnabled = isInPrivate;
+    CoreWebView2ControllerOptions controllerOptions = new CoreWebView2ControllerOptions();
+    controllerOptions.ProfileName = _creationOptions.profileName;
+    controllerOptions.IsInPrivateModeEnabled = _creationOptions.IsInPrivateModeEnabled;
 
-    CoreWebView2Controller webView2Controller = await _webViewEnvironment.CreateCoreWebView2ControllerWithOptionsAsync(parentWindow, options);
-    string profileName = webView2Controller.CoreWebView2.Profile.ProfileName;
-    bool inPrivate = webView2Controller.CoreWebView2.Profile.IsInPrivateModeEnabled;
+    CoreWebView2Controller controller = null;
+
+    if (_creationOptions.entry == WebViewCreateEntry.CREATE_WITH_OPTION)
+    {
+        controller = await _webViewEnvironment.CreateCoreWebView2ControllerAsync(parentWindow, options);
+    }
+    else
+    {
+        controller = await _webViewEnvironment.CreateCoreWebView2ControllerAsync(parentWindow);
+    }
+
+    string profileName = controller.CoreWebView2.Profile.ProfileName;
+    bool inPrivate = controller.CoreWebView2.Profile.IsInPrivateModeEnabled;
 
     // update window title with profileName
     UpdateAppTitle(profileName);
@@ -260,14 +271,14 @@ namespace Microsoft.Web.WebView2.Core
         // ...
     
         CoreWebView2ControllerOptions CreateCoreWebView2ControllerOptions();
-        
+
         Windows.Foundation.IAsyncOperation<CoreWebView2Controller>
-        CreateCoreWebView2ControllerWithOptionsAsync(
+        CreateCoreWebView2ControllerAsync(
             CoreWebView2ControllerWindowReference ParentWindow,
             CoreWebView2ControllerOptions options);
         
         Windows.Foundation.IAsyncOperation<CoreWebView2CompositionController>
-        CreateCoreWebView2CompositionControllerWithOptionsAsync(
+        CreateCoreWebView2CompositionControllerAsync(
             CoreWebView2ControllerWindowReference ParentWindow,
             CoreWebView2ControllerOptions options);
     }
