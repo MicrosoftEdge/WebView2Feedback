@@ -11,35 +11,20 @@ In this document we describe the updated API. We'd appreciate your feedback.
 We expose browsing data clearing in two asynchronous APIs:
 ```IDL
 HRESULT ClearBrowsingData(
-      [in] uint64 dataKinds,
+      [in] COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds,
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler); 
 
 HRESULT ClearBrowsingDataInTimeRange(
-      [in] uint64 dataKinds, 
+      [in] COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds, 
       [in] double startTime,
       [in] double endTime, 
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
 ```
-The first method takes a uint64 parameter that consists of one or more COREWEBVIEW2_BROWSING_DATA_KINDS passed in as well as a handler which will indicate if the proper data has been cleared successfully. The handler will respond with a `bool` indicating whether the option successfully cleared the intended data fully. This method clears the data for all time. 
+The first method takes `COREWEBVIEW2_BROWSING_DATA_KINDS` which corresponds to the data type(s) to clear as well as a handler which will indicate if the proper data has been cleared successfully. The handler will respond with a `BOOl` indicating whether the operation successfully cleared the intended data. This method clears the data for all time. 
 
 The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The time parameters correspond to how many seconds have passed since the UNIX epoch. 
 
-Both methods clear the data with the associated profile in which the method is called on.
- 
-The browsing data kinds that are supported are listed below. These data kinds follow a hierarchical structure in which nested bullet points are included in their parent bullet point's data kind. 
-Ex: DOM storage is included in site data which is included in the profile data. Each of the following bullets correspond to a COREWEBVIEW2_BROWSING_DATA_KINDS. 
-
-* Profile
-  * Site Data
-    * DOM Storage: App Cache, File Systems, Indexed DB, Local Storage, Web SQL, Cache Storage
-        Storage
-    * Cookies 
-  * HTTP Cache 
-  * Download History
-  * General Autofill 
-  * Password Autosave
-  * Browsing History
-  * Settings  
+Both methods clear the data for the associated profile in which the method is called on.
 
 # Examples
 
@@ -47,7 +32,7 @@ Ex: DOM storage is included in site data which is included in the profile data. 
 ```cpp
 
 /// Function to clear the autofill data from the last hour
-bool EnvironmentComponent::ClearAutofillData() 
+void ClearAutofillData() 
 {
     wwil::com_ptr<ICoreWebView2> coreWebView2;
     CHECK_FAILURE(m_controller->get_CoreWebView2(&coreWebView2));
@@ -62,7 +47,7 @@ bool EnvironmentComponent::ClearAutofillData()
         /// Get the current time and offset the current time by 3600 seconds to clear the data 
         /// from the start time (one hour ago), until the end time (present time).
         /// This will clear the data for the last hour.
-        COREWEBVIEW2_BROWSING_DATA_KINDS data_kindSs = (COREWEBVIEW2_BROWSING_DATA_KINDS)
+        COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds = (COREWEBVIEW2_BROWSING_DATA_KINDS)
             (COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL |
             COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE));
         CHECK_FAILURE(profile->ClearBrowsingDataInTimeRange(
@@ -94,8 +79,8 @@ private void ClearAutofillData()
         // Get the current time which is the time in which the browsing data will be cleared until.
         double startTime = endTime - 3600;
         // Offset the current time by 3600 seconds to clear the browsing data from the last hour.
-        CoreWebView2BrowsingDataKind dataKinds =  CoreWebView2BrowsingDataKind.GeneralAutofill | CoreWebView2BrowsingDataKind.PasswordAutosave;
-        bool isSuccessful = await WebViewProfile.ClearBrowsingDataAsync((UInt64)dataKinds, startTime, endTime);
+        CoreWebView2BrowsingDataKinds dataKinds =  (CoreWebView2BrowsingDataKinds)(CoreWebView2BrowsingDataKinds.GeneralAutofill | CoreWebView2BrowsingDataKinds.PasswordAutosave);
+        bool isSuccessful = await profile.ClearBrowsingDataAsync(dataKinds, startTime, endTime);
         MessageBox.Show(this,
             (isSuccessful) ? "Succeeded" : "Failed",
             "Clear Browsing Data");
@@ -205,9 +190,9 @@ typedef enum COREWEBVIEW2_BROWSING_DATA_KINDS {
 interface ICoreWebView2Profile : IUnknown {
 
   /// Clear browsing data based on a data type. This method takes two parameters, 
-  /// the first being a mask of one or more `COREWEBVIEW2_BROWSING_DATAKINDS`. OR operation(s) 
+  /// the first being a mask of one or more `COREWEBVIEW2_BROWSING_DATA_KINDS`. OR operation(s) 
   /// can be applied to multiple `COREWEBVIEW2_BROWSING_DATA_KINDS` to create a mask 
-  /// representing multiple data types. The browsing data kinds that are supported 
+  /// representing those data types. The browsing data kinds that are supported 
   /// are listed below. These data kinds follow a hierarchical structure in which 
   /// nested bullet points are included in their parent bullet point's data kind.
   /// Ex: DOM storage is encompassed in site data which is encompassed in the profile data. 
@@ -229,27 +214,27 @@ interface ICoreWebView2Profile : IUnknown {
   /// the clear browsing data operation may or may not be completed. 
   /// ClearBrowsingData clears the `dataKinds` for all time. 
   HRESULT ClearBrowsingData(
-      [in] UINT64 dataKinds,
+      [in] COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds,
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
   
   /// ClearBrowsingDataInTimeRange behaves like ClearBrowsingData except that it
   /// takes in two additional parameters for the start and end time for which it 
-  /// should clear the data between.  The startTime and endTime 
+  /// should clear the data between.  The `startTime` and `endTime` 
   /// parameters correspond to the number of seconds since the UNIX epoch. 
   ///
   /// \snippet AppWindow.cpp ClearBrowsingData
   HRESULT ClearBrowsingDataInTimeRange(
-      [in] UINT64 dataKinds, 
+      [in] COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds, 
       [in] double startTime,
       [in] double endTime, 
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
 }
 
-/// The caller implements this interface to receive the ClearBrowsingData result.
+/// The caller implements this interface to receive the `ClearBrowsingData` result.
 [uuid(27676699-FE17-4E2B-8C1B-267395A04ED5), object, pointer_default(unique)]
 interface ICoreWebView2ClearBrowsingDataCompletedHandler : IUnknown {
   /// Provide the completion status and result of the corresponding
-  /// asynchronous method. The result indicates if the ClearBrowsingData 
+  /// asynchronous method. The result indicates if the `ClearBrowsingData` 
   /// call has completed successfully and all intended data has been cleared. 
   /// If the call has been interrupted and does not clear all the intended data, 
   /// the `errorCode` is `S_OK` and `isSuccessful` will be `false`. 
@@ -285,8 +270,8 @@ namespace Microsoft.Web.WebView2.Core
 
     public partial class CoreWebView2Profile
     {
-        public async Task<CoreWebView2ClearBrowsingDataResultKind> ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds dataKinds);
-        public async Task<CoreWebView2ClearBrowsingDataResultKind> ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds dataKinds, double startTime, double endTime);
+        public async Task<bool> ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds dataKinds);
+        public async Task<bool> ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds dataKinds, double startTime, double endTime);
     }
 }
 ```
