@@ -267,7 +267,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         /// Gets a list of process.
         IVectorView<CoreWebView2ProcessInfo> ProcessInfo { get; };
-        event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> ProcessInfoChanged;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> ProcessInfoChanged;
 
         // ...
     }
