@@ -19,56 +19,42 @@ void ViewComponent::ToggleDefaultDownloadDialog()
 {
     if (m_webView2_6)
     {
-        BOOL is_visible;
-        m_webView2_6->get_IsDefaultDownloadDialogVisible(&is_visible);
-        m_webView2_6->put_IsDefaultDownloadDialogVisible(!is_visible);
+        BOOL isOpen;
+        m_webView2_6->get_IsDefaultDownloadDialogOpen(&isOpen);
+        if (isOpen)
+        {
+            m_webView2_6->CloseDefaultDownloadDialog();
+        }
+        else
+        {
+            m_webView2_6->OpenDefaultDownloadDialog();
+        }
     }
 }
 
-void ViewComponent::SetDefaultDownloadDialogPosition(DownloadDialogPosition target_position)
+void ViewComponent::SetDefaultDownloadDialogPosition(
+    COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION targetPosition)
 {
     if (m_webView2_6)
     {
-        CHECK_FAILURE(m_webView2_6->add_DefaultDownloadDialogLayout(
-            Callback<ICoreWebView2DefaultDownloadDialogLayoutEventHandler>(
-                [this, target_position](
-                    ICoreWebView2* sender,
-                    ICoreWebView2DefaultDownloadDialogLayoutEventArgs* args) -> HRESULT {
-                    RECT bounds;
-                    CHECK_FAILURE(args->get_LocalBounds(&bounds));
-
-                    INT32 width;
-                    CHECK_FAILURE(args->get_Width(&width));
-
-                    INT32 height;
-                    CHECK_FAILURE(args->get_Height(&height));
-
-                    const int padding = 10;
-                    const int x_from_right = bounds.right - width - padding;
-                    const int y_from_bottom = bounds.bottom - height - padding;
-                    POINT new_position;
-
-                    if (target_position == DownloadDialogPosition::kTopLeft)
-                    {
-                        new_position = {padding, padding};
-                    }
-                    else if (target_position == DownloadDialogPosition::kTopRight)
-                    {
-                        new_position = {x_from_right, padding};
-                    }
-                    else if (target_position == DownloadDialogPosition::kBottomLeft)
-                    {
-                        new_position = {padding, y_from_bottom};
-                    }
-                    else if (target_position == DownloadDialogPosition::kBottomRight)
-                    {
-                        new_position = {x_from_right, y_from_bottom};
-                    }
-                    CHECK_FAILURE(args->put_Position(new_position));
-                    return S_OK;
-                })
-                .Get(),
-            &m_downloadLayoutToken));
+        const int padding = 20;
+        POINT offset;
+        switch (targetPosition) {
+            case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_TOP_LEFT:
+                offset = {padding, padding};
+                break;
+            case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_TOP_RIGHT:
+                offset = {-padding, padding};
+                break;
+            case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_BOTTOM_LEFT:
+                offset = {padding, -padding};
+                break;
+            case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_BOTTOM_RIGHT:
+                offset = {-padding, -padding};
+                break;
+        }
+        CHECK_FAILURE(m_webView2_6->SetDefaultDownloadDialogPosition(
+            targetPosition, offset));
     }
 }
 ```
@@ -76,41 +62,49 @@ void ViewComponent::SetDefaultDownloadDialogPosition(DownloadDialogPosition targ
 ```c#
 void ToggleDownloadDialogCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    webView.CoreWebView2.IsDefaultDownloadDialogVisible =
-        !webView.CoreWebView2.IsDefaultDownloadDialogVisible;
+    if (webView.CoreWebView2.IsDefaultDownloadDialogOpen)
+    {
+        webView.CoreWebView2.CloseDefaultDownloadDialog();
+    }
+    else
+    {
+        webView.CoreWebView2.OpenDefaultDownloadDialog();
+    }
 }
 
 void DownloadDialogPositionCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    webView.CoreWebView2.DefaultDownloadDialogLayout += delegate (
-        object sender, CoreWebView2DefaultDownloadDialogLayoutEventArgs args)
+    CoreWebView2DefaultDownloadDialogPosition newPosition =
+        CoreWebView2DefaultDownloadDialogPosition.TopRight;
+    System.Drawing.Point offset = new System.Drawing.Point();
+    string position = e.Parameter.ToString();
+    int padding = 20;
+    if (position == "Top-left")
     {
-        int padding = 10;
-        int width = args.Width;
-        int height = args.Height;
-        System.Drawing.Rectangle bounds = args.LocalBounds;
-        string position = e.Parameter.ToString();
-        int x_from_right = bounds.Width - width - padding;
-        int y_from_bottom = bounds.Height - height - padding;
-        System.Drawing.Point new_position = args.Position;
-        if (position == "Top-left")
-        {
-            new_position = new System.Drawing.Point(padding, padding);
-        }
-        else if (position == "Top-right")
-        {
-            new_position = new System.Drawing.Point(x_from_right, padding);
-        }
-        else if (position == "Bottom-left")
-        {
-            new_position = new System.Drawing.Point(padding, y_from_bottom);
-        }
-        else if (position == "Bottom-right")
-        {
-            new_position = new System.Drawing.Point(x_from_right, y_from_bottom);
-        }
-        args.Position = new_position;
-    };
+        newPosition =
+            CoreWebView2DefaultDownloadDialogPosition.TopLeft;
+        offset = new System.Drawing.Point(padding, padding);
+    }
+    else if (position == "Top-right")
+    {
+        newPosition =
+            CoreWebView2DefaultDownloadDialogPosition.TopRight;
+        offset = new System.Drawing.Point(-padding, padding);
+    }
+    else if (position == "Bottom-left")
+    {
+        newPosition =
+            CoreWebView2DefaultDownloadDialogPosition.BottomLeft;
+        offset = new System.Drawing.Point(padding, -padding);
+    }
+    else if (position == "Bottom-right")
+    {
+        newPosition =
+            CoreWebView2DefaultDownloadDialogPosition.BottomRight;
+        offset = new System.Drawing.Point(-padding, -padding);
+    }
+    webView.CoreWebView2.SetDefaultDownloadDialogPosition(
+        newPosition, offset);
 }
 ```
 
@@ -118,101 +112,94 @@ void DownloadDialogPositionCmdExecuted(object target, ExecutedRoutedEventArgs e)
 
 
 ```c#
+/// The default download dialog can be aligned to any of the WebView corners.
+/// Use `SetDefaultDownloadDialogPosition` to specify a position and optional
+/// offset from that position.
+typedef enum COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION {
+
+  /// Top-left corner of the WebView.
+  COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_TOP_LEFT,
+
+  /// Top-right corner of the WebView.
+  COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_TOP_RIGHT,
+
+  /// Bottom-left corner of the WebView.
+  COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_BOTTOM_LEFT,
+
+  /// Bottom-right corner of the WebView.
+  COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_BOTTOM_RIGHT,
+
+} COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION;
+
 [uuid(9139c04d-8f37-42ae-8b63-01940c34d22f), object, pointer_default(unique)]
 interface ICoreWebView2_6 : ICoreWebView2_5
 {
-  /// `TRUE` if the default download dialog is currently visible.
-  [propget] HRESULT IsDefaultDownloadDialogVisible(
-      [out, retval] BOOL* isDefaultDownloadDialogVisible);
+  /// `TRUE` if the default download dialog is currently open.
+  [propget] HRESULT IsDefaultDownloadDialogOpen(
+      [out, retval] BOOL* isDefaultDownloadDialogOpen);
 
-  /// Sets the `IsDefaultDownloadDialogVisible` property. A download is
-  /// considered recent if it was downloaded in this instance of the webview.
-  /// If there has not yet been a recent download, setting the default download
-  /// dialog to visible displays all past downloads for the current profile.
-  /// Otherwise, the dialog will display only the recent downloads with a
-  /// "See more" button, which displays the past downloads when clicked on.
+  /// Open the default download dialog. If the dialog is opened before there
+  /// are recent downloads, the dialog shows all past downloads for the
+  /// current profile. Otherwise, the dialog shows only the recent downloads
+  /// with a "See more" button for past downloads.
   ///
   /// \snippet ViewComponent.cpp ToggleDefaultDownloadDialog
-  [propput] HRESULT IsDefaultDownloadDialogVisible(
-      [in] BOOL isDefaultDownloadDialogVisible);
+  HRESULT OpenDefaultDownloadDialog();
 
-  /// Adds an event handler for the `DefaultDownloadDialogLayout` event. The event is
-  /// raised when the default download dialog's position needs to be recomputed,
-  /// such as when the dialog is first opened, when the webview is resized, and
-  /// when the webview is navigated. Use the `Position` property on the event
-  /// args to specify the new position. To set the position relative to the
-  /// current webview bounds, use the `LocalBounds` property on the event args.
+  /// Close the default download dialog.
+  HRESULT CloseDefaultDownloadDialog();
+
+  /// Set the default download dialog position relative to the WebView bounds.
+  /// The dialog can be positioned against any of the WebView corners (see
+  /// COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION). When the WebView or dialog
+  /// changes size, the dialog keeps its position relative to the corner.
+  ///
+  /// The offset is an (x, y) coordinate in physical pixels that applies to the
+  /// dialog corner nearest to the COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION
+  /// specified. Use (0, 0) if no offset should be applied.
+  ///
+  /// The default position is top-right corner with offset (-30, 10). The dialog
+  /// may become partially or completely outside of the WebView bounds if the
+  /// WebView is small enough. The height of the dialog starts at 128 pixels and
+  /// expands with each new download until it reaches a maximum height of 650
+  /// pixels. The dialog also expands to maximum height when the "See more"
+  /// button is clicked on. The width is always 360 pixels.
   ///
   /// \snippet ViewComponent.cpp SetDefaultDownloadDialogPosition
-  HRESULT add_DefaultDownloadDialogLayout(
-      [in] ICoreWebView2DefaultDownloadDialogLayoutEventHandler* eventHandler,
-      [out] EventRegistrationToken* token);
-
-  /// Remove an event handler previously added with `add_DefaultDownloadDialogLayout`.
-  HRESULT remove_DefaultDownloadDialogLayout([in] EventRegistrationToken token);
-}
-
-/// Implements the interface to receive `DefaultDownloadDialogLayout` events.
-[uuid(86557854-794a-414a-b046-ba515f617306), object, pointer_default(unique)]
-interface ICoreWebView2DefaultDownloadDialogLayoutEventHandler : IUnknown {
-
-  /// Provides the event args for the corresponding event.
-  HRESULT Invoke([in] ICoreWebView2* sender,
-                 [in] ICoreWebView2DefaultDownloadDialogLayoutEventArgs* args);
-}
-
-[uuid(e7d2bdea-2e67-4550-b286-6e7d20653d4e), object, pointer_default(unique)]
-interface ICoreWebView2DefaultDownloadDialogLayoutEventArgs : IUnknown {
-  /// The default download dialog position of the top-left corner, relative to
-  /// the webview bounds. Use `LocalBounds` to check the current webview bounds.
-  /// The default position of the download dialog is calculated with the
-  /// following formula:
-  /// (LocalBounds.right - Width - 30, LocalBounds.top + 15).
-  [propget] HRESULT Position([out, retval] POINT* position);
-
-  /// Sets the default download dialog position. Returns `E_INVALIDARG` if an
-  /// invalid position is provided, and the default position is used instead.
-  [propput] HRESULT Position([in] POINT position);
-
-  /// Get the current webview bounds, with the top-left corner being (0, 0).
-  [propget] HRESULT LocalBounds([out, retval] RECT* bounds);
-
-    /// Get the width of the default download dialog.
-  [propget] HRESULT Width([out, retval] INT32* width);
-
-    /// Get the height of the default download dialog.
-  [propget] HRESULT Height([out, retval] INT32* height);
+  HRESULT SetDefaultDownloadDialogPosition(
+      COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION position,
+      POINT offset);
 }
 ```
 
 ```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2DefaultDownloadDialogLayoutEventArgs;
     runtimeclass CoreWebView2;
+
+    enum CoreWebView2DefaultDownloadDialogPosition
+    {
+        TopLeft = 0,
+        TopRight = 1,
+        BottomLeft = 2,
+        BottomRight = 3,
+    };
 
     runtimeclass CoreWebView2
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_6")]
         {
             // ICoreWebView2_6 members
-            Boolean IsDefaultDownloadDialogVisible { get; set; };
+            Boolean IsDefaultDownloadDialogOpen { get; };
 
-            event Windows.Foundation.TypedEventHandler<CoreWebView2,
-                CoreWebView2DefaultDownloadDialogLayoutEventArgs> DefaultDownloadDialogLayout;
+            void OpenDefaultDownloadDialog();
+
+            void CloseDefaultDownloadDialog();
+
+            void SetDefaultDownloadDialogPosition(
+                CoreWebView2DefaultDownloadDialogPosition position,
+                Windows.Foundation.Point offset);
         }
-    }
-
-    runtimeclass CoreWebView2DefaultDownloadDialogLayoutEventArgs
-    {
-        // ICoreWebView2DefaultDownloadDialogLayoutEventArgs members
-        Windows.Foundation.Point Position { get; set; };
-
-        Windows.Foundation.Rect LocalBounds { get; };
-
-        Int32 Width { get; };
-
-        Int32 Height { get; };
     }
 }
 ```
