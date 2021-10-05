@@ -19,9 +19,9 @@ void ViewComponent::ToggleDefaultDownloadDialog()
 {
     if (m_webView2_6)
     {
-        BOOL isOpen;
-        m_webView2_6->get_IsDefaultDownloadDialogOpen(&isOpen);
-        if (isOpen)
+        BOOL is_open;
+        m_webView2_6->get_IsDefaultDownloadDialogOpen(&is_open);
+        if (is_open)
         {
             m_webView2_6->CloseDefaultDownloadDialog();
         }
@@ -33,13 +33,13 @@ void ViewComponent::ToggleDefaultDownloadDialog()
 }
 
 void ViewComponent::SetDefaultDownloadDialogPosition(
-    COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION targetPosition)
+    COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION target_position)
 {
     if (m_webView2_6)
     {
         const int padding = 20;
         POINT offset;
-        switch (targetPosition) {
+        switch (target_position) {
             case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_TOP_LEFT:
                 offset = {padding, padding};
                 break;
@@ -54,7 +54,7 @@ void ViewComponent::SetDefaultDownloadDialogPosition(
                 break;
         }
         CHECK_FAILURE(m_webView2_6->SetDefaultDownloadDialogPosition(
-            targetPosition, offset));
+            target_position, offset));
     }
 }
 ```
@@ -74,37 +74,37 @@ void ToggleDownloadDialogCmdExecuted(object target, ExecutedRoutedEventArgs e)
 
 void DownloadDialogPositionCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    CoreWebView2DefaultDownloadDialogPosition newPosition =
+    CoreWebView2DefaultDownloadDialogPosition new_position =
         CoreWebView2DefaultDownloadDialogPosition.TopRight;
     System.Drawing.Point offset = new System.Drawing.Point();
     string position = e.Parameter.ToString();
     int padding = 20;
     if (position == "Top-left")
     {
-        newPosition =
+        new_position =
             CoreWebView2DefaultDownloadDialogPosition.TopLeft;
         offset = new System.Drawing.Point(padding, padding);
     }
     else if (position == "Top-right")
     {
-        newPosition =
+        new_position =
             CoreWebView2DefaultDownloadDialogPosition.TopRight;
         offset = new System.Drawing.Point(-padding, padding);
     }
     else if (position == "Bottom-left")
     {
-        newPosition =
+        new_position =
             CoreWebView2DefaultDownloadDialogPosition.BottomLeft;
         offset = new System.Drawing.Point(padding, -padding);
     }
     else if (position == "Bottom-right")
     {
-        newPosition =
+        new_position =
             CoreWebView2DefaultDownloadDialogPosition.BottomRight;
         offset = new System.Drawing.Point(-padding, -padding);
     }
     webView.CoreWebView2.SetDefaultDownloadDialogPosition(
-        newPosition, offset);
+        new_position, offset);
 }
 ```
 
