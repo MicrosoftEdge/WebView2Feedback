@@ -32,30 +32,17 @@ void ViewComponent::ToggleDefaultDownloadDialog()
     }
 }
 
-void ViewComponent::SetDefaultDownloadDialogPosition(
-    COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION targetPosition)
+void ViewComponent::SetDefaultDownloadDialogPosition()
 {
-    if (m_webView2_6)
-    {
-        const int padding = 20;
-        POINT offset;
-        switch (targetPosition) {
-            case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_TOP_LEFT:
-                offset = {padding, padding};
-                break;
-            case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_TOP_RIGHT:
-                offset = {-padding, padding};
-                break;
-            case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_BOTTOM_LEFT:
-                offset = {padding, -padding};
-                break;
-            case COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_BOTTOM_RIGHT:
-                offset = {-padding, -padding};
-                break;
-        }
-        CHECK_FAILURE(m_webView2_6->SetDefaultDownloadDialogPosition(
-            targetPosition, offset));
-    }
+    COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION targetPosition =
+        COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_TOP_LEFT;
+    UINT32 defaultPadding = 20;
+    COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_PADDING padding = {
+        defaultPadding, defaultPadding};
+    CHECK_FAILURE(m_webViewStaging6->put_DefaultDownloadDialogPosition(
+        targetPosition));
+    CHECK_FAILURE(m_webViewStaging6->put_DefaultDownloadDialogPadding(
+        padding));
 }
 ```
 
@@ -72,39 +59,16 @@ void ToggleDownloadDialogCmdExecuted(object target, ExecutedRoutedEventArgs e)
     }
 }
 
-void DownloadDialogPositionCmdExecuted(object target, ExecutedRoutedEventArgs e)
+private void SetDefaultDownloadDialogPosition()
 {
+    uint defaultPadding = 20;
     CoreWebView2DefaultDownloadDialogPosition newPosition =
-        CoreWebView2DefaultDownloadDialogPosition.TopRight;
-    System.Drawing.Point offset = new System.Drawing.Point();
-    string position = e.Parameter.ToString();
-    int padding = 20;
-    if (position == "Top-left")
-    {
-        newPosition =
-            CoreWebView2DefaultDownloadDialogPosition.TopLeft;
-        offset = new System.Drawing.Point(padding, padding);
-    }
-    else if (position == "Top-right")
-    {
-        newPosition =
-            CoreWebView2DefaultDownloadDialogPosition.TopRight;
-        offset = new System.Drawing.Point(-padding, padding);
-    }
-    else if (position == "Bottom-left")
-    {
-        newPosition =
-            CoreWebView2DefaultDownloadDialogPosition.BottomLeft;
-        offset = new System.Drawing.Point(padding, -padding);
-    }
-    else if (position == "Bottom-right")
-    {
-        newPosition =
-            CoreWebView2DefaultDownloadDialogPosition.BottomRight;
-        offset = new System.Drawing.Point(-padding, -padding);
-    }
-    webView.CoreWebView2.SetDefaultDownloadDialogPosition(
-        newPosition, offset);
+        CoreWebView2DefaultDownloadDialogPosition.TopLeft;
+    CoreWebView2DefaultDownloadDialogPadding padding;
+    padding.x = defaultPadding;
+    padding.y = defaultPadding;
+    webView.CoreWebView2.DefaultDownloadDialogPosition = newPosition;
+    webView.CoreWebView2.DefaultDownloadDialogPadding = padding;
 }
 ```
 
@@ -112,9 +76,10 @@ void DownloadDialogPositionCmdExecuted(object target, ExecutedRoutedEventArgs e)
 
 
 ```c#
-/// The default download dialog can be aligned to any of the WebView corners.
-/// Use `SetDefaultDownloadDialogPosition` to specify a position and optional
-/// offset from that position.
+[v1_enum]
+/// The default download dialog can be aligned to any of the WebView corners
+/// by setting the `DefaultDownloadDialogPosition` property. The default
+/// position is top-right corner.
 typedef enum COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION {
 
   /// Top-left corner of the WebView.
@@ -130,6 +95,21 @@ typedef enum COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION {
   COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION_BOTTOM_RIGHT,
 
 } COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION;
+
+/// The padding is the distance between the WebView corner specified by the
+/// `DefaultDownloadDialogPosition` and the default download dialog corner
+/// nearest to it. It is measured in raw pixels or logical pixels, depending on
+/// the COREWEBVIEW2_BOUNDS_MODE. Use (0, 0) to align the dialog to the WebView
+/// corner with no padding.
+typedef struct COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_PADDING {
+
+  /// The padding in the x-direction from the `DefaultDownloadDialogPosition`.
+  UINT32 x;
+
+  /// The padding in the y-direction from the `DefaultDownloadDialogPosition`.
+  UINT32 y;
+
+} COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_PADDING;
 
 [uuid(9139c04d-8f37-42ae-8b63-01940c34d22f), object, pointer_default(unique)]
 interface ICoreWebView2_6 : ICoreWebView2_5
@@ -149,26 +129,31 @@ interface ICoreWebView2_6 : ICoreWebView2_5
   /// Close the default download dialog.
   HRESULT CloseDefaultDownloadDialog();
 
+  /// Get the default download dialog position.
+  [propget] HRESULT DefaultDownloadDialogPosition(
+      [out, retval] COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION* position);
+
   /// Set the default download dialog position relative to the WebView bounds.
   /// The dialog can be positioned against any of the WebView corners (see
   /// COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION). When the WebView or dialog
-  /// changes size, the dialog keeps its position relative to the corner.
-  ///
-  /// The offset is an (x, y) coordinate in physical pixels that applies to the
-  /// dialog corner nearest to the COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION
-  /// specified. Use (0, 0) if no offset should be applied.
-  ///
-  /// The default position is top-right corner with offset (-30, 10). The dialog
-  /// may become partially or completely outside of the WebView bounds if the
-  /// WebView is small enough. The height of the dialog starts at 128 pixels and
-  /// expands with each new download until it reaches a maximum height of 650
-  /// pixels. The dialog also expands to maximum height when the "See more"
-  /// button is clicked on. The width is always 360 pixels.
+  /// changes size, the dialog keeps its position relative to the corner. The
+  /// dialog may become partially or completely outside of the WebView bounds if
+  /// the WebView is small enough. Set the padding from the position with the
+  ///  `DefaultDownloadDialogPadding` property.
   ///
   /// \snippet ViewComponent.cpp SetDefaultDownloadDialogPosition
-  HRESULT SetDefaultDownloadDialogPosition(
-      COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION position,
-      POINT offset);
+  [propput] HRESULT DefaultDownloadDialogPosition(
+      [in] COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_POSITION position);
+
+  /// Get the default download dialog padding.
+  [propget] HRESULT DefaultDownloadDialogPadding(
+      [out, retval] COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_PADDING* padding);
+
+  /// Set the default download dialog padding from the
+  /// `DefaultDownloadDialogPosition`. See
+  /// COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_PADDING.
+  [propput] HRESULT DefaultDownloadDialogPadding(
+      [in] COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_PADDING padding);
 }
 ```
 
@@ -185,6 +170,12 @@ namespace Microsoft.Web.WebView2.Core
         BottomRight = 3,
     };
 
+    struct CoreWebView2DefaultDownloadDialogPadding
+    {
+        UInt32 x;
+        UInt32 y;
+    };
+
     runtimeclass CoreWebView2
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_6")]
@@ -196,9 +187,11 @@ namespace Microsoft.Web.WebView2.Core
 
             void CloseDefaultDownloadDialog();
 
-            void SetDefaultDownloadDialogPosition(
-                CoreWebView2DefaultDownloadDialogPosition position,
-                Windows.Foundation.Point offset);
+            CoreWebView2DefaultDownloadDialogPosition
+                DefaultDownloadDialogPosition { get; set; };
+
+            CoreWebView2DefaultDownloadDialogPadding
+                DefaultDownloadDialogPadding { get; set; };
         }
     }
 }
