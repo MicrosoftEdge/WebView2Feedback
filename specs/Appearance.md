@@ -38,6 +38,17 @@ How to set theme in webview2.
     
 ```
 
+```c#
+
+private WebView2 m_webview;
+
+void SetAppearance(COREWEBVIEW2_APPEARANCE_TYPE appearance)
+{
+    m_webview.CoreWebView2Controller.put_Appearance(appearance);
+}
+    
+```
+
 # API Details
 
 ```
