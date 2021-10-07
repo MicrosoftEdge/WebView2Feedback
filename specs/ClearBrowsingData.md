@@ -20,7 +20,7 @@ HRESULT ClearBrowsingDataInTimeRange(
       [in] double endTime, 
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
 ```
-The first method takes `COREWEBVIEW2_BROWSING_DATA_KINDS` which corresponds to the data type(s) to clear as well as a handler which will indicate if the proper data has been cleared successfully. The handler will respond with a `BOOl` indicating whether the operation successfully cleared the intended data. This method clears the data for all time. 
+The first method takes `COREWEBVIEW2_BROWSING_DATA_KINDS` which corresponds to the data type(s) to clear as well as a handler which will indicate if the proper data has been cleared successfully. This method clears the data for all time. 
 
 The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The time parameters correspond to how many seconds have passed since the UNIX epoch. 
 
@@ -53,9 +53,9 @@ void ClearAutofillData()
         CHECK_FAILURE(profile->ClearBrowsingDataInTimeRange(
             dataKinds, startTime, endTime,
             Callback<ICoreWebView2StagingClearBrowsingDataCompletedHandler>(
-                [this](HRESULT error, bool isSuccessful)
+                [this](HRESULT error)
                     -> HRESULT {
-                    LPCWSTR result = isSuccessful ? L"Succeeded" : L"Failed";
+                    LPCWSTR result = error == S_OK ? L"Succeeded" : L"Failed";
                     RunAsync([this, result]() {
                         MessageBox(nullptr, result, L"Clear Browsing Data", MB_OK);
                     });
@@ -79,11 +79,8 @@ private void ClearAutofillData()
         // Get the current time which is the time in which the browsing data will be cleared until.
         double startTime = endTime - 3600;
         // Offset the current time by 3600 seconds to clear the browsing data from the last hour.
-        CoreWebView2BrowsingDataKinds dataKinds =  (CoreWebView2BrowsingDataKinds)(CoreWebView2BrowsingDataKinds.GeneralAutofill | CoreWebView2BrowsingDataKinds.PasswordAutosave);
-        bool isSuccessful = await profile.ClearBrowsingDataAsync(dataKinds, startTime, endTime);
-        MessageBox.Show(this,
-            (isSuccessful) ? "Succeeded" : "Failed",
-            "Clear Browsing Data");
+        CoreWebView2BrowsingDataKinds dataKinds = (CoreWebView2BrowsingDataKinds)(CoreWebView2BrowsingDataKinds.GeneralAutofill | CoreWebView2BrowsingDataKinds.PasswordAutosave);
+        await profile.ClearBrowsingDataAsync(dataKinds, startTime, endTime);
     }
 }
 
@@ -233,14 +230,8 @@ interface ICoreWebView2Profile : IUnknown {
 /// The caller implements this interface to receive the `ClearBrowsingData` result.
 [uuid(27676699-FE17-4E2B-8C1B-267395A04ED5), object, pointer_default(unique)]
 interface ICoreWebView2ClearBrowsingDataCompletedHandler : IUnknown {
-  /// Provide the completion status and result of the corresponding
-  /// asynchronous method. The result indicates if the `ClearBrowsingData` 
-  /// call has completed successfully and all intended data has been cleared. 
-  /// If the call has been interrupted and does not clear all the intended data, 
-  /// the `errorCode` is `S_OK` and `isSuccessful` will be `false`. 
-  HRESULT Invoke(
-      [in] HRESULT errorCode, 
-      [in] BOOL isSuccessful);
+  /// Provide the completion status of the corresponding asynchronous method. 
+  HRESULT Invoke([in] HRESULT errorCode);
 }
 
 ```
