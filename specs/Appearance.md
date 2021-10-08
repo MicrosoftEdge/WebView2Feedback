@@ -3,7 +3,7 @@ Appearance (Theme) API
 
 # Background
 This API's main use case is to set the overall appearance for WebView2. The options are similar to Edge: match the system default theme, light theme, or dark theme. 
-This API changes thing like dialogs, menus, and web content based on native flags. Please note this API will only set the overall appearance, but not theme.
+This API changes thing like the dialogs, menus, and so on that WebView2 displays itself as well as the **something** of web content. Please note this API will only set the overall appearance, but not theme.
 For reference, in the screenshot below this API is meant to expose the Overall Appearance section as a WebView2 API. 
 
 # Conceptual pages (How To)
