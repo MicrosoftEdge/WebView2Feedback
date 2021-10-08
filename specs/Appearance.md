@@ -2,49 +2,42 @@ Appearance (Theme) API
 ===
 
 # Background
-This API's main use case is to set the overall appearance for WebView2. The options are similar to Edge: match the system default theme, light theme, or dark theme. 
-This API changes thing like the dialogs, menus, and so on that WebView2 displays itself as well as the **something** of web content. Please note this API will only set the overall appearance, but not theme.
-For reference, in the screenshot below this API is meant to expose the Overall Appearance section as a WebView2 API. 
+This API's main use is to set the overall appearance for WebView2. The options are similar to Edge: match the system default theme, change to light theme, or change to dark theme. 
+This API has 2 main changes relevant to the end users. First, it sets appearance for WebView2 UI like dialogs, prompts, context menu, etc. And second, this API sets the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) [media feature](https://developer.mozilla.org/en-US/docs/Web/CSS/Media_Queries/Using_media_queries#media_features). Websites typically media query for this setting in order to set CSS themes for light/dark. 
 
-# Conceptual pages (How To)
+Please note this API will only set the overall appearance, but not theme.
+For reference, in the screenshot below, this API is meant to expose the Overall Appearance section as a WebView2 API. 
 
-How to set theme in webview2. 
-1. Query interface. (Situational)
-2. Call put_Appearance to set the Appearance property. 
-3. The input parameter can be either COREWEBVIEW2_APPEARANCE_TYPE_SYSTEM, COREWEBVIEW2_APPEARANCE_TYPE_LIGHT, or COREWEBVIEW2_APPEARANCE_TYPE_DARK.
-
-
+![Alt text](.\media\EdgeSettingsAppearance.png "a title")
 # Examples
 
 ### C++
 
 ```cpp
+
+bool ViewComponent::SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
+{
+    
     wil::com_ptr<ICoreWebView2StagingController2> webViewStagingController2;
-    
-    bool ViewComponent::QuerySetAppearance(COREWEBVIEW2_APPEARANCE_TYPE appearance){
-    
+
     m_appWindow->GetWebViewController()->QueryInterface(IID_PPV_ARGS(&webViewStagingController2));
     CHECK_FEATURE_RETURN(webViewStagingController2);
-    
-    // Input can be either:
-    // 1. COREWEBVIEW2_APPEARANCE_TYPE_SYSTEM 
-    // 2. COREWEBVIEW2_APPEARANCE_TYPE_LIGHT 
-    // 3. COREWEBVIEW2_APPEARANCE_TYPE_DARK
-    
-    webViewStagingController2->put_Appearance(appearance); 
+
+    webViewStagingController2->put_Appearance(value); 
 
     return true;
-    }
+}
     
 ```
+### C#
 
 ```c#
 
 private WebView2 m_webview;
 
-void SetAppearance(COREWEBVIEW2_APPEARANCE_TYPE appearance)
+void SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
 {
-    m_webview.CoreWebView2Controller.put_Appearance(appearance);
+    m_webview.CoreWebView2Controller.Appearance = value;
 }
     
 ```
@@ -53,20 +46,40 @@ void SetAppearance(COREWEBVIEW2_APPEARANCE_TYPE appearance)
 
 ```
 [uuid(5f817cce-5d36-4cd0-a1d5-aaaf95c8685f), object, pointer_default(unique)]
-interface ICoreWebView2StagingController2 : IUnknown {
+interface ICoreWebView2Controller4 : ICoreWebView2Controller3 {
 
   /// The Appearance property sets the overall theme of the webview2 instance. 
-  /// The input parameter is either COREWEBVIEW2_APPEARANCE_TYPE_SYSTEM, 
-  /// COREWEBVIEW2_APPEARANCE_TYPE_LIGHT, or COREWEBVIEW2_APPEARANCE_TYPE_DARK.
-  /// Note that this applies to pages, dialogs, and menus.  
+  /// The input parameter is either COREWEBVIEW2_APPEARANCE_KIND_SYSTEM, 
+  /// COREWEBVIEW2_APPEARANCE_KIND_LIGHT, or COREWEBVIEW2_APPEARANCE_KIND_DARK.
+  /// Note that this API applies appearance to WebView2 pages, dialogs, menus,
+  /// and sets the media feature `prefers-color-scheme` for websites to respond to. 
   
   /// Returns the value of the `Appearance` property.
   [propget] HRESULT Appearance(
-  [out, retval] COREWEBVIEW2_APPEARANCE_TYPE* appearance);
+  [out, retval] COREWEBVIEW2_APPEARANCE_KIND* value);
 
   /// Sets the `Appearance` property.
   [propput] HRESULT Appearance(
-    [in] COREWEBVIEW2_APPEARANCE_TYPE appearance);
+    [in] COREWEBVIEW2_APPEARANCE_KIND value);
 
 }
+```
+```
+
+/// An enum to represent the options for WebView2 appearance: system, light, or dark.
+
+[v1_enum]
+typedef enum COREWEBVIEW2_APPEARANCE_KIND {
+
+  /// System theme
+  COREWEBVIEW2_APPEARANCE_KIND_SYSTEM,
+
+  /// Light theme
+  COREWEBVIEW2_APPEARANCE_KIND_LIGHT,
+
+  /// Dark theme
+  COREWEBVIEW2_APPEARANCE_KIND_DARK
+
+} COREWEBVIEW2_APPEARANCE_KIND;
+
 ```
