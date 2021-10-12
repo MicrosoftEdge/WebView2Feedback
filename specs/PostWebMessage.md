@@ -22,7 +22,7 @@ function GetWindowBounds() {
 }
 ```
 
-Handle message in host app and post message back to iframe:
+Handle message in host app and post message back to iframe in c++:
 ```cpp
 CHECK_FAILURE(frame->add_WebMessageReceived(
 Microsoft::WRL::Callback<ICoreWebView2FrameWebMessageReceivedEventHandler>(
@@ -57,6 +57,25 @@ Microsoft::WRL::Callback<ICoreWebView2FrameWebMessageReceivedEventHandler>(
     return S_OK;
 }).Get(), NULL));
 ```
+Handle message in host app and post message back to iframe in c#:
+```c#
+webView.CoreWebView2.FrameCreated += (sender, args) =>
+{
+    args.Frame.WebMessageReceived += (WebMessageReceivedSender, WebMessageReceivedArgs) =>
+    {
+        if (WebMessageReceivedArgs.Source == expectedUrl)
+        {
+            String message = WebMessageReceivedArgs.TryGetWebMessageAsString();
+
+            if (message == "GetWindowBounds")
+            {
+                String reply = GetWindowBoundsAsJson();
+                args.Frame.PostWebMessageAsJson(reply);
+            }
+        }
+    };
+}
+```
 
 Handle posted message from the host app in the iframe:
 ```javascript
@@ -75,7 +94,7 @@ window.chrome.webview.addEventListener('message', arg => {
 ## IDL
 ```c#
 [uuid(429afcfa-7cea-453d-b8bb-11f2544bdab1), object, pointer_default(unique)]
-interface ICoreWebView2Frame : IUnknown {
+interface ICoreWebView2Frame2 : ICoreWebView2Frame {
   /// Posts the specified webMessage to the frame.
   /// Runs the message event of the `window.chrome.webview` of the frame
   /// document. JavaScript in that document may subscribe and unsubscribe to
@@ -191,6 +210,7 @@ namespace Microsoft.Web.WebView2.Core
     /// CoreWebView2Frame provides direct access to the iframes information and use.
     runtimeclass CoreWebView2Frame
     {
+        // ...
         void PostWebMessageAsJson(String webMessageAsJson);
         void PostWebMessageAsString(String webMessageAsString);
 
