@@ -2,148 +2,173 @@ Additional Allowed Frame Ancestors for iframes
 ===
 
 # Background
-Due to potential  [Clickjacking](https://en.wikipedia.org/wiki/Clickjacking) attack, a lot of sites only allow them to be hosted in certain trusted ancestor iframes and top page.
-However, there are application scenarios that require hosting these sites in the app's UI that is authored as the HTML page.
+Due to potential  [Clickjacking](https://en.wikipedia.org/wiki/Clickjacking) attack, a lot of sites only allow themselves to be hosted in certain trusted ancestor iframes and pages. The main way to specify this ancestor requirement for sites are http header [X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options) and [Content-Security-Policy frame-ancestors directive](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors).
+
+However, there are application scenarios that require hosting these sites in the app's UI that is authored as an HTML page.
 `<webview>` HTML element was provided for these hosting scenarios in previous solutions like Electron and JavaScript UWP apps.
-For WebView2, we are providing a native API for these hosting scenarios.
+
+For WebView2, we are providing a native API for these hosting scenarios. It let the developers to provide additional allowed frame ancestors as if the site sent these as part of the Content-Security-Policy frame-ancestors directive. An ancestor is allowed if it is allowed by the site's origional http headers or by this addtional allowed frame ancestors.
   
 # Conceptual pages (How To)
 
 To host other sites in an trusted page
-- Listen to FrameNavigationStarting event of CoreWebView2 or NavigationStarting event of CoreWebView2Frame object.
+- Listen to FrameNavigationStarting event of CoreWebView2.
 - Set AdditionalAllowedFrameAncestors property of the NavigationStartingEventArgs to a list of trusted origins that is hosting the site.
 
-The list should normally only contain the origin of the current trusted top page.
-If you are hosting other sites through nested iframes and the origins of some of the iframes are different from the origin of the top page, the list should also include those origins.
+The list should normally only contain the origin of the top page.
+If you are hosting other sites through nested iframes and the origins of some of the intermediate iframes are different from the origin of the top page, the list should also include those origins.
 
 You should only add an origin to the list if it is fully trusted. You should limit the usage of the API to the targetted iframes whenever possible.
 
 # Examples
 ## Win32 C++
 ```cpp
-  const std::wstring myTrustedSite = L"example.com/";
-  const std::wstring siteToHost = L"www.microsoft.com/";
+  const std::wstring myTrustedSite = L"https://example.com/";
+  const std::wstring siteToHost = L"https://www.microsoft.com/";
 
-  bool IsAppContentUri(const std::wstring& pageUrl)
+  bool AreSitesSame(PCWSTR url1, PCWSTR url2)
   {
-      // App specific logic to decide whether the page is fully trusted.
-      wil::com_ptr<IUri> uri;
-      CHECK_FAILURE(CreateUri(pageUrl.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri));
-      DWORD scheme = (DWORD)URL_SCHEME_INVALID;
-      wil::unique_bstr host;
-      CHECK_FAILURE(uri->GetScheme(&scheme));
-      CHECK_FAILURE(uri->GetHost(&host));
-      return (dwScheme == URL_SCHEME_HTTPS) && (host.get() == myTrustedSite);
+      wil::com_ptr<IUri> uri1;
+      CHECK_FAILURE(CreateUri(url1.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri1));
+      DWORD scheme1 = URL_SCHEME_INVALID;
+      DWORD port1 = 0;
+      wil::unique_bstr host1;
+      CHECK_FAILURE(uri1->GetScheme(&scheme1));
+      CHECK_FAILURE(uri1->GetHost(&host1));
+      CHECK_FAILURE(uri1->GetPort(&port1));
+      wil::com_ptr<IUri> uri2;
+      CHECK_FAILURE(CreateUri(url2.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri2));
+      DWORD scheme2 = URL_SCHEME_INVALID;
+      DWORD port2 = 0;
+      wil::unique_bstr host2;
+      CHECK_FAILURE(uri2->GetScheme(&scheme2));
+      CHECK_FAILURE(uri2->GetHost(&host2));
+      CHECK_FAILURE(uri2->GetPort(&port2));
+      return (scheme1 == scheme2) && (port1 == port2) && (wcscmp(host1.get(), host2.get()) == 0);
   }
 
-  bool IsTargetSite(const std::wstring& siteUrl)
+  // App specific logic to decide whether the page is fully trusted.
+  bool IsAppContentUri(PCWSTR pageUrl)
   {
-      // App specific logic to decide whether the site is the one it wants to host.
-      wil::com_ptr<IUri> uri;
-      CHECK_FAILURE(CreateUri(siteUrl.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri));
-      DWORD scheme = (DWORD)URL_SCHEME_INVALID;
-      wil::unique_bstr host;
-      CHECK_FAILURE(uri->GetScheme(&scheme));
-      CHECK_FAILURE(uri->GetHost(&host));
-      return (dwScheme == URL_SCHEME_HTTPS) && (host.get() == siteToHost);
+      return AreSitesSame(pageUrl, myTrustedSite);
   }
 
- void HandleHostedSites()
+  // App specific logic to decide whether a site is the one it wants to host.
+  bool IsTargetSite(PCWSTR siteUrl)
+  {
+      return AreSitesSame(pageUrl, siteToHost);
+  }
+
+ void MyApp::HandleHostedSites()
  {
-    wil::com_ptr<ICoreWebView2_4> webview2_4 = m_webView.try_query<ICoreWebView2_4>();
-    if (webview2_4)
-    {
-        CHECK_FAILURE(webview2_4->add_FrameCreated(
-            Callback<ICoreWebView2FrameCreatedEventHandler>(
-                [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args)
-                    -> HRESULT {
-                    wil::com_ptr<ICoreWebView2Frame> webviewFrame;
-                    CHECK_FAILURE(args->get_Frame(&webviewFrame));
-                    wil::unique_cotaskmem_string pageUrl;
-                    CHECK_FAILURE(m_webView->get_Source(&pageUrl));
-                    // IsAppContentUri verifies that pageUrl is app's content.
-                    if (IsAppContentUri(pageUrl.get()))
+    CHECK_FAILURE(m_webview->add_FrameCreated(
+        Callback<ICoreWebView2FrameCreatedEventHandler>(
+            [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args)
+                -> HRESULT 
+            {
+                wil::com_ptr<ICoreWebView2Frame> webviewFrame;
+                CHECK_FAILURE(args->get_Frame(&webviewFrame));
+                wil::unique_cotaskmem_string pageUrl;
+                CHECK_FAILURE(m_webView->get_Source(&pageUrl));
+                // IsAppContentUri verifies that pageUrl is app's content.
+                if (IsAppContentUri(pageUrl.get()))
+                {
+                    // We are on trusted pages. Now check whether it is the iframe we plan
+                    // to host other sites.
+                    const std::wstring siteHostingFrameName = L"my_site_hosting_frame";
+                    wil::unique_cotaskmem_string frameName;
+                    CHECK_FAILURE(webviewFrame->get_Name(&frameName));
+                    if (siteHostingFrameName == frameName.get())
                     {
-                        // We are on trusted pages. Now check whether it is the iframe we plan
-                        // to host other sites.
-                        const std::wstring siteHostingFrameName = L"my_site_hosting_frame";
-                        wil::unique_cotaskmem_string frameName;
-                        CHECK_FAILURE(webviewFrame->get_Name(&frameName));
-                        if (siteHostingFrameName == frameName.get())
-                        {
-                            wil::com_ptr<ICoreWebView2ExperimentalFrame> frameExperimental =
-                                webviewFrame.try_query<ICoreWebView2ExperimentalFrame>();
-                            if (frameExperimental)
-                            {
-                                frameExperimental->add_NavigationStarting(
-                                    Microsoft::WRL::Callback<
-                                        ICoreWebView2ExperimentalFrameNavigationStartingEventHandler>(
-                                        [](
-                                            ICoreWebView2Frame* sender,
-                                            ICoreWebView2NavigationStartingEventArgs* args)
-                                            -> HRESULT
-                                        {
-                                            wil::unique_cotaskmem_string navigationTargetUri;
-                                            CHECK_FAILURE(args->get_Uri(&navigationTargetUri));
-                                            wil::com_ptr<
-                                                ICoreWebView2NavigationStartingEventArgs_2>
-                                                nav_start_args;
-                                            // If the feature is supported and it is the site we
-                                            // want to host, then allow sites to be hosted by app's page.
-                                            if (SUCCEEDED(args->QueryInterface(
-                                                    IID_PPV_ARGS(&nav_start_args))) &&
-                                                IsTargetSite(navigationTargetUri.get()))
-                                            {
-                                                nav_start_args
-                                                    ->put_AdditionalAllowedFrameAncestors(
-                                                        myTrustedSite);
-                                            }
-                                            return S_OK;
-                                        })
-                                        .Get(),
-                                    nullptr);
-                            }
-                        }
+                      // We are hosting sites.
+                      m_hosting_site = true;
+                      CHECK_FAILURE(webviewFrame->add_Destroyed(
+                          Microsoft::WRL::Callback<
+                              ICoreWebView2FrameDestroyedEventHandler>(
+                              [this](ICoreWebView2Frame* sender,
+                                     IUnknown* args) -> HRESULT {
+                                m_hosting_site = false;
+                                return S_OK;
+                              })
+                              .Get(),
+                          nullptr));
                     }
-                    return S_OK;
-                })
-                .Get(),
-            nullptr));
-    }
+                }
+                return S_OK;
+            })
+            .Get(),
+        nullptr));
+      CHECK_FAILURE(m_webview->add_FrameNavigationStarting(
+          Microsoft::WRL::Callback<ICoreWebView2NavigationStartingEventHandler>(
+              [this](
+                  ICoreWebView2* sender,
+                  ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT
+              {
+                if (m_hosting_site)
+                {
+                    wil::unique_cotaskmem_string navigationTargetUri;
+                    CHECK_FAILURE(args->get_Uri(&navigationTargetUri));
+                    wil::com_ptr<
+                        ICoreWebView2NavigationStartingEventArgs_2>
+                        nav_start_args;
+                    if (SUCCEEDED(args->QueryInterface(
+                            IID_PPV_ARGS(&nav_start_args))) &&
+                        IsTargetSite(navigationTargetUri.get()))
+                    {
+                        nav_start_args
+                            ->put_AdditionalAllowedFrameAncestors(
+                                myTrustedSite);
+                    }
+                }
+                return S_OK;
+              })
+              .Get(),
+          nullptr));
 }
 ```
 ## WinRT and .NET    
 ```c#
-  const string myTrustedSite = "example.com/";
-  const string siteToHost = "www.microsoft.com"; 
+  const string myTrustedSite = "https://example.com/";
+  const string siteToHost = "https://www.microsoft.com";
+  private bool AreSitesSame(string url1, string url2)
+  {
+      auto uri1 = new Uri(url1);
+      auto uri2 = new Uri(url2);
+      return (uri1.SchemeName == uri2.SchemeName) && (uri1.Host == uri2.Host) && (uri1.Port == uri2.Port);
+  }
   private bool IsAppContentUri(string pageUrl)
   {
       // App specific logic to decide whether the page is fully trusted.
-      auto uri = new Uri(pageUrl);
-      return uri.SchemeName == "https" && uri.Host == myTrustedSite;
+      return AreSitesSame(pageUrl, myTrustedSite);
   }
 
-  private bool IsTargetSite(string uri)
+  private bool IsTargetSite(string url)
   {
       // App specific logic to decide whether the site is the one it wants to host.
-      auto uri = new Uri(pageUrl);
-      return uri.SchemeName == "https" && uri.Host == siteToHost;
+      return AreSitesSame(url, siteToHost);
   }
 
   private void CoreWebView2_FrameCreated(CoreWebView2 sender, Microsoft.Web.WebView2.Core.CoreWebView2FrameCreatedEventArgs args)
   {
       // my_site_hosting_frame is the name attribute on the iframe element that we used in the web page to host the site.
       const string siteHostingFrameName = "my_site_hosting_frame";
-
       if (IsAppContentUri(sender.Source) && (args.Frame.Name == siteHostingFrameName))
       {
-          args.Frame.NavigationStarting += (CoreWebView2Frame navStartingSender, CoreWebView2NavigationStartingEventArgs navStartingArgs) =>
-          {
-              if (IsTargetSite(navStartingArgs.Uri))
-              {
-                  args.AdditionalAllowedFrameAncestors = myTrustedSite;
-              }
-          };
+          m_hosting_site = true;
+          args.Frame.Destroyed += CoreWebView2_SiteHostingFrameDestroyed;
+      }
+  }
+
+  private void CoreWebView2_SiteHostingFrameDestroyed(CoreWebView2Frame sender, Object args)
+  {
+      m_hosting_site = false;
+  }
+
+  private void CoreWebView2_FrameNavigationStarting(CoreWebView2 sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs args)
+  {
+      if (IsTargetSite(args.Uri))
+      {
+          args.AdditionalAllowedFrameAncestors = myTrustedSite;
       }
   }
 ```
