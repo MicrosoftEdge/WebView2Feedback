@@ -7,67 +7,65 @@ Due to potential  [Clickjacking](https://en.wikipedia.org/wiki/Clickjacking) att
 However, there are application scenarios that require hosting these sites in the app's UI that is authored as an HTML page.
 `<webview>` HTML element was provided for these hosting scenarios in previous solutions like Electron and JavaScript UWP apps.
 
-For WebView2, we are providing a native API for these hosting scenarios. It let the developers to provide additional allowed frame ancestors as if the site sent these as part of the Content-Security-Policy frame-ancestors directive. An ancestor is allowed if it is allowed by the site's origional http headers or by this addtional allowed frame ancestors.
+For WebView2, we are providing a native API for these hosting scenarios. Developers can use it to provide additional allowed frame ancestors as if the site sent these as part of the Content-Security-Policy frame-ancestors directive. The result is that an ancestor is allowed if it is allowed by the site's origional policies or by this addtional allowed frame ancestors.
   
 # Conceptual pages (How To)
 
-To host other sites in an trusted page
+To host other sites in an trusted page with modified allowed frame ancestors
 - Listen to FrameNavigationStarting event of CoreWebView2.
-- Set AdditionalAllowedFrameAncestors property of the NavigationStartingEventArgs to a list of trusted origins that is hosting the site.
+- Set AdditionalAllowedFrameAncestors property of the NavigationStartingEventArgs to a list additional allowed frame ancestors using the same syntax as [Content-Security-Policy frame-ancestors directive](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors).
 
 The list should normally only contain the origin of the top page.
-If you are hosting other sites through nested iframes and the origins of some of the intermediate iframes are different from the origin of the top page, the list should also include those origins.
+If you are hosting other sites through nested iframes and the origins of some of the intermediate iframes are different from the origin of the top page and those origins might not be allowed by the site's original policies, the list should also include those origins.
 
-You should only add an origin to the list if it is fully trusted. You should limit the usage of the API to the targetted iframes whenever possible.
+You should only add an origin to the list if it is fully trusted. You should limit the usage of the API to the targetted app scenarios.
 
 # Examples
 ## Win32 C++
 ```cpp
-  const std::wstring myTrustedSite = L"https://example.com/";
-  const std::wstring siteToHost = L"https://www.microsoft.com/";
+const std::wstring myTrustedSite = L"https://example.com/";
+const std::wstring siteToHost = L"https://www.microsoft.com/";
 
-  bool AreSitesSame(PCWSTR url1, PCWSTR url2)
-  {
-      wil::com_ptr<IUri> uri1;
-      CHECK_FAILURE(CreateUri(url1.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri1));
-      DWORD scheme1 = URL_SCHEME_INVALID;
-      DWORD port1 = 0;
-      wil::unique_bstr host1;
-      CHECK_FAILURE(uri1->GetScheme(&scheme1));
-      CHECK_FAILURE(uri1->GetHost(&host1));
-      CHECK_FAILURE(uri1->GetPort(&port1));
-      wil::com_ptr<IUri> uri2;
-      CHECK_FAILURE(CreateUri(url2.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri2));
-      DWORD scheme2 = URL_SCHEME_INVALID;
-      DWORD port2 = 0;
-      wil::unique_bstr host2;
-      CHECK_FAILURE(uri2->GetScheme(&scheme2));
-      CHECK_FAILURE(uri2->GetHost(&host2));
-      CHECK_FAILURE(uri2->GetPort(&port2));
-      return (scheme1 == scheme2) && (port1 == port2) && (wcscmp(host1.get(), host2.get()) == 0);
-  }
+bool AreSitesSame(PCWSTR url1, PCWSTR url2)
+{
+    wil::com_ptr<IUri> uri1;
+    CHECK_FAILURE(CreateUri(url1.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri1));
+    DWORD scheme1 = URL_SCHEME_INVALID;
+    DWORD port1 = 0;
+    wil::unique_bstr host1;
+    CHECK_FAILURE(uri1->GetScheme(&scheme1));
+    CHECK_FAILURE(uri1->GetHost(&host1));
+    CHECK_FAILURE(uri1->GetPort(&port1));
+    wil::com_ptr<IUri> uri2;
+    CHECK_FAILURE(CreateUri(url2.c_str(), Uri_CREATE_CANONICALIZE, 0, &uri2));
+    DWORD scheme2 = URL_SCHEME_INVALID;
+    DWORD port2 = 0;
+    wil::unique_bstr host2;
+    CHECK_FAILURE(uri2->GetScheme(&scheme2));
+    CHECK_FAILURE(uri2->GetHost(&host2));
+    CHECK_FAILURE(uri2->GetPort(&port2));
+    return (scheme1 == scheme2) && (port1 == port2) && (wcscmp(host1.get(), host2.get()) == 0);
+}
 
-  // App specific logic to decide whether the page is fully trusted.
-  bool IsAppContentUri(PCWSTR pageUrl)
-  {
-      return AreSitesSame(pageUrl, myTrustedSite);
-  }
+// App specific logic to decide whether the page is fully trusted.
+bool IsAppContentUri(PCWSTR pageUrl)
+{
+    return AreSitesSame(pageUrl, myTrustedSite);
+}
 
-  // App specific logic to decide whether a site is the one it wants to host.
-  bool IsTargetSite(PCWSTR siteUrl)
-  {
-      return AreSitesSame(pageUrl, siteToHost);
-  }
+// App specific logic to decide whether a site is the one it wants to host.
+bool IsTargetSite(PCWSTR siteUrl)
+{
+    return AreSitesSame(siteUrl, siteToHost);
+}
 
- void MyApp::HandleHostedSites()
- {
+void MyApp::HandleHostedSites()
+{
     CHECK_FAILURE(m_webview->add_FrameCreated(
         Callback<ICoreWebView2FrameCreatedEventHandler>(
             [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args)
                 -> HRESULT 
             {
-                wil::com_ptr<ICoreWebView2Frame> webviewFrame;
-                CHECK_FAILURE(args->get_Frame(&webviewFrame));
                 wil::unique_cotaskmem_string pageUrl;
                 CHECK_FAILURE(m_webView->get_Source(&pageUrl));
                 // IsAppContentUri verifies that pageUrl is app's content.
@@ -76,18 +74,20 @@ You should only add an origin to the list if it is fully trusted. You should lim
                     // We are on trusted pages. Now check whether it is the iframe we plan
                     // to host other sites.
                     const std::wstring siteHostingFrameName = L"my_site_hosting_frame";
+                    wil::com_ptr<ICoreWebView2Frame> webviewFrame;
+                    CHECK_FAILURE(args->get_Frame(&webviewFrame));
                     wil::unique_cotaskmem_string frameName;
                     CHECK_FAILURE(webviewFrame->get_Name(&frameName));
                     if (siteHostingFrameName == frameName.get())
                     {
                       // We are hosting sites.
-                      m_hosting_site = true;
+                      m_hostingSite = true;
                       CHECK_FAILURE(webviewFrame->add_Destroyed(
                           Microsoft::WRL::Callback<
                               ICoreWebView2FrameDestroyedEventHandler>(
                               [this](ICoreWebView2Frame* sender,
                                      IUnknown* args) -> HRESULT {
-                                m_hosting_site = false;
+                                m_hostingSite = false;
                                 return S_OK;
                               })
                               .Get(),
@@ -98,32 +98,32 @@ You should only add an origin to the list if it is fully trusted. You should lim
             })
             .Get(),
         nullptr));
-      CHECK_FAILURE(m_webview->add_FrameNavigationStarting(
-          Microsoft::WRL::Callback<ICoreWebView2NavigationStartingEventHandler>(
-              [this](
-                  ICoreWebView2* sender,
-                  ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT
+    CHECK_FAILURE(m_webview->add_FrameNavigationStarting(
+        Microsoft::WRL::Callback<ICoreWebView2NavigationStartingEventHandler>(
+            [this](
+                ICoreWebView2* sender,
+                ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT
+            {
+              if (m_hostingSite)
               {
-                if (m_hosting_site)
-                {
-                    wil::unique_cotaskmem_string navigationTargetUri;
-                    CHECK_FAILURE(args->get_Uri(&navigationTargetUri));
-                    wil::com_ptr<
-                        ICoreWebView2NavigationStartingEventArgs_2>
-                        nav_start_args;
-                    if (SUCCEEDED(args->QueryInterface(
-                            IID_PPV_ARGS(&nav_start_args))) &&
-                        IsTargetSite(navigationTargetUri.get()))
-                    {
-                        nav_start_args
-                            ->put_AdditionalAllowedFrameAncestors(
-                                myTrustedSite);
-                    }
-                }
-                return S_OK;
-              })
-              .Get(),
-          nullptr));
+                  wil::unique_cotaskmem_string navigationTargetUri;
+                  CHECK_FAILURE(args->get_Uri(&navigationTargetUri));
+                  wil::com_ptr<
+                      ICoreWebView2NavigationStartingEventArgs_2>
+                      navigationStartArgs;
+                  if (SUCCEEDED(args->QueryInterface(
+                          IID_PPV_ARGS(&navigationStartArgs))) &&
+                      IsTargetSite(navigationTargetUri.get()))
+                  {
+                      navigationStartArgs
+                          ->put_AdditionalAllowedFrameAncestors(
+                              myTrustedSite);
+                  }
+              }
+              return S_OK;
+            })
+            .Get(),
+        nullptr));
 }
 ```
 ## WinRT and .NET    
@@ -142,10 +142,10 @@ You should only add an origin to the list if it is fully trusted. You should lim
       return AreSitesSame(pageUrl, myTrustedSite);
   }
 
-  private bool IsTargetSite(string url)
+  private bool IsTargetSite(string siteUrl)
   {
       // App specific logic to decide whether the site is the one it wants to host.
-      return AreSitesSame(url, siteToHost);
+      return AreSitesSame(siteUrl, siteToHost);
   }
 
   private void CoreWebView2_FrameCreated(CoreWebView2 sender, Microsoft.Web.WebView2.Core.CoreWebView2FrameCreatedEventArgs args)
@@ -154,14 +154,14 @@ You should only add an origin to the list if it is fully trusted. You should lim
       const string siteHostingFrameName = "my_site_hosting_frame";
       if (IsAppContentUri(sender.Source) && (args.Frame.Name == siteHostingFrameName))
       {
-          m_hosting_site = true;
+          m_hostingSite = true;
           args.Frame.Destroyed += CoreWebView2_SiteHostingFrameDestroyed;
       }
   }
 
   private void CoreWebView2_SiteHostingFrameDestroyed(CoreWebView2Frame sender, Object args)
   {
-      m_hosting_site = false;
+      m_hostingSite = false;
   }
 
   private void CoreWebView2_FrameNavigationStarting(CoreWebView2 sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs args)
