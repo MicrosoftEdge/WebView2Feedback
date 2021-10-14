@@ -98,6 +98,9 @@ void MyApp::HandleHostedSites()
             })
             .Get(),
         nullptr));
+    // Using FrameNavigationStarting event instead of NavigationStarting event of CoreWebViewFrame
+    // to cover all possible nested iframes inside the hosted site as CoreWebViewFrame
+    // object currently only support first level iframes in the top page.
     CHECK_FAILURE(m_webview->add_FrameNavigationStarting(
         Microsoft::WRL::Callback<ICoreWebView2NavigationStartingEventHandler>(
             [this](
@@ -164,12 +167,20 @@ void MyApp::HandleHostedSites()
       m_hostingSite = false;
   }
 
+  // Using FrameNavigationStarting event instead of NavigationStarting event of CoreWebViewFrame
+  // to cover all possible nested iframes inside the hosted site as CoreWebViewFrame
+  // object currently only support first level iframes in the top page.
   private void CoreWebView2_FrameNavigationStarting(CoreWebView2 sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs args)
   {
       if (IsTargetSite(args.Uri))
       {
           args.AdditionalAllowedFrameAncestors = myTrustedSite;
       }
+  }
+  private void HandleHostedSites()
+  {
+      webView.FrameCreated += CoreWebView2_FrameCreated;
+      webView.FrameNavigationStarting += CoreWebView2_FrameNavigationStarting;
   }
 ```
 
