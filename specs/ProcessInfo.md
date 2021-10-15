@@ -247,14 +247,6 @@ namespace Microsoft.Web.WebView2.Core
         Unknown = 7,
     };
 
-    runtimeclass CoreWebView2ProcessInfoCollection
-    {
-        // ICoreWebView2ProcessInfoCollection members
-        UInt32 Count { get; };
-
-        CoreWebView2ProcessInfo GetValueAtIndex(UInt32 index);
-    }
-
     runtimeclass CoreWebView2ProcessInfo
     {
         // ICoreWebView2ProcessInfo members
