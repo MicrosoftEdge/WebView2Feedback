@@ -185,7 +185,7 @@ interface ICoreWebView2BasicAuthenticationResponse : IUnknown
   /// Set user name property
   [propput] HRESULT UserName([in] LPCWSTR userName);
 
-  /// Password provided for authentication
+  /// Password provided for authentication.
   [propget] HRESULT Password([out, retval] LPWSTR* password);
   /// Set password property
   [propput] HRESULT Password([in] LPCWSTR password);
@@ -197,8 +197,8 @@ interface ICoreWebView2BasicAuthenticationResponse : IUnknown
 [uuid(51d3adaa-159f-4e48-ad39-a86beb2c1435), object, pointer_default(unique)]
 interface ICoreWebView2BasicAuthenticationRequestedEventArgs : IUnknown
 {
-  /// The web resource request that led to the authentication challenge
-  [propget] HRESULT Request([out, retval] ICoreWebView2WebResourceRequest** request);
+  /// The URI that led to the authentication challenge
+  [propget] HRESULT Uri([out, retval] LPWSTR* value);
 
   /// The authentication challenge string
   [propget] HRESULT Challenge([out, retval] LPWSTR* challenge);
