@@ -45,10 +45,8 @@ The developer can provide the authentication credentials on behalf of the user w
             {
                 wil::com_ptr<ICoreWebView2Deferral> deferral;
 
-                // Ensure the event args are retained for the lambda.
-                wil::com_ptr<ICoreWebView2BasicAuthenticationRequestedEventArgs> web_auth_args = args;
                 args->GetDeferral(&deferral);
-                ShowCustomLoginUI().then([web_auth_args, deferral](LPCWSTR userName, LPCWSTR password)
+                ShowCustomLoginUI().then([web_auth_args = wil::make_com_ptr(args), deferral](LPCWSTR userName, LPCWSTR password)
                 {
                     wil::com_ptr<ICoreWebView2BasicAuthenticationResponse> basicAuthenticationResponse;
                     CHECK_HRESULT(web_auth_args->get_Response(&basicAuthenticationResponse));
@@ -66,11 +64,13 @@ The developer can provide the authentication credentials on behalf of the user w
 ```c#
 webView.CoreWebView2.BasicAuthenticationRequested += delegate (object sender, CoreWebView2BasicAuthenticationRequestedEventArgs args)
 {
-    CoreWebView2Deferral deferral = args.GetDeferral();
-    Credential credential = await ShowCustomLoginUIAsync();
-    args.Response.UserName = credential.UserName;
-    args.Response.Password = credential.Password;
-    deferral.Complete();
+    using (CoreWebView2Deferral deferral = args.GetDeferral())
+    {
+        Credential credential = await ShowCustomLoginUIAsync();
+        args.Response.UserName = credential.UserName;
+        args.Response.Password = credential.Password;
+        deferral.Complete();
+    }
 };
 ```
 
@@ -149,11 +149,11 @@ interface ICoreWebView2_4 : ICoreWebView2_3
   /// Add an event handler for the BasicAuthenticationRequested event.
   /// BasicAuthenticationRequested event is raised when WebView encounters a Basic HTTP
   /// Authentication request as described in
-  /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication.
+  /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication or an NTLM authentication request.
   ///
   /// The host can provide a response with credentials for the authentication or
   /// cancel the request. If the host doesn't set the Cancel property to true or
-  /// populate the Response property, then WebView2 will show the default
+  /// set either UserName or Password properties on the Response property, then WebView2 will show the default
   /// authentication challenge dialog prompt to the user.
   ///
   HRESULT add_BasicAuthenticationRequested(
@@ -244,7 +244,7 @@ namespace Microsoft.Web.WebView2.Core
 
         /// Returns an `ICoreWebView2Deferral` object. Use this deferral to
         /// defer the decision to show the Basic Authentication dialog.
-        CoreWebView2Deferral Deferral { get; };
+        CoreWebView2Deferral GetDeferral();
     }
 
     /// Represents a Basic HTTP authentication response that contains a user name
