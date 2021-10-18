@@ -7,7 +7,7 @@ Due to potential  [Clickjacking](https://en.wikipedia.org/wiki/Clickjacking) att
 However, there are application scenarios that require hosting these sites in the app's UI that is authored as an HTML page.
 `<webview>` HTML element was provided for these hosting scenarios in previous solutions like Electron and JavaScript UWP apps.
 
-For WebView2, we are providing a native API for these hosting scenarios. Developers can use it to provide additional allowed frame ancestors as if the site sent these as part of the Content-Security-Policy frame-ancestors directive. The result is that an ancestor is allowed if it is allowed by the site's origional policies or by this addtional allowed frame ancestors.
+For WebView2, we are providing a native API for these hosting scenarios. Developers can use it to provide additional allowed frame ancestors as if the site sent these as part of the Content-Security-Policy frame-ancestors directive. The result is that an ancestor is allowed if it is allowed by the site's original policies or by this additional allowed frame ancestors.
   
 # Conceptual pages (How To)
 
