@@ -254,7 +254,7 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2ProcessKind Kind { get; };
     }
 
-    runtimeclass CoreWebView2
+    runtimeclass CoreWebView2Environment
     {
         /// Gets a list of process.
         IVectorView<CoreWebView2ProcessInfo> ProcessInfo { get; };
