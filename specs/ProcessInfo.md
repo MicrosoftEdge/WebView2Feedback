@@ -231,7 +231,6 @@ interface ICoreWebView2ProcessInfoChangedEventHandler : IUnknown {
 namespace Microsoft.Web.WebView2.Core
 {
     // ...
-    runtimeclass CoreWebView2ProcessInfoCollection;
     runtimeclass CoreWebView2ProcessInfo;
 
     /// Kind of process type used in the CoreWebView2ProcessCollection.
