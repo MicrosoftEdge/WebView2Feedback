@@ -86,6 +86,7 @@ HRESULT AppWindow::CreateControllerWithOptions()
 ### Access the profile property of WebView2
 
 ```cpp
+wil::com_ptr<ICoreWebView2CookieManager> m_cookieManager;
 HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICoreWebView2Controller* controller)
 {
     // ...
@@ -107,6 +108,9 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
         BOOL inPrivateModeEnabled = FALSE;
         CHECK_FAILURE(profile->get_IsInPrivateModeEnabled(&inPrivateModeEnabled));
         CHECK_FAILURE(profile->get_ProfileName(&m_profileName));
+
+        // Gets the cookieManager which can be used the same as described in CookieManagement.md
+        CHECK_FAILURE(profile->get_CookieManager(&m_cookieManager));
         
         // update window title with m_profileName
         UpdateAppTitle();
@@ -144,6 +148,9 @@ public CreateWebView2Controller(IntPtr parentWindow)
 
     string profileName = controller.CoreWebView2.Profile.ProfileName;
     bool inPrivate = controller.CoreWebView2.Profile.IsInPrivateModeEnabled;
+
+    // Gets the cookieManager which can be used the same as described in CookieManagement.md
+    CoreWebView2CookieManager cookieManager = controller.CoreWebView2.Profile.CookieManager;
 
     // update window title with profileName
     UpdateAppTitle(profileName);
@@ -245,6 +252,9 @@ interface ICoreWebView2Profile : IUnknown {
   /// Full path of the profile directory.
   [propget] HRESULT ProfilePath([out, retval] LPWSTR* value);
 
+  /// Get the cookie manager object for the profile.
+  [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
+
   // TODO: All profile-wide operations/settings will be put below in the future.
 }
 ```
@@ -296,6 +306,8 @@ namespace Microsoft.Web.WebView2.Core
         Boolean IsInPrivateModeEnabled { get; };
 
         String ProfilePath { get; };
+
+        CoreWebView2CookieManager cookieManager { get; };
     }
 }
 ```
