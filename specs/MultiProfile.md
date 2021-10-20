@@ -307,7 +307,7 @@ namespace Microsoft.Web.WebView2.Core
 
         String ProfilePath { get; };
 
-        CoreWebView2CookieManager cookieManager { get; };
+        CoreWebView2CookieManager CookieManager { get; };
     }
 }
 ```
