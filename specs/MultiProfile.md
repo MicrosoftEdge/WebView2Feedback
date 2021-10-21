@@ -22,6 +22,15 @@ multiple WebView2s running with separate profiles under a single user data direc
 browser instance at runtime), which means separate cookies, user preference settings, and various
 data storage etc., to help you build a more wonderful experience for your application.
 
+Currently we already have **ICoreWebView2Settings4** interface to manage password-autosave and
+general-autofill, but it will work not immediately but after the next navigation, and it can only
+apply for current WebView2, which means if we start a new WebView2 using the same profile, all the
+settings are default value and cannot be set from the profile. By adding password-autosave and
+general-autofill management interfaces in profile, we can manage the settings and they will work
+immediately if we set new value, and all WebView2s that created with the same profile can share
+the settings, which means if we change password-autosave or general-autofill property in one
+WebView2, the others with the same profile will also work immediately.
+
 # Examples
 
 ## Win32 C++
@@ -118,6 +127,72 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
     // ...
 }
 ```
+
+### Manage password-autosave and general-autofill settings in profile
+
+```cpp
+HRESULT AppWindow::ManagePasswordAutosaveInProfile(ICoreWebView2Controller* controller)
+{
+    // ...
+
+    // Get the profile object.
+    wil::com_ptr<ICoreWebView2> coreWebView2;
+    CHECK_FAILURE(m_controller->get_CoreWebView2(&coreWebView2));
+    Microsoft::WRL::ComPtr<ICoreWebView2Profile> webView2Profile;
+    CHECK_FAILURE(webView2->get_Profile(&webView2Profile));
+    
+    // Get current value of password-autosave property.
+    BOOL enabled;
+    CHECK_FAILURE(webView2Profile->get_IsPasswordAutosaveEnabled(&enabled));
+
+    // Set password-autosave property to the opposite value to current value.
+    if (enabled) {
+        CHECK_FAILURE(webView2Profile->put_IsPasswordAutosaveEnabled(FALSE));
+        MessageBox(
+            nullptr, L"Password autosave will be disabled immediately in all WebView2 with the same profile.",
+            L"Profile settings change", MB_OK);
+    }
+    else {
+        CHECK_FAILURE(webView2Profile->put_IsPasswordAutosaveEnabled(TRUE));
+        MessageBox(
+            nullptr, L"Password autosave will be enabled immediately in all WebView2 with the same profile.",
+            L"Profile settings change", MB_OK);
+    }
+  
+    // ...
+}
+
+HRESULT AppWindow::ManageGeneralAutofillInProfile(ICoreWebView2Controller* controller)
+{
+    // ...
+
+    // Get the profile object.
+    wil::com_ptr<ICoreWebView2> coreWebView2;
+    CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
+    Microsoft::WRL::ComPtr<ICoreWebView2Profile> webView2Profile;
+    CHECK_FAILURE(webView2->get_Profile(&webView2Profile));
+    
+    // Get current value of general-autofill property.
+    BOOL enabled;
+    CHECK_FAILURE(webView2Profile->get_IsGeneralAutofillsaveEnabled(&enabled));
+
+    // Set general-autofill property to the opposite value to current value.
+    if (enabled) {
+        CHECK_FAILURE(webView2Profile->put_IsGeneralAutofillEnabled(FALSE));
+        MessageBox(
+            nullptr, L"General autofill will be disabled immediately in all WebView2 with the same profile.",
+            L"Profile settings change", MB_OK);
+    }
+    else {
+        CHECK_FAILURE(webView2Profile->put_IsGeneralAutofillEnabled(TRUE));
+        MessageBox(
+            nullptr, L"General autofill will be enabled immediately in all WebView2 with the same profile.",
+            L"Profile settings change", MB_OK);
+    }
+  
+    // ...
+}
+```
 ## .NET and WinRT
 
 ### Create WebView2 with a specific profile, then access the profile property of WebView2
@@ -150,6 +225,34 @@ public CreateWebView2Controller(IntPtr parentWindow)
 
     // update window icon
     SetAppIcon(inPrivate);
+}
+```
+
+### Manage password-autosave and general-autofill settings in profile
+
+```csharp
+public ManagePasswordAutosaveInProfile(CoreWebView2Controller controller)
+{
+    // Get the profile object.
+    CoreWebView2Profile profile = controller.CoreWebView2.Profile;
+
+    // Get current value of password-autosave property.
+    bool enabled = profile.IsPasswordAutosaveEnabled;
+
+    // Set password-autosave property to the opposite value to current value.
+    profile.IsPasswordAutosaveEnabled = !enabled;
+}
+
+public ManageGeneralAutofillInProfile(CoreWebView2Controller controller)
+{
+    // Get the profile object.
+    CoreWebView2Profile profile = controller.CoreWebView2.Profile;
+
+    // Get current value of general-autofill property.
+    bool enabled = profile.IsGeneralAutofillEnabled;
+
+    // Set general-autofill property to the opposite value to current value.
+    profile.IsGeneralAutofillEnabled = !enabled;
 }
 ```
 
@@ -247,6 +350,19 @@ interface ICoreWebView2Profile : IUnknown {
 
   // TODO: All profile-wide operations/settings will be put below in the future.
 }
+
+[uuid(e2e8dce3-8213-4a32-b3b0-c80a8d154b61), object, pointer_default(unique)]
+interface ICoreWebView2Profile2 : ICoreWebView2Profile {
+  /// Get the IsPasswordAutosaveEnabled property.
+  [propget] HRESULT IsPasswordAutosaveEnabled([out, retval] BOOL* value);
+  /// Set the IsPasswordAutosaveEnabled property.
+  [propput] HRESULT IsPasswordAutosaveEnabled([in] BOOL value);
+
+  /// Get the IsGeneralAutofillEnabled property.
+  [propget] HRESULT IsGeneralAutofillEnabled([out, retval] BOOL* value);
+  /// Set the IsGeneralAutofillEnabled property.
+  [propput] HRESULT IsGeneralAutofillEnabled([in] BOOL value);
+}
 ```
 
 ## .NET and WinRT
@@ -296,6 +412,13 @@ namespace Microsoft.Web.WebView2.Core
         Boolean IsInPrivateModeEnabled { get; };
 
         String ProfilePath { get; };
+    }
+
+    runtimeclass CoreWebView2Profile2 : CoreWebView2Profile
+    {
+        Boolean IsPasswordAutosaveEnabled { get; set; };
+
+        Boolean IsGeneralAutofillEnabled { get; set; };
     }
 }
 ```
