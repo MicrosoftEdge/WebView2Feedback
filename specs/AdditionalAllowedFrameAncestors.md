@@ -16,9 +16,9 @@ To embed other sites in an trusted page with modified allowed frame ancestors
 - Set AdditionalAllowedFrameAncestors property of the NavigationStartingEventArgs to a list additional allowed frame ancestors using the same syntax for the source list of [Content-Security-Policy frame-ancestors directive](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors). Basically, it is a space delimited list. All source syntax of Content-Security-Policy frame-ancestors directive are supported.
 
 The list should normally only contain the origin of the top page.
-If you are embedding other sites through nested iframes and the origins of some of the intermediate iframes are different from the origin of the top page and those origins might not be allowed by the site's original policies, the list should also include those origins. As an example, if you owns the content on https://example.com and https://www.example.com and uses them on top page and some intermediate iframes, you should set the list as "https://example.com https://www.example.com".
+If you are embedding other sites through nested iframes and the origins of some of the intermediate iframes are different from the origin of the top page and those origins might not be allowed by the site's original policies, the list should also include those origins. As an example, if you owns the content on `https://example.com` and `https://www.example.com` and uses them on top page and some intermediate iframes, you should set the list as `https://example.com https://www.example.com`.
 
-You should only add an origin to the list if it is fully trusted. When possible, you should try to limit the usage of the API to the targetted app scenarios. For example, we can set a specific name attribute to the iframe that is used to embed sites (something like `<iframe name="my_site_embedding_frame">`) and then detect the embedding scenario when the trusted page is navigated to and the embedding iframe is created.
+You should only add an origin to the list if it is fully trusted. When possible, you should try to limit the usage of the API to the targetted app scenarios. For example, you can use an iframe with a specific name attribute to embed sites (something like `<iframe name="my_site_embedding_frame">`) and then detect the embedding scenario is active when the trusted page is navigated to and the embedding iframe is created.
 
 # Examples
 ## Win32 C++
@@ -78,8 +78,8 @@ void MyApp::HandleEmbeddedSites()
                 {
                     // We are on trusted pages. Now check whether it is the iframe we plan
                     // to embed other sites.
-                    // We are know that on the page, we are using an
-                    // <iframe name="my_site_embedding_frame"> to embed other sites.
+                    // We know that our trusted page is using <iframe name="my_site_embedding_frame">
+                    // element to embed other sites.
                     const std::wstring siteEmbeddingFrameName = L"my_site_embedding_frame";
                     wil::com_ptr<ICoreWebView2Frame> webviewFrame;
                     CHECK_FAILURE(args->get_Frame(&webviewFrame));
@@ -105,6 +105,7 @@ void MyApp::HandleEmbeddedSites()
             })
             .Get(),
         nullptr));
+
     // Using FrameNavigationStarting event instead of NavigationStarting event of CoreWebViewFrame
     // to cover all possible nested iframes inside the embedded site as CoreWebViewFrame
     // object currently only support first level iframes in the top page.
@@ -162,7 +163,7 @@ void MyApp::HandleEmbeddedSites()
   // The result is recorded in m_embeddingSite.
   private void CoreWebView2_FrameCreated(CoreWebView2 sender, Microsoft.Web.WebView2.Core.CoreWebView2FrameCreatedEventArgs args)
   {
-      // We are know that our trusted page is using <iframe name="my_site_embedding_frame"> element to embed other sites.
+      // We know that our trusted page is using <iframe name="my_site_embedding_frame"> element to embed other sites.
       // We are embedding sites when we are on trusted pages and the embedding iframe is created.
       const string siteEmbeddingFrameName = "my_site_embedding_frame";
       if (IsAppContentUri(sender.Source) && (args.Frame.Name == siteEmbeddingFrameName))
@@ -207,12 +208,13 @@ interface ICoreWebView2NavigationStartingEventArgs_2 : ICoreWebView2NavigationSt
   /// The app may set this property to allow a frame to be embedded by certain additional ancestors besides what is allowed by
   /// http header [X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options)
   /// and [Content-Security-Policy frame-ancestors directive](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors).
-  /// If set, a frame ancestor is allowed if it is allowed by the additional allowed frame ancestoers or original http header from the site.
+  /// If set, a frame ancestor is allowed if it is allowed by the additional allowed frame
+  /// ancestoers or original http header from the site.
   /// Whether an ancestor is allowed by the additional allowed frame ancestoers is done the same way as if the site provided
   /// it as the source list of the Content-Security-Policy frame-ancestors directive.
-  /// For example, if https://example.com and https://www.example.com are the origins of the top
-  /// page and intemediate iframes for a nested iframe that is embedding a site, and you fully trust
-  /// those origins, you should set thus property to "https://example.com https://www.example.com".
+  /// For example, if `https://example.com` and `https://www.example.com` are the origins of the top
+  /// page and intemediate iframes that embed a nested site embedding iframe, and you fully trust
+  /// those origins, you should set thus property to `https://example.com https://www.example.com`.
   /// This property gives the app the ability to use iframe to embed sites that otherwise
   /// could not be embedded in an iframe in trusted app pages.
   /// This could potentially subject the embedded sites to [Clickjacking](https://en.wikipedia.org/wiki/Clickjacking)
@@ -222,9 +224,9 @@ interface ICoreWebView2NavigationStartingEventArgs_2 : ICoreWebView2NavigationSt
   /// frames instead of wildcard characters for this property.
   /// This API is to provide limited support for app scenarios that used to be supported by
   /// `<webview>` element in other solutions like JavaScript UWP apps and Electron.
-  /// You should limit the usage of this property to trusted pages, and if possible, to specific iframe and
-  /// specific navigation target url, by checking the `Source` of the WebView2, the `Name`
-  /// of the ICoreWebView2Frame and `Uri` of the event args.
+  /// You should limit the usage of this property to trusted pages, and specific navigation
+  /// target url, by checking the `Source` of the WebView2, and `Uri` of the event args.
+  ///
   /// This property is ignored for top level document navigation.
   ///
   [propput] HRESULT AdditionalAllowedFrameAncestors([in] LPCWSTR value);
