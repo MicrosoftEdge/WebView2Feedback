@@ -168,10 +168,10 @@ void MyApp::HandleEmbeddedSites()
       if (IsAppContentUri(sender.Source) && (args.Frame.Name == siteEmbeddingFrameName))
       {
           m_embeddingSite = true;
-          args.Frame.Destroyed += CoreWebView2_SiteHostingFrameDestroyed;
+          args.Frame.Destroyed += CoreWebView2_SiteEmbeddingFrameDestroyed;
       }
   }
-  private void CoreWebView2_SiteHostingFrameDestroyed(CoreWebView2Frame sender, Object args)
+  private void CoreWebView2_SiteEmbeddingFrameDestroyed(CoreWebView2Frame sender, Object args)
   {
       m_embeddingSite = false;
   }
