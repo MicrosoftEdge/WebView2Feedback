@@ -195,18 +195,29 @@ public CreateWebView2Controller(IntPtr parentWindow)
 }
 ```
 
-### Get cookie manager from profile, then add a new cookie.
+### Access and use the cookie manager from profile. 
 
 ```csharp
-// CoreWebView2controller which has already been initialized.
-CoreWebView2Controller _controller;
-public AddOrUpdateCookie(string name, string value, string Domain, string Path)
+CoreWebView2CookieManager _cookieManager;
+public ScenarioCookieManagement(CoreWebView2Controller controller){
+    // get the cookie manager from controller
+    _cookieManager = controller.CoreWebView2.Profile.CookieManager;
+    // ...
+}
+
+// Use cookie manager to add or update a cookie
+public AddOrUpdateCookie(string name, string value, string Domain)
 {
-    CoreWebView2CookieManager cookieManager = _controller.CoreWebView2.Profile.CookieManager;
-    // create cookie with given parameters
-    CoreWebView2Cookie cookie = cookieManager.CreateCookie(name, value, Domain, Path);
-    // update cookie
-    cookieManager.AddOrUpdateCookie(cookie);
+    // create cookie with given parameters and default path
+    CoreWebView2Cookie cookie = cookieManager.CreateCookie(name, value, Domain, "/");
+    // add or update cookie
+    _cookieManager.AddOrUpdateCookie(cookie);
+}
+
+// Use cookie manager to delete all cookies
+void DeleteAllCookies()
+{
+    _cookieManager.DeleteAllCookies();
 }
 ```
 
