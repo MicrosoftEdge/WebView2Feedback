@@ -319,7 +319,7 @@ interface ICoreWebView2Profile : IUnknown {
 
 [uuid(B93875C2-D6B0-434D-A2BE-93BC06CCC469), object, pointer_default(unique)]
 interface ICoreWebView2Profile2 : ICoreWebView2Profile {
-  /// Get the cookie manager object for the profile.
+  /// Get the cookie manager object for the profile. All CoreWebView2s associated with this profile share this same cookie manager and will have the same CoreWebView2.CookieManager property value.
   /// See ICoreWebView2CookieManager.
   [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
 }
