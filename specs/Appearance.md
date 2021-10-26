@@ -8,7 +8,7 @@ This API has 2 main changes relevant to the end users. First, it sets appearance
 Please note this API will only set the overall appearance, but not theme.
 For reference, in the screenshot below, this API is meant to expose the Overall Appearance section as a WebView2 API. 
 
-![Alt text](.\media\EdgeSettingsAppearance.png "a title")
+![Alt text](./media/EdgeSettingsAppearance.png "a title")
 # Examples
 
 ### C++
