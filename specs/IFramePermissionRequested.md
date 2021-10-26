@@ -39,7 +39,7 @@ off of the top level iframe. This is due to the previously mentioned limitation
 of not having `CoreWebView2Frame`'s for nested iframes.
 
 # Examples
-## C++: Regestering IFrame Permission Requested Handler
+## C++: Registering IFrame Permission Requested Handler
 ``` cpp
 wil::com_ptr<ICoreWebView2> m_webview;
 std::map<std::tuple<std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>, bool>
@@ -54,7 +54,7 @@ EventRegistrationToken m_permissionRequestedToken = {};
 // handled if they have been requested previously.
 void RegisterIFramePermissionRequestedHandler()
 {
-    webview4 = m_webview.try_query<ICoreWebView2_4>();
+    auto webview4 = m_webview.try_query<ICoreWebView2_4>();
     if (webview4)
     {
         // Note that FrameCreated will only ever be raised for top level iframes.
@@ -188,7 +188,7 @@ static void PutHandled(ICoreWebView2PermissionRequestedEventArgs* args)
 }
 ```
 
-## C#: Regestering IFrame Permission Requested Handler
+## C#: Registering IFrame Permission Requested Handler
 ```c#
 private WebView2 m_webview;
 Dictionary<Tuple<string, CoreWebView2PermissionKind, bool>, bool> m_cachedPermissions;
@@ -208,9 +208,9 @@ void RegisterIFramePermissionRequestedHandler()
 
             if (m_cachedPermissions.ContainsKey(cachedKey))
             {
-                bool allow = m_cachedPermissions[cachedKey];
-                permissionArgs.State = allow ? CoreWebView2PermissionState.Allow
-                                             : CoreWebView2PermissionState.Deny;
+                permissionArgs.State = m_cachedPermissions[cachedKey]
+                                            ? CoreWebView2PermissionState.Allow
+                                            : CoreWebView2PermissionState.Deny;
 
                 permissionArgs.Handled = true;
                 return;
