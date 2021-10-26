@@ -1,18 +1,57 @@
 # Background
+The WebView2 team has been asked to provide support for handling permission 
+requests that come from iframes. These permission requests occur when content 
+within the iframe are requesting access to priveleged resources. The permission
+request types that we support are: Microphone, Camera, Geolocation, 
+Notifications, Other Sensors, and Clipboard Read.
 
+We currently have a `PermissionRequested` event on our `CoreWebView2` which is 
+raised for any permission requests (either from webview or iframes). However, 
+our customers do not have a way to determine whether the request has come from 
+the webview or an iframe and handle these cases seperately. As such, we plan to 
+expand our `CoreWebView2Frame` API to include the `PermissionRequested` event
+as well. 
+
+A current limitation of our `CoreWebView2Frame` API is that it only supports top 
+level iframes. Any nested iframes will not have a `CoreWebView2Frame`  
+associated with them. 
+
+In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
+We propose extending `CoreWebView2Frame` to include the `PermissionRequested`
+event. This event will be raised whenever an iframe requests permission to 
+priveleged resources. 
 
+Additionally, we propose extending `CoreWebView2PermissionRequestedEventArgs`
+to include a `Handled` property.
+
+To maintain backwards compatibility, by default we plan to raise
+`PermissionRequested` on both `CoreWebView2Frame` and `CoreWebView2`. The 
+`CoreWebView2Frame` event handlers will be invoked first, 
+before the `CoreWebView2` event handlers. If `Handled` is set true as part of
+the `CoreWebView2Frame` event handlers, then the `PermissionRequested` event
+will not be raised on the `CoreWebView2`, and its event handlers will not be
+invoked.
+
+In the case of a nested frame requesting permission, we will raise the event
+off of the top level iframe. This is due to the previously mentioned limitation
+of not having `CoreWebView2Frame`'s for nested iframes.
 
 # Examples
 ## C++: Regestering IFrame Permission Requested Handler
-
 ``` cpp
 wil::com_ptr<ICoreWebView2> m_webview;
+std::map<std::tuple<std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>, bool>
+    m_cached_permissions;
 
 EventRegistrationToken m_frameCreatedToken = {};
 EventRegistrationToken m_permissionRequestedToken = {};
 
+// Example Use Case - an app may want to specify that all iframes should
+// create a message box to prompt the user for approval on a permission request.
+// The approval state could be cached so that future requests are automatically
+// handled if they have been requested previously. 
 void RegisterIFramePermissionRequestedHandler()
 {
     webview4 = m_webview.try_query<ICoreWebView2_4>();
@@ -81,7 +120,6 @@ void RegisterIFramePermissionRequestedHandler()
                                         nullptr, message.c_str(), L"Permission Request",
                                         MB_YESNOCANCEL | MB_ICONWARNING);
 
-
                                     COREWEBVIEW2_PERMISSION_STATE state =
                                         COREWEBVIEW2_PERMISSION_STATE_DEFAULT;
 
@@ -141,15 +179,99 @@ static void PutHandled(ICoreWebView2PermissionRequestedEventArgs* args)
     // PermissionRequested event off the CoreWebView2.
     wil::com_ptr<ICoreWebView2PermissionRequestedEventArgs2> args2;
     CHECK_FAILURE(args->QueryInterface(IID_PPV_ARGS(&args2)));
-    if (args2) {
+    if (args2) 
+    {
         CHECK_FAILURE(args2->put_Handled(true));
     }
 }
 ```
 
-## C#: TBD
+## C#: Regestering IFrame Permission Requested Handler
 ```c#
+private WebView2 m_webview;
+Dictionary<Tuple<string, CoreWebView2PermissionKind, bool>, bool> m_cached_permissions;
 
+// Example Use Case - an app may want to specify that all iframes should
+// create a message box to prompt the user for approval on a permission request.
+// The approval state could be cached so that future requests are automatically
+// handled if they have been requested previously. 
+void RegisterIFramePermissionRequestedHandler()
+{
+    m_webview.CoreWebView2.FrameCreated += (sender, CoreWebView2FrameCreatedEventArgs args) =>
+    {
+        args.Frame.PermissionRequested += (frameSender, CoreWebView2PermissionRequestedEventArgs permissionArgs) =>
+        {
+            var cached_key = new Tuple<string, CoreWebView2PermissionKind, bool>
+                (permissionArgs.Uri, permissionArgs.Kind, permissionArgs.IsUserInitiated);
+
+            if (m_cached_permissions.ContainsKey(cached_key))
+            {
+                bool allow = m_cached_permissions[cached_key].Item2;
+                if (allow) 
+                {
+                    permissionArgs.State = CoreWebView2PermissionKind.Allow;
+                }
+                else
+                {
+                    permissionArgs.State = CoreWebView2PermissionKind.Deny;
+                }
+
+                permissionArgs.Handled = true;
+                return;
+            } 
+            
+            string message = "An iframe has requested device permission for ";
+            message += NameOfPermissionKind(permissionArgs.Kind);
+            message += " to the website at ";
+            message += permissionArgs.Uri;
+            message += "\n\n";
+            message += "Do you want to grant permission?\n"
+            message +=
+                (permissionArgs.UserInitiated
+                        ? "This request came from a user gesture."
+                        : "This request did not come from a user gesture.");
+
+            var selection = MessageBox.Show(message, "iframe PermissionRequest", MessageBoxButton.YesNoCancel);
+            if (selection == MessageBoxResult.Yes) 
+            {
+                permissionArgs.State = CoreWebView2PermissionState.Allow;
+                m_cached_permissions[cached_key] = false;
+            }
+            else if (selection == MessageBoxResult.No) 
+            {
+                permissionArgs.State = CoreWebView2PermissionState.Deny;
+                m_cached_permissions[cached_key] = true;
+            }
+            else 
+            {
+                permissionArgs.State = CoreWebView2PermissionState.Default;
+            }
+
+            permissionArgs.Handled = true;
+        };
+    };
+}
+
+string NameOfPermissionKind(CoreWebView2PermissionKind kind)
+{
+    switch (kind)
+    {
+    case CoreWebView2PermissionKind.Microphone:
+        return "Microphone";
+    case CoreWebView2PermissionKind.Camera:
+        return "Camera";
+    case CoreWebView2PermissionKind.Geolocation:
+        return "Geolocation";
+    case CoreWebView2PermissionKind.Notifications:
+        return "Notifications";
+    case CoreWebView2PermissionKind.OtherSensors:
+        return "Generic Sensors";
+    case CoreWebView2PermissionKind.ClipboardRead:
+        return "Clipboard Read";
+    default:
+        return "Unknown resources";
+    }
+}
 ```
 
 # API Details
