@@ -1,4 +1,4 @@
-Default Download Dialog Layout
+Default Download Dialog Positioning & Anchoring
 ===
 
 # Background
@@ -16,30 +16,34 @@ For more complex customizations, you can use the Download APIs -
 
 # Examples
 ```cpp
-// Subscribe to the `IsDefaultDownloadDialogOpenChanged` event
-// to make changes in response to the default download dialog
-// opening or closing. For example, if the dialog is anchored
-// to a button in the application, the button can be updated to
-// appear selected when the dialog is opened.
-CHECK_FAILURE(m_webView2_6->add_IsDefaultDownloadDialogOpenChanged(
-    Callback<ICoreWebView2IsDefaultDownloadDialogOpenChangedEventHandler>(
-        [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
-        BOOL isOpen;
-        m_webView2_6->get_IsDefaultDownloadDialogOpen(&isOpen);
-        if (isOpen)
-        {
-            // Here the developer can make updates in response to the
-            // default download dialog opening.
-        }
-        else
-        {
-            // Here the developer can make updates in response to the
-            // default download dialog closing.
-        }
-        return S_OK;
-        })
-        .Get(),
-    &m_isDefaultDownloadDialogOpenChangedToken));
+void ViewComponent::CreateDownloadsButton()
+{
+    m_downloadsButton = CreateButton(m_downloadsButtonMargin,
+        m_downloadsButtonWidth, m_downloadsButtonHeight);
+
+    // Subscribe to the `IsDefaultDownloadDialogOpenChanged` event
+    // to make changes in response to the default download dialog
+    // opening or closing. For example, if the dialog is anchored
+    // to a button in the application, the button can change its appearance
+    // depending on whether the dialog is opened or closed.
+    CHECK_FAILURE(m_webView2_6->add_IsDefaultDownloadDialogOpenChanged(
+        Callback<ICoreWebView2IsDefaultDownloadDialogOpenChangedEventHandler>(
+            [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+            BOOL isOpen;
+            m_webView2_6->get_IsDefaultDownloadDialogOpen(&isOpen);
+            if (isOpen)
+            {
+                SetWindowText(m_downloadsButton, L"Opened");
+            }
+            else
+            {
+                SetWindowText(m_downloadsButton, L"Closed");
+            }
+            return S_OK;
+            })
+            .Get(),
+        &m_isDefaultDownloadDialogOpenChangedToken));
+}
 
 void ViewComponent::ToggleDefaultDownloadDialog()
 {
@@ -71,25 +75,32 @@ void ViewComponent::SetDefaultDownloadDialogPosition()
 ```
 
 ```c#
-// Subscribe to the `IsDefaultDownloadDialogOpenChanged` event to make
-// changes in response to the default download dialog opening or
-// closing. For example, if the dialog is anchored to a button in the
-// application, the button can be updated to appear selected when the
-// dialog is opened.
-webView.CoreWebView2.IsDefaultDownloadDialogOpenChanged += delegate (
-    object sender, object e)
+void CreateDownloadsButtonCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    if (webView.CoreWebView2.IsDefaultDownloadDialogOpen)
+    Button downloadsButton = new Button();
+    downloadsButton.Content = "Downloads";
+    downloadsButton.Click += new RoutedEventHandler(ToggleDownloadDialog);
+    DockPanel.SetDock(downloadsButton, Dock.Left);
+    dockPanel.Children.Insert(downloadsButton);
+
+    // Subscribe to the `IsDefaultDownloadDialogOpenChanged` event
+    // to make changes in response to the default download dialog
+    // opening or closing. For example, if the dialog is anchored to
+    // a button in the application, the button appearance can change
+    // depending on whether the dialog is opened or closed.
+    webView.CoreWebView2.IsDefaultDownloadDialogOpenChanged +=
+        (sender, args) =>
     {
-        // Here the developer can make updates in response to
-        // the default download dialog opening.
-    }
-    else
-    {
-        // Here the developer can make updates in response to the
-        // default download dialog closing.
-    }
-};
+        if (webView.CoreWebView2.IsDefaultDownloadDialogOpen)
+        {
+            downloadsButton.Background = new SolidColorBrush(Colors.LightBlue);
+        }
+        else
+        {
+            downloadsButton.Background = new SolidColorBrush(Colors.AliceBlue);
+        }
+    };
+}
 
 void ToggleDownloadDialogCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
@@ -143,7 +154,10 @@ typedef enum COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_CORNER_ALIGNMENT {
 [uuid(9139c04d-8f37-42ae-8b63-01940c34d22f), object, pointer_default(unique)]
 interface ICoreWebView2_6 : ICoreWebView2_5
 {
-  // Raised when the `IsDefaultDownloadDialogOpen` property changes.
+  /// Raised when the `IsDefaultDownloadDialogOpen` property changes. This event
+  /// comes after the `DownloadStarting` event. Setting the `Handled` property
+  /// on the `DownloadStartingEventArgs` disables the default download dialog
+  /// and ensures that this event is never raised.
   HRESULT add_IsDefaultDownloadDialogOpenChanged(
       [in] ICoreWebView2IsDefaultDownloadDialogOpenChangedEventHandler*
           handler,
@@ -154,19 +168,25 @@ interface ICoreWebView2_6 : ICoreWebView2_5
   HRESULT remove_IsDefaultDownloadDialogOpenChanged(
       [in] EventRegistrationToken token);
 
-  /// `TRUE` if the default download dialog is currently open. Toggling WebView
-  /// visibility also toggles default download dialog visibility.
+  /// `TRUE` if the default download dialog is currently open. The value of this
+  /// property changes only when the default download dialog is explicitly
+  /// opened or closed. Hiding the WebView implicitly hides the dialog, but does
+  /// not change the value of this property.
   [propget] HRESULT IsDefaultDownloadDialogOpen([out, retval] BOOL* value);
 
   /// Open the default download dialog. If the dialog is opened before there
   /// are recent downloads, the dialog shows all past downloads for the
   /// current profile. Otherwise, the dialog shows only the recent downloads
-  /// with a "See more" button for past downloads.
+  /// with a "See more" button for past downloads. Calling this method raises
+  /// the `IsDefaultDownloadDialogOpenChanged` event if the dialog was closed.
+  /// No effect if the dialog is already open.
   ///
   /// \snippet ViewComponent.cpp ToggleDefaultDownloadDialog
   HRESULT OpenDefaultDownloadDialog();
 
-  /// Close the default download dialog.
+  /// Close the default download dialog. Calling this method raises the
+  /// `IsDefaultDownloadDialogOpenChanged` event if the dialog was open. No
+  /// effect if the dialog is already closed.
   HRESULT CloseDefaultDownloadDialog();
 
   /// Get the default download dialog corner alignment.
@@ -178,8 +198,8 @@ interface ICoreWebView2_6 : ICoreWebView2_5
   /// COREWEBVIEW2_DEFAULT_DOWNLOAD_DIALOG_CORNER_ALIGNMENT). When the WebView
   /// or dialog changes size, the dialog keeps its position relative to the
   /// corner. The dialog may become partially or completely outside of the
-  /// WebView bounds if the WebView is small enough. Set the margin from the
-  /// corner with the `DefaultDownloadDialogMargin` property.
+  /// WebView bounds if the WebView is small enough. Set the margin relative to
+  /// the corner with the `DefaultDownloadDialogMargin` property.
   ///
   /// \snippet ViewComponent.cpp SetDefaultDownloadDialogPosition
   [propput] HRESULT DefaultDownloadDialogCornerAlignment(
@@ -188,21 +208,20 @@ interface ICoreWebView2_6 : ICoreWebView2_5
   /// Get the default download dialog margin.
   [propget] HRESULT DefaultDownloadDialogMargin([out, retval] POINT* value);
 
-  /// Set the default download dialog margin. The margin is a point that
-  /// describes the vertical and horizontal distances between the WebView corner
-  /// specified by the `DefaultDownloadDialogCornerAlignment` and the default
-  /// download dialog corner nearest to it. The point is expected to be in the
-  /// client coordinate space of the WebView. Use (0, 0) to align the dialog to
-  /// the WebView corner with no margin. Returns `E_INVALIDARG` if the x or y
-  /// coordinates are negative values.
+  /// Set the default download dialog margin relative to the WebView corner
+  /// specified by `DefaultDownloadDialogCornerAlignment`. The margin is a
+  /// point that describes the vertical and horizontal distances between the
+  /// chosen WebView corner and the default download dialog corner nearest to
+  /// it. Positive values move the dialog towards the center of the WebView from
+  /// the chosen WebView corner, and negative values move the dialog away from
+  /// it. Use (0, 0) to align the dialog to the WebView corner with no margin.
   [propput] HRESULT DefaultDownloadDialogMargin([in] POINT value);
 }
 
 /// Implements the interface to receive `IsDefaultDownloadDialogOpenChanged`
 /// events.
-[uuid(86557854-794a-414a-b046-ba515f617306), object, pointer_default(unique)]
-interface ICoreWebView2IsDefaultDownloadDialogOpenChangedEventHandler :
-   IUnknown {
+[uuid(3117da26-ae13-438d-bd46-edbeb2c4ce81), object, pointer_default(unique)]
+interface ICoreWebView2IsDefaultDownloadDialogOpenChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event. No event args exist
   /// and the `args` parameter is set to `null`.
   HRESULT Invoke([in] ICoreWebView2* sender, [in] IUnknown* args);
