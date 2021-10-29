@@ -36,7 +36,7 @@ All methods clear the data for the associated profile in which the method is cal
 ## Win32 C++
 ```cpp
 
-/// Function to clear the autofill data from the last hour
+// Function to clear the autofill data from the last hour
 void ClearAutofillData() 
 {
     wwil::com_ptr<ICoreWebView2> coreWebView2;
@@ -49,9 +49,9 @@ void ClearAutofillData()
         CHECK_FAILURE(webview7->get_Profile(&profile));
         double endTime = (double)std::time(nullptr);
         double startTime = endTime - 3600;
-        /// Get the current time and offset the current time by 3600 seconds to clear the data 
-        /// from the start time (one hour ago), until the end time (present time).
-        /// This will clear the data for the last hour.
+        // Get the current time and offset the current time by 3600 seconds to clear the data 
+        // from the start time (one hour ago), until the end time (present time).
+        // This will clear the data for the last hour.
         COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds = (COREWEBVIEW2_BROWSING_DATA_KINDS)
             (COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL |
             COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE);
@@ -213,7 +213,7 @@ interface ICoreWebView2Profile : IUnknown {
   /// takes in two additional parameters for the start and end time for which it 
   /// should clear the data between.  The `startTime` and `endTime` 
   /// parameters correspond to the number of seconds since the UNIX epoch. 
-  /// The `startTime` will be offset by -1.0 and the `endTime will be offset by +1.0
+  /// The `startTime` will be offset by -1.0 and the `endTime` will be offset by +1.0
   /// to ensure the last fractional second is cleared on each respective end.
   /// `startTime` is inclusive while `endTime` is exclusive, therefore the data will 
   /// clear [startTime, endTime).
@@ -235,8 +235,8 @@ interface ICoreWebView2Profile : IUnknown {
 /// The caller implements this interface to receive the `ClearBrowsingData` result.
 [uuid(27676699-FE17-4E2B-8C1B-267395A04ED5), object, pointer_default(unique)]
 interface ICoreWebView2ClearBrowsingDataCompletedHandler : IUnknown {
+  
   /// Provide the completion status of the corresponding asynchronous method. 
-
   HRESULT Invoke([in] HRESULT errorCode);
 }
 
