@@ -8,7 +8,7 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 
 # Description
-We expose browsing data clearing in two asynchronous APIs:
+We expose browsing data clearing in three asynchronous APIs:
 ```IDL
 HRESULT ClearBrowsingData(
       [in] COREWEBVIEW2_BROWSING_DATA_KINDS dataKinds,
@@ -19,12 +19,17 @@ HRESULT ClearBrowsingDataInTimeRange(
       [in] double startTime,
       [in] double endTime, 
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
+
+HRESULT ClearBrowsingDataAll(
+    [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
 ```
 The first method takes `COREWEBVIEW2_BROWSING_DATA_KINDS` which corresponds to the data type(s) to clear as well as a handler which will indicate if the proper data has been cleared successfully. This method clears the data regardless of timestamp. 
 
-The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The time parameters correspond to how many seconds have passed since the UNIX epoch. Passing in a value of zero or less than zero (up to negative infinity) will clear the corresponding data for any time before X time. Passing in a value of the current time or greater (up to positive infinity) will clear the corresponding data for any time after X time. For example passing in negative infinity and positive infinity as the time parameters will clear the entirety of the corresponding data. The timestamp represents the time at which the data was created. 
+The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The time parameters correspond to how many seconds have passed since the UNIX epoch. Passing in a value of zero or less than zero (up to negative infinity) will clear the corresponding data for any time before the end time. Passing in a value of the current time or greater (up to positive infinity) will clear the corresponding data for any time after the start time. For example passing in negative infinity and positive infinity as the time parameters will clear the entirety of the corresponding data. The timestamp represents the time at which the data was created. 
 
-Both methods clear the data for the associated profile in which the method is called on.
+The third method only takes one parameter, the handler. This method clears the data regardless of timestamp and will clear all of the data included in the profile data kind listed below. 
+
+All methods clear the data for the associated profile in which the method is called on.
 
 # Examples
 
@@ -52,7 +57,7 @@ void ClearAutofillData()
             COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE);
         CHECK_FAILURE(profile->ClearBrowsingDataInTimeRange(
             dataKinds, startTime, endTime,
-            Callback<ICoreWebView2StagingClearBrowsingDataCompletedHandler>(
+            Callback<ICoreWebView2ClearBrowsingDataCompletedHandler>(
                 [this](HRESULT error)
                     -> HRESULT {
                     return S_OK;
