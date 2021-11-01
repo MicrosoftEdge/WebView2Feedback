@@ -123,10 +123,11 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
 
 ```cpp
 wil::com_ptr<ICoreWebView2CookieManager> m_cookieManager;
-ScenarioCookieManagement::ScenarioCookieManagement(AppWindow* appWindow)
-    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
+ScenarioCookieManagement::ScenarioCookieManagement(ICoreWebView2Controller* controller)
 {
-    auto webview7 = m_webView.try_query<ICoreWebView2_7>();
+    wil::com_ptr<ICoreWebView2> coreWebView2;
+    CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
+    auto webview7 = coreWebView2.try_query<ICoreWebView2_7>();
     if (webview7)
     {
         wil::com_ptr<ICoreWebView2Profile> profile;
