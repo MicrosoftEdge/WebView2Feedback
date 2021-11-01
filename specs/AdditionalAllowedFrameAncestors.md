@@ -211,11 +211,11 @@ interface ICoreWebView2NavigationStartingEventArgs_2 : ICoreWebView2NavigationSt
   /// http header [X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options)
   /// and [Content-Security-Policy frame-ancestors directive](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors).
   /// If set, a frame ancestor is allowed if it is allowed by the additional allowed frame
-  /// ancestoers or original http header from the site.
-  /// Whether an ancestor is allowed by the additional allowed frame ancestoers is done the same way as if the site provided
+  /// ancestors or original http header from the site.
+  /// Whether an ancestor is allowed by the additional allowed frame ancestors is done the same way as if the site provided
   /// it as the source list of the Content-Security-Policy frame-ancestors directive.
   /// For example, if `https://example.com` and `https://www.example.com` are the origins of the top
-  /// page and intemediate iframes that embed a nested site-embedding iframe, and you fully trust
+  /// page and intermediate iframes that embed a nested site-embedding iframe, and you fully trust
   /// those origins, you should set this property to `https://example.com https://www.example.com`.
   /// This property gives the app the ability to use iframe to embed sites that otherwise
   /// could not be embedded in an iframe in trusted app pages.
