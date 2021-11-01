@@ -18,8 +18,8 @@ For more complex customizations, you can use the Download APIs -
 ```cpp
 void ViewComponent::CreateDownloadsButton()
 {
-    m_downloadsButton = CreateButton(m_downloadsButtonMargin,
-        m_downloadsButtonWidth, m_downloadsButtonHeight);
+    CreateDownloadsToggleButton(m_downloadsButtonMargin, m_downloadsButtonWidth,
+        m_downloadsButtonHeight);
 
     // Subscribe to the `IsDefaultDownloadDialogOpenChanged` event
     // to make changes in response to the default download dialog
@@ -31,34 +31,24 @@ void ViewComponent::CreateDownloadsButton()
             [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
             BOOL isOpen;
             m_webView2_6->get_IsDefaultDownloadDialogOpen(&isOpen);
-            if (isOpen)
-            {
-                SetWindowText(m_downloadsButton, L"Opened");
-            }
-            else
-            {
-                SetWindowText(m_downloadsButton, L"Closed");
-            }
+            // Update the "Show downloads" button state to match the dialog:
+            // The button shows as pressed when the dialog is open.
+            ShowDownloadsToggleButton().IsChecked(isOpen);
             return S_OK;
             })
             .Get(),
         &m_isDefaultDownloadDialogOpenChangedToken));
 }
 
-void ViewComponent::ToggleDefaultDownloadDialog()
+void ViewComponent::ShowDownloadsToggleButton_OnToggle()
 {
-    if (m_webView2_6)
+    if (ShowDownloadsToggleButton().IsChecked().Value())
     {
-        BOOL isOpen;
-        m_webView2_6->get_IsDefaultDownloadDialogOpen(&isOpen);
-        if (isOpen)
-        {
-            m_webView2_6->CloseDefaultDownloadDialog();
-        }
-        else
-        {
-            m_webView2_6->OpenDefaultDownloadDialog();
-        }
+        m_webview2_6->OpenDefaultDownloadDialog();
+    }
+    else
+    {
+        m_webview2_6->CloseDefaultDownloadDialog();
     }
 }
 
