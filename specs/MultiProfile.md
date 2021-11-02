@@ -26,10 +26,10 @@ Currently we already have **ICoreWebView2Settings4** interface to manage passwor
 general-autofill, but it will work not immediately but after the next navigation, and it can only
 apply for current WebView2, which means if we start a new WebView2 using the same profile, all the
 settings are default value and cannot be set from the profile. By adding password-autosave and
-general-autofill management interfaces in profile, we can manage the settings and they will work
-immediately if we set new value, and all WebView2s that created with the same profile can share
-the settings, which means if we change password-autosave or general-autofill property in one
-WebView2, the others with the same profile will also work immediately.
+general-autofill management interfaces in profile, we can manage the properties and general-autofill
+will work immediately if we set new value, and all WebView2s that created with the same profile
+can share the settings, which means if we change password-autosave or general-autofill property in
+one WebView2, the others with the same profile will also work.
 
 # Examples
 
