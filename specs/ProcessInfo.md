@@ -2,29 +2,26 @@ Process Info
 ===
 
 # Background
-Provide end developer a new API to get all browser and child process ID and type. End developers can use this API to do perf count, instead of trying to hook up with task manager API to do that. 
+Provide end developer a new API to get all browser and child process ID with its type. End developers can use this API to track performance more closely, instead of using the task manager API to gather this information which requires a lot of preset. The process list provides all processes under the same user data folder, processes from multiple WebView creations will also be collected.
+Note: Crashpad process is not captured.  
 
 # Examples
-## ProcessRequested
-
-Feature explanation text goes here, including why an app would use it, how it
-replaces or supplements existing functionality.
-
+## WinRT and .NET   
 ```c#
-IReadOnlyList<CoreWebView2ProcessInfo> _processList;
+IReadOnlyList<CoreWebView2ProcessInfo> _processList = new List<CoreWebView2ProcessInfo>();
 
 void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
     if (e.IsSuccess)
     {
         // ...
-        WebViewEnvironment.ProcessInfoChanged += WebView_ProcessInfoChanged;
+        webView.CoreWebView2.Environment.ProcessInfoChanged += WebView_ProcessInfoChanged;
     }
 }
 
 void WebView_ProcessInfoChanged(object sender, object e)
 {
-    _processList = WebViewEnvironment.ProcessInfo;
+    _processList = webView.CoreWebView2.Environment.ProcessInfo;
 }
 
 void PerfInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
@@ -53,18 +50,19 @@ void PerfInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
     MessageBox.Show(this, result, "Process List");
 }
 ```
-    
+## Win32 C++
 ```cpp
 ProcessComponent::ProcessComponent(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
     // Register a handler for the ProcessInfoChanged event.
     //! [ProcessInfoChanged]
-    environment = appWindow->GetWebViewEnvironment();
+    wil::com_ptr<ICoreWebView2Environment> environment = appWindow->GetWebViewEnvironment();
+    CHECK_FAILURE(environment->get_ProcessInfo(&m_processCollection));
     CHECK_FAILURE(environment->add_ProcessInfoChanged(
         Callback<ICoreWebView2ProcessInfoChangedEventHandler>(
-            [this,environment](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT {
-                CHECK_FAILURE(environment->get_ProcessInfo(&m_processCollection));
+            [this](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT {
+                CHECK_FAILURE(sender->get_ProcessInfo(&m_processCollection));
 
                 return S_OK;
             })
@@ -125,13 +123,14 @@ void ProcessComponent::PerformanceInfo()
             WCHAR id[4096] = L"";
             StringCchPrintf(id, ARRAYSIZE(id), L"Process ID: %u", processId);
 
-            HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+            HANDLE processHandle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, processId);
             PROCESS_MEMORY_COUNTERS_EX pmc;
             GetProcessMemoryInfo(
                 processHandle, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc));
             SIZE_T virtualMemUsed = pmc.PrivateUsage / 1024;
             WCHAR memory[4096] = L"";
             StringCchPrintf(memory, ARRAYSIZE(memory), L"Memory: %u", virtualMemUsed);
+            CloseHandle(processHandle);
 
             result = result + id + L" | Process Kind: " + ProcessKindToString(kind) + L" | " +
                      memory + L" KB\n";
