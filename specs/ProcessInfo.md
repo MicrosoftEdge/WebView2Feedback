@@ -145,8 +145,8 @@ void ProcessComponent::PerformanceInfo()
 ```
 interface ICoreWebView2Environment6;
 interface ICoreWebView2ProcessInfo;
-interface ICoreWebView2ProcessInfoCollection;
-interface ICoreWebView2ProcessInfoChangedEventHandler;
+interface ICoreWebView2ProcessInfosCollection;
+interface ICoreWebView2ProcessInfosChangedEventHandler;
 
 [v1_enum]
 typedef enum COREWEBVIEW2_PROCESS_KIND {
@@ -178,20 +178,20 @@ typedef enum COREWEBVIEW2_PROCESS_KIND {
 [uuid(20856F87-256B-41BE-BD64-AB1C36E3D944), object, pointer_default(unique)]
 interface ICoreWebView2Environment6 : ICoreWebView2Environment5
 {
-  /// Adds an event handler for the `ProcessInfoChanged` event.
+  /// Adds an event handler for the `ProcessInfosChanged` event.
   /// 
-  /// \snippet ProcessComponent.cpp ProcessInfoChanged
-  HRESULT add_ProcessInfoChanged(
-      [in] ICoreWebView2ProcessInfoChangedEventHandler* eventHandler,
+  /// \snippet ProcessComponent.cpp ProcessInfosChanged
+  HRESULT add_ProcessInfosChanged(
+      [in] ICoreWebView2ProcessInfosChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Remove an event handler previously added with `add_ProcessInfoChanged`.
-  HRESULT remove_ProcessInfoChanged(
+  /// Remove an event handler previously added with `add_ProcessInfosChanged`.
+  HRESULT remove_ProcessInfosChanged(
       [in] EventRegistrationToken token);
 
-  /// Returns the `ICoreWebView2ProcessInfoCollection`
+  /// Returns the `ICoreWebView2ProcessInfosCollection`
   /// Provide a list of all process using same user data folder.
-  [propget] HRESULT ProcessInfo([out, retval]ICoreWebView2ProcessInfoCollection** value);
+  [propget] HRESULT ProcessInfos([out, retval]ICoreWebView2ProcessInfosCollection** value);
 }
 
 /// Provides a set of properties for a process in the `ICoreWebView2Environment`.
@@ -199,7 +199,7 @@ interface ICoreWebView2Environment6 : ICoreWebView2Environment5
 interface ICoreWebView2ProcessInfo : IUnknown {
 
   /// The process id of the process.
-  [propget] HRESULT Id([out, retval] UINT32* value);
+  [propget] HRESULT ProcessId([out, retval] UINT32* value);
 
   /// The kind of the process.
   [propget] HRESULT Kind([out, retval] COREWEBVIEW2_PROCESS_KIND* kind);
@@ -207,19 +207,19 @@ interface ICoreWebView2ProcessInfo : IUnknown {
 
 /// A list containing process id and corresponding process type.
 [uuid(5356F3B3-4859-4763-9C95-837CDEEE8912), object, pointer_default(unique)]
-interface ICoreWebView2ProcessInfoCollection : IUnknown {
-  /// The number of process contained in the ICoreWebView2ProcessInfoCollection.
+interface ICoreWebView2ProcessInfosCollection : IUnknown {
+  /// The number of process contained in the ICoreWebView2ProcessInfosCollection.
   [propget] HRESULT Count([out, retval] UINT* count);
 
-  /// Gets the `ICoreWebView2ProcessInfo` located in the `ICoreWebView2ProcessInfoCollection`
+  /// Gets the `ICoreWebView2ProcessInfo` located in the `ICoreWebView2ProcessInfosCollection`
   /// at the given index.
   HRESULT GetValueAtIndex([in] UINT32 index,
                           [out, retval] ICoreWebView2ProcessInfo** processInfo);
 }
 
-/// An event handler for the `ProcessInfoChanged` event.
+/// An event handler for the `ProcessInfosChanged` event.
 [uuid(CFF13C72-2E3B-4812-96FB-DFDDE67FBE90), object, pointer_default(unique)]
-interface ICoreWebView2ProcessInfoChangedEventHandler : IUnknown {
+interface ICoreWebView2ProcessInfosChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
   /// and the `args` parameter is set to `null`.
   HRESULT Invoke([in] ICoreWebView2* sender, [in] IUnknown* args);
