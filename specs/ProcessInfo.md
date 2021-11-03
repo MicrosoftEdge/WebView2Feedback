@@ -15,13 +15,13 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
     if (e.IsSuccess)
     {
         // ...
-        webView.CoreWebView2.Environment.ProcessInfoChanged += WebView_ProcessInfoChanged;
+        webView.CoreWebView2.Environment.ProcessInfosChanged += WebView_ProcessInfosChanged;
     }
 }
 
-void WebView_ProcessInfoChanged(object sender, object e)
+void WebView_ProcessInfosChanged(object sender, object e)
 {
-    _processList = webView.CoreWebView2.Environment.ProcessInfo;
+    _processList = webView.CoreWebView2.Environment.ProcessInfos;
 }
 
 void PerfInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
@@ -37,7 +37,7 @@ void PerfInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
         result = $"{processListCount} child process(s) found\n\n";
         for (int i = 0; i < processListCount; ++i)
         {
-            uint processId = _processList[i].Id;
+            uint processId = _processList[i].ProcessId;
             CoreWebView2ProcessKind kind = _processList[i].Kind;
 
             var proc = Process.GetProcessById((int)processId);
@@ -232,7 +232,7 @@ namespace Microsoft.Web.WebView2.Core
     // ...
     runtimeclass CoreWebView2ProcessInfo;
 
-    /// Kind of process type used in the CoreWebView2ProcessCollection.
+    /// Kind of process type used in the CoreWebView2ProcessInfosCollection.
     enum CoreWebView2ProcessKind
     {
         Browser = 0,
@@ -248,7 +248,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ProcessInfo
     {
         // ICoreWebView2ProcessInfo members
-        UInt32 Id { get; };
+        UInt32 ProcessId { get; };
 
         CoreWebView2ProcessKind Kind { get; };
     }
@@ -256,8 +256,8 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2Environment
     {
         /// Gets a list of process.
-        IVectorView<CoreWebView2ProcessInfo> ProcessInfo { get; };
-        event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> ProcessInfoChanged;
+        IVectorView<CoreWebView2ProcessInfo> ProcessInfos { get; };
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> ProcessInfosChanged;
 
         // ...
     }
