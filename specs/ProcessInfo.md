@@ -86,7 +86,6 @@ std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KI
         KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_GPU);
         KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_PPAPI_PLUGIN);
         KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_PPAPI_BROKER);
-        KIND_ENTRY(COREWEBVIEW2_PROCESS_KIND_UNKNOWN);
 
 #undef KIND_ENTRY
     }
@@ -170,9 +169,6 @@ typedef enum COREWEBVIEW2_PROCESS_KIND {
 
   /// Indicates the PPAPI plugin broker process kind.
   COREWEBVIEW2_PROCESS_KIND_PPAPI_BROKER,
-
-  /// Indicates the process of unspecified kind.
-  COREWEBVIEW2_PROCESS_KIND_UNKNOWN,
 } COREWEBVIEW2_PROCESS_KIND;
 
 [uuid(20856F87-256B-41BE-BD64-AB1C36E3D944), object, pointer_default(unique)]
@@ -242,7 +238,6 @@ namespace Microsoft.Web.WebView2.Core
         Gpu = 4,
         PpapiPlugin = 5,
         PpapiBroker = 6,
-        Unknown = 7,
     };
 
     runtimeclass CoreWebView2ProcessInfo
