@@ -20,7 +20,8 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
 We propose extending `CoreWebView2Frame` to include the `PermissionRequested`
-event. This event will be raised whenever an iframe requests permission to
+event. This event will be raised whenever the iframe corresponding to the
+CoreWebView2Frame or any of its descendant iframes requests permission to
 priveleged resources.
 
 Additionally, we propose extending `CoreWebView2PermissionRequestedEventArgs`
@@ -35,8 +36,7 @@ will not be raised on the `CoreWebView2`, and its event handlers will not be
 invoked.
 
 In the case of a nested iframe requesting permission, we will raise the event
-off of the top level iframe. This is due to the previously mentioned limitation
-of not having `CoreWebView2Frame`'s for nested iframes.
+off of the top level iframe.
 
 # Examples
 ## C++: Registering IFrame Permission Requested Handler
