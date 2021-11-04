@@ -65,7 +65,6 @@ interface ICoreWebView2Controller4 : ICoreWebView2Controller3 {
 }
 ```
 ```
-
 /// An enum to represent the options for WebView2 appearance: system, light, or dark.
 
 [v1_enum]
@@ -82,4 +81,15 @@ typedef enum COREWEBVIEW2_APPEARANCE_KIND {
 
 } COREWEBVIEW2_APPEARANCE_KIND;
 
+```
+
+### WinRT
+```
+[interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingController2")]
+{
+    // ICoreWebView2StagingController2 members
+    [doc_string("")]
+    CoreWebView2AppearanceKind Appearance { get; set; };
+
+}
 ```
