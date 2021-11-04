@@ -21,7 +21,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_ProcessInfosChanged(object sender, object e)
 {
-    _processList = webView.CoreWebView2.Environment.ProcessInfos;
+    _processList = webView.CoreWebView2.Environment.GetProcessInfos;
 }
 
 void PerfInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
@@ -55,20 +55,20 @@ void PerfInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
 ProcessComponent::ProcessComponent(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
-    // Register a handler for the ProcessInfoChanged event.
-    //! [ProcessInfoChanged]
+    // Register a handler for the ProcessInfosChanged event.
+    //! [ProcessInfosChanged]
     wil::com_ptr<ICoreWebView2Environment> environment = appWindow->GetWebViewEnvironment();
-    CHECK_FAILURE(environment->get_ProcessInfo(&m_processCollection));
-    CHECK_FAILURE(environment->add_ProcessInfoChanged(
-        Callback<ICoreWebView2ProcessInfoChangedEventHandler>(
+    CHECK_FAILURE(environment->GetProcessInfos(&m_processCollection));
+    CHECK_FAILURE(environment->add_ProcessInfosChanged(
+        Callback<ICoreWebView2ProcessInfosChangedEventHandler>(
             [this](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT {
-                CHECK_FAILURE(sender->get_ProcessInfo(&m_processCollection));
+                CHECK_FAILURE(sender->GetProcessInfos(&m_processCollection));
 
                 return S_OK;
             })
             .Get(),
-        &m_processInfoChangedToken));
-    //! [ProcessInfoChanged]
+        &m_processInfosChangedToken));
+    //! [ProcessInfosChanged]
 }
 
 std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KIND kind)
@@ -94,7 +94,7 @@ std::wstring ProcessComponent::ProcessKindToString(const COREWEBVIEW2_PROCESS_KI
 }
 
 // Get the process info
-//! [ProcessInfoChanged]
+//! [ProcessInfosChanged]
 void ProcessComponent::PerformanceInfo()
 {
     std::wstring result;
@@ -114,9 +114,9 @@ void ProcessComponent::PerformanceInfo()
             wil::com_ptr<ICoreWebView2StagingProcessInfo> processInfo;
             CHECK_FAILURE(m_processCollection->GetValueAtIndex(i, &processInfo));
 
-            UINT32 processId = 0;
+            INT32 processId = 0;
             COREWEBVIEW2_PROCESS_KIND kind;
-            CHECK_FAILURE(processInfo->get_Id(&processId));
+            CHECK_FAILURE(processInfo->get_ProcessId(&processId));
             CHECK_FAILURE(processInfo->get_Kind(&kind));
 
             WCHAR id[4096] = L"";
@@ -187,7 +187,7 @@ interface ICoreWebView2Environment6 : ICoreWebView2Environment5
 
   /// Returns the `ICoreWebView2ProcessInfoCollection`
   /// Provide a list of all process using same user data folder.
-  [propget] HRESULT ProcessInfos([out, retval]ICoreWebView2ProcessInfoCollection** value);
+  HRESULT GetProcessInfos([out, retval]ICoreWebView2ProcessInfoCollection** value);
 }
 
 /// Provides a set of properties for a process in the `ICoreWebView2Environment`.
@@ -195,7 +195,7 @@ interface ICoreWebView2Environment6 : ICoreWebView2Environment5
 interface ICoreWebView2ProcessInfo : IUnknown {
 
   /// The process id of the process.
-  [propget] HRESULT ProcessId([out, retval] UINT32* value);
+  [propget] HRESULT ProcessId([out, retval] INT32* value);
 
   /// The kind of the process.
   [propget] HRESULT Kind([out, retval] COREWEBVIEW2_PROCESS_KIND* kind);
@@ -243,7 +243,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2ProcessInfo
     {
         // ICoreWebView2ProcessInfo members
-        UInt32 ProcessId { get; };
+        Int32 ProcessId { get; };
 
         CoreWebView2ProcessKind Kind { get; };
     }
