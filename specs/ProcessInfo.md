@@ -21,7 +21,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_ProcessInfosChanged(object sender, object e)
 {
-    _processList = webView.CoreWebView2.Environment.GetProcessInfos;
+    _processList = webView.CoreWebView2.Environment.GetProcessInfos();
 }
 
 void PerfInfoCmdExecuted(object target, ExecutedRoutedEventArgs e)
@@ -251,7 +251,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2Environment
     {
         /// Gets a list of process.
-        IVectorView<CoreWebView2ProcessInfo> ProcessInfos { get; };
+        IVectorView<CoreWebView2ProcessInfo> GetProcessInfos();
         event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> ProcessInfosChanged;
 
         // ...
