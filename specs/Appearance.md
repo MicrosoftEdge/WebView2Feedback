@@ -87,7 +87,6 @@ typedef enum COREWEBVIEW2_APPEARANCE_KIND {
 [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingController2")]
 {
     // ICoreWebView2StagingController2 members
-    [doc_string("")]
     CoreWebView2AppearanceKind Appearance { get; set; };
 
 }
