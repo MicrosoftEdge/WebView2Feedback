@@ -283,8 +283,6 @@ void RegisterIFramePermissionRequestedHandler()
                         PutHandled(permissionArgs);
                     }
                 }, null);
-
-
             };
         }
         catch (NotImplementedException exception)
