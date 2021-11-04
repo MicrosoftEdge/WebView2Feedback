@@ -144,7 +144,7 @@ void ProcessComponent::PerformanceInfo()
 ```
 interface ICoreWebView2Environment6;
 interface ICoreWebView2ProcessInfo;
-interface ICoreWebView2ProcessInfosCollection;
+interface ICoreWebView2ProcessInfoCollection;
 interface ICoreWebView2ProcessInfosChangedEventHandler;
 
 [v1_enum]
@@ -185,9 +185,9 @@ interface ICoreWebView2Environment6 : ICoreWebView2Environment5
   HRESULT remove_ProcessInfosChanged(
       [in] EventRegistrationToken token);
 
-  /// Returns the `ICoreWebView2ProcessInfosCollection`
+  /// Returns the `ICoreWebView2ProcessInfoCollection`
   /// Provide a list of all process using same user data folder.
-  [propget] HRESULT ProcessInfos([out, retval]ICoreWebView2ProcessInfosCollection** value);
+  [propget] HRESULT ProcessInfos([out, retval]ICoreWebView2ProcessInfoCollection** value);
 }
 
 /// Provides a set of properties for a process in the `ICoreWebView2Environment`.
@@ -203,11 +203,11 @@ interface ICoreWebView2ProcessInfo : IUnknown {
 
 /// A list containing process id and corresponding process type.
 [uuid(5356F3B3-4859-4763-9C95-837CDEEE8912), object, pointer_default(unique)]
-interface ICoreWebView2ProcessInfosCollection : IUnknown {
-  /// The number of process contained in the ICoreWebView2ProcessInfosCollection.
+interface ICoreWebView2ProcessInfoCollection : IUnknown {
+  /// The number of process contained in the ICoreWebView2ProcessInfoCollection.
   [propget] HRESULT Count([out, retval] UINT* count);
 
-  /// Gets the `ICoreWebView2ProcessInfo` located in the `ICoreWebView2ProcessInfosCollection`
+  /// Gets the `ICoreWebView2ProcessInfo` located in the `ICoreWebView2ProcessInfoCollection`
   /// at the given index.
   HRESULT GetValueAtIndex([in] UINT32 index,
                           [out, retval] ICoreWebView2ProcessInfo** processInfo);
@@ -228,7 +228,7 @@ namespace Microsoft.Web.WebView2.Core
     // ...
     runtimeclass CoreWebView2ProcessInfo;
 
-    /// Kind of process type used in the CoreWebView2ProcessInfosCollection.
+    /// Kind of process type used in the CoreWebView2ProcessInfoCollection.
     enum CoreWebView2ProcessKind
     {
         Browser = 0,
