@@ -41,6 +41,7 @@ off of the top level iframe.
 # Examples
 ## C++: Registering IFrame Permission Requested Handler
 ``` cpp
+AppWindow* m_appWindow;
 wil::com_ptr<ICoreWebView2> m_webview;
 std::map<std::tuple<std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>, bool>
     m_cachedPermissions;
@@ -77,7 +78,8 @@ void RegisterIFramePermissionRequestedHandler()
                                     // in the permission requested event handler by showing the
                                     // dialog via lambda run asynchronously outside of this event
                                     // handler.
-                                    auto showDialog = [this, args] {
+                                    auto showDialog = [this, args]
+                                    {
                                         COREWEBVIEW2_PERMISSION_KIND kind =
                                             COREWEBVIEW2_PERMISSION_KIND_UNKNOWN_PERMISSION;
                                         BOOL userInitiated = FALSE;
@@ -154,7 +156,8 @@ void RegisterIFramePermissionRequestedHandler()
                                     wil::com_ptr<ICoreWebView2Deferral> deferral;
                                     CHECK_FAILURE(args->GetDeferral(&deferral));
 
-                                    m_appWindow->RunAsync([deferral, showDialog]() {
+                                    m_appWindow->RunAsync([deferral, showDialog]()
+                                    {
                                         showDialog();
                                         CHECK_FAILURE(deferral->Complete());
                                     });
@@ -233,7 +236,8 @@ void RegisterIFramePermissionRequestedHandler()
                 // We avoid potential reentrancy from running a message loop
                 // in the permission requested event handler by showing the
                 // dialog asynchronously.
-                System.Threading.SynchronizationContext.Current.Post((_) => {
+                System.Threading.SynchronizationContext.Current.Post((_) =>
+                {
                     using (deferral)
                     {
                         var cachedKey = Tuple.Create(permissionArgs.Uri,
@@ -347,8 +351,8 @@ interface ICoreWebView2FramePermissionRequestedEventArgs2;
 [uuid(3ed01620-13fc-4c2c-9eb9-62fccd689093), object, pointer_default(unique)]
 interface ICoreWebView2Frame2 : ICoreWebView2Frame {
   /// Add an event handler for the `PermissionRequested` event.
-  /// `PermissionRequested` is raised when content in an iframe requests
-  /// permission to access some priveleged resources.
+  /// `PermissionRequested` is raised when content in an iframe any of its
+  /// descendant iframes requests permission to priveleged resources.
   ///
   /// This relates to the `PermissionRequested` event on the `CoreWebView2`.
   /// Both these events will be raised in the case of an iframe requesting
@@ -420,7 +424,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Frame2")]
         {
             // ICoreWebView2Frame2 members
-            [doc_string("PermissionRequested is raised when content in an IFrame requests permission to access some priveleged resources.\nIf a deferral is not taken on the event args, the subsequent scripts are blocked until the event handler returns. If a deferral is taken, the scripts are blocked until the deferral is completed.")]
+            [doc_string("PermissionRequested is raised when content in an iframe or any of its descendant iframes requests permission to access some priveleged resources.\nIf a deferral is not taken on the event args, the subsequent scripts are blocked until the event handler returns. If a deferral is taken, the scripts are blocked until the deferral is completed.")]
             event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, CoreWebView2PermissionRequestedEventArgs> PermissionRequested;
         }
 
