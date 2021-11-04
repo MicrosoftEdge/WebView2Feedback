@@ -54,7 +54,7 @@ interface ICoreWebView2Controller4 : ICoreWebView2Controller3 {
   /// and sets the media feature `prefers-color-scheme` for websites to respond to. 
   
   /// Returns the value of the `Appearance` property.
-  [propget] HRESULT Appearance(
+  [propget] HRESULT DefaultColorTheme(
   [out, retval] COREWEBVIEW2_APPEARANCE_KIND* value);
 
   /// Sets the `Appearance` property.
