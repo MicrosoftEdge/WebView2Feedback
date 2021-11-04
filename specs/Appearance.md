@@ -21,11 +21,10 @@ bool ViewComponent::SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
     wil::com_ptr<ICoreWebView2StagingController2> webViewStagingController2;
 
     m_appWindow->GetWebViewController()->QueryInterface(IID_PPV_ARGS(&webViewStagingController2));
-    CHECK_FEATURE_RETURN(webViewStagingController2);
-
-    webViewStagingController2->put_Appearance(value); 
-
-    return true;
+    if (webViewStagingController2)
+    {
+        CHECK_FAILURE(webViewStagingController2->put_Appearance(value));
+    }
 }
     
 ```
