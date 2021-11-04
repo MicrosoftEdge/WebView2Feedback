@@ -73,73 +73,92 @@ void RegisterIFramePermissionRequestedHandler()
                             Callback<ICoreWebView2FramePermissionRequestedEventHandler>(
                                 [this](ICoreWebView2Frame* sender,
                                    ICoreWebView2PermissionRequestedEventArgs* args) -> HRESULT {
-                                    COREWEBVIEW2_PERMISSION_KIND kind =
-                                        COREWEBVIEW2_PERMISSION_KIND_UNKNOWN_PERMISSION;
-                                    BOOL userInitiated = FALSE;
-                                    wil::unique_cotaskmem_string uri;
+                                    // We avoid potential reentrancy from running a message loop
+                                    // in the permission requested event handler by showing the
+                                    // dialog via lambda run asynchronously outside of this event
+                                    // handler.
+                                    auto showDialog = [this, args] {
+                                        COREWEBVIEW2_PERMISSION_KIND kind =
+                                            COREWEBVIEW2_PERMISSION_KIND_UNKNOWN_PERMISSION;
+                                        BOOL userInitiated = FALSE;
+                                        wil::unique_cotaskmem_string uri;
 
-                                    CHECK_FAILURE(args->get_PermissionKind(&kind));
-                                    CHECK_FAILURE(args->get_IsUserInitiated(&userInitiated));
-                                    CHECK_FAILURE(args->get_Uri(&uri));
+                                        CHECK_FAILURE(args->get_PermissionKind(&kind));
+                                        CHECK_FAILURE(args->get_IsUserInitiated(&userInitiated));
+                                        CHECK_FAILURE(args->get_Uri(&uri));
 
-                                    auto cachedKey = std::tuple<
-                                        std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>(
-                                        std::wstring(uri.get()), kind, userInitiated);
+                                        auto cachedKey = std::tuple<
+                                            std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>(
+                                            std::wstring(uri.get()), kind, userInitiated);
 
-                                    auto cachedPermission =
-                                        m_cachedPermissions.find(cachedKey);
-                                    if (cachedPermission != m_cachedPermissions.end())
-                                    {
-                                        bool allow = cachedPermission->second;
-                                        if (allow)
+                                        auto cachedPermission =
+                                            m_cachedPermissions.find(cachedKey);
+                                        if (cachedPermission != m_cachedPermissions.end())
                                         {
-                                            CHECK_FAILURE(args->put_State(
-                                                COREWEBVIEW2_PERMISSION_STATE_ALLOW));
+                                            bool allow = cachedPermission->second;
+                                            if (allow)
+                                            {
+                                                CHECK_FAILURE(args->put_State(
+                                                    COREWEBVIEW2_PERMISSION_STATE_ALLOW));
+                                            }
+                                            else
+                                            {
+                                                CHECK_FAILURE(args->put_State(
+                                                    COREWEBVIEW2_PERMISSION_STATE_DENY));
+                                            }
+
+                                            PutHandled(args);
+                                            return S_OK;
                                         }
-                                        else
+
+                                        std::wstring message =
+                                            L"An iframe has requested device permission for ";
+                                        message += NameOfPermissionKind(kind);
+                                        message += L" to the website at ";
+                                        message += uri.get();
+                                        message += L"?\n\n";
+                                        message += L"Do you want to grant permission?\n";
+                                        message +=
+                                            (userInitiated
+                                                ? L"This request came from a user gesture."
+                                                : L"This request did not come from a user "
+                                                L"gesture.");
+
+                                        int response = MessageBox(
+                                            nullptr, message.c_str(), L"Permission Request",
+                                            MB_YESNOCANCEL | MB_ICONWARNING);
+
+                                        COREWEBVIEW2_PERMISSION_STATE state =
+                                            COREWEBVIEW2_PERMISSION_STATE_DEFAULT;
+
+                                        if (response == IDYES)
                                         {
-                                            CHECK_FAILURE(args->put_State(
-                                                COREWEBVIEW2_PERMISSION_STATE_DENY));
+                                            m_cachedPermissions[cachedKey] = true;
+                                            state = COREWEBVIEW2_PERMISSION_STATE_ALLOW;
                                         }
+                                        else if (response == IDNO)
+                                        {
+                                            m_cachedPermissions[cachedKey] = false;
+                                            state = COREWEBVIEW2_PERMISSION_STATE_DENY;
+                                        }
+
+                                        CHECK_FAILURE(args->put_State(state));
 
                                         PutHandled(args);
                                         return S_OK;
-                                    }
+                                    };
 
-                                    std::wstring message =
-                                        L"An iframe has requested device permission for ";
-                                    message += NameOfPermissionKind(kind);
-                                    message += L" to the website at ";
-                                    message += uri.get();
-                                    message += L"?\n\n";
-                                    message += L"Do you want to grant permission?\n";
-                                    message +=
-                                        (userInitiated
-                                             ? L"This request came from a user gesture."
-                                             : L"This request did not come from a user "
-                                               L"gesture.");
+                                    // Obtain a deferral for the event so that the CoreWebView2
+                                    // doesn't examine the properties we set on the event args until
+                                    // after we call the Complete method asynchronously later.
+                                    wil::com_ptr<ICoreWebView2Deferral> deferral;
+                                    CHECK_FAILURE(args->GetDeferral(&deferral));
 
-                                    int response = MessageBox(
-                                        nullptr, message.c_str(), L"Permission Request",
-                                        MB_YESNOCANCEL | MB_ICONWARNING);
+                                    m_appWindow->RunAsync([deferral, showDialog]() {
+                                        showDialog();
+                                        CHECK_FAILURE(deferral->Complete());
+                                    });
 
-                                    COREWEBVIEW2_PERMISSION_STATE state =
-                                        COREWEBVIEW2_PERMISSION_STATE_DEFAULT;
-
-                                    if (response == IDYES)
-                                    {
-                                        m_cachedPermissions[cachedKey] = true;
-                                        state = COREWEBVIEW2_PERMISSION_STATE_ALLOW;
-                                    }
-                                    else if (response == IDNO)
-                                    {
-                                        m_cachedPermissions[cachedKey] = false;
-                                        state = COREWEBVIEW2_PERMISSION_STATE_DENY;
-                                    }
-
-                                    CHECK_FAILURE(args->put_State(state));
-
-                                    PutHandled(args);
                                     return S_OK;
                             }).Get(),
                             &m_PermissionRequestedToken));
@@ -201,51 +220,74 @@ void RegisterIFramePermissionRequestedHandler()
 {
     m_webview.CoreWebView2.FrameCreated += (sender, frameCreatedArgs) =>
     {
-        frameCreatedArgs.Frame.PermissionRequested += (frameSender, permissionArgs) =>
+        // Checking for runtime support of CoreWebView2Frame.PermissionRequested
+        try
         {
-            var cachedKey = Tuple.Create(permissionArgs.Uri,
-                permissionArgs.PermissionKind, permissionArgs.IsUserInitiated);
-
-            if (m_cachedPermissions.ContainsKey(cachedKey))
+            frameCreatedArgs.Frame.PermissionRequested += (frameSender, permissionArgs) =>
             {
-                permissionArgs.State = m_cachedPermissions[cachedKey]
-                                            ? CoreWebView2PermissionState.Allow
-                                            : CoreWebView2PermissionState.Deny;
+                // Developer can obtain a deferral for the event so that the CoreWebView2
+                // doesn't examine the properties we set on the event args until
+                // after the deferral completes asynchronously.
+                CoreWebView2Deferral deferral = args.GetDeferral();
 
-                permissionArgs.Handled = true;
-                return;
-            }
+                // We avoid potential reentrancy from running a message loop
+                // in the permission requested event handler by showing the
+                // dialog asynchronously.
+                System.Threading.SynchronizationContext.Current.Post((_) => {
+                    using (deferral)
+                    {
+                        var cachedKey = Tuple.Create(permissionArgs.Uri,
+                            permissionArgs.PermissionKind, permissionArgs.IsUserInitiated);
 
-            string message = "An iframe has requested device permission for ";
-            message += NameOfPermissionKind(permissionArgs.PermissionKind);
-            message += " to the website at ";
-            message += permissionArgs.Uri;
-            message += "\n\n";
-            message += "Do you want to grant permission?\n";
-            message +=
-                (permissionArgs.IsUserInitiated
-                    ? "This request came from a user gesture."
-                    : "This request did not come from a user gesture.");
+                        if (m_cachedPermissions.ContainsKey(cachedKey))
+                        {
+                            permissionArgs.State = m_cachedPermissions[cachedKey]
+                                                        ? CoreWebView2PermissionState.Allow
+                                                        : CoreWebView2PermissionState.Deny;
 
-            var selection = MessageBox.Show(message, "iframe PermissionRequest",
-                MessageBoxButton.YesNoCancel);
-            if (selection == MessageBoxResult.Yes)
-            {
-                permissionArgs.State = CoreWebView2PermissionState.Allow;
-                m_cachedPermissions[cachedKey] = true;
-            }
-            else if (selection == MessageBoxResult.No)
-            {
-                permissionArgs.State = CoreWebView2PermissionState.Deny;
-                m_cachedPermissions[cachedKey] = false;
-            }
-            else
-            {
-                permissionArgs.State = CoreWebView2PermissionState.Default;
-            }
+                            PutHandled(permissionArgs);
+                            return;
+                        }
 
-            permissionArgs.Handled = true;
-        };
+                        string message = "An iframe has requested device permission for ";
+                        message += NameOfPermissionKind(permissionArgs.PermissionKind);
+                        message += " to the website at ";
+                        message += permissionArgs.Uri;
+                        message += "\n\n";
+                        message += "Do you want to grant permission?\n";
+                        message +=
+                            (permissionArgs.IsUserInitiated
+                                ? "This request came from a user gesture."
+                                : "This request did not come from a user gesture.");
+
+                        var selection = MessageBox.Show(message, "iframe PermissionRequest",
+                            MessageBoxButton.YesNoCancel);
+
+                        permissionArgs.State = CoreWebView2PermissionState.Default;
+
+                        if (selection == MessageBoxResult.Yes)
+                        {
+                            permissionArgs.State = CoreWebView2PermissionState.Allow;
+                            m_cachedPermissions[cachedKey] = true;
+                        }
+                        else if (selection == MessageBoxResult.No)
+                        {
+                            permissionArgs.State = CoreWebView2PermissionState.Deny;
+                            m_cachedPermissions[cachedKey] = false;
+                        }
+
+                        PutHandled(permissionArgs);
+                    }
+                }, null);
+
+
+            };
+        }
+        catch (NotImplementedException exception)
+        {
+            MessageBox.Show(this, "Frame Permission Requested Failed: " + exception.Message,
+                            "Frame Permission Requested");
+        }
     };
 }
 
@@ -267,6 +309,29 @@ string NameOfPermissionKind(CoreWebView2PermissionKind kind)
             return "Clipboard Read";
         default:
             return "Unknown resources";
+    }
+}
+
+void PutHandled(CoreWebView2PermissionEventArgs args)
+{
+    // In the case of an iframe requesting permission, the default behavior is
+    // to first raise the PermissionRequested event off of the CoreWebView2Frame
+    // and invoke it's handlers, and then raise the event off the CoreWebView2
+    // and invoke it's handlers. However, If we set Handled to true on the
+    // CoreWebView2Frame event handler, then we will not raise the
+    // PermissionRequested event off the CoreWebView2.
+    try
+    {
+        // NotImplementedException could be thrown if underlying runtime did not
+        // implement Handled. However, we only run this code after checking if
+        // CoreWebView2Frame.PermissionRequested exists, and both exist together,
+        // so it would not be a problem.
+        permissionArgs.Handled = true;
+    }
+    catch(NotImplementedException)
+    {
+        MessageBox.Show(this, "Put Handled Failed: " + exception.Message,
+                        "Frame Permission Requested Handled");
     }
 }
 ```
