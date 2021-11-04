@@ -18,12 +18,12 @@ For reference, in the screenshot below, this API is meant to expose the Overall 
 void ViewComponent::SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
 {
     
-    wil::com_ptr<ICoreWebView2StagingController2> webViewStagingController2;
+    wil::com_ptr<ICoreWebView2Controller4> webViewController4;
 
-    m_appWindow->GetWebViewController()->QueryInterface(IID_PPV_ARGS(&webViewStagingController2));
-    if (webViewStagingController2)
+    m_appWindow->GetWebViewController()->QueryInterface(IID_PPV_ARGS(&webViewController4));
+    if (webViewController4)
     {
-        CHECK_FAILURE(webViewStagingController2->put_Appearance(value));
+        CHECK_FAILURE(webViewController4->put_Appearance(value));
     }
 }
     
@@ -84,9 +84,9 @@ typedef enum COREWEBVIEW2_APPEARANCE_KIND {
 
 ### WinRT
 ```
-[interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingController2")]
+[interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Controller4")]
 {
-    // ICoreWebView2StagingController2 members
+    // ICoreWebView2Controller4 members
     CoreWebView2AppearanceKind Appearance { get; set; };
 
 }
