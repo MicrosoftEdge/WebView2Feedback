@@ -15,7 +15,7 @@ For reference, in the screenshot below, this API is meant to expose the Overall 
 
 ```cpp
 
-bool ViewComponent::SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
+void ViewComponent::SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
 {
     
     wil::com_ptr<ICoreWebView2StagingController2> webViewStagingController2;
