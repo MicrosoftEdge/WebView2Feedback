@@ -140,9 +140,9 @@ ScenarioCookieManagement::ScenarioCookieManagement(ICoreWebView2Controller* cont
         CHECK_FAILURE(webview7->get_Profile(&profile));
         auto profile2 = profile.try_query<ICoreWebView2Profile2>;
         if (profile2){
-        //! [CookieManager]
+        //! [CookieManagerProfile]
             CHECK_FAILURE(profile2->get_CookieManager(&m_cookieManager));
-        //! [CookieManager]
+        //! [CookieManagerProfile]
         }
     }
     // ...
