@@ -1,4 +1,4 @@
-Appearance (Theme) API
+DefaultTheme API
 ===
 
 # Background
@@ -15,7 +15,7 @@ For reference, in the screenshot below, this API is meant to expose the Overall 
 
 ```cpp
 
-void ViewComponent::SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
+void ViewComponent::SetDefaultTheme(COREWEBVIEW2_DEFAULTCOLORTHEME_KIND value)
 {
     
     wil::com_ptr<ICoreWebView2Controller4> webViewController4;
@@ -23,7 +23,7 @@ void ViewComponent::SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
     m_appWindow->GetWebViewController()->QueryInterface(IID_PPV_ARGS(&webViewController4));
     if (webViewController4)
     {
-        CHECK_FAILURE(webViewController4->put_Appearance(value));
+        CHECK_FAILURE(webViewController4->put_DefaultTheme(value));
     }
 }
     
@@ -34,9 +34,9 @@ void ViewComponent::SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
 
 private WebView2 m_webview;
 
-void SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
+void SetDefaultTheme(COREWEBVIEW2_DEFAULT_THEME_KIND value)
 {
-    m_webview.CoreWebView2Controller.Appearance = value;
+    m_webview.CoreWebView2Controller.DefaultTheme = value;
 }
     
 ```
@@ -47,38 +47,38 @@ void SetAppearance(COREWEBVIEW2_APPEARANCE_KIND value)
 [uuid(5f817cce-5d36-4cd0-a1d5-aaaf95c8685f), object, pointer_default(unique)]
 interface ICoreWebView2Controller4 : ICoreWebView2Controller3 {
 
-  /// The Appearance property sets the overall theme of the webview2 instance. 
-  /// The input parameter is either COREWEBVIEW2_APPEARANCE_KIND_SYSTEM, 
-  /// COREWEBVIEW2_APPEARANCE_KIND_LIGHT, or COREWEBVIEW2_APPEARANCE_KIND_DARK.
+  /// The DefaultTheme property sets the overall theme of the webview2 instance. 
+  /// The input parameter is either COREWEBVIEW2_DEFAULT_THEME_KIND_SYSTEM, 
+  /// COREWEBVIEW2_DEFAULT_THEME_KIND_LIGHT, or COREWEBVIEW2_DEFAULT_THEME_KIND_DARK.
   /// Note that this API applies appearance to WebView2 pages, dialogs, menus,
   /// and sets the media feature `prefers-color-scheme` for websites to respond to. 
   
-  /// Returns the value of the `Appearance` property.
-  [propget] HRESULT DefaultColorTheme(
-  [out, retval] COREWEBVIEW2_APPEARANCE_KIND* value);
+  /// Returns the value of the `DefaultTheme` property.
+  [propget] HRESULT DefaultTheme(
+  [out, retval] COREWEBVIEW2_DEFAULT_THEME_KIND* value);
 
-  /// Sets the `Appearance` property.
-  [propput] HRESULT Appearance(
-    [in] COREWEBVIEW2_APPEARANCE_KIND value);
+  /// Sets the `DefaultTheme` property.
+  [propput] HRESULT DefaultTheme(
+    [in] COREWEBVIEW2_DEFAULT_THEME_KIND value);
 
 }
 ```
 ```
-/// An enum to represent the options for WebView2 appearance: system, light, or dark.
+/// An enum to represent the options for WebView2 DefaultTheme: system, light, or dark.
 
 [v1_enum]
-typedef enum COREWEBVIEW2_APPEARANCE_KIND {
+typedef enum COREWEBVIEW2_DEFAULT_THEME_KIND {
 
   /// System theme
-  COREWEBVIEW2_APPEARANCE_KIND_SYSTEM,
+  COREWEBVIEW2_DEFAULT_THEME_KIND_SYSTEM,
 
   /// Light theme
-  COREWEBVIEW2_APPEARANCE_KIND_LIGHT,
+  COREWEBVIEW2_DEFAULT_THEME_KIND_LIGHT,
 
   /// Dark theme
-  COREWEBVIEW2_APPEARANCE_KIND_DARK
+  COREWEBVIEW2_DEFAULT_THEME_KIND_DARK
 
-} COREWEBVIEW2_APPEARANCE_KIND;
+} COREWEBVIEW2_DEFAULT_THEME_KIND;
 
 ```
 
@@ -87,7 +87,7 @@ typedef enum COREWEBVIEW2_APPEARANCE_KIND {
 [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Controller4")]
 {
     // ICoreWebView2Controller4 members
-    CoreWebView2AppearanceKind Appearance { get; set; };
+    CoreWebView2DefaultThemeKind DefaultTheme { get; set; };
 
 }
 ```
