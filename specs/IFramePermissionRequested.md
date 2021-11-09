@@ -413,7 +413,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2PermissionRequestedEventArgs2")]
         {
             // ICoreWebView2PermissionRequestedEventArgs2 members
-            [doc_string("The host may set this flag to `TRUE` to prevent the `PermissionRequested` event from firing on the CoreWebView2 as well.\nBy default, both the `PermissionRequested` on the CoreWebView2Frame and CoreWebView2 will be fired.")]
+            [doc_string("The host may set this flag to `TRUE` to prevent the `PermissionRequested` event from firing on the CoreWebView2 as well.\nBy default, both the `PermissionRequested` on the CoreWebView2Frame and CoreWebView2 will be raised.")]
             Boolean Handled { get; set; };
         }
 
@@ -421,6 +421,8 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2Frame
     {
+        // ...
+
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Frame2")]
         {
             // ICoreWebView2Frame2 members
