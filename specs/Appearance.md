@@ -32,11 +32,18 @@ void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
 
 ```c#
 
-private WebView2 m_webview;
+private CoreWebView2Controller m_controller;
 
-void SetTheme(COREWEBVIEW2_THEME_KIND value)
+void SetTheme(CoreWebView2ThemeKind value)
 {
-    m_webview.CoreWebView2Controller.Theme = value;
+    try
+    {
+        m_controller.Theme = value;
+    }
+    catch (Exception)
+    {
+    // if theme api isnt supported in CoreWebView2Controller ignore the call.
+    }
 }
     
 ```
@@ -84,10 +91,24 @@ typedef enum COREWEBVIEW2_THEME_KIND {
 
 ### WinRT
 ```
-[interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Controller4")]
+namespace Microsoft.Web.WebView2.Core
 {
-    // ICoreWebView2Controller4 members
-    CoreWebView2ThemeKind Theme { get; set; };
+    enum CoreWebView2ThemeKind
+    {
+        System = 0,
+        Light = 1,
+        Dark = 2,
+    };
+    
+    unsealed runtimeclass CoreWebView2Controller
+    {
+    //... 
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Controller4")]
+        {
+            // ICoreWebView2Controller4 members
+            CoreWebView2ThemeKind Theme { get; set; };
 
+        }
+    }
 }
 ```
