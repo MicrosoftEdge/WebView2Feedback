@@ -52,7 +52,7 @@ void SetTheme(CoreWebView2ThemeKind value)
 
 # API Details
 ## C++
-```
+```cpp
 [uuid(5f817cce-5d36-4cd0-a1d5-aaaf95c8685f), object, pointer_default(unique)]
 interface ICoreWebView2Controller4 : ICoreWebView2Controller3 {
   /// The Theme property sets the overall theme of the WebView2 instance.
@@ -74,7 +74,6 @@ interface ICoreWebView2Controller4 : ICoreWebView2Controller3 {
 /// An enum to represent the options for WebView2 Theme: system, light, or dark.
 [v1_enum]
 typedef enum COREWEBVIEW2_THEME_KIND {
-
   /// System theme
   COREWEBVIEW2_THEME_KIND_SYSTEM,
 
@@ -83,12 +82,11 @@ typedef enum COREWEBVIEW2_THEME_KIND {
 
   /// Dark theme
   COREWEBVIEW2_THEME_KIND_DARK
-
 } COREWEBVIEW2_THEME_KIND;
 ```
 
 ### C#
-```
+```c#
 namespace Microsoft.Web.WebView2.Core
 {
     [doc_string("An enum to represent the options for WebView2 Theme: system, light, or dark.")]
