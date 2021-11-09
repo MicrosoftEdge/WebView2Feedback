@@ -18,7 +18,7 @@ wil::com_ptr<ICoreWebView2Controller> m_controller;
 
 void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
 {
-    wil::com_ptr<ICoreWebView2Controller4> m_controller;
+    wil::com_ptr<ICoreWebView2Controller4> webViewController4;
 
     CHECK_FAILURE(m_controller->QueryInterface(IID_PPV_ARGS(&webViewController4)));
     if (webViewController4)
