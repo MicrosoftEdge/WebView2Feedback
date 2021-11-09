@@ -332,7 +332,7 @@ void PutHandled(CoreWebView2PermissionEventArgs args)
         // so it would not be a problem.
         permissionArgs.Handled = true;
     }
-    catch(NotImplementedException)
+    catch(NotImplementedException exception)
     {
         MessageBox.Show(this, "Put Handled Failed: " + exception.Message,
                         "Frame Permission Requested Handled");
