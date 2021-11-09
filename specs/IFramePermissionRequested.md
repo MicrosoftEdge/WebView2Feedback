@@ -63,7 +63,8 @@ void RegisterIFramePermissionRequestedHandler()
         // from the top level frame.
         CHECK_FAILURE(webview4->add_FrameCreated(
             Callback<ICoreWebView2FrameCreatedEventHandler>(
-                [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args) -> HRESULT {
+                [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args) -> HRESULT
+                {
                     wil::com_ptr<ICoreWebView2Frame> webviewFrame;
                     CHECK_FAILURE(args->get_Frame(&webviewFrame));
 
@@ -73,7 +74,8 @@ void RegisterIFramePermissionRequestedHandler()
                         CHECK_FAILURE(webviewFrame2->add_PermissionRequested(
                             Callback<ICoreWebView2FramePermissionRequestedEventHandler>(
                                 [this](ICoreWebView2Frame* sender,
-                                   ICoreWebView2PermissionRequestedEventArgs* args) -> HRESULT {
+                                   ICoreWebView2PermissionRequestedEventArgs* args) -> HRESULT
+                                {
                                     // We avoid potential reentrancy from running a message loop
                                     // in the permission requested event handler by showing the
                                     // dialog via lambda run asynchronously outside of this event
