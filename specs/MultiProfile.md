@@ -146,16 +146,18 @@ HRESULT AppWindow::ManagePasswordAutosaveInProfile(ICoreWebView2Controller* cont
     CHECK_FAILURE(webView2Profile->get_IsPasswordAutosaveEnabled(&enabled));
 
     // Set password-autosave property to the opposite value to current value.
-    if (enabled) {
+    if (enabled)
+    {
         CHECK_FAILURE(webView2Profile->put_IsPasswordAutosaveEnabled(FALSE));
         MessageBox(
-            nullptr, L"Password autosave will be disabled immediately in all WebView2 with the same profile.",
+            nullptr, L"Password autosave will be disabled after next navigation in all WebView2 with the same profile.",
             L"Profile settings change", MB_OK);
     }
-    else {
+    else
+    {
         CHECK_FAILURE(webView2Profile->put_IsPasswordAutosaveEnabled(TRUE));
         MessageBox(
-            nullptr, L"Password autosave will be enabled immediately in all WebView2 with the same profile.",
+            nullptr, L"Password autosave will be enabled after next navigation in all WebView2 with the same profile.",
             L"Profile settings change", MB_OK);
     }
   
@@ -177,13 +179,15 @@ HRESULT AppWindow::ManageGeneralAutofillInProfile(ICoreWebView2Controller* contr
     CHECK_FAILURE(webView2Profile->get_IsGeneralAutofillsaveEnabled(&enabled));
 
     // Set general-autofill property to the opposite value to current value.
-    if (enabled) {
+    if (enabled)
+    {
         CHECK_FAILURE(webView2Profile->put_IsGeneralAutofillEnabled(FALSE));
         MessageBox(
             nullptr, L"General autofill will be disabled immediately in all WebView2 with the same profile.",
             L"Profile settings change", MB_OK);
     }
-    else {
+    else
+    {
         CHECK_FAILURE(webView2Profile->put_IsGeneralAutofillEnabled(TRUE));
         MessageBox(
             nullptr, L"General autofill will be enabled immediately in all WebView2 with the same profile.",
@@ -353,12 +357,28 @@ interface ICoreWebView2Profile : IUnknown {
 
 [uuid(e2e8dce3-8213-4a32-b3b0-c80a8d154b61), object, pointer_default(unique)]
 interface ICoreWebView2Profile2 : ICoreWebView2Profile {
-  /// Get the IsPasswordAutosaveEnabled property.
+  /// IsPasswordAutosaveEnabled controls whether autosave for password
+  /// information is enabled. The IsPasswordAutosaveEnabled property behaves
+  /// independently of the IsGeneralAutofillEnabled property. When IsPasswordAutosaveEnabled is
+  /// false, no new password data is saved and no Save/Update Password prompts are displayed.
+  /// However, if there was password data already saved before disabling this setting,
+  /// then that password information is auto-populated, suggestions are shown and clicking on
+  /// one will populate the fields.
+  /// When IsPasswordAutosaveEnabled is true, password information is auto-populated,
+  /// suggestions are shown and clicking on one will populate the fields, new data
+  /// is saved, and a Save/Update Password prompt is displayed.
+  /// The default value is `FALSE`.
   [propget] HRESULT IsPasswordAutosaveEnabled([out, retval] BOOL* value);
   /// Set the IsPasswordAutosaveEnabled property.
   [propput] HRESULT IsPasswordAutosaveEnabled([in] BOOL value);
 
-  /// Get the IsGeneralAutofillEnabled property.
+  /// IsGeneralAutofillEnabled controls whether autofill for information
+  /// like names, street and email addresses, phone numbers, and arbitrary input
+  /// is enabled. This excludes password and credit card information. When
+  /// IsGeneralAutofillEnabled is false, no suggestions appear, and no new information
+  /// is saved. When IsGeneralAutofillEnabled is true, information is saved, suggestions
+  /// appear and clicking on one will populate the form fields.
+  /// The default value is `TRUE`.
   [propget] HRESULT IsGeneralAutofillEnabled([out, retval] BOOL* value);
   /// Set the IsGeneralAutofillEnabled property.
   [propput] HRESULT IsGeneralAutofillEnabled([in] BOOL value);
@@ -412,10 +432,7 @@ namespace Microsoft.Web.WebView2.Core
         Boolean IsInPrivateModeEnabled { get; };
 
         String ProfilePath { get; };
-    }
 
-    runtimeclass CoreWebView2Profile2 : CoreWebView2Profile
-    {
         Boolean IsPasswordAutosaveEnabled { get; set; };
 
         Boolean IsGeneralAutofillEnabled { get; set; };
