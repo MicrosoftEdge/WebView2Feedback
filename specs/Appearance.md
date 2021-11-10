@@ -14,13 +14,13 @@ For reference, in the screenshot below, this API is meant to expose the Overall 
 ## C++
 
 ```cpp
-wil::com_ptr<ICoreWebView2Profile> m_controller;
+wil::com_ptr<ICoreWebView2Profile> m_profile;
 
 void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
 {
     wil::com_ptr<ICoreWebView2Profile> webViewProfile;
 
-    CHECK_FAILURE(m_controller->QueryInterface(IID_PPV_ARGS(&webViewProfile)));
+    CHECK_FAILURE(m_profile->QueryInterface(IID_PPV_ARGS(&webViewProfile)));
     if (webViewProfile)
     {
         CHECK_FAILURE(webViewProfile->put_Theme(value));
