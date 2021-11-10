@@ -139,10 +139,9 @@ ScenarioCookieManagement::ScenarioCookieManagement(ICoreWebView2Controller* cont
         wil::com_ptr<ICoreWebView2Profile> profile;
         CHECK_FAILURE(webview7->get_Profile(&profile));
         auto profile2 = profile.try_query<ICoreWebView2Profile2>;
-        if (profile2){
-        //! [CookieManagerProfile]
+        if (profile2)
+        {
             CHECK_FAILURE(profile2->get_CookieManager(&m_cookieManager));
-        //! [CookieManagerProfile]
         }
     }
     // ...
@@ -152,12 +151,10 @@ ScenarioCookieManagement::ScenarioCookieManagement(ICoreWebView2Controller* cont
 void ScenarioCookieManagement::AddOrUpdateCookie(const std::wstring& name, const std::wstring& value, const std::wstring& domain)
 {
     CHECK(m_cookieManager);
-    //! [AddOrUpdateCookie]
     wil::com_ptr<ICoreWebView2Cookie> cookie;
     CHECK_FAILURE(m_cookieManager->CreateCookie(
         name.c_str(), value.c_str(), domain.c_str(), L"/", &cookie));
     CHECK_FAILURE(m_cookieManager->AddOrUpdateCookie(cookie.get()));
-    //! [AddOrUpdateCookie]
 }
 
 // Use cookie manager to delete all cookies
