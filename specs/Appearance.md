@@ -14,16 +14,16 @@ For reference, in the screenshot below, this API is meant to expose the Overall 
 ## C++
 
 ```cpp
-wil::com_ptr<ICoreWebView2Controller> m_controller;
+wil::com_ptr<ICoreWebView2Profile> m_controller;
 
 void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
 {
-    wil::com_ptr<ICoreWebView2Controller4> webViewController4;
+    wil::com_ptr<ICoreWebView2Profile> webViewProfile;
 
-    CHECK_FAILURE(m_controller->QueryInterface(IID_PPV_ARGS(&webViewController4)));
-    if (webViewController4)
+    CHECK_FAILURE(m_controller->QueryInterface(IID_PPV_ARGS(&webViewProfile)));
+    if (webViewProfile)
     {
-        CHECK_FAILURE(webViewController4->put_Theme(value));
+        CHECK_FAILURE(webViewProfile->put_Theme(value));
     }
 }
 ```
@@ -32,14 +32,14 @@ void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
 
 ```c#
 
-private CoreWebView2Controller m_controller;
+private CoreWebView2Profile m_profile;
 
 void SetTheme(CoreWebView2ThemeKind value)
 {
     // Check for runtime support
     try
     {
-        m_controller.Theme = value;
+        m_profile.Theme = value;
     }
     catch (NotImplementedException exception)
     {
@@ -100,13 +100,13 @@ namespace Microsoft.Web.WebView2.Core
         Dark = 2,
     };
 
-    unsealed runtimeclass CoreWebView2Controller
+    runtimeclass CoreWebView2Profile
     {
         // ...
 
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Controller4")]
+        [interface_name("Microsoft.Web.WebView2.Core.CoreWebView2Profile")]
         {
-            // ICoreWebView2Controller4 members
+            // CoreWebView2Profile members
             CoreWebView2ThemeKind Theme { get; set; };
         }
     }
