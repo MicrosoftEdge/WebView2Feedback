@@ -1,7 +1,7 @@
 # Background
 The WebView2 team has been asked for an API to allow end developers to clear the browsing data that is stored in the User Data Folder. Developers want to be able to clear data between each of their customers, clear space, and to clear data on the fly. 
 
-Currently developers can delete the entire User Data Folder to clear this data. This has a few drawbacks: it removes the entire user data folder instead of specific parts which incurs performance costs later on, the WebView must be shutdown fully and then re-initialized, and deleting the entire User Data Folder is a complex process. 
+Currently developers can delete the entire User Data Folder to clear this data. This has a few drawbacks: it removes the entire User Data Folder instead of specific parts which incurs performance costs later on, the WebView must be shutdown fully and then re-initialized, and deleting the entire User Data Folder is a complex process. 
 We are creating an API that will allow developers to clear the browsing data programatically in which the developer can specify the data kind to clear. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
@@ -21,11 +21,11 @@ HRESULT ClearBrowsingDataInTimeRange(
       [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
 
 HRESULT ClearBrowsingDataAll(
-    [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
+      [in] ICoreWebView2ClearBrowsingDataCompletedHandler* handler);
 ```
 The first method takes `COREWEBVIEW2_BROWSING_DATA_KINDS` which corresponds to the data type(s) to clear as well as a handler which will indicate if the proper data has been cleared successfully. This method clears the data regardless of timestamp. 
 
-The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The time parameters correspond to how many seconds have passed since the UNIX epoch. Passing in a value of zero or less than zero (up to negative infinity) will clear the corresponding data for any time before the end time. Passing in a value of the current time or greater (up to positive infinity) will clear the corresponding data for any time after the start time. For example passing in negative infinity and positive infinity as the time parameters will clear the entirety of the corresponding data. The timestamp represents the time at which the data was created. 
+The second method takes the same parameters for the dataKinds and handler, as well as a start and end time in which the API should clear the corresponding data between. The time parameters correspond to how many seconds have passed since the UNIX epoch. Passing in a value of zero or less than zero (up to negative infinity) will clear the corresponding data for any time before the `endTime`. Passing in a value of the current time or greater (up to positive infinity) will clear the corresponding data for any time after the `startTime`. For example passing in negative infinity and positive infinity as the time parameters will clear the entirety of the corresponding data. The timestamp represents the time at which the data was created. 
 
 The third method only takes one parameter, the handler. This method clears the data regardless of timestamp and will clear all of the data included in the profile data kind listed below. 
 
