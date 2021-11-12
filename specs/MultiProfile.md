@@ -22,6 +22,12 @@ multiple WebView2s running with separate profiles under a single user data direc
 browser instance at runtime), which means separate cookies, user preference settings, and various
 data storage etc., to help you build a more wonderful experience for your application.
 
+In order to manage cookies through profile, we're adding a get_CookieManager interface into profile.
+Users can use this interface to get the cooke manager, which is shared by all webview2s associated with
+this profile. Currently the cookie manager is got from WebView2 (see ICoreWebView2_2.get_CookieManager),
+as a standalone profile object can not support cooke management APIs. We will make cookie management
+independent from WV2 in the future, when we find a way to support cookie management independently.
+
 Currently we already have **ICoreWebView2Settings4** interface to manage password-autosave and
 general-autofill, but it will work not immediately but after the next navigation, and it can only
 apply for current WebView2, which means if we start a new WebView2 using the same profile, all the
@@ -125,6 +131,46 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
     }
   
     // ...
+}
+```
+
+### Access and use cookie manager from profile
+
+```cpp
+wil::com_ptr<ICoreWebView2CookieManager> m_cookieManager;
+ScenarioCookieManagement::ScenarioCookieManagement(ICoreWebView2Controller* controller)
+{
+    wil::com_ptr<ICoreWebView2> coreWebView2;
+    CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
+    auto webview7 = coreWebView2.try_query<ICoreWebView2_7>();
+    if (webview7)
+    {
+        wil::com_ptr<ICoreWebView2Profile> profile;
+        CHECK_FAILURE(webview7->get_Profile(&profile));
+        auto profile2 = profile.try_query<ICoreWebView2Profile2>;
+        if (profile2)
+        {
+            CHECK_FAILURE(profile2->get_CookieManager(&m_cookieManager));
+        }
+    }
+    // ...
+}
+
+// Use cookie manager to add or update a cookie
+void ScenarioCookieManagement::AddOrUpdateCookie(const std::wstring& name, const std::wstring& value, const std::wstring& domain)
+{
+    CHECK(m_cookieManager);
+    wil::com_ptr<ICoreWebView2Cookie> cookie;
+    CHECK_FAILURE(m_cookieManager->CreateCookie(
+        name.c_str(), value.c_str(), domain.c_str(), L"/", &cookie));
+    CHECK_FAILURE(m_cookieManager->AddOrUpdateCookie(cookie.get()));
+}
+
+// Use cookie manager to delete all cookies
+void ScenarioCookieManagement::DeleteAllCookies()
+{
+    CHECK(m_cookieManager);
+    CHECK_FAILURE(m_cookieManager->DeleteAllCookies();
 }
 ```
 
@@ -232,6 +278,32 @@ public CreateWebView2Controller(IntPtr parentWindow)
 }
 ```
 
+### Access and use the cookie manager from profile. 
+
+```csharp
+CoreWebView2CookieManager _cookieManager;
+public ScenarioCookieManagement(CoreWebView2Controller controller){
+    // get the cookie manager from controller
+    _cookieManager = controller.CoreWebView2.Profile.CookieManager;
+    // ...
+}
+
+// Use cookie manager to add or update a cookie
+public AddOrUpdateCookie(string name, string value, string Domain)
+{
+    // create cookie with given parameters and default path
+    CoreWebView2Cookie cookie = cookieManager.CreateCookie(name, value, Domain, "/");
+    // add or update cookie
+    _cookieManager.AddOrUpdateCookie(cookie);
+}
+
+// Use cookie manager to delete all cookies
+void DeleteAllCookies()
+{
+    _cookieManager.DeleteAllCookies();
+}
+```
+
 ### Manage password-autosave and general-autofill settings in profile
 
 ```csharp
@@ -269,6 +341,7 @@ interface ICoreWebView2ControllerOptions;
 interface ICoreWebView2Environment5;
 interface ICoreWebView2_7;
 interface ICoreWebView2Profile;
+interface ICoreWebView2Profile2;
 
 /// This interface is used to manage profile options that created by 'CreateCoreWebView2ControllerOptions'.
 [uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
@@ -355,8 +428,15 @@ interface ICoreWebView2Profile : IUnknown {
   // TODO: All profile-wide operations/settings will be put below in the future.
 }
 
-[uuid(e2e8dce3-8213-4a32-b3b0-c80a8d154b61), object, pointer_default(unique)]
+[uuid(B93875C2-D6B0-434D-A2BE-93BC06CCC469), object, pointer_default(unique)]
 interface ICoreWebView2Profile2 : ICoreWebView2Profile {
+  /// Get the cookie manager object for the profile. All CoreWebView2s associated with this profile share this same cookie manager and will have the same CoreWebView2.CookieManager property value.
+  /// See ICoreWebView2CookieManager.
+  [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
+}
+
+[uuid(e2e8dce3-8213-4a32-b3b0-c80a8d154b61), object, pointer_default(unique)]
+interface ICoreWebView2Profile3 : ICoreWebView2Profile {
   /// IsPasswordAutosaveEnabled controls whether autosave for password
   /// information is enabled. The IsPasswordAutosaveEnabled property behaves
   /// independently of the IsGeneralAutofillEnabled property. When IsPasswordAutosaveEnabled is
@@ -432,6 +512,8 @@ namespace Microsoft.Web.WebView2.Core
         Boolean IsInPrivateModeEnabled { get; };
 
         String ProfilePath { get; };
+
+        CoreWebView2CookieManager CookieManager { get; };
 
         Boolean IsPasswordAutosaveEnabled { get; set; };
 
