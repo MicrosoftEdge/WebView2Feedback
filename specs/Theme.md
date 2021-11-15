@@ -26,10 +26,10 @@ void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
         wil::com_ptr<ICoreWebView2Profile> profile;
         CHECK_FAILURE(webView7->get_Profile(&profile));
 
-        auto profile2 = profile.try_query<ICoreWebView2Profile2>();
-        if (profile2)
+        auto profile3 = profile.try_query<ICoreWebView2Profile3>();
+        if (profile3)
         {
-            profile2->put_Theme(value);
+            profile3->put_Theme(value);
         }
     }
 }
@@ -61,7 +61,7 @@ void SetTheme(CoreWebView2ThemeKind value)
 ## C++
 ```cpp
 [uuid(5f817cce-5d36-4cd0-a1d5-aaaf95c8685f), object, pointer_default(unique)]
-interface ICoreWebView2Profile2 : ICoreWebView2Profile {
+interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   /// The Theme property sets the overall theme of the WebView2 instance.
   /// The input parameter is either COREWEBVIEW2_THEME_KIND_SYSTEM,
   /// COREWEBVIEW2_THEME_KIND_LIGHT, or COREWEBVIEW2_THEME_KIND_DARK.
@@ -113,7 +113,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
 
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile2")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile3")]
         {
             [doc_string("The Theme property sets the overall theme of the WebView2 instance. The input parameter is either CoreWebView2ThemeKind.System, CoreWebView2ThemeKind.Light, or CoreWebView2ThemeKind.Dark. Note that this API applies theme to WebView2 pages, dialogs, and menus by setting the media feature `prefers-color-scheme` for websites to respond to.")]
             CoreWebView2ThemeKind Theme { get; set };
