@@ -21,10 +21,10 @@ void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
     wil::com_ptr<ICoreWebView2_7> webView7;
     webView7 = m_webView.try_query<ICoreWebView2_7>();
 
-    if (ICoreWebView2_7)
+    if (webView7)
     {
       wil::com_ptr<ICoreWebView2Profile> profile;
-      CHECK_FAILURE(ICoreWebView2_7->get_Profile(&profile));
+      CHECK_FAILURE(webView7->get_Profile(&profile));
 
       auto profile2 = profile.try_query<ICoreWebView2Profile2>();
       if (profile2)
