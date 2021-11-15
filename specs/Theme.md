@@ -14,16 +14,23 @@ For reference, in the screenshot below, this API is meant to expose the Overall 
 ## C++
 
 ```cpp
-wil::com_ptr<ICoreWebView2Profile> m_profile;
+wil::com_ptr<ICoreWebView2> m_webView;
 
 void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
 {
-    wil::com_ptr<ICoreWebView2Profile> webViewProfile;
+    wil::com_ptr<ICoreWebView2_7> webView7;
+    webView7 = m_webView.try_query<ICoreWebView2_7>();
 
-    CHECK_FAILURE(m_profile->QueryInterface(IID_PPV_ARGS(&webViewProfile)));
-    if (webViewProfile)
+    if (ICoreWebView2_7)
     {
-        CHECK_FAILURE(webViewProfile->put_Theme(value));
+      wil::com_ptr<ICoreWebView2Profile> profile;
+      CHECK_FAILURE(ICoreWebView2_7->get_Profile(&profile));
+
+      auto profile2 = profile.try_query<ICoreWebView2Profile2>();
+      if (profile2)
+      {
+        profile2->put_Theme(value);
+      }
     }
 }
 ```
@@ -32,14 +39,14 @@ void ViewComponent::SetTheme(COREWEBVIEW2_THEME_KIND value)
 
 ```c#
 
-private CoreWebView2Profile m_profile;
+private CoreWebView2 m_webView;
 
 void SetTheme(CoreWebView2ThemeKind value)
 {
     // Check for runtime support
     try
     {
-        m_profile.Theme = value;
+        m_webView.Profile.Theme = value;
     }
     catch (NotImplementedException exception)
     {
@@ -54,15 +61,16 @@ void SetTheme(CoreWebView2ThemeKind value)
 ## C++
 ```cpp
 [uuid(5f817cce-5d36-4cd0-a1d5-aaaf95c8685f), object, pointer_default(unique)]
-interface ICoreWebView2Controller4 : ICoreWebView2Controller3 {
+interface ICoreWebView2Profile2 : ICoreWebView2Profile {
   /// The Theme property sets the overall theme of the WebView2 instance.
   /// The input parameter is either COREWEBVIEW2_THEME_KIND_SYSTEM,
   /// COREWEBVIEW2_THEME_KIND_LIGHT, or COREWEBVIEW2_THEME_KIND_DARK.
-  /// Note that this API applies theme to WebView2 pages, dialogs, menus,
-  /// and sets the media feature `prefers-color-scheme` for websites to respond to.
+  /// Note that this API applies theme to WebView2 pages, dialogs, and menus
+  /// by setting the media feature `prefers-color-scheme` for websites to
+  /// respond to.
   ///
-  /// \snippet ViewComponents.cpp SetAppearance
-  /// Returns the value of the `Appearance` property.
+  /// \snippet ViewComponent.cpp SetTheme
+  /// Returns the value of the `Theme` property.
   [propget] HRESULT Theme(
     [out, retval] COREWEBVIEW2_THEME_KIND* value);
 
@@ -100,14 +108,15 @@ namespace Microsoft.Web.WebView2.Core
         Dark = 2,
     };
 
+    [doc_string("Multiple profiles can be created under a single user data directory but with separated cookies, user preference settings, and various data storage etc..")]
     runtimeclass CoreWebView2Profile
     {
         // ...
 
-        [interface_name("Microsoft.Web.WebView2.Core.CoreWebView2Profile")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile2")]
         {
-            // CoreWebView2Profile members
-            CoreWebView2ThemeKind Theme { get; set; };
+            [doc_string("The Theme property sets the overall theme of the WebView2 instance.")]
+            CoreWebView2ThemeKind Theme { get; set };
         }
     }
 }
