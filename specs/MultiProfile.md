@@ -28,14 +28,17 @@ this profile. Currently the cookie manager is got from WebView2 (see ICoreWebVie
 as a standalone profile object can not support cooke management APIs. We will make cookie management
 independent from WV2 in the future, when we find a way to support cookie management independently.
 
-Currently we already have **ICoreWebView2Settings4** interface to manage password-autosave and
+Currently we already have **ICoreWebView2Settings** interface to manage password-autosave and
 general-autofill, but it will work not immediately but after the next navigation, and it can only
 apply for current WebView2, which means if we start a new WebView2 using the same profile, all the
 settings are default value and cannot be set from the profile. By adding password-autosave and
-general-autofill management interfaces in profile, we can manage the properties and general-autofill
-will work immediately if we set new value, and all WebView2s that created with the same profile
-can share the settings, which means if we change password-autosave or general-autofill property in
-one WebView2, the others with the same profile will also work.
+general-autofill management interfaces in profile, we can manage the properties and they will apply
+immediately if we set new value, and all WebView2s that created with the same profile can share
+the settings, which means if we change password-autosave or general-autofill property in one WebView2,
+the others with the same profile will also work. And these two property is linked with the same
+properties in ICoreWebView2Settings, so changing one will change the other. So for the WebView2s
+with the same profile, their **IsPasswordAutosaveEnabled** or **IsGeneralAutofillEnabled** property
+in **CoreWebView2Settings** and **CoreWebView2Profile** should always keep in sync.
 
 # Examples
 
@@ -448,6 +451,11 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile {
   /// suggestions are shown and clicking on one will populate the fields, new data
   /// is saved, and a Save/Update Password prompt is displayed.
   /// The default value is `FALSE`.
+  /// This property is linked with `CoreWebView2Settings.IsPasswordAutosaveEnabled`, so
+  /// changing one will change the other. And all WebView2s that created with the same
+  /// `CoreWebView2Profile` will share this property, so for the WebView2s with the same
+  /// profile, their `CoreWebView2Settings.IsPasswordAutosaveEnabled` and 
+  /// `CoreWebView2Profile.IsPasswordAutosaveEnabled` should always keep in sync.
   [propget] HRESULT IsPasswordAutosaveEnabled([out, retval] BOOL* value);
   /// Set the IsPasswordAutosaveEnabled property.
   [propput] HRESULT IsPasswordAutosaveEnabled([in] BOOL value);
@@ -459,6 +467,11 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile {
   /// is saved. When IsGeneralAutofillEnabled is true, information is saved, suggestions
   /// appear and clicking on one will populate the form fields.
   /// The default value is `TRUE`.
+  /// This property is linked with `CoreWebView2Settings.IsGeneralAutofillEnabled`, so
+  /// changing one will change the other. And all WebView2s that created with the same
+  /// `CoreWebView2Profile` will share this property, so for the WebView2s with the same
+  /// profile, their `CoreWebView2Settings.IsGeneralAutofillEnabled` and 
+  /// `CoreWebView2Profile.IsGeneralAutofillEnabled` should always keep in sync.
   [propget] HRESULT IsGeneralAutofillEnabled([out, retval] BOOL* value);
   /// Set the IsGeneralAutofillEnabled property.
   [propput] HRESULT IsGeneralAutofillEnabled([in] BOOL value);
