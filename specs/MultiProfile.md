@@ -23,9 +23,9 @@ browser instance at runtime), which means separate cookies, user preference sett
 data storage etc., to help you build a more wonderful experience for your application.
 
 In order to manage cookies through profile, we're adding a get_CookieManager interface into profile.
-Users can use this interface to get the cooke manager, which is shared by all webview2s associated with
+Users can use this interface to get the cookie manager, which is shared by all webview2s associated with
 this profile. Currently the cookie manager is got from WebView2 (see ICoreWebView2_2.get_CookieManager),
-as a standalone profile object can not support cooke management APIs. We will make cookie management
+as a standalone profile object can not support cookie management APIs. We will make cookie management
 independent from WV2 in the future, when we find a way to support cookie management independently.
 
 Currently we already have **ICoreWebView2Settings** interface to manage password-autosave and
