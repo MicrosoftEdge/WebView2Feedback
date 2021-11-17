@@ -91,8 +91,7 @@ void RegisterIFramePermissionRequestedHandler()
                                         CHECK_FAILURE(args->get_IsUserInitiated(&userInitiated));
                                         CHECK_FAILURE(args->get_Uri(&uri));
 
-                                        auto cachedKey = std::tuple<
-                                            std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>(
+                                        auto cachedKey = std::make_tuple(
                                             std::wstring(uri.get()), kind, userInitiated);
 
                                         auto cachedPermission =
@@ -137,12 +136,12 @@ void RegisterIFramePermissionRequestedHandler()
 
                                         if (response == IDYES)
                                         {
-                                            m_cachedPermissions[cachedKey] = true;
+                                            m_cachedPermissions.insert_or_assign(cachedKey, true);
                                             state = COREWEBVIEW2_PERMISSION_STATE_ALLOW;
                                         }
                                         else if (response == IDNO)
                                         {
-                                            m_cachedPermissions[cachedKey] = false;
+                                            m_cachedPermissions.insert_or_assign(cachedKey, false);
                                             state = COREWEBVIEW2_PERMISSION_STATE_DENY;
                                         }
 
@@ -245,12 +244,12 @@ void RegisterIFramePermissionRequestedHandler()
                         var cachedKey = Tuple.Create(permissionArgs.Uri,
                             permissionArgs.PermissionKind, permissionArgs.IsUserInitiated);
 
-                        if (m_cachedPermissions.ContainsKey(cachedKey))
+                        if (m_cachedPermissions.TryGetValue(cachedKey, out value))
                         {
-                            permissionArgs.State = m_cachedPermissions[cachedKey]
-                                                        ? CoreWebView2PermissionState.Allow
+                            permissionArgs.State = value 
+                                                        ? CoreWebView2PermissionState.Allow 
                                                         : CoreWebView2PermissionState.Deny;
-
+                            
                             PutHandled(permissionArgs);
                             return;
                         }
@@ -289,8 +288,8 @@ void RegisterIFramePermissionRequestedHandler()
         }
         catch (NotImplementedException exception)
         {
-            MessageBox.Show(this, "Frame Permission Requested Failed: " + exception.Message,
-                            "Frame Permission Requested");
+            // If the runtime support is not there we probably want this
+            // to be a no-op.
         }
     };
 }
@@ -324,19 +323,12 @@ void PutHandled(CoreWebView2PermissionEventArgs args)
     // and invoke it's handlers. However, If we set Handled to true on the
     // CoreWebView2Frame event handler, then we will not raise the
     // PermissionRequested event off the CoreWebView2.
-    try
-    {
-        // NotImplementedException could be thrown if underlying runtime did not
-        // implement Handled. However, we only run this code after checking if
-        // CoreWebView2Frame.PermissionRequested exists, and both exist together,
-        // so it would not be a problem.
-        permissionArgs.Handled = true;
-    }
-    catch(NotImplementedException exception)
-    {
-        MessageBox.Show(this, "Put Handled Failed: " + exception.Message,
-                        "Frame Permission Requested Handled");
-    }
+    // 
+    // NotImplementedException could be thrown if underlying runtime did not
+    // implement Handled. However, we only run this code after checking if
+    // CoreWebView2Frame.PermissionRequested exists, and both exist together,
+    // so it would not be a problem.
+    args.Handled = true;
 }
 ```
 
