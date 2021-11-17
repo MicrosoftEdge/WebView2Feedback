@@ -28,12 +28,12 @@ this profile. Currently the cookie manager is got from WebView2 (see ICoreWebVie
 as a standalone profile object can not support cookie management APIs. We will make cookie management
 independent from WV2 in the future, when we find a way to support cookie management independently.
 
-Currently we already have **ICoreWebView2Settings** interface to manage password-autosave and
+Currently, we already have **ICoreWebView2Settings** interface to manage password-autosave and
 general-autofill, but it will work not immediately but after the next navigation, and it can only
 apply for current WebView2, which means if we start a new WebView2 using the same profile, all the
-settings are default value and cannot be set from the profile. By adding password-autosave and
+settings are default values and cannot be set from the profile. By adding password-autosave and
 general-autofill management interfaces in profile, we can manage the properties and they will apply
-immediately if we set new value, and all WebView2s that created with the same profile can share
+immediately if we set a new value, and all WebView2s that created with the same profile can share
 the settings, which means if we change password-autosave or general-autofill property in one WebView2,
 the others with the same profile will also work. And these two property is linked with the same
 properties in ICoreWebView2Settings, so changing one will change the other. So for the WebView2s
