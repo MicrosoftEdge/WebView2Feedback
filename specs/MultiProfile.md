@@ -22,11 +22,12 @@ multiple WebView2s running with separate profiles under a single user data direc
 browser instance at runtime), which means separate cookies, user preference settings, and various
 data storage etc., to help you build a more wonderful experience for your application.
 
-In order to manage cookies through the profile, we're adding a get_CookieManager interface into the profile.
-Users can use this interface to get the cookie manager, which is shared by all WebView2s associated with
-this profile. Currently the cookie manager is got from WebView2 (see ICoreWebView2_2.get_CookieManager),
-because a standalone profile object can not support cookie management APIs. We will make cookie management
-independent from WV2 in the future, when we find a way to support cookie management independently.
+Providing the CookieManager from the profile is more logical, and it sets the groundwork for allowing
+an app to manage the cookies of a profile without having to create a WebView2 first. In order to
+manage cookies through the profile, we're adding a get_CookieManager interface into the profile.
+Users can use this interface to get the cookie manager, which is shared by all WebView2s associated
+with this profile. The cookie manager got from profile (CoreWebView2.Profile.CookieManager) is the
+same as that got from CoreWebView2 (CoreWebView2.CookieManager).
 
 Currently, we already have **ICoreWebView2Settings** interface to manage password-autosave and
 general-autofill, but it will work not immediately but after the next navigation, and it can only
