@@ -50,8 +50,8 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
   /// Sets the `DefaultDownloadPath` property. The value should be
   /// an absolute path. Returns `E_INVALIDARG` if the
   /// value is invalid, and the default download path is not changed. If the
-  /// directory does not exist, it will be created at the time of the next
-  /// download.
+  /// directory does not yet exist, it is created at the time of the next
+  /// download. The user can still change the path through the Save As dialog.
   [propput] HRESULT DefaultDownloadPath([in] LPCWSTR value);
 }
 ```
