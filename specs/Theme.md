@@ -2,13 +2,18 @@ Theme API
 ===
 
 # Background
-This API's main use is to set the overall theme for WebView2. The options are similar to Edge: match the system default theme, change to light theme, or change to dark theme.
-This API has 2 main changes relevant to the end users. First, it sets the theme for WebView2 UI like dialogs, prompts, context menu, etc. And second, this API sets the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) [media feature](https://developer.mozilla.org/en-US/docs/Web/CSS/Media_Queries/Using_media_queries#media_features). Websites typically media query for this setting in order to set CSS themes for light/dark.
+This API's main use is to set the overall theme for WebView2's which are associated with a profile. The options are similar to Edge: match the system default theme, change to light theme, or change to dark theme.
+This sets the theme for WebView2 UI like dialogs, prompts, and context menus by setting the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) [media feature](https://developer.mozilla.org/en-US/docs/Web/CSS/Media_Queries/Using_media_queries#media_features). Websites typically query for this setting in order to set CSS themes for light/dark.
 
 Please note this API will only set the overall appearance, but not theme as defined in the Edge browser.
 For reference, in the screenshot below, this API is meant to expose the Overall Appearance section as a WebView2 API.
 
 ![Edge Settings Appearance Page](/specs/images/EdgeSettingsAppearance.png)
+
+# Description
+We propose extending `CoreWebView2Profile` to include a `Theme` property. This property will apply
+to any WebView2's which are associated with this profile.
+
 # Examples
 
 ## C++
@@ -63,13 +68,13 @@ void SetTheme(CoreWebView2ThemeKind value)
 [uuid(5f817cce-5d36-4cd0-a1d5-aaaf95c8685f), object, pointer_default(unique)]
 interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   /// The Theme property sets the overall theme of the WebView2's associated
-  /// with this profile. This sets the theme for WebView2 UI like dialogs, 
-  /// prompts, context menus, and so on. Additionally, this sets the 
-  /// ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) 
+  /// with this profile. This sets the theme for WebView2 UI like dialogs,
+  /// prompts, context menus, and so on. Additionally, this sets the
+  /// ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme)
   /// CSS media feature.
   ///
   /// The default value for this is COREWEBVIEW2_THEME_KIND_SYSTEM, which will
-  /// follow whatever theme Windows is currently set to.
+  /// follow whatever theme the OS is currently set to.
   ///
   /// \snippet ViewComponent.cpp SetTheme
   /// Returns the value of the `Theme` property.
@@ -117,7 +122,7 @@ namespace Microsoft.Web.WebView2.Core
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile3")]
         {
-            [doc_string("The Theme property sets the overall theme of the WebView2's associated with this profile. This sets the theme for WebView2 UI like dialogs, prompts, context menus, and so on. Additionally, this sets the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) CSS media feature. The default value for this is COREWEBVIEW2_THEME_KIND_SYSTEM, which will follow whatever theme Windows is currently set to.")]
+            [doc_string("The Theme property sets the overall theme of the WebView2's associated with this profile. This sets the theme for WebView2 UI like dialogs, prompts, context menus, and so on. Additionally, this sets the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) CSS media feature. The default value for this is COREWEBVIEW2_THEME_KIND_SYSTEM, which will follow whatever theme the OS is currently set to.")]
             CoreWebView2ThemeKind Theme { get; set };
         }
     }
