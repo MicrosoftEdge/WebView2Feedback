@@ -8,7 +8,7 @@ This sets the theme for WebView2 UI like dialogs, prompts, and context menus by 
 Please note this API will only set the overall appearance, but not theme as defined in the Edge browser.
 For reference, in the screenshot below, this API is meant to expose the Overall Appearance section as a WebView2 API.
 
-![Edge Settings Appearance Page](/specs/images/EdgeSettingsAppearance.png)
+![Edge Settings Appearance Page](https://github.com/MicrosoftEdge/WebView2Feedback/blob/api-appearance/specs/images/EdgeSettingsAppearance.png)
 
 # Description
 We propose extending `CoreWebView2Profile` to include a `Theme` property. This property will apply
