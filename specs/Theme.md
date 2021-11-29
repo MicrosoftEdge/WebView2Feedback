@@ -122,7 +122,7 @@ namespace Microsoft.Web.WebView2.Core
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile3")]
         {
-            [doc_string("The Theme property sets the overall theme of the WebView2's associated with this profile. This sets the theme for WebView2 UI like dialogs, prompts, and context menus by setting the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) CSS media feature for websites to respond to. The default value for this is COREWEBVIEW2_THEME_KIND_SYSTEM, which will follow whatever theme the OS is currently set to.")]
+            [doc_string("The Theme property sets the overall theme of the WebView2's associated with this profile. This sets the theme for WebView2 UI like dialogs, prompts, and context menus by setting the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) CSS media feature for websites to respond to. The default value for this is CoreWebView2ThemeKind.System, which will follow whatever theme the OS is currently set to.")]
             CoreWebView2ThemeKind Theme { get; set };
         }
     }
