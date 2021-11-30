@@ -527,11 +527,17 @@ namespace Microsoft.Web.WebView2.Core
 
         String ProfilePath { get; };
 
-        CoreWebView2CookieManager CookieManager { get; };
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile2")]
+        {
+            CoreWebView2CookieManager CookieManager { get; };
+        }
 
-        Boolean IsPasswordAutosaveEnabled { get; set; };
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile3")]
+        {
+            Boolean IsPasswordAutosaveEnabled { get; set; };
 
-        Boolean IsGeneralAutofillEnabled { get; set; };
+            Boolean IsGeneralAutofillEnabled { get; set; };
+        }
     }
 }
 ```
