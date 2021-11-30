@@ -51,9 +51,11 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
   /// an absolute path to a folder that the user and application can write to.
   /// Returns `E_INVALIDARG` if the value is invalid, and the default download
   /// path is not changed. If the directory does not yet exist, it is created
-  /// at the time of the next download. The user can still change the path
-  /// through the Save As dialog. This value is persisted in the user data
-  /// folder across sessions.
+  /// at the time of the next download. If the host application does not have
+  /// permission to create the directory, then the user is prompted to provide
+  /// a new path through the Save As dialog. This value is persisted in the user
+  /// data folder across sessions and can be changed by the user through the
+  /// Save As dialog.
   [propput] HRESULT DefaultDownloadPath([in] LPCWSTR value);
 }
 ```
