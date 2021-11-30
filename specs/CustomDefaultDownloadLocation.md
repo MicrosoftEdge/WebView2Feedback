@@ -67,14 +67,14 @@ namespace Microsoft.Web.WebView2.Core
         // Boolean IsInPrivateModeEnabled { get; };
         // String ProfilePath { get; };
 
-    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile2")]
-    {
-        String DefaultDownloadPath { get; set; };
-    }
-
         // The following method already exists.
         // Windows.Foundation.IAsyncOperation<Boolean> ClearBrowsingDataAsync(
         //     UInt64 dataKinds, Double startTime, Double endTime);
+
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile2")]
+        {
+            String DefaultDownloadPath { get; set; };
+        }
     }
 }
 ```
