@@ -2,7 +2,7 @@ Preferred Color Scheme API
 ===
 
 # Background
-This API's main use is to set the preferred color scheme for WebView2's which are associated with a profile. The options are similar to Edge: match the system default color scheme, change to light color scheme, or change to dark color scheme. This sets the color scheme for WebView2 UI like dialogs, prompts, and context menus by setting the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) [media feature](https://developer.mozilla.org/en-US/docs/Web/CSS/Media_Queries/Using_media_queries#media_features). Websites typically query for this setting in order to set CSS themes for light/dark.
+This API's main use is to set the preferred color scheme for WebView2's which are associated with a profile. The options are similar to Edge: auto - which match the OS's default color scheme, change to light color scheme, or change to dark color scheme. This sets the color scheme for WebView2 UI like dialogs, prompts, and context menus by setting the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) [media feature](https://developer.mozilla.org/en-US/docs/Web/CSS/Media_Queries/Using_media_queries#media_features). Websites typically query for this setting in order to set CSS themes for light/dark.
 
 Please note this API will only set the overall appearance, but not theme as defined in the Edge browser.
 For reference, in the screenshot below, this API is meant to expose the Overall Appearance section as a WebView2 API.
