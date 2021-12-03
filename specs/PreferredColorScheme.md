@@ -20,7 +20,7 @@ to any WebView2's which are associated with this profile.
 ```cpp
 wil::com_ptr<ICoreWebView2> m_webView;
 
-void ViewComponent::SetPreferredColorScheme(COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND value)
+void ViewComponent::SetPreferredColorScheme(COREWEBVIEW2_PREFERRED_COLOR_SCHEME value)
 {
     wil::com_ptr<ICoreWebView2_7> webView7;
     webView7 = m_webView.try_query<ICoreWebView2_7>();
@@ -45,7 +45,7 @@ void ViewComponent::SetPreferredColorScheme(COREWEBVIEW2_PREFERRED_COLOR_SCHEME_
 
 private CoreWebView2 m_webView;
 
-void SetPreferredColorScheme(CoreWebView2PreferredColorSchemeKind value)
+void SetPreferredColorScheme(CoreWebView2PreferredColorScheme value)
 {
     m_webView.Profile.PreferredColorScheme = value;
 }
@@ -63,42 +63,42 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   /// ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme)
   /// CSS media feature for websites to respond to.
   ///
-  /// The default value for this is COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND_SYSTEM, which will
+  /// The default value for this is COREWEBVIEW2_PREFERRED_COLOR_SCHEME_AUTO, which will
   /// follow whatever color scheme the OS is currently set to.
   ///
   /// \snippet ViewComponent.cpp SetPreferredColorScheme
   /// Returns the value of the `PreferredColorScheme` property.
   [propget] HRESULT PreferredColorScheme(
-    [out, retval] COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND* value);
+    [out, retval] COREWEBVIEW2_PREFERRED_COLOR_SCHEME* value);
 
   /// Sets the `PreferredColorScheme` property.
   [propput] HRESULT PreferredColorScheme(
-    [in] COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND value);
+    [in] COREWEBVIEW2_PREFERRED_COLOR_SCHEME value);
 }
 
-/// An enum to represent the options for WebView2 Color Scheme: system, light, or dark.
+/// An enum to represent the options for WebView2 Color Scheme: auto, light, or dark.
 [v1_enum]
-typedef enum COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND {
-  /// System color scheme
-  COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND_SYSTEM,
+typedef enum COREWEBVIEW2_PREFERRED_COLOR_SCHEME {
+  /// Auto color scheme
+  COREWEBVIEW2_PREFERRED_COLOR_SCHEME_AUTO,
 
   /// Light color scheme
-  COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND_LIGHT,
+  COREWEBVIEW2_PREFERRED_COLOR_SCHEME_LIGHT,
 
   /// Dark color scheme
-  COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND_DARK
-} COREWEBVIEW2_PREFERRED_COLOR_SCHEME_KIND;
+  COREWEBVIEW2_PREFERRED_COLOR_SCHEME_DARK
+} COREWEBVIEW2_PREFERRED_COLOR_SCHEME;
 ```
 
 ### C#
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    [doc_string("An enum to represent the options for WebView2 Preferred Color Scheme: system, light, or dark.")]
-    enum CoreWebView2PreferredColorSchemeKind
+    [doc_string("An enum to represent the options for WebView2 Preferred Color Scheme: auto, light, or dark.")]
+    enum CoreWebView2PreferredColorScheme
     {
-        [doc_string("System color scheme.")]
-        System = 0,
+        [doc_string("Auto color scheme.")]
+        Auto = 0,
         [doc_string("Light color scheme.")]
         Light = 1,
         [doc_string("Dark color scheme.")]
@@ -112,8 +112,8 @@ namespace Microsoft.Web.WebView2.Core
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile3")]
         {
-            [doc_string("The PreferredColorScheme property sets the overall color scheme of the WebView2's associated with this profile. This sets the color scheme for WebView2 UI like dialogs, prompts, and context menus by setting the ['prefers-color-scheme'](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) CSS media feature for websites to respond to. The default value for this is CoreWebView2PreferredColorSchemeKind.System, which will follow whatever color scheme the OS is currently set to.")]
-            CoreWebView2PreferredColorSchemeKind PreferredColorScheme { get; set };
+            [doc_string("The PreferredColorScheme property sets the overall color scheme of the WebView2's associated with this profile. This sets the color scheme for WebView2 UI like dialogs, prompts, and context menus by setting the prefers-color-scheme CSS media feature for websites to respond to. The default value for this is CoreWebView2PreferredColorScheme.Auto, which will follow whatever color scheme the OS is currently set to.")]
+            CoreWebView2PreferredColorScheme PreferredColorScheme { get; set };
         }
     }
 }
