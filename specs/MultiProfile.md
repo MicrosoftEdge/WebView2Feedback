@@ -22,6 +22,13 @@ multiple WebView2s running with separate profiles under a single user data direc
 browser instance at runtime), which means separate cookies, user preference settings, and various
 data storage etc., to help you build a more wonderful experience for your application.
 
+Providing the CookieManager from the profile is more logical, and it sets the groundwork for allowing
+an app to manage the cookies of a profile without having to create a WebView2 first. In order to
+manage cookies through the profile, we're adding a get_CookieManager interface into the profile.
+Users can use this interface to get the cookie manager, which is shared by all WebView2s associated
+with this profile. The cookie manager got from profile (CoreWebView2.Profile.CookieManager) is the
+same as that got from CoreWebView2 (CoreWebView2.CookieManager).
+
 # Examples
 
 ## Win32 C++
@@ -118,6 +125,46 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(HRESULT result, ICore
     // ...
 }
 ```
+
+### Access and use cookie manager from profile
+
+```cpp
+wil::com_ptr<ICoreWebView2CookieManager> m_cookieManager;
+ScenarioCookieManagement::ScenarioCookieManagement(ICoreWebView2Controller* controller)
+{
+    wil::com_ptr<ICoreWebView2> coreWebView2;
+    CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
+    auto webview7 = coreWebView2.try_query<ICoreWebView2_7>();
+    if (webview7)
+    {
+        wil::com_ptr<ICoreWebView2Profile> profile;
+        CHECK_FAILURE(webview7->get_Profile(&profile));
+        auto profile2 = profile.try_query<ICoreWebView2Profile2>;
+        if (profile2)
+        {
+            CHECK_FAILURE(profile2->get_CookieManager(&m_cookieManager));
+        }
+    }
+    // ...
+}
+
+// Use cookie manager to add or update a cookie
+void ScenarioCookieManagement::AddOrUpdateCookie(const std::wstring& name, const std::wstring& value, const std::wstring& domain)
+{
+    CHECK(m_cookieManager);
+    wil::com_ptr<ICoreWebView2Cookie> cookie;
+    CHECK_FAILURE(m_cookieManager->CreateCookie(
+        name.c_str(), value.c_str(), domain.c_str(), L"/", &cookie));
+    CHECK_FAILURE(m_cookieManager->AddOrUpdateCookie(cookie.get()));
+}
+
+// Use cookie manager to delete all cookies
+void ScenarioCookieManagement::DeleteAllCookies()
+{
+    CHECK(m_cookieManager);
+    CHECK_FAILURE(m_cookieManager->DeleteAllCookies();
+}
+```
 ## .NET and WinRT
 
 ### Create WebView2 with a specific profile, then access the profile property of WebView2
@@ -153,6 +200,32 @@ public CreateWebView2Controller(IntPtr parentWindow)
 }
 ```
 
+### Access and use the cookie manager from profile. 
+
+```csharp
+CoreWebView2CookieManager _cookieManager;
+public ScenarioCookieManagement(CoreWebView2Controller controller){
+    // get the cookie manager from controller
+    _cookieManager = controller.CoreWebView2.Profile.CookieManager;
+    // ...
+}
+
+// Use cookie manager to add or update a cookie
+public AddOrUpdateCookie(string name, string value, string Domain)
+{
+    // create cookie with given parameters and default path
+    CoreWebView2Cookie cookie = cookieManager.CreateCookie(name, value, Domain, "/");
+    // add or update cookie
+    _cookieManager.AddOrUpdateCookie(cookie);
+}
+
+// Use cookie manager to delete all cookies
+void DeleteAllCookies()
+{
+    _cookieManager.DeleteAllCookies();
+}
+```
+
 # API Details
 
 ## Win32 C++
@@ -162,6 +235,7 @@ interface ICoreWebView2ControllerOptions;
 interface ICoreWebView2Environment5;
 interface ICoreWebView2_7;
 interface ICoreWebView2Profile;
+interface ICoreWebView2Profile2;
 
 /// This interface is used to manage profile options that created by 'CreateCoreWebView2ControllerOptions'.
 [uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
@@ -247,6 +321,13 @@ interface ICoreWebView2Profile : IUnknown {
 
   // TODO: All profile-wide operations/settings will be put below in the future.
 }
+
+[uuid(B93875C2-D6B0-434D-A2BE-93BC06CCC469), object, pointer_default(unique)]
+interface ICoreWebView2Profile2 : ICoreWebView2Profile {
+  /// Get the cookie manager object for the profile. All CoreWebView2s associated with this profile share this same cookie manager and will have the same CoreWebView2.CookieManager property value.
+  /// See ICoreWebView2CookieManager.
+  [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
+}
 ```
 
 ## .NET and WinRT
@@ -296,6 +377,8 @@ namespace Microsoft.Web.WebView2.Core
         Boolean IsInPrivateModeEnabled { get; };
 
         String ProfilePath { get; };
+
+        CoreWebView2CookieManager CookieManager { get; };
     }
 }
 ```
