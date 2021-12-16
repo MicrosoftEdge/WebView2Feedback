@@ -4,7 +4,7 @@ We are exposing an event that will fire when an attempt to launch a registered p
 
 # Description
 
-This event will fire before the registered protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a trustworthy origin a checkmark box will be displayed that will allow the user to always allow this registered protocol from this origin. 
+This event will fire before the registered protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a trustworthy origin a checkmark box will be displayed that will allow the user to always allow this registered protocol from this origin. The `NavigationStarting`, `NavigationCompleted, `SourceChanged`, `ContentLoading`, and `HistoryChanged` events will not fire when a request is made to launch a registered protocol. 
 
 There are two events associated with the registered protocol launch - one for the main frame, and one for non-main frame(s). In the case in which the launch request is made from a non-main frame, the frame will raise a `LaunchingRegisteredProtocol` event as well as `CoreWebView2.FrameLaunchingRegisteredProtocol` event. 
 # Examples
@@ -113,7 +113,32 @@ See [API Details](#api-details) section below for API reference.
 ## Win32 C++
     
 ```IDL
-/// This is the ICoreWebView2Frame3 interface.
+// This is the ICoreWebView2_11 interface.
+[uuid(cc39bea3-d6d8-471b-919f-da253e2fbf03), object, pointer_default(unique)] 
+interface ICoreWebView2_11 : IUnknown {
+  /// Add an event handler for the `RegisteredProtocol` event.
+  /// The RegisteredProtocol event fires when a launch request is made to a protocol
+  /// that is registered with the Windows OS. The host has the option to
+  /// handle this event by suppressing the popup dialog that gives the user
+  /// the option to allow the app launch as well as programatically cancel the
+  /// app launch. The host also is given the opportunity to revoke previous permissions 
+  /// given to this origin and protocol to be launched automatically.
+  /// The `NavigationStarting`, `NavigationCompleted, `SourceChanged`,
+  /// `ContentLoading`, and `HistoryChanged` events will not fire, regardless
+  /// of whether the `Cancel` or `Handled` property is set to `TRUE` or
+  /// `FALSE`. This behavior holds true for the frame navigation events as
+  /// well.
+  HRESULT add_LaunchingRegisteredProtocol(
+      [in] ICoreWebView2LaunchingRegisteredProtocolEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Remove an event handler previously added with
+  /// `add_LaunchingRegisteredProtocol`.
+  HRESULT remove_LaunchingRegisteredProtocol(
+      [in] EventRegistrationToken token);
+}
+
+// This is the ICoreWebView2Frame3 interface.
 [uuid(fe1d3718-fe8d-48ab-8594-9e3fff6755ac), object, pointer_default(unique)] 
 interface ICoreWebView2Frame3 : IUnknown {
   /// Add an event handler for the `FrameRegisteredProtocol` event.
@@ -124,7 +149,7 @@ interface ICoreWebView2Frame3 : IUnknown {
   /// All of the event handlers share a common `LaunchingRegisteredProtocolEventArgs` 
   /// object. Whichever event handler is last to change the 
   /// `LaunchingRegisteredProtocolEventArgs.Cancel` property will
-  /// decide if the frame launch registered protocol request will be cancelled. 
+  /// decide if the frame protocol request launch will be cancelled. 
   /// Whichever event handler is last to change the
   /// `LaunchingRegisteredProtocolEventArgs.Handled` property will decide if
   /// the dialog will be suppressed. Whichever event handler is last to change the 
@@ -167,8 +192,7 @@ interface ICoreWebView2LaunchingRegisteredProtocolEventArgs: IUnknown {
   [propget] HRESULT Uri([out, retval] LPWSTR* uri);
 
   /// The host may set this flag to cancel the protocol launch.  If set to
-  /// `TRUE`, the protocol will not be launched, but the
-  /// `NavigationCompleted` event will still fire.  If cancelled, the
+  /// `TRUE`, the protocol will not be launched. If cancelled, the
   /// dialog is not displayed regardless of the `Handled` property.
 
   [propget] HRESULT Cancel([out, retval] BOOL* cancel);
