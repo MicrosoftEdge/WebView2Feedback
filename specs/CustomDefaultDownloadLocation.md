@@ -48,15 +48,17 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
   /// system default download folder path for the user.
   [propget] HRESULT DefaultDownloadFolderPath([out, retval] LPWSTR* value);
 
-  /// Sets the `DefaultDownloadFolderPath` property. The value should be
-  /// an absolute path to a folder that the user and application can write to.
-  /// Returns `E_INVALIDARG` if the value is invalid, and the default download
-  /// folder path is not changed. Otherwise the path is changed immediately. If
-  /// the directory does not yet exist, it is created at the time of the next
-  /// download. If the host application does not have permission to create the
-  /// directory, then the user is prompted to provide a new path through the
-  /// Save As dialog. This value is persisted in the user data folder across
-  /// sessions and can be changed by the user through the Save As dialog.
+  /// Sets the `DefaultDownloadFolderPath` property. The default download folder
+  /// path is persisted in the user data folder across sessions. The value
+  /// should be an absolute path to a folder that the user and application can
+  /// write to. Returns `E_INVALIDARG` if the value is invalid, and the default
+  /// download folder path is not changed. Otherwise the path is changed
+  /// immediately. If the directory does not yet exist, it is created at the
+  /// time of the next download. If the host application does not have
+  /// permission to create the directory, then the user is prompted to provide a
+  /// new path through the Save As dialog. The user can override the default
+  /// download folder path for a given download by choosing a different path in
+  /// the Save As dialog.
   [propput] HRESULT DefaultDownloadFolderPath([in] LPCWSTR value);
 }
 ```
