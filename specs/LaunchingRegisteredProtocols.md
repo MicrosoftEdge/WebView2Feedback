@@ -4,7 +4,7 @@ We are exposing an event that will fire when an attempt to launch a registered p
 
 # Description
 
-This event will fire before the registered protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a trustworthy origin a checkmark box will be displayed that will allow the user to always allow this registered protocol from this origin. The `NavigationStarting`, `NavigationCompleted, `SourceChanged`, `ContentLoading`, and `HistoryChanged` events will not fire when a request is made to launch a registered protocol. 
+This event will fire before the registered protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a trustworthy origin a checkmark box will be displayed that will allow the user to always allow this registered protocol from this origin. The `NavigationStarting`, `NavigationCompleted`, `SourceChanged`, `ContentLoading`, and `HistoryChanged` events will not fire when a request is made to launch a registered protocol. 
 
 There are two events associated with the registered protocol launch - one for the main frame, and one for non-main frame(s). In the case in which the launch request is made from a non-main frame, the frame will raise a `LaunchingRegisteredProtocol` event as well as `CoreWebView2.FrameLaunchingRegisteredProtocol` event. 
 # Examples
@@ -120,9 +120,10 @@ interface ICoreWebView2_11 : IUnknown {
   /// The RegisteredProtocol event fires when a launch request is made to a protocol
   /// that is registered with the Windows OS. The host has the option to
   /// handle this event by suppressing the popup dialog that gives the user
-  /// the option to allow the app launch as well as programatically cancel the
-  /// app launch. The host also is given the opportunity to revoke previous permissions 
-  /// given to this origin and protocol to be launched automatically.
+  /// the option to allow the protocol launch. The host also has the option to
+  /// programatically cancel the protocol launch.
+  /// The host also is given the opportunity to revoke previous permissions 
+  /// given to this origin to launch the protocol automatically.
   /// The `NavigationStarting`, `NavigationCompleted, `SourceChanged`,
   /// `ContentLoading`, and `HistoryChanged` events will not fire, regardless
   /// of whether the `Cancel` or `Handled` property is set to `TRUE` or
