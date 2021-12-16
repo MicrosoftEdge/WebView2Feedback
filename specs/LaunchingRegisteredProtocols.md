@@ -1,12 +1,12 @@
 # Background
 
-We are exposing an event that will fire when an attempt to launch a registered protocol is made. This event will fire when this attempt is made and the host will be given the option to cancel the launch, handle the popup dialog to hide the dialog, as well as revoke permissions that have been previously given to the origin launching the protocol. 
+We are exposing an event that will fire when an attempt to launch a registered protocol is made. The host will be given the option to cancel the launch, handle the popup dialog to hide the dialog, as well as revoke permissions that have been previously given to the origin launching the protocol. 
 
 # Description
 
-This event will fire before the registered protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a trustworthy origin a checkmark box will be displayed that will allow the user to check to always allow this registered protocol from this origin. This event will allow the host to programatically cancel the event, suppress the popup dialog, and revoke permissions given in the past to always allow the protocol from the origin. 
+This event will fire before the registered protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a trustworthy origin a checkmark box will be displayed that will allow the user to always allow this registered protocol from this origin. 
 
-There are two events associated with the registered protocol launch - one for the main frame, and one for non-main frame(s). In this case in which the launch request is made from a non-main frame, the frame will raise a `LaunchingRegisteredProtocol` event as well as `CoreWebView2.FrameLaunchingRegisteredProtocol` event. 
+There are two events associated with the registered protocol launch - one for the main frame, and one for non-main frame(s). In the case in which the launch request is made from a non-main frame, the frame will raise a `LaunchingRegisteredProtocol` event as well as `CoreWebView2.FrameLaunchingRegisteredProtocol` event. 
 # Examples
 
 ## Win32 C++
@@ -30,7 +30,7 @@ CHECK_FAILURE(m_webView->add_LaunchingRegisteredProtocol(
                 {
                     CHECK_FAILURE(args->put_Handled(FALSE));
                     // Otherwise allow the popup dialog, and allow the user to decide
-                    // whether or not to allow the external app to launch.
+                    // whether or not to allow the protocol to launch.
                 }
             return S_OK;
         })
@@ -54,7 +54,7 @@ CHECK_FAILURE(frame->add_LaunchingRegisteredProtocol(
                 {
                     // Otherwise revoke permissions previously granted to this protocol 
                     // from this origin. This will trigger the dialog to appear to allow the user
-                    // to confirm the protocol launch.
+                    // to confirm or deny the protocol launch.
                     CHECK_FAILURE(args->put_RevokeProtocolPermissionsPerOrigin(TRUE));
                 }
                 return S_OK;
@@ -78,7 +78,7 @@ void WebView_LaunchingRegisteredProtocol(object target, CoreWebView2LaunchingReg
     else 
     {
         // Otherwise allow the popup dialog, and allow the user to decide 
-        // whether or not to allow the registered protocol to launch.
+        // whether or not to allow the protocol to launch.
         e.Handled = false;
     }
     webView.CoreWebView2.FrameCreated += (sender, args) =>
@@ -95,7 +95,7 @@ void WebView_LaunchingRegisteredProtocol(object target, CoreWebView2LaunchingReg
             {
                 // Otherwise revoke permissions previously granted to this protocol 
                 // from this origin. This will trigger the dialog to appear to allow the user
-                // to confirm the protocol launch.
+                // to confirm or deny the protocol launch.
                 e.RevokeProtocolPermissionsPerOrigin = true;
             }
         };
@@ -127,8 +127,7 @@ interface ICoreWebView2Frame3 : IUnknown {
   /// decide if the frame launch registered protocol request will be cancelled. 
   /// Whichever event handler is last to change the
   /// `LaunchingRegisteredProtocolEventArgs.Handled` property will decide if
-  /// the frame external protocol dialog will be suppressed. 
-  /// Whichever event handler is last to change the 
+  /// the dialog will be suppressed. Whichever event handler is last to change the 
   /// `LaunchingRegisteredProtocolEventArgs.RevokeProtocolPermissionsPerOrigin` 
   /// property will determine if the permissions for that origin per protocol
   /// will be revoked. 
@@ -163,14 +162,14 @@ interface ICoreWebView2FrameLaunchingRegisteredProtocolEventHandler: IUnknown {
 /// Event args for `LaunchingRegisteredProtocol` event.
 [uuid(fc43b557-9713-4a67-af8d-a76ef3a206e8), object, pointer_default(unique)] 
 interface ICoreWebView2LaunchingRegisteredProtocolEventArgs: IUnknown {
-  /// The uri of the requested app protocol.
+  /// The uri of the requested protocol.
 
   [propget] HRESULT Uri([out, retval] LPWSTR* uri);
 
-  /// The host may set this flag to cancel the external app launch.  If set to
-  /// `TRUE`, the external app will not be launched, but the
-  /// `NavigationCompleted` event will still fire.  If cancelled, the external
-  /// protocol dialog is not displayed regardless of the `Handled` property.
+  /// The host may set this flag to cancel the protocol launch.  If set to
+  /// `TRUE`, the protocol will not be launched, but the
+  /// `NavigationCompleted` event will still fire.  If cancelled, the
+  /// dialog is not displayed regardless of the `Handled` property.
 
   [propget] HRESULT Cancel([out, retval] BOOL* cancel);
 
@@ -178,11 +177,10 @@ interface ICoreWebView2LaunchingRegisteredProtocolEventArgs: IUnknown {
 
   [propput] HRESULT Cancel([in] BOOL cancel);
 
-  /// The host may set this flag to `TRUE` to hide the default external
-  /// protocol dialog for this navigation if it is a registered app protocol.
-  /// The external app protocol request will continue as normal if it is not
+  /// The host may set this flag to `TRUE` to hide the dialog.
+  /// The protocol request will continue as normal if it is not
   /// cancelled, although there will be no default UI shown. By default the
-  /// value is `FALSE` and the default external protocol dialog is shown.
+  /// value is `FALSE` and the default registered protocol dialog is shown.
 
   [propget] HRESULT Handled([out, retval] BOOL* handled);
 
