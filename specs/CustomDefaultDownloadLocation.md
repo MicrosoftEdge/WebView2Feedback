@@ -26,16 +26,15 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(
 }
 ```
 ```c#
-void SetDefaultDownloadPathCmdExecuted(object target,
-    ExecutedRoutedEventArgs e)
+void WebView_CoreWebView2InitializationCompleted(object sender,
+    CoreWebView2InitializationCompletedEventArgs e)
 {
-    var dialog = new TextInputDialog(
-        title: "Set Default Download Folder Path",
-        description: "Enter the new default download folder path.",
-        defaultInput: WebViewProfile.DefaultDownloadFolderPath);
-    if (dialog.ShowDialog() == true)
+    if (e.IsSuccess)
     {
-        WebViewProfile.DefaultDownloadFolderPath = dialog.Input.Text;
+        if (!string.IsNullOrEmpty(_downloadPath))
+        {
+            WebViewProfile.DefaultDownloadFolderPath = _downloadPath;
+        }
     }
 }
 ```
