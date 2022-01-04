@@ -9,7 +9,7 @@ The received DevToolsProtocol event messages also have sessionId field to indica
 See [DevToolsProtocol Target domain](https://chromedevtools.github.io/devtools-protocol/tot/Target/) for more details.
 
 However, the current WebView2 DevToolsProtocol APIs like [CallDevToolsProtocolMethod](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2#calldevtoolsprotocolmethod)
-and [DevToolsProtocolEventReceivedEvent](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2devtoolsprotocoleventreceivedeventargs)
+and [DevToolsProtocolEventReceived](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2devtoolsprotocoleventreceivedeventargs)
 doesn't support sessionId.
 
 To support interaction with different parts of the page, we are adding support for specifying sessionId for DevToolsProtocol method call API
