@@ -27,6 +27,13 @@ However, dedicated web workers are not returned from `'Target.getTargets'`, and 
 
 And shared worker is separate from any page or iframe target, and therefore will not be auto attached. You have to call `Target.attachToTarget` to attach to them. The shared workers can be enumerated with `Target.getTargets`. They are also discoverable, that is, you can call `Target.setDiscoverTargets` to receive `Target.targetCreated` event when a shared worker is created.
 
+To summarize, there are two ways of finding the targets and neither covers all 3 scenarios.
+
+|      | Web pages | Dedicated web workers | Shared workers |
+| --- | --- | --- | --- |
+| Target.getTargets, Target.setDiscoverTargets, Target.targetCreated, Target.attachToTarget | ✔ | | ✔ |
+| Target.setAutoAttach, Target.attachedToTarget | ✔ | ✔ |  |
+
 # Examples
 
 The example below illustrates how to collect messages logged by console.log calls by JavaScipt code from various parts of the web page, including dedicated web worker.
@@ -264,7 +271,7 @@ interface ICoreWebView2_10 : IUnknown {
   /// For more information about available methods, navigate to
   /// \[DevTools Protocol Viewer\]\[GithubChromedevtoolsDevtoolsProtocolTot\]
   /// The `sessionId` parameter is the sessionId for an attached target.
-  /// nullptr or empty string is treated as the session for the default target.
+  /// nullptr or empty string is treated as the session for the default target for the top page.
   /// The `methodName` parameter is the full name of the method in the
   /// `{domain}.{method}` format.  The `parametersAsJson` parameter is a JSON
   /// formatted string containing the parameters for the corresponding method.
@@ -285,7 +292,7 @@ interface ICoreWebView2_10 : IUnknown {
 interface ICoreWebView2DevToolsProtocolEventReceivedEventArgs2 : IUnknown {
 
   /// The sessionId of the target where the event originates from.
-  /// Empty string is returned as sessionId if the event comes from the default session.
+  /// Empty string is returned as sessionId if the event comes from the default session for the top page.
   /// \snippet ScriptComponent.cpp DevToolsProtocolEventReceivedSessionId
   [propget] HRESULT SessionId([out, retval] LPWSTR* sessionId);
 }
@@ -299,8 +306,12 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
         
-        // This is an overload for: public async Task<string> CallDevToolsProtocolMethodAsync(string methodName, string parametersAsJson);
-        public async Task<string> CallDevToolsProtocolMethodAsync(string sessionId, string methodName, string parametersAsJson);
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_10")]
+        {
+            // ICoreWebView2_10 members
+            // This is an overload for: public async Task<string> CallDevToolsProtocolMethodAsync(string methodName, string parametersAsJson);
+            public async Task<string> CallDevToolsProtocolMethodAsync(string sessionId, string methodName, string parametersAsJson);
+        }
     }
     
     runtimeclass CoreWebView2DevToolsProtocolEventReceivedEventArgs
