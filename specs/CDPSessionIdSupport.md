@@ -58,7 +58,7 @@ void MyApp::HandleDevToolsProtocalPTargets()
                 CHECK_FAILURE(args->get_ParameterObjectAsJson(&parameterObjectAsJson));
                 std::wstring eventSource;
                 std::wstring eventDetails = parameterObjectAsJson.get();
-                wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceivedEventArgs_2> args2;
+                wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceivedEventArgs2> args2;
                 if (SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&args2))))
                 {
                     wil::unique_cotaskmem_string sessionId;
