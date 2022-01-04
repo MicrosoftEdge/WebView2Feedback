@@ -282,7 +282,7 @@ interface ICoreWebView2_10 : IUnknown {
       [in] ICoreWebView2CallDevToolsProtocolMethodCompletedHandler* handler);
 }
 
-interface ICoreWebView2DevToolsProtocolEventReceivedEventArgs_2 : IUnknown {
+interface ICoreWebView2DevToolsProtocolEventReceivedEventArgs2 : IUnknown {
 
   /// The sessionId of the target where the event originates from.
   /// Empty string is returned as sessionId if the event comes from the default session.
