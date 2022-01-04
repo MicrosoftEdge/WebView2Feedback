@@ -307,7 +307,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
 
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2DevToolsProtocolEventReceivedEventArgs_2")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2DevToolsProtocolEventReceivedEventArgs2")]
         {
             String SessionId { get; };
         }
