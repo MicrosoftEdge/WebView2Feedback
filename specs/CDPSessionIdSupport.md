@@ -25,7 +25,7 @@ There is also some nuance for DevToolsProtocol's target management. If you are i
 
 However, dedicated web workers are not returned from `'Target.getTargets'`, and you have to call DevToolsProtocol method `Target.setAutoAttach` to be able to attach to them.
 
-Shared worker is separate from any page or iframe target, and therefore will not be auto attached. You have to call `Target.attachToTarget` to attach to them. The shared workers are enumerated with 'Target.getTargets'. They are also discoverable, that is, you can call `Target.setDiscoverTargets` to receive `Target.targetCreated` event for them.
+And shared worker is separate from any page or iframe target, and therefore will not be auto attached. You have to call `Target.attachToTarget` to attach to them. The shared workers can be enumerated with `Target.getTargets`. They are also discoverable, that is, you can call `Target.setDiscoverTargets` to receive `Target.targetCreated` event when a shared worker is created.
 
 # Examples
 
@@ -44,6 +44,7 @@ void MyApp::HandleDevToolsProtocalPTargets()
     // GetJSONStringField is a helper function that can retrieve a string field from a json message.
   
     wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceiver> receiver;
+    // Listen to Runtime.consoleAPICalled event which is triggered when console.log is called by script code.
     CHECK_FAILURE(
         m_webView->GetDevToolsProtocolEventReceiver(L"Runtime.consoleAPICalled", &receiver));
     CHECK_FAILURE(receiver->add_DevToolsProtocolEventReceived(
@@ -52,7 +53,7 @@ void MyApp::HandleDevToolsProtocalPTargets()
                 ICoreWebView2* sender,
                 ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
             {
-                // Get related target and details for the console.log
+                // Get console.log message details and which target it comes from
                 wil::unique_cotaskmem_string parameterObjectAsJson;
                 CHECK_FAILURE(args->get_ParameterObjectAsJson(&parameterObjectAsJson));
                 std::wstring eventSource;
@@ -175,7 +176,7 @@ void MyApp::HandleDevToolsProtocalPTargets()
 
 private void CoreWebView2_ConsoleAPICalled(CoreWebView2 sender, CoreWebView2DevToolsProtocolEventReceivedEventArgs args)
 {
-   // Retrieve target info and details for the console.log.
+   // Figure out which target the console.log comes from
    string eventSource;
    string sessionId = args.SessionId;
    if (sessionId.Length > 0)
