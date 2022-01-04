@@ -21,7 +21,7 @@ To use the sessionId support, you must attach to targets with with `flatten` set
 
 You can listen to `Target.attachedToTarget` and `Target.detachedFromTarget` events to manage the sessionId for targets, and listen to `Target.targetInfoChanged` event to update target info like url of a target.
 
-There is also some nuance for DevToolsProtocol's target management. If you are interested in only top page and iframes from different origins on the page, it will be simple and straight forward. All related methods and events like 'Target.getTargets', `Target.attachToTarget`, and `Target.targetCreated` event work as expected.
+There is also some nuance for DevToolsProtocol's target management. If you are interested in only top page and iframes from different origins on the page, it will be simple and straight forward. All related methods and events like `Target.getTargets`, `Target.attachToTarget`, and `Target.targetCreated` event work as expected.
 
 However, dedicated web workers are not returned from `'Target.getTargets'`, and you have to call DevToolsProtocol method `Target.setAutoAttach` to be able to attach to them.
 
