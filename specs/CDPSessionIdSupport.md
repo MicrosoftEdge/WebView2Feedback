@@ -166,9 +166,9 @@ void MyApp::HandleDevToolsProtocalPTargets()
             })
             .Get(),
         &m_targetInfoChangedToken));
-    // Enable Runtime events to receive Runtime.consoleAPICalled events, which is fired when console.log is called.
+    // Enable Runtime events for the default target of top page to receive Runtime.consoleAPICalled events, which is fired when console.log is called.
     m_webView->CallDevToolsProtocolMethod(L"Runtime.enable", L"{}", nullptr);
-    // Auto attach to iframe and dedicated worker targets created from this target.
+    // Auto attach to iframe and dedicated worker targets created from the default target of top page.
     m_webView->CallDevToolsProtocolMethod(
         L"Target.setAutoAttach",
         LR"({"autoAttach":true,"waitForDebuggerOnStart":false,"flatten":true})", nullptr);
@@ -206,10 +206,11 @@ private void CoreWebView2_AttachedToTarget(CoreWebView2 sender, CoreWebView2DevT
   string url = GetJSONStringField(jsonMessage, L"url");
   m_devToolsTargetDescriptionMap[targetId] = type + L"," + url;
   // Auto attach to targets further created from this target.
-  _ = m_webview.CallDevToolsProtocolMethodAsync(sessionId, "Target.setAutoAttach",
-        @"{""autoAttach"":true,""waitForDebuggerOnStart"":false,""flatten"":true}");
+  _ = m_webview.CallDevToolsProtocolMethodAsync("Target.setAutoAttach",
+        @"{""autoAttach"":true,""waitForDebuggerOnStart"":false,""flatten"":true}",
+        sessionId);
   // Enable Runtime events to receive Runtime.consoleAPICalled from the target, which is triggered by console.log calls.
-  m_webview.CallDevToolsProtocolMethodAsync(sessionId, "Runtime.enable", "{}");
+  m_webview.CallDevToolsProtocolMethodAsync("Runtime.enable", "{}", sessionId);
 }
 
 private void CoreWebView2_DetachedFromTarget(CoreWebView2 sender, CoreWebView2DevToolsProtocolEventReceivedEventArgs args)
@@ -243,9 +244,9 @@ private void CoreWebView2_TargetInfoChanged(CoreWebView2 sender, CoreWebView2Dev
     m_webview.GetDevToolsProtocolEventReceiver("Target.attachedToTarget").DevToolsProtocolEventReceived += CoreWebView2_AttachedToTarget;
     m_webview.GetDevToolsProtocolEventReceiver("Target.detachedFromTarget").DevToolsProtocolEventReceived += CoreWebView2_DetachedFromTarget;
     m_webview.GetDevToolsProtocolEventReceiver("Target.targetInfoChanged").DevToolsProtocolEventReceived += CoreWebView2_TargetInfoChanged;
-    // Enable Runtime events to receive Runtime.consoleAPICalled events, which is fired when console.log is called.
+    // Enable Runtime events for the default target of top page to receive Runtime.consoleAPICalled events, which is fired when console.log is called.
     _ = m_webview.CallDevToolsProtocolMethodAsync("Runtime.enable", "{}");
-    // Auto attach to iframe and dedicated worker targets created from this target.
+    // Auto attach to iframe and dedicated worker targets created from the default target of top page.
     _ = m_webview.CallDevToolsProtocolMethodAsync("Target.setAutoAttach",
         @"{""autoAttach"":true,""waitForDebuggerOnStart"":false,""flatten"":true}");
   }
@@ -310,7 +311,7 @@ namespace Microsoft.Web.WebView2.Core
         {
             // ICoreWebView2_10 members
             // This is an overload for: public async Task<string> CallDevToolsProtocolMethodAsync(string methodName, string parametersAsJson);
-            public async Task<string> CallDevToolsProtocolMethodAsync(string sessionId, string methodName, string parametersAsJson);
+            public async Task<string> CallDevToolsProtocolMethodAsync(string methodName, string parametersAsJson, string sessionId);
         }
     }
     
