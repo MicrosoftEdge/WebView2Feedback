@@ -101,7 +101,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
 }
 [v1_enum]
 typedef enum COREWEBVIEW2_FAVICON_IMAGE_FORMAT {
-    /// Indicates that the function should return the favicon in PNG format
+    /// Indicates that CoreWebView2.GetFaviconAsync should return the favicon in PNG format.
     COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG,
 
     /// Indicates that CoreWebView2.GetFaviconAsync should return the favicon in JPG format.
