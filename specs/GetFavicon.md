@@ -111,19 +111,12 @@ typedef enum COREWEBVIEW2_FAVICON_IMAGE_FORMAT {
 
 ## .Net/ WinRT
 ```c#
-namespace Microsoft.Web.WebView2.Core {
+[interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2")]
+{
+    String FaviconUri { get; };
 
-    enum CoreWebView2FaviconImageFormat
-    {
-        Png = 0,
-        Jpeg = 1,
-    };
+    event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> FaviconChanged;
 
-/// Interface for the Favicon uri changed event handler
-    runtimeclass CoreWebView2 {
-        Windows.Foundation.IAsyncAction GetFaviconAsync(CoreWebView2FaviconImageFormat imageFormat, Windows.Storage.Streams.IRandomAccessStream imageStream);
-        event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> FaviconChanged;
-        string FaviconUri {get;};
-    }
+    Windows.Foundation.IAsyncAction GetFaviconAsync(CoreWebView2FaviconImageFormat format, Windows.Storage.Streams.IRandomAccessStream imageStream);
 }
 ```
