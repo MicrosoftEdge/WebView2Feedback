@@ -78,7 +78,7 @@ interface ICoreWebView2GetFaviconCompletedHandler : IUnknown {
 [uuid(DC838C64-F64B-4DC7-98EC-0992108E2157), object, pointer_default(unique)]
 interface ICoreWebView2_10 : ICoreWebView2_9 {
   /// Add an event handler for the `FaviconChanged` event.
-  /// `FaviconChanged` runs when the WebView favicon changes
+  /// `FaviconChanged` is raised when the favicon of the top-level document of the WebView2 changes.
   HRESULT add_FaviconChanged(
         [in] ICoreWebView2FaviconChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
