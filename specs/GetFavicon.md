@@ -104,7 +104,7 @@ typedef enum COREWEBVIEW2_FAVICON_IMAGE_FORMAT {
     /// Indicates that the function should return the favicon in PNG format
     COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG,
 
-    /// Indicates that the function should return the favicon in JPG format
+    /// Indicates that CoreWebView2.GetFaviconAsync should return the favicon in JPG format.
     COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_JPEG,
 }
 ```
