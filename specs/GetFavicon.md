@@ -41,7 +41,7 @@ as well as be notified when the favicon changes.
 ```
 ## .NET / WinRT Registering a listener for favicon changes
 ```c#
-webView.CoreWebView2.FaviconUriChanged += (CoreWebView2 sender, Object arg) =>
+webView.CoreWebView2.FaviconChanged += (CoreWebView2 sender, Object arg) =>
 {
     System.IO.Stream stream = new System.IO.MemoryStream();
     await webView.CoreWebView2.GetFaviconAsync(
@@ -76,7 +76,7 @@ interface ICoreWebView2GetFaviconCompletedHandler : IUnknown {
 }
 
 [uuid(DC838C64-F64B-4DC7-98EC-0992108E2157), object, pointer_default(unique)]
-interface ICoreWebView2_5 : ICoreWebView2_4 {
+interface ICoreWebView2_10 : ICoreWebView2_9 {
   /// Add an event handler for the `FaviconChanged` event.
   /// `FaviconChanged` runs when the WebView favicon changes
   HRESULT add_FaviconChanged(
@@ -113,7 +113,7 @@ typedef enum COREWEBVIEW2_FAVICON_IMAGE_FORMAT {
 ```c#
 namespace Microsoft.Web.WebView2.Core {
 
-     enum CoreWebView2FaviconImageFormat
+    enum CoreWebView2FaviconImageFormat
     {
         Png = 0,
         Jpeg = 1,
