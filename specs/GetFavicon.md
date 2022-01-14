@@ -70,7 +70,7 @@ interface ICoreWebView2FaviconChangedEventHandler : IUnknown {
 
 [uuid(93ACC5AD-DC22-419E-9A3F-75D96A1538E4), object, pointer_default(unique)]
 interface ICoreWebView2GetFaviconCompletedHandler : IUnknown {
-  /// Called to provide the implementer with the event args for the
+  /// Called to provide the implementer with the completion information of CoreWebView2.GetFaviconAsync.
   /// corresponding event.
   HRESULT Invoke([in] HRESULT error_code);
 }
