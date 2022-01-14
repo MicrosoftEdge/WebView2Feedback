@@ -83,7 +83,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
         [in] ICoreWebView2FaviconChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
 
-  /// Removing the event handler for `FaviconChanged` event
+  /// Remove an event handler from the `FaviconChanged` event.
   HRESULT remove_FaviconChanged(
       [in] EventRegistrationToken token);
 
