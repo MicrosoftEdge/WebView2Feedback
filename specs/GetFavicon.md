@@ -10,9 +10,9 @@ as well as be notified when the favicon changes.
 # Examples
 ## Win32 C++ Registering a listener for favicon changes
 ```cpp
-    CHECK_FAILURE(m_webViewStaging4->add_FaviconChanged(
-        Callback<ICoreWebView2StagingFaviconChangedEventHandler>(
-            [this](ICoreWebView2Staging4* sender, IUnknown* args) -> HRESULT {
+    CHECK_FAILURE(m_webView->add_FaviconChanged(
+        Callback<ICoreWebView2FaviconChangedEventHandler>(
+            [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
                 
                 wil::unique_cotaskmem_string url;
                 CHECK_FAILURE(sender->get_FaviconUri(&url));
@@ -22,7 +22,7 @@ as well as be notified when the favicon changes.
                     COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG, 
                     pStream,
                     Callback<
-                        ICoreWebView2StagingGetFaviconCompletedHandler>(
+                        ICoreWebView2GetFaviconCompletedHandler>(
                         [&pStream, this](HRESULT code) -> HRESULT {
                                     Gdiplus::Bitmap* pBitmap = new Gdiplus::Bitmap(pStream);
                                     HICON icon;
@@ -111,12 +111,24 @@ typedef enum COREWEBVIEW2_FAVICON_IMAGE_FORMAT {
 
 ## .Net/ WinRT
 ```c#
-[interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2")]
+namespace Microsoft.Web.WebView2.Core
 {
-    String FaviconUri { get; };
+    enum CoreWebView2FaviconImageFormat
+    {
+        Png = 0,
+        Jpeg = 1,
+    };
 
-    event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> FaviconChanged;
+    runtimeclass CoreWebView2
+    {
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_10")]
+        {
+            String FaviconUri { get; };
 
-    Windows.Foundation.IAsyncAction GetFaviconAsync(CoreWebView2FaviconImageFormat format, Windows.Storage.Streams.IRandomAccessStream imageStream);
+            event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> FaviconChanged;
+
+            Windows.Foundation.IAsyncAction GetFaviconAsync(CoreWebView2FaviconImageFormat format, Windows.Storage.Streams.IRandomAccessStream imageStream);
+        }
+    }
 }
 ```
