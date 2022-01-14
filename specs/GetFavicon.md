@@ -95,7 +95,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
  );
 
   /// Used to access the current value of the favicon's URI.
-  /// If a page has no favicon then this returns a nullptr
+  /// If a page has no favicon then this returns a nullptr.
   [propget] HRESULT FaviconUri([out, retval] LPWSTR* value);
 
 }
