@@ -204,7 +204,7 @@ private void CoreWebView2_AttachedToTarget(CoreWebView2 sender, CoreWebView2DevT
   m_devToolsSessionMap[sessionId] = targetId;
   string type = GetJSONStringField(jsonMessage, L"type");
   string url = GetJSONStringField(jsonMessage, L"url");
-  m_devToolsTargetDescriptionMap[targetId] = type + L"," + url;
+  m_devToolsTargetDescriptionMap[targetId] = $"{type",{url}";
   // Auto attach to targets further created from this target.
   _ = m_webview.CallDevToolsProtocolMethodAsync("Target.setAutoAttach",
         @"{""autoAttach"":true,""waitForDebuggerOnStart"":false,""flatten"":true}",
