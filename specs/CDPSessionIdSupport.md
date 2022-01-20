@@ -41,7 +41,7 @@ The example below illustrates how to collect messages logged by console.log call
 ## Win32 C++
 ```cpp
 
-void MyApp::HandleDevToolsProtocalPTargets()
+void MyApp::AttachConsoleLogHandlers()
 {
     // The sessions and targets descriptions are tracked by 2 maps:
     // SessionId to TargetId map:
