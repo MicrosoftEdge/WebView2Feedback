@@ -238,7 +238,7 @@ private void CoreWebView2_TargetInfoChanged(CoreWebView2 sender, CoreWebView2Dev
     m_devToolsTargetDescriptionMap[targetId] = type + L"," + url;
   }
 }
-  private void HandleDevToolsProtocalPTargets()
+  private void AddConsoleLogHandlers()
   {
     m_webview.GetDevToolsProtocolEventReceiver("Runtime.consoleAPICalled").DevToolsProtocolEventReceived += CoreWebView2_ConsoleAPICalled;
     m_webview.GetDevToolsProtocolEventReceiver("Target.attachedToTarget").DevToolsProtocolEventReceived += CoreWebView2_AttachedToTarget;
