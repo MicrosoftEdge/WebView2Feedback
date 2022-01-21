@@ -306,7 +306,6 @@ interface ICoreWebView2DevToolsProtocolEventReceivedEventArgs2 : IUnknown {
 
   /// The sessionId of the target where the event originates from.
   /// Empty string is returned as sessionId if the event comes from the default session for the top page.
-  /// \snippet ScriptComponent.cpp DevToolsProtocolEventReceivedSessionId
   [propget] HRESULT SessionId([out, retval] LPWSTR* sessionId);
 }
 ```
