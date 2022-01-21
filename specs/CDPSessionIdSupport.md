@@ -12,7 +12,7 @@ The DevToolsProtocol event messages also have sessionId field to indicate which 
 
 However, the current WebView2 DevToolsProtocol APIs like [CallDevToolsProtocolMethod](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2#calldevtoolsprotocolmethod)
 and [DevToolsProtocolEventReceived](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2devtoolsprotocoleventreceivedeventargs)
-doesn't support sessionId.
+don't support sessionId.
 
 To support interaction with different parts of the page, we allow apps to specify a sessionId when calling DevToolsProtocol methods, as well as passing a sessionId to DevToolsProtocol event handlers, with empty string sessionId representing the default target of the top page.
 
