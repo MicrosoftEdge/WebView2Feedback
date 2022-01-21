@@ -4,22 +4,23 @@ sessionId support for DevToolsProtocol method call and event
 # Background
 A web page can have multiple DevToolsProtocol targets. Besides the default target for the top page, there are separate targets for iframes from different origin and web workers.
 
-The underlying DevToolsProtocol supports interaction with other targets by attaching to them and then using sessionId of the attachment in DevToolsProtocol method call message.
-The received DevToolsProtocol event messages also have sessionId field to indicate which target the event comes from.
+The underlying DevToolsProtocol supports interaction with other targets by calling the `Target.setAutoAttach` method or the `Target.attachToTarget` method with an explicit targetId which returns a sessionId. The sessionId is also part of `Target.attachedToTarget` event message. Regardless of how the sessionId is obtained, it can be used
+in subsequent DevToolsProtocol methods to indicate which session (and therefore which target) the method applies to.
 See [DevToolsProtocol Target domain](https://chromedevtools.github.io/devtools-protocol/tot/Target/) for more details.
+
+The DevToolsProtocol event messages also have sessionId field to indicate which target the event comes from.
 
 However, the current WebView2 DevToolsProtocol APIs like [CallDevToolsProtocolMethod](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2#calldevtoolsprotocolmethod)
 and [DevToolsProtocolEventReceived](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2devtoolsprotocoleventreceivedeventargs)
 doesn't support sessionId.
 
-To support interaction with different parts of the page, we are adding support for specifying sessionId for DevToolsProtocol method call API
-and retrieving sessionId for received DevToolsProtocol events.
-  
+To support interaction with different parts of the page, we allow apps to specify a sessionId when calling DevToolsProtocol methods, as well as passing a sessionId to DevToolsProtocol event handlers, with empty string sessionId representing the default target of the top page.
+
 # Conceptual pages (How To)
 
-To use the sessionId support, you must attach to targets with with `flatten` set as `true` when calling `Target.attachToTarget` or `Target.setAutoAttach`.
+To use the sessionId support, you must attach to targets with with `flatten` set as `true` when calling `Target.attachToTarget` or `Target.setAutoAttach`. Setting `flatten` as `false` is not supported. If attaching to a target with `flatten` set as `false`, the complete handler will never be invoked when calling DevToolsProtocol methods, and no events will be received from that session.
 
-You can listen to `Target.attachedToTarget` and `Target.detachedFromTarget` events to manage the sessionId for targets, and listen to `Target.targetInfoChanged` event to update target info like url of a target.
+You can listen to `Target.attachedToTarget` and `Target.detachedFromTarget` events to manage the sessionId for targets, and listen to `Target.targetInfoChanged` event to update target info like url of a target. To filter to specific frames or workers, you could use type, url and title of the target info.
 
 There is also some nuance for DevToolsProtocol's target management. If you are interested in only top page and iframes from different origins on the page, it will be simple and straight forward. All related methods and events like `Target.getTargets`, `Target.attachToTarget`, and `Target.targetCreated` event work as expected.
 
@@ -34,6 +35,8 @@ To summarize, there are two ways of finding the targets and neither covers all 3
 | Target.getTargets, Target.setDiscoverTargets, Target.targetCreated, Target.attachToTarget | ✔ | | ✔ |
 | Target.setAutoAttach, Target.attachedToTarget | ✔ | ✔ |  |
 
+Also note that all of these methods apply only to direct children. To interact with grandchildren (like a different orign iframe inside a different origin iframe), you have to repeat recursively through the child targets.
+
 # Examples
 
 The example below illustrates how to collect messages logged by console.log calls by JavaScipt code from various parts of the web page, including dedicated web worker.
@@ -46,8 +49,8 @@ void MyApp::AttachConsoleLogHandlers()
     // The sessions and targets descriptions are tracked by 2 maps:
     // SessionId to TargetId map:
     //   std::map<std::wstring, std::wstring> m_devToolsSessionMap;
-    // TargetId to description map, where description is "<target type>,<target url>".
-    //   std::map<std::wstring, std::wstring> m_devToolsTargetInfoMap;
+    // TargetId to description label map, where the lable is "<target type>,<target url>".
+    //   std::map<std::wstring, std::wstring> m_devToolsTargetLabelMap;
     // GetJSONStringField is a helper function that can retrieve a string field from a json message.
   
     wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceiver> receiver;
@@ -58,26 +61,28 @@ void MyApp::AttachConsoleLogHandlers()
         Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
             [this](
                 ICoreWebView2* sender,
-                ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
+                ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) noexcept -> HRESULT
             {
                 // Get console.log message details and which target it comes from
                 wil::unique_cotaskmem_string parameterObjectAsJson;
                 CHECK_FAILURE(args->get_ParameterObjectAsJson(&parameterObjectAsJson));
-                std::wstring eventSource;
+                std::wstring eventSourceLabel;
                 std::wstring eventDetails = parameterObjectAsJson.get();
                 wil::com_ptr<ICoreWebView2DevToolsProtocolEventReceivedEventArgs2> args2;
                 if (SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&args2))))
                 {
                     wil::unique_cotaskmem_string sessionId;
                     CHECK_FAILURE(args2->get_SessionId(&sessionId));
-                    if (sessionId.get() && *sessionId.get())
+                    if (*sessionId.get())
                     {
                         std::wstring targetId = m_devToolsSessionMap[sessionId.get()];
-                        eventSource = m_devToolsTargetDescriptionMap[targetId];
+                        eventSourceLabel = m_devToolsTargetLabelMap[targetId];
                     }
+                    // else, leave eventSourceLabel as empty string for the default target of top page.
                 }
-                // App code to log these events.
-                LogConsoleLogMessage(eventSource, eventDetails);
+                // App code to log these events. Empty string eventSourceLabel means the default target of top page.
+                // Note that eventSourceLabel is just a label string, no parsing is attempted in LogConsoleLogMessage.
+                LogConsoleLogMessage(eventSourceLabel, eventDetails);
                 return S_OK;
             })
             .Get(),
@@ -91,21 +96,22 @@ void MyApp::AttachConsoleLogHandlers()
         Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
             [this](
                 ICoreWebView2* sender,
-                ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
+                ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) noexcept -> HRESULT
             {
                 // A new target is attached, add its info to maps.
                 wil::unique_cotaskmem_string jsonMessage;
                 CHECK_FAILURE(args->get_ParameterObjectAsJson(&jsonMessage));
+                // Note that the sessionId and targetId are there even if the WebView2 Runtime version is old.
                 std::wstring sessionId = GetJSONStringField(jsonMessage.get(), L"sessionId");
                 std::wstring targetId = GetJSONStringField(jsonMessage.get(), L"targetId");
                 m_devToolsSessionMap[sessionId] = targetId;
                 std::wstring type = GetJSONStringField(jsonMessage.get(), L"type");
                 std::wstring url = GetJSONStringField(jsonMessage.get(), L"url");
-                m_devToolsTargetDescriptionMap[targetId] = type + L"," + url;
+                m_devToolsTargetLabelMap.insert_or_assign(targetId, type + L"," + url);
                 wil::com_ptr<ICoreWebView2_10> webview2 = m_webView.try_query<ICoreWebView2_10>();
                 if (webview2)
                 {
-                    // Auto attach to targets further created from this target.
+                    // Auto-attach to targets further created from this target (identified by its session ID).
                     webview2->CallDevToolsProtocolMethodForSession(
                         sessionId.c_str(), L"Target.setAutoAttach",
                         LR"({"autoAttach":true,"waitForDebuggerOnStart":false,"flatten":true})",
@@ -125,17 +131,16 @@ void MyApp::AttachConsoleLogHandlers()
         Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
             [this](
                 ICoreWebView2* sender,
-                ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
+                ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) noexcept -> HRESULT
             {
                 // A target is detached, remove it from the maps.
                 wil::unique_cotaskmem_string jsonMessage;
                 CHECK_FAILURE(args->get_ParameterObjectAsJson(&jsonMessage));
                 std::wstring sessionId = GetJSONStringField(jsonMessage.get(), L"sessionId");
                 auto session = m_devToolsSessionMap.find(sessionId);
-                if (session != m_devToolsSessionMap.end())
+                if (m_devToolsSessionMap.Remove(sessionId, out string targetId))
                 {
-                    m_devToolsTargetDescriptionMap.erase(session->second);
-                    m_devToolsSessionMap.erase(session);
+                    m_devToolsTargetLabelMap.erase(session->second);
                 }
                 return S_OK;
             })
@@ -148,19 +153,20 @@ void MyApp::AttachConsoleLogHandlers()
         Callback<ICoreWebView2DevToolsProtocolEventReceivedEventHandler>(
             [this](
                 ICoreWebView2* sender,
-                ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) -> HRESULT
+                ICoreWebView2DevToolsProtocolEventReceivedEventArgs* args) noexcept -> HRESULT
             {
                 // A target's info like url changed, update it in the target description map.
                 wil::unique_cotaskmem_string jsonMessage;
                 CHECK_FAILURE(args->get_ParameterObjectAsJson(&jsonMessage));
+                // Note that the targetId are there even if the WebView2 Runtime version is old.
                 std::wstring targetId = GetJSONStringField(jsonMessage.get(), L"targetId");
-                if (m_devToolsTargetDescriptionMap.find(targetId) !=
-                    m_devToolsTargetDescriptionMap.end())
+                if (m_devToolsTargetLabelMap.find(targetId) !=
+                    m_devToolsTargetLabelMap.end())
                 {
                     // This is a target that we are interested in, update description.
                     std::wstring type = GetJSONStringField(jsonMessage.get(), L"type");
                     std::wstring url = GetJSONStringField(jsonMessage.get(), L"url");
-                    m_devToolsTargetDescriptionMap[targetId] = type + L"," + url;
+                    m_devToolsTargetLabelMap[targetId] = type + L"," + url;
                 }
                 return S_OK;
             })
@@ -174,25 +180,31 @@ void MyApp::AttachConsoleLogHandlers()
         LR"({"autoAttach":true,"waitForDebuggerOnStart":false,"flatten":true})", nullptr);
 }
 ```
-## WinRT and .NET    
+## WinRT and .NET
+Note that the sample code uses new APIs without try-catch, so it only works with latest version of Edge WebView2 Runtime.
 ```c#
 // The sessions and targets descriptions are tracked by 2 dictionaries:
 // SessionId to TargetId dictionary: m_devToolsSessionMap;
-// TargetId to description dictionary, where description is "<target type>,<target url>": m_devToolsTargetInfoMap
+// TargetId to description label dictionary, where the label is "<target type>,<target url>": m_devToolsTargetLabelMap
 // GetJSONStringField is a helper function that can retrieve a string field from a json message.
 
 private void CoreWebView2_ConsoleAPICalled(CoreWebView2 sender, CoreWebView2DevToolsProtocolEventReceivedEventArgs args)
 {
    // Figure out which target the console.log comes from
-   string eventSource;
+   string eventSourceLabel;
    string sessionId = args.SessionId;
    if (sessionId.Length > 0)
    {
-     string targetId = m_devToolsSessionMap[sessionId];
-     eventSource = m_devToolsTargetDescriptionMap[targetId];
+      string targetId = m_devToolsSessionMap[sessionId];
+      eventSourceLabel = m_devToolsTargetLabelMap[targetId];
    }
-  // App code to log these events.
-  LogConsoleLogMessage(eventSource, args.ParameterObjectAsJson);
+   else
+   { // empty string means the default target of top page.
+     eventSourceLabel = "";
+   }
+   // App code to log these events. Empty string eventSourceLabel means the default target of top page.
+   // Note that eventSourceLabel is just a label string, no parsing is attempted in LogConsoleLogMessage.
+   LogConsoleLogMessage(eventSourceLabel, args.ParameterObjectAsJson);
 }
 
 private void CoreWebView2_AttachedToTarget(CoreWebView2 sender, CoreWebView2DevToolsProtocolEventReceivedEventArgs args)
@@ -204,13 +216,12 @@ private void CoreWebView2_AttachedToTarget(CoreWebView2 sender, CoreWebView2DevT
   m_devToolsSessionMap[sessionId] = targetId;
   string type = GetJSONStringField(jsonMessage, L"type");
   string url = GetJSONStringField(jsonMessage, L"url");
-  m_devToolsTargetDescriptionMap[targetId] = $"{type",{url}";
-  // Auto attach to targets further created from this target.
-  _ = m_webview.CallDevToolsProtocolMethodAsync("Target.setAutoAttach",
-        @"{""autoAttach"":true,""waitForDebuggerOnStart"":false,""flatten"":true}",
-        sessionId);
+  m_devToolsTargetLabelMap[targetId] = $"{type",{url}";
+  // Auto-attach to targets further created from this target (identified by its session ID).
+  _ = m_webview.CallDevToolsProtocolMethodForSessionAsync("Target.setAutoAttach", sessionId,
+        @"{""autoAttach"":true,""waitForDebuggerOnStart"":false,""flatten"":true}");
   // Enable Runtime events to receive Runtime.consoleAPICalled from the target, which is triggered by console.log calls.
-  m_webview.CallDevToolsProtocolMethodAsync("Runtime.enable", "{}", sessionId);
+  m_webview.CallDevToolsProtocolMethodForSessionAsync(sessionId, "Runtime.enable", "{}");
 }
 
 private void CoreWebView2_DetachedFromTarget(CoreWebView2 sender, CoreWebView2DevToolsProtocolEventReceivedEventArgs args)
@@ -220,7 +231,7 @@ private void CoreWebView2_DetachedFromTarget(CoreWebView2 sender, CoreWebView2De
   string sessionId = GetJSONStringField(jsonMessage, L"sessionId");
   if (m_devToolsSessionMap.ContainsKey(sessionId))
   {
-      m_devToolsTargetDescriptionMap.Remove(m_devToolsSessionMap[sessionId]);
+      m_devToolsTargetLabelMap.Remove(m_devToolsSessionMap[sessionId]);
       m_devToolsSessionMap.Remove(sessionId);
   }
 }
@@ -230,12 +241,12 @@ private void CoreWebView2_TargetInfoChanged(CoreWebView2 sender, CoreWebView2Dev
   // A target's info like url changed, update it in the target description map.
   string jsonMessage = args.ParameterObjectAsJson;
   string targetId = GetJSONStringField(jsonMessage, L"targetId");
-  if (m_devToolsTargetDescriptionMap.ContainsKey(targetId))
+  if (m_devToolsTargetLabelMap.ContainsKey(targetId))
   {
     // This is a target that we are interested in, update description.
     string type = GetJSONStringField(jsonMessage, L"type");
     string url = GetJSONStringField(jsonMessage, L"url");
-    m_devToolsTargetDescriptionMap[targetId] = type + L"," + url;
+    m_devToolsTargetLabelMap[targetId] = type + L"," + url;
   }
 }
   private void AddConsoleLogHandlers()
@@ -261,8 +272,9 @@ interface ICoreWebView2_10 : IUnknown {
   /// There could be multiple `DevToolsProtocol` targets in a WebView.
   /// Besides the top level page, iframes from different origin and web workers
   /// are also separate targets. Attaching to these targets allows interaction with them.
-  /// These attachments to the targets are sessions and are identified by sessionId.
-  /// To use this API, you should set `flatten` parameter to true when calling
+  /// When the DevToolsProtocol is attached to a target, the connection is identified
+  /// by a sessionId.
+  /// To use this API, you must set `flatten` parameter to true when calling
   /// `Target.attachToTarget` or `Target.setAutoAttach` `DevToolsProtocol` method.
   /// Using `Target.setAutoAttach` is recommended as that would allow you to attach
   /// to dedicated worker target, which is not discoverable via other APIs like
@@ -311,7 +323,7 @@ namespace Microsoft.Web.WebView2.Core
         {
             // ICoreWebView2_10 members
             // This is an overload for: public async Task<string> CallDevToolsProtocolMethodAsync(string methodName, string parametersAsJson);
-            public async Task<string> CallDevToolsProtocolMethodAsync(string methodName, string parametersAsJson, string sessionId);
+            public async Task<string> CallDevToolsProtocolMethodForSessionAsync(string sessionId, string methodName, string parametersAsJson);
         }
     }
     
