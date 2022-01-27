@@ -67,6 +67,13 @@ void SettingsComponent::EnableCustomServerCertificateError()
     FeatureNotAvailable();
   }
 }
+
+// This example clears the SSL decision in response to proceeding with SSL certificate errors.
+if (m_webview)
+{
+  CHECK_FAILURE(m_webView->ClearSSLDecision());
+  MessageBox(nullptr, L"Cleared", L"Clear SSL Decision", MB_OK);
+}
 ```
 ## . NET/ WinRT
 ```c#
@@ -112,6 +119,13 @@ void WebView_ReceivingServerCertificateError(object sender, CoreWebView2Receivin
     e.Cancel = true;
   }
 }
+
+// This example clears the SSL decision in response to proceeding with SSL certificate errors.
+void ClearSSLDecision()
+{
+  webView.CoreWebView2.ClearSSLDecision();
+  MessageBox.Show(this, "Cleared", "Clear SSL Decision");
+}
 ```
 
 # API Details
@@ -141,6 +155,9 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
       [out] EventRegistrationToken * token);
   /// Remove an event handler previously added with add_ReceivingServerCertificateError.
   HRESULT remove_ReceivingServerCertificateError([in] EventRegistrationToken token);
+
+  /// Clears the SSL decision in response to proceeding with SSL certificate errors.
+  HRESULT ClearSSLDecision();
 }
 
 /// An event handler for the `ReceivingServerCertificateError` event.
@@ -190,14 +207,20 @@ namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2ReceivingServerCertificateErrorEventArgs
     {
+        CoreWebView2WebErrorStatus ErrorStatus { get; };
+        String RequestURL { get; };
+        CoreWebView2Certificate ServerCertificate { get; };
+        Boolean Cancel { get; set; };
+        Boolean Handled { get; set; };
+        Windows.Foundation.Deferral GetDeferral();
+    }
+
+    runtimeclass CoreWebView2
+    {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2")]
         {
-          CoreWebView2WebErrorStatus ErrorStatus { get; };
-          String RequestURL { get; };
-          CoreWebView2Certificate ServerCertificate { get; };
-          Boolean Cancel { get; set; };
-          Boolean Handled { get; set; };
-          Windows.Foundation.Deferral GetDeferral();
+          event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2ReceivingServerCertificateErrorEventArgs> ReceivingServerCertificateError;
+          void ClearSSLDecision();
         }
     }
 }
