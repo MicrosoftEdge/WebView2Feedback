@@ -19,6 +19,8 @@ for responding to the SSL request.
 * You can choose to cancel the request.
 * You can choose to display default SSL interstitial page to let user to respond to the request.
 
+We also propose adding `ClearSSLDecision` API that clears certificate decisions that were added in response to proceeding with SSL certificate errors.
+
 # Examples
 
 ## Win32 C++
