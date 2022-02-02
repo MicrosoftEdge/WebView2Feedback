@@ -1,12 +1,8 @@
 # Background
-A favicon (favorite icon) is a tiny icon included along with a website, which is displayed in places like the browser's address bar, page tabs and bookmarks menu. Developers would
-like to have an API which allows them to retrieve the Favicon of a webpage, if it has been set, as well as get an update whenever the favicon has changed.
+A favicon (favorite icon) is a tiny icon included along with a website, which is displayed in places like the browser's address bar, page tabs and bookmarks menu. Developers would like to have an API which allows them to retrieve the Favicon of a webpage, if it has been set, as well as get an update whenever the favicon has changed.
 
 # Description
-We propose a new Webview2 event which would allow developers to access the current Favicon of a page, 
-as well as be notified when the favicon changes. This means when a page first loads, it would raise
-the FaviconChanged event since before parsing the HTML document there is no known favicon. DOM or JavaScript may change the Favicon,
-causing the event to be raised again for the same document.
+We propose a new Webview2 event which would allow developers to access the current Favicon of a page and be notified when the favicon changes. This means when a page first loads, it would raise the FaviconChanged event since before parsing the HTML document there is no known favicon. DOM or JavaScript may change the Favicon, causing the event to be raised again for the same document.
 
 # Examples
 ## Win32 C++ Registering a listener for favicon changes
@@ -65,11 +61,13 @@ See [API Details](#api-details) Section below for API reference
 ## Win32 C++
 ```cpp
 /// This interface is a handler for when the `Favicon` is changed.
-/// The sender is the ICoreWebView2 object the top-level document of which has changed favicon and the eventArgs is nullptr. Use the FaviconUri property and GetFavicon method to obtain the favicon data.
-/// second argument is null.
+/// The sender is the ICoreWebView2 object the top-level document of 
+/// which has changed favicon and the eventArgs is nullptr. Use the 
+/// FaviconUri property and GetFavicon method to obtain the favicon 
+/// data. The second argument is always null.
 /// For more information see `add_FaviconChanged`.
 [uuid(2913DA94-833D-4DE0-8DCA-900FC524A1A4), object, pointer_default(unique)]
-interface ICoreWebView2ExperimentalFaviconChangedEventHandler : IUnknown {
+interface ICoreWebView2FaviconChangedEventHandler : IUnknown {
   /// Called to notify the favicon changed.
   HRESULT Invoke(
       [in] ICoreWebView2* sender,
@@ -81,20 +79,24 @@ interface ICoreWebView2ExperimentalFaviconChangedEventHandler : IUnknown {
 /// is the result from the image write operation.
 /// For more details, see the `GetFavicon` API.
 [uuid(A2508329-7DA8-49D7-8C05-FA125E4AEE8D), object, pointer_default(unique)]
-interface ICoreWebView2ExperimentalGetFaviconCompletedHandler : IUnknown {
+interface ICoreWebView2GetFaviconCompletedHandler : IUnknown {
   /// Called to notify the favicon has been retrieved.
   HRESULT Invoke([in] HRESULT error_code);
 }
 
 /// This is the ICoreWebView2 Experimental Favicon interface.
-/// The `FaviconChanged` event is raised when the [favicon](https://developer.mozilla.org/en-US/docs/Glossary/Favicon) of the top-level document changes. The favicon can change when navigating to a new document or if script dynamically changes the favicon. When navigating from a document with a favicon to a new URI, the FaviconChanged event will be raised first for first navigating to a new document which declares a favicon in its HTML or has script to set its favicon, the document and the FaviconChanged event will be raised for that
-/// Favicon. When a new page loads event would fire due to Favicon not being set.
-/// The event would also set the Favicon when the set by DOM or Javascript.
+/// The `FaviconChanged` event is raised when the 
+/// [favicon](https://developer.mozilla.org/en-US/docs/Glossary/Favicon)
+/// of the top-level document changes or if script dynamically changes the favicon.
+/// The FaviconChanged event will be raised for first navigating to a new 
+/// document, whether or not a document declares a Favicon in HTML. The event will 
+/// be raised again if a favicon is declared in its HTML or has script to set its favicon.
+/// The favicon infromation can then be retrieved with `GetFavicon` and `FaviconUri`.
 [uuid(DC838C64-F64B-4DC7-98EC-0992108E2157), object, pointer_default(unique)]
 interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// Add an event handler for the `FaviconChanged` event.
     HRESULT add_FaviconChanged(
-        [in] ICoreWebView2ExperimentalFaviconChangedEventHandler* eventHandler,
+        [in] ICoreWebViewFaviconChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
 
     /// Remove the event handler for `FaviconChanged` event.
@@ -109,13 +111,13 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// Async function for getting the actual image data of the favicon.
     /// If the `imageStream` is null, the `HRESULT` will be `E_POINTER`, otherwise
     /// it is `S_OK`.
-    /// The image is copied to the `imageStream` object and when complete. If
-    /// there is no image then no data would be copied into the imageStream.
-    /// In either scenario the `eventHandler` is executed at the end of the operation.
+    /// The image is copied to the `imageStream` object. If there is no image then
+    /// no data would be copied into the imageStream.
+    /// In either scenario the `completedHandler` is executed at the end of the operation.
     HRESULT GetFavicon(
         [in] COREWEBVIEW2_FAVICON_IMAGE_FORMAT format,
         [in] IStream* imageStream,
-        [in] ICoreWebView2ExperimentalGetFaviconCompletedHandler* eventHandler);
+        [in] ICoreWebView2GetFaviconCompletedHandler* completedHandler);
 }
 
 [v1_enum]
