@@ -7,46 +7,6 @@ The <user data folder> is created in the app's folder by default:
 <code><app folder>\<app name>.exe.WebView2</code>
 But apps can specify different user data folders. If they do, they generally know where it is.
   
-## Traces
-Sometimes issues don't cause a crash, but something still doesn't behave as expected. Or perhaps it manifest as bad performance, slow loading, etc. In these cases you can ask for traces that can be examined.
-
-### Collecting TTD traces from customer environment
-Some issues are reproducible only in customer environment and require a TTD trace from that environment. The instructions below might need to be re-tried until a successful trace is collected.
-> Cmd windows (A) and (B) can be the same, but if so, the window needs to be started as admin from the beginning.
-
-1. Force `--no-sandbox` for renderer processes (collecting traces for renderer processes requires this flag)
-   **Option (1)** - From cmd (A):
-   > SET WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--no-sandbox
-     SET WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
-
-   **Option (2)** - From settings:
-   Edit system environment variables / Environment variables… / New…
-   Make sure to click "OK" on both settings windows.
-
-1. Create directory for dumps
-   Make sure it's not in a network location (network locations have paths starting with `\\`)
-
-1. Start trace recording
-   Launch admin cmd (B), then run
-   ```
-   tttracer -bg -dumpFull -parent * -onlaunch msedgewebview2.exe -out <dumps-dir>
-   ```
-   **Note:** this is the external version of `tttrace` in `C:\Windows\System32` which ships with Windows. No additional setup should be required to use it.
-
-1. Reproduce the issue
-   * If option (1) was used on step (1) above, make sure the launching app is restarted.
-   * If option (2) was used on step (1) above, launch the app from the same cmd window (A) where the environment variable was set.
-
-1. Stop trace recording
-   ```
-   tttracer /stop all
-   tttracer /cleanup
-   tttracer /delete all
-   ```
-
-* Verify collected trace hits the issue. If it doesn't, go through steps 2-5 again (use a different directory for step 3). Retries might be faster.
-* Send all files in successful trace dumps directory for analysis.
-  
 ## Graphics and GPU info
 Issues where the WebView2 isn't displaying anything are most often caused by a launch failure, such as un-writeable user data folder, mismatched DPI awareness, or missing files (runtime or binaries). However, if the WebView2 has launched correctly (you can check return values and task manager) but the content is not there, then it might be due to a hosting and/or GPU driver issue.
 1. Get the output of `edge://gpu` (wait for the page to load the 'log messages' section at the bottom).
