@@ -1,5 +1,5 @@
 # Background
-A Favicon is an asset which is a part of a webpage, and typically displayed on each tab. Developers would
+A favicon (favorite icon) is a tiny icon included along with a website, which is displayed in places like the browser's address bar, page tabs and bookmarks menu. Developers would
 like to have an API which allows them to retrieve the Favicon of a webpage, if it has been set, as well as get an update whenever the favicon has changed.
 
 # Description
