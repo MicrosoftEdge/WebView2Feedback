@@ -3,10 +3,10 @@ A favicon (favorite icon) is a tiny icon included along with a website, which is
 like to have an API which allows them to retrieve the Favicon of a webpage, if it has been set, as well as get an update whenever the favicon has changed.
 
 # Description
-We propose a new Webview2 event which would allow developers access the current Favicon of a page, 
-as well as be notified when the favicon changes. This means when a page first loads, it would fire
-the Favicon change event as the icon has inialized to null. DOM or Javascript may change the Favicon,
-causing the event to fire again.
+We propose a new Webview2 event which would allow developers to access the current Favicon of a page, 
+as well as be notified when the favicon changes. This means when a page first loads, it would raise
+the FaviconChanged event since before parsing the HTML document there is no known favicon. DOM or JavaScript may change the Favicon,
+causing the event to be raised again for the same document.
 
 # Examples
 ## Win32 C++ Registering a listener for favicon changes
@@ -65,7 +65,7 @@ See [API Details](#api-details) Section below for API reference
 ## Win32 C++
 ```cpp
 /// This interface is a handler for when the `Favicon` is changed.
-/// The sender is the embedded_browser which handle the change and the
+/// The sender is the ICoreWebView2 object the top-level document of which has changed favicon and the eventArgs is nullptr. Use the FaviconUri property and GetFavicon method to obtain the favicon data.
 /// second argument is null.
 /// For more information see `add_FaviconChanged`.
 [uuid(2913DA94-833D-4DE0-8DCA-900FC524A1A4), object, pointer_default(unique)]
@@ -87,7 +87,7 @@ interface ICoreWebView2ExperimentalGetFaviconCompletedHandler : IUnknown {
 }
 
 /// This is the ICoreWebView2 Experimental Favicon interface.
-/// It has the capability to fire an event for the changing of the
+/// The `FaviconChanged` event is raised when the [favicon](https://developer.mozilla.org/en-US/docs/Glossary/Favicon) of the top-level document changes. The favicon can change when navigating to a new document or if script dynamically changes the favicon. When navigating from a document with a favicon to a new URI, the FaviconChanged event will be raised first for first navigating to a new document which declares a favicon in its HTML or has script to set its favicon, the document and the FaviconChanged event will be raised for that
 /// Favicon. When a new page loads event would fire due to Favicon not being set.
 /// The event would also set the Favicon when the set by DOM or Javascript.
 [uuid(DC838C64-F64B-4DC7-98EC-0992108E2157), object, pointer_default(unique)]
