@@ -54,9 +54,12 @@ webView.CoreWebView2.FaviconChanged += (CoreWebView2 sender, Object arg) =>
 };
 ```
 # API Notes
-If a Web page does not have a Favicon, then the event is only fires when the
-page is navigated to. The Favicon would be an empty image and Uri. The
-user is expected to handle this scenario.
+If a Web page does not have a Favicon, then the FaviconChanged event
+is fired when the page is navigated to. The Favicon would be an
+empty image and empty Uri. The user is expected to handle this scenario.
+Otherwise we fire the FaviconChanged with an observed change to the
+Favicon. In that scenario, we would provide the Uri of the Favicon we
+observed and a copy of the image.
 See [API Details](#api-details) Section below for API reference
 # API Details
 ## Win32 C++
@@ -98,7 +101,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
     HRESULT remove_FaviconChanged(
         [in] EventRegistrationToken token);
 
-    /// Get the current Uri of the favicon.
+    /// Get the current Uri of the favicon as a string.
     /// If value is null, the `HRESULT` `E_POINTER`, otherwise it is `S_OK`.
     /// If a page has no favicon then value is an empty string.
     [propget] HRESULT FaviconUri([out, retval] LPWSTR* value);
@@ -106,8 +109,9 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// Async function for getting the actual image data of the favicon.
     /// If the `imageStream` is null, the `HRESULT` will be `E_POINTER`, otherwise
     /// it is `S_OK`.
-    /// The image is copied to the `imageStream` object and when complete,
-    /// it will execute the `eventHandler` if it was set.
+    /// The image is copied to the `imageStream` object and when complete. If
+    /// there is no image then no data would be copied into the imageStream.
+    /// In either scenario the `eventHandler` is executed at the end of the operation.
     HRESULT GetFavicon(
         [in] COREWEBVIEW2_FAVICON_IMAGE_FORMAT format,
         [in] IStream* imageStream,
