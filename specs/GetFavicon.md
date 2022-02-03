@@ -50,11 +50,11 @@ webView.CoreWebView2.FaviconChanged += (CoreWebView2 sender, Object arg) =>
 };
 ```
 # API Notes
-If a Web page does not have a Favicon, then the FaviconChanged event
-is fired when the page is navigated to. The Favicon would be an
-empty image and empty Uri. The user is expected to handle this scenario.
-Otherwise we fire the FaviconChanged with an observed change to the
-Favicon. In that scenario, we would provide the Uri of the Favicon we
+Note that even if a web page does not have a Favicon, the FaviconChanged event
+is raised when the page is navigated to. The Favicon would be an
+empty image stream and empty Uri for the lack of a favicon. The end developer is expected to handle this scenario.
+Otherwise, we raise the FaviconChanged with an observed change to the
+Favicon. In that scenario, the CoreWebView2 has an updated value for the FaviconUri property, and the GetFavicon method to match the updated favicon.
 observed and a copy of the image.
 See [API Details](#api-details) Section below for API reference
 # API Details
@@ -104,7 +104,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
         [in] EventRegistrationToken token);
 
     /// Get the current Uri of the favicon as a string.
-    /// If value is null, the `HRESULT` `E_POINTER`, otherwise it is `S_OK`.
+    /// If value is null, then the return value is `E_POINTER`, otherwise it is `S_OK`.
     /// If a page has no favicon then value is an empty string.
     [propget] HRESULT FaviconUri([out, retval] LPWSTR* value);
 
