@@ -105,8 +105,8 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
         [in] EventRegistrationToken token);
 
     /// Get the current Uri of the favicon as a string.
-    /// If value is null, then the return value is `E_POINTER`, otherwise it is `S_OK`.
-    /// If a page has no favicon then value is an empty string.
+    /// If the value is null, then the return value is `E_POINTER`, otherwise it is `S_OK`.
+    /// If a page has no favicon then the value is an empty string.
     [propget] HRESULT FaviconUri([out, retval] LPWSTR* value);
 
     /// Async function for getting the actual image data of the favicon.
