@@ -85,16 +85,17 @@ interface ICoreWebView2GetFaviconCompletedHandler : IUnknown {
 }
 
 /// This is the ICoreWebView2 Experimental Favicon interface.
-/// The `FaviconChanged` event is raised when the 
-/// [favicon](https://developer.mozilla.org/en-US/docs/Glossary/Favicon)
-/// of the top-level document changes or if script dynamically changes the favicon.
-/// The FaviconChanged event will be raised for first navigating to a new 
-/// document, whether or not a document declares a Favicon in HTML. The event will 
-/// be raised again if a favicon is declared in its HTML or has script to set its favicon.
-/// The favicon infromation can then be retrieved with `GetFavicon` and `FaviconUri`.
 [uuid(DC838C64-F64B-4DC7-98EC-0992108E2157), object, pointer_default(unique)]
 interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// Add an event handler for the `FaviconChanged` event.
+    /// The `FaviconChanged` event is raised when the 
+    /// [favicon](https://developer.mozilla.org/en-US/docs/Glossary/Favicon)
+    /// of the top-level document changes or if script dynamically changes the favicon.
+    /// The FaviconChanged event will be raised for first navigating to a new 
+    /// document, whether or not a document declares a Favicon in HTML. The event will 
+    /// be raised again if a favicon is declared in its HTML or has script 
+    /// to set its favicon. The favicon infromation can then be retrieved with 
+    /// `GetFavicon` and `FaviconUri`.
     HRESULT add_FaviconChanged(
         [in] ICoreWebViewFaviconChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
