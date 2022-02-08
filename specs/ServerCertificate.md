@@ -75,7 +75,7 @@ void SettingsComponent::EnableCustomServerCertificateError()
 
 // This example clears the TLS decision in response to proceeding with TLS certificate errors.
 if (m_webview)
-{.
+{
   CHECK_FAILURE(m_webView->ClearServerCertificateErrorOverrideCache(
         Callback<
             ICoreWebView2ClearServerCertificateErrorOverrideCacheCompletedHandler>(
