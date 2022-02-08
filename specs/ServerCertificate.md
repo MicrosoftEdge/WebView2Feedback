@@ -183,7 +183,7 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
   /// Remove an event handler previously added with add_ReceivingServerCertificateError.
   HRESULT remove_ReceivingServerCertificateError([in] EventRegistrationToken token);
 
-  /// Clears the TLS decision in response to proceeding with TLS certificate errors.
+  /// Clears all cached decisions to proceed with TLS certificate errors from the ReceivingServerCertificateError event in this session.
   HRESULT ClearServerCertificateErrorOverrideCache(
       [in] ICoreWebView2ClearServerCertificateErrorOverrideCacheCompletedHandler*
       handler);
