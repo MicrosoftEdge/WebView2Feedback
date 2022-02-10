@@ -7,34 +7,34 @@ We propose a new Webview2 event which would allow developers to access the curre
 # Examples
 ## Win32 C++ Registering a listener for favicon changes
 ```cpp
-    CHECK_FAILURE(m_webView->add_FaviconChanged(
-        Callback<ICoreWebView2FaviconChangedEventHandler>(
-            [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
-                
-                wil::unique_cotaskmem_string url;
-                CHECK_FAILURE(sender->get_FaviconUri(&url));
-                wil::com_ptr<IStream> pStream = SHCreateMemStream(nullptr, 0);
+CHECK_FAILURE(m_webView->add_FaviconChanged(
+    Callback<ICoreWebView2FaviconChangedEventHandler>(
+    [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
 
-                sender->GetFavicon(
-                    COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG, 
-                    pStream,
-                    Callback<
-                        ICoreWebView2GetFaviconCompletedHandler>(
-                        [&pStream, this](HRESULT code) -> HRESULT {
-                                    Gdiplus::Bitmap* pBitmap = new Gdiplus::Bitmap(pStream);
-                                    HICON icon;
-                                    pBitmap->GetHICON(&icon);
-                                    SendMessage(
-                                        m_appWindow->GetMainWindow(), WM_SETICON, ICON_SMALL,
-                                        (LPARAM)icon);
-                            return S_OK;
-                        })
-                        .Get());
+    wil::com_ptr<IStream> iconStream = SHCreateMemStream(nullptr, 0);
+
+    sender->GetFavicon(COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG, iconStream.get(),
+        Callback<ICoreWebView2ExperimentalGetFaviconCompletedHandler>(
+            [iconStream, this](HRESULT error_code) -> HRESULT
+            {
+                if (error_code == S_OK)
+                {
+                    Gdiplus::Bitmap* iconBitmap =
+                        new Gdiplus::Bitmap(iconStream.get());
+                    HICON icon;
+                    if (!iconBitmap->GetHICON(&icon))
+                    {
+                        SendMessage(
+                            m_appWindow->GetMainWindow(), WM_SETICON,
+                            ICON_SMALL, (LPARAM)icon);
+                    }
+                }
 
                 return S_OK;
-            })
-            .Get(),
-        &m_faviconChangedToken));  
+            }).Get());
+
+            return S_OK;
+    }).Get(), &m_faviconChangedToken));
 ```
 ## .NET / WinRT Registering a listener for favicon changes
 ```c#
