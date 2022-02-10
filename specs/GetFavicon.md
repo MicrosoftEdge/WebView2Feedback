@@ -55,7 +55,6 @@ is raised when the page is navigated to. The Favicon would be an
 empty image stream and empty Uri for the lack of a favicon. The end developer is expected to handle this scenario.
 Otherwise, we raise the FaviconChanged with an observed change to the
 Favicon. In that scenario, the CoreWebView2 has an updated value for the FaviconUri property, and the GetFavicon method to match the updated favicon.
-observed and a copy of the image.
 See [API Details](#api-details) Section below for API reference
 # API Details
 ## Win32 C++
@@ -94,7 +93,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// The FaviconChanged event will be raised for first navigating to a new 
     /// document, whether or not a document declares a Favicon in HTML. The event will 
     /// be raised again if a favicon is declared in its HTML or has script 
-    /// to set its favicon. The favicon infromation can then be retrieved with 
+    /// to set its favicon. The favicon information can then be retrieved with 
     /// `GetFavicon` and `FaviconUri`.
     HRESULT add_FaviconChanged(
         [in] ICoreWebViewFaviconChangedEventHandler* eventHandler,
