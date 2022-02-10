@@ -99,27 +99,19 @@ if (m_webview)
 private bool _isServerCertificateError = false;
 void EnableCustomServerCertificateError()
 {
-  // Safeguarding the handler when unsupported runtime is used.
-  try
+  if (!_isServerCertificateError)
   {
-    if (!_isServerCertificateError)
-    {
-      webView.CoreWebView2.ReceivingServerCertificateError += WebView_ReceivingServerCertificateError;
-    }
-    else
-    {
-      webView.CoreWebView2.ReceivingServerCertificateError -= WebView_ReceivingServerCertificateError;
-    }
-    _isServerCertificateError = !_isServerCertificateError;
+    webView.CoreWebView2.ReceivingServerCertificateError += WebView_ReceivingServerCertificateError;
+  }
+  else
+  {
+    webView.CoreWebView2.ReceivingServerCertificateError -= WebView_ReceivingServerCertificateError;
+  }
+  _isServerCertificateError = !_isServerCertificateError;
 
-    MessageBox.Show(this,
-      _isServerCertificateError ? "Custom server certificate error has been enabled" : "Custom server certificate error has been disabled",
-      "Custom server certificate error");
-  }
-  catch (NotImplementedException exception)
-  {
-    MessageBox.Show(this, "Custom server certificate error Failed: " + exception.Message, "Custom server certificate error");
-  }
+  MessageBox.Show(this,
+    _isServerCertificateError ? "Custom server certificate error has been enabled" : "Custom server certificate error has been disabled",
+    "Custom server certificate error");
 }
 
 void WebView_ReceivingServerCertificateError(object sender, CoreWebView2ReceivingServerCertificateErrorEventArgs e)
@@ -143,7 +135,7 @@ void WebView_ReceivingServerCertificateError(object sender, CoreWebView2Receivin
 }
 
 // This example clears the TLS decision in response to proceeding with TLS certificate errors.
-void ClearServerCertificateErrorOverrideCache()
+async void ClearServerCertificateErrorOverrideCache()
 {
   await webView.CoreWebView2.ClearServerCertificateErrorOverrideCacheAsync();
   MessageBox.Show(this, "Cleared", "Clear server certificate error override cache");
@@ -159,6 +151,10 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
   /// Add an event handler for the ServerCertificateError event.
   /// The ServerCertificateError event is raised when the WebView2
   /// cannot verify server's digital certificate while loading a web page.
+  ///
+  /// This event will raise only for top-level navigations as WebView2 block or cancel the
+  /// request for sub resources with server certificate error. Also, this event follows
+  /// the `NavigationStarting` event.
   ///
   /// With this event you have several options for responding to server
   /// certificate error requests:
@@ -176,6 +172,7 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
   ///
   /// To raise the event again you must clear the cache using `ClearServerCertificateErrorOverrideCache`.
   ///
+  ///
   /// \snippet SettingsComponent.cpp ServerCertificateError1
   HRESULT add_ReceivingServerCertificateError(
       [in] ICoreWebView2ReceivingServerCertificateErrorEventHandler* eventHandler,
@@ -183,7 +180,8 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
   /// Remove an event handler previously added with add_ReceivingServerCertificateError.
   HRESULT remove_ReceivingServerCertificateError([in] EventRegistrationToken token);
 
-  /// Clears all cached decisions to proceed with TLS certificate errors from the ReceivingServerCertificateError event in this session.
+  /// Clears all cached decisions to proceed with TLS certificate errors from the
+  /// ReceivingServerCertificateError event for all WebView2's sharing the same session.
   HRESULT ClearServerCertificateErrorOverrideCache(
       [in] ICoreWebView2ClearServerCertificateErrorOverrideCacheCompletedHandler*
       handler);
