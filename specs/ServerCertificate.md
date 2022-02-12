@@ -22,9 +22,9 @@ We also propose adding a `ClearServerCertificateErrorOverrideCache` API that cle
 
 ## Win32 C++
 ``` cpp
-// This example bypasses the default TLS interstitial page using the ReceivingServerCertificateError
-// event handler and continues with the navigation to a server with a TLS certificate that is signed by
-// an authority that WebView2 doesn't trust. Otherwise, cancel the request.
+// When WebView2 doesn't trust a TLS certificate but host app does, this example bypasses
+// the default TLS interstitial page using the ReceivingServerCertificateError event handler and
+// continues the navigation to a server. Otherwise, cancel the request.
 void SettingsComponent::EnableCustomServerCertificateError()
 {
   if (m_webview)
@@ -43,16 +43,16 @@ void SettingsComponent::EnableCustomServerCertificateError()
                CHECK_FAILURE(args->get_ServerCertificate(&certificate));
 
                // Continues with the navigation to a server with a TLS certificate if
-               // the certificate is invalid and signed by badssl authority.
+               // the error status is of type `COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_IS_INVALID`
+               // and trusted by the host app.
                if (errorStatus == COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_IS_INVALID &&
-                        (certificateAuthority.get() == L"*.badssl.com" ||
-                        certificateAuthority.get() == L"BadSSL Untrusted Root Certificate Authority"))
+                            ValidateServerCertificate(certificate.get()))
                {
                  CHECK_FAILURE(args->put_Handled(TRUE));
                }
                else
                {
-                 // Cancel the request.
+                 // Cancel the request for other TLS certificate error types or if untrusted by the host app.
                  CHECK_FAILURE(args->put_Cancel(TRUE));
                }
                return S_OK;
@@ -71,6 +71,20 @@ void SettingsComponent::EnableCustomServerCertificateError()
   {
     FeatureNotAvailable();
   }
+}
+
+// Function to validate the server certificate for untrusted root or self-signed certificate.
+bool ValidateServerCertificate(ICoreWebView2Certificate* certificate)
+{
+    // Get the list of host app trusted certificates and its thumbprint.
+
+    // Get last chain element using `get_PemEncodedIssuerCertificateChain` of `ICoreWebView2Certificate`
+    // that contain raw data of untrusted root CA/self signed certificate. Get the untrusted
+    // root CA/self signed certificate thumbprint from the raw certificate data and
+    // validate thumbprint against the host app trusted certificate list.
+
+    // Return true if it exist in host app certificate trusted list, otherwise return false.
+    return true;
 }
 
 // This example clears the TLS decision in response to proceeding with TLS certificate errors.
@@ -93,9 +107,9 @@ if (m_webview)
 ```
 ## . NET/ WinRT
 ```c#
-// This example bypasses the default TLS interstitial page using the ReceivingServerCertificateError
-// event handler and continues with the navigation to a server with a TLS certificate that is signed by
-// an authority that WebView2 doesn't trust. Otherwise, cancel the request.
+// When WebView2 doesn't trust a TLS certificate but host app does, this example bypasses
+// the default TLS interstitial page using the ReceivingServerCertificateError event handler and
+// continues the navigation to a server. Otherwise, cancel the request.
 private bool _isServerCertificateError = false;
 void EnableCustomServerCertificateError()
 {
@@ -119,19 +133,32 @@ void WebView_ReceivingServerCertificateError(object sender, CoreWebView2Receivin
   CoreWebView2Certificate certificate = e.ServerCertificate;
 
   // Continues with the navigation to a server with a TLS certificate if
-  // the certificate is invalid and signed by badssl authority.
+  // the error status is of type `COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_IS_INVALID`
+  // and trusted by the host app.
   if (e.ErrorStatus == CoreWebView2WebErrorStatus.CertificateIsInvalid &&
-      (certificate.Issuer == "*.badssl.com" ||
-      certificate.Issuer == "BadSSL Untrusted Root Certificate Authority"))
+                            ValidateServerCertificate(certificate))
   {
-    // Continue the request with the TLS certificate.
     e.Handled = true;
   }
   else
   {
-    // Cancel the request.
+    // Cancel the request for other TLS certificate error types or if untrusted by the host app.
     e.Cancel = true;
   }
+}
+
+// Function to validate the server certificate for untrusted root or self-signed certificate.
+bool ValidateServerCertificate(CoreWebView2Certificate certificate)
+{
+    // Get the list of host app trusted certificates and its thumbprint.
+
+    // Get last chain element using `PemEncodedIssuerCertificateChain` property of `CoreWebView2Certificate`
+    // that contain raw data of untrusted root CA/self signed certificate. Get the untrusted
+    // root CA/self signed certificate thumbprint from the raw certificate data and
+    // validate thumbprint against the host app trusted certificate list.
+
+    // Return true if it exist in host app certificate trusted list, otherwise return false.
+    return true;
 }
 
 // This example clears the TLS decision in response to proceeding with TLS certificate errors.
