@@ -182,7 +182,7 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
   /// cannot verify server's digital certificate while loading a web page.
   ///
   /// This event will raise only for top-level navigations as WebView2 block or cancel the
-  /// request for sub resources with server certificate error. Also, this event follows
+  /// requests for sub-resources with server certificate errors, unless the server certificate for those sub-resources was previously allowed by the ReceivingServerCertificateError event. Also, this event follows
   /// the `NavigationStarting` event and comes before the `SourceChanged` event.
   ///
   /// With this event you have several options for responding to server
