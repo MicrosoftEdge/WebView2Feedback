@@ -4,7 +4,7 @@ Some developers may want to disable navigating back or forward to make a single 
 # Description
 We add new `AllowGoBack` and new `AllowGoForward` properties in `CoreWebView2Settings`.
 These two APIs allow end developers to toggle the allow go back and forward functionality easily.
-If we set these APIs to disabled, users can not navigate back and forward regardless of source (button click, xbutton click, key event and etc.). The `CanGoBack` and `CanGoForward` APIs will also return false if we set `AllowGoBack` and `AllowGoForward` to disabled.
+Although the CoreWebView2.NavigationStarting event can be used to cancel navigations it is not easy to distinguish between back and forward navigations from other sources of navigation. If we set these APIs to disabled, users can not navigate back and forward regardless of source (button click, xbutton click, key event and etc.). The `CanGoBack` and `CanGoForward` APIs will also return false if we set `AllowGoBack` and `AllowGoForward` to disabled.
 By default, `AllowGoBack` and `AllowGoForward` are enabled to keep consistent with the behavior we had before the APIs are added.
 These two settings changes will work in the next navigation, which means that changes made after `NavigatingStarting` event do not apply until the next top-level navigation.
 
@@ -91,10 +91,10 @@ See [API Details](#api-details) section below for API reference.
 /// A continuation of the ICoreWebView2Settings interface to manage allowing navigating
 /// back and forward.
 [uuid(d21886f5-03fd-4029-8179-d7ed9f726b06), object, pointer_default(unique)]
-interface ICoreWebView2Settings : IUnknown {
-  /// `AllowGoBack` controls whether allow user to navigate back. If it is false, we
-  /// will block all back navigations regardless of source (button click, xbutton click,
-  /// key event and etc.).
+interface ICoreWebView2Settings8 : ICoreWebView2Settings7 {
+  /// `AllowGoBack` controls whether the WebView2 is allowed to navigate back. If it is
+  /// false, we will block all back navigations regardless of source (button click, xbutton
+  /// click, key event and so on).
   /// The `CanGoBack` API will also return false if we set `AllowGoBack` to disabled.
   /// This setting changes will work in the next navigation, which means that changes made
   /// after `NavigatingStarting` event do not apply until the next top-level navigation.
@@ -102,9 +102,9 @@ interface ICoreWebView2Settings : IUnknown {
   [propget] HRESULT AllowGoBack([out, retval] BOOL* allow);
   /// Set the `AllowGoBack` property.
   [propput] HRESULT AllowGoBack([in] BOOL allow);
-  /// `AllowGoForward` controls whether allow user to navigate forward. If it is false, we
-  /// will block all forward navigations regardless of source (button click, xbutton click,
-  /// key event and etc.).
+  /// `AllowGoForward` controls whether the WebView2 is allowed to navigate forward. If it
+  /// is false, we will block all forward navigations regardless of source (button click, xbutton
+  /// click, key event and so on).
   /// The `CanGoForward` API will also return false if we set `AllowGoForward` to disabled.
   /// This setting changes will work in the next navigation, which means that changes made
   /// after `NavigatingStarting` event do not apply until the next top-level navigation.
@@ -119,24 +119,15 @@ interface ICoreWebView2Settings : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    public partial class CoreWebView2Settings
+    runtimeclass CoreWebView2Settings
     {
-        //
-        // Summary:
-        //     Gets or sets the WebViewSettings AllowGoBack property.
-        //
-        // Remarks:
-        //     The AllowGoBack is to configure the capability that allow navigating back from current website.
-        //     The default value is true.
-        public bool AllowGoBack { get; set; }
-        //
-        // Summary:
-        //     Gets or sets the WebViewSettings AllowGoForward property.
-        //
-        // Remarks:
-        //     The AllowGoBack is to configure the capability that allow navigating forward from current website.
-        //     The default value is true.
-        public bool AllowGoForward { get; set; }
+        // ...
+        
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Settings8")]
+        {
+            bool AllowGoBack { get; set; };
+            bool AllowGoForward { get; set; };
+        }
     }
 }
 ```
