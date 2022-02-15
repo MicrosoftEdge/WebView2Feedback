@@ -7,7 +7,7 @@ This API provides an option to trust the server's TLS certificate at the applica
 
 # Description
 
-We propose adding `ReceivingServerCertificateError` API that allows you to verify TLS certificate,  and either continue the request
+We propose adding `ReceivingServerCertificateError` API that allows you to verify TLS certificates with errors, and either continue the request
 to load the resource or cancel the request.
 
 When the event is raised, WebView2 will pass a `CoreWebView2ReceivingServerCertificateErrorEventArgs` , which lets you view the TLS certificate request Uri, error information, inspect the certificate metadata and several options for responding to the TLS request.
