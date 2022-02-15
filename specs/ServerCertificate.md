@@ -85,7 +85,7 @@ bool ValidateServerCertificate(ICoreWebView2Certificate* certificate)
     // root CA/self signed certificate thumbprint from the raw certificate data and
     // validate the thumbprint against the host app trusted certificate list.
 
-    // Return true if it exist in host app certificate trusted list, otherwise return false.
+    // Finally, return true if it exists in the host app's certificate trusted list, or otherwise return false.
     return true;
 }
 
