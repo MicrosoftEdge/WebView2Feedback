@@ -181,7 +181,7 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
   ///
   /// This event will raise only for top-level navigations as WebView2 block or cancel the
   /// request for sub resources with server certificate error. Also, this event follows
-  /// the `NavigationStarting` event.
+  /// the `NavigationStarting` event and comes before the `SourceChanged` event.
   ///
   /// With this event you have several options for responding to server
   /// certificate error requests:
