@@ -79,7 +79,7 @@ bool ValidateServerCertificate(ICoreWebView2Certificate* certificate)
     // Get the list of host app trusted certificates and its thumbprint.
 
     // Get last chain element using `get_PemEncodedIssuerCertificateChain` of `ICoreWebView2Certificate`
-    // that contain raw data of untrusted root CA/self signed certificate. Get the untrusted
+    // that contains the raw data of the untrusted root CA/self-signed certificate. Get the untrusted
     // root CA/self signed certificate thumbprint from the raw certificate data and
     // validate thumbprint against the host app trusted certificate list.
 
