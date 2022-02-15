@@ -2,7 +2,7 @@ Server Certificate API
 ===
 # Background
 
-The WebView2 team has been asked for an API to intercept when WebView2 cannot verify server's digital certificate while loading a web page.
+The WebView2 team has been asked for an API to intercept when WebView2 cannot verify a server's digital certificate while loading a web page.
 This API provides an option to trust the server's TLS certificate at the application level and render the page without prompting the user about the TLS error or can cancel the request.
 
 # Description
