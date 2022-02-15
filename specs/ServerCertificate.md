@@ -16,7 +16,7 @@ When the event is raised, WebView2 will pass a `CoreWebView2ReceivingServerCerti
 * You can choose to cancel the request.
 * You can choose to display the default TLS interstitial page to let user respond to the request.
 
-We also propose adding a `ClearServerCertificateErrorOverrideCache` API that clears certificate decisions that were added in response to proceeding with TLS certificate errors.
+We also propose adding a `ClearServerCertificateErrorOverrideCache` API that clears certificate decisions that were cached in response to proceeding with TLS certificate errors.
 
 # Examples
 
