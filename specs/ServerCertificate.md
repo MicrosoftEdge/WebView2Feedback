@@ -76,7 +76,9 @@ void SettingsComponent::EnableCustomServerCertificateError()
 // Function to validate the server certificate for untrusted root or self-signed certificate.
 bool ValidateServerCertificate(ICoreWebView2Certificate* certificate)
 {
-    // Get the list of host app trusted certificates and its thumbprint.
+    // You may want to validate certificates in different ways depending on your app and scenario.
+    // One way might be the following:
+    // First, get the list of host app trusted certificates and its thumbprint.
 
     // Then get the last chain element using `ICoreWebView2Certificate::get_PemEncodedIssuerCertificateChain`
     // that contains the raw data of the untrusted root CA/self-signed certificate. Get the untrusted
