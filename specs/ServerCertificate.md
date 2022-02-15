@@ -194,7 +194,7 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
   ///
   /// If you don't handle the event, WebView2 will show the default TLS interstitial page to user.
   ///
-  /// WebView2 caches the response when `Handled` is set `TRUE` for the host and certificate in the session
+  /// WebView2 caches the response when `Handled` is `TRUE` for the RequestUri's host and the server certificate in the session
   /// and the `ReceivingServerCertificateError` event won't be raised again for this host and certificate.
   ///
   /// To raise the event again you must clear the cache using `ClearServerCertificateErrorOverrideCache`.
