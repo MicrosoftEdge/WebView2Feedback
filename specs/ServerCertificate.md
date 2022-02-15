@@ -95,13 +95,18 @@ if (m_webview)
   CHECK_FAILURE(m_webView->ClearServerCertificateErrorOverrideCache(
         Callback<
             ICoreWebView2ClearServerCertificateErrorOverrideCacheCompletedHandler>(
-            [](HRESULT error, PCWSTR result) -> HRESULT {
+            [](HRESULT error, BOOL isSuccessful) -> HRESULT {
                 CHECK_FAILURE(error);
-                if (error != S_OK)
-                {
-                  ShowFailure( error,  L"Clear server certificate error override cache failed");
-                }
-                MessageBox(nullptr, L"Cleared", L"Clear server certificate error override cache", MB_OK);
+                auto showDialog = [isSuccessful] {
+                                MessageBox(
+                                    nullptr,
+                                    (isSuccessful)
+                                        ? L"Clear server certificate error override cache succeeded."
+                                        : L"Clear server certificate error override cache failed.",
+                                    L"Clear Server Certificate Error Override Cache",
+                                    MB_OK);
+                            };
+                m_appWindow->RunAsync([showDialog]() { showDialog(); });
                 return S_OK;
             })
             .Get()));
@@ -152,22 +157,27 @@ void WebView_ReceivingServerCertificateError(object sender, CoreWebView2Receivin
 // Function to validate the server certificate for untrusted root or self-signed certificate.
 bool ValidateServerCertificate(CoreWebView2Certificate certificate)
 {
-    // Get the list of host app trusted certificates and its thumbprint.
+    // You may want to validate certificates in different ways depending on your app and scenario.
+    // One way might be the following:
+    // First, get the list of host app trusted certificates and its thumbprint.
 
-    // Get last chain element using `PemEncodedIssuerCertificateChain` property of `CoreWebView2Certificate`
-    // that contain raw data of untrusted root CA/self signed certificate. Get the untrusted
+    // Then get the last chain element using `ICoreWebView2Certificate::get_PemEncodedIssuerCertificateChain`
+    // that contains the raw data of the untrusted root CA/self-signed certificate. Get the untrusted
     // root CA/self signed certificate thumbprint from the raw certificate data and
-    // validate thumbprint against the host app trusted certificate list.
+    // validate the thumbprint against the host app trusted certificate list.
 
-    // Return true if it exist in host app certificate trusted list, otherwise return false.
+    // Finally, return true if it exists in the host app's certificate trusted list, or otherwise return false.
     return true;
 }
 
 // This example clears the TLS decision in response to proceeding with TLS certificate errors.
 async void ClearServerCertificateErrorOverrideCache()
 {
-  await webView.CoreWebView2.ClearServerCertificateErrorOverrideCacheAsync();
-  MessageBox.Show(this, "Cleared", "Clear server certificate error override cache");
+  bool isSuccessful = await webView.CoreWebView2.ClearServerCertificateErrorOverrideCacheAsync();
+  string message = (isSuccessful) ?
+                        "Clear server certificate error override cache succeeded." :
+                        "Clear server certificate error override cache failed.";
+  MessageBox.Show(this, "message", "Clear server certificate error override cache");
 }
 ```
 
@@ -181,9 +191,7 @@ interface ICoreWebView2_11 : ICoreWebView2_10 {
   /// The ServerCertificateError event is raised when the WebView2
   /// cannot verify server's digital certificate while loading a web page.
   ///
-  /// This event will raise only for top-level navigations as WebView2 block or cancel the
-  /// requests for sub-resources with server certificate errors, unless the server certificate for those sub-resources was previously allowed by the ReceivingServerCertificateError event. Also, this event follows
-  /// the `NavigationStarting` event and comes before the `SourceChanged` event.
+  /// This event will raise for all web resources and follows the `WebResourceRequested` event.
   ///
   /// With this event you have several options for responding to server
   /// certificate error requests:
