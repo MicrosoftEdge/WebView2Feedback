@@ -1,104 +1,154 @@
 # Background
 
-We are exposing an event that will fire when an attempt to launch a registered protocol is made. The host will be given the option to cancel the launch, handle the popup dialog to hide the dialog, as well as revoke permissions that have been previously given to the origin launching the protocol. 
+We are exposing an event that will be raised when an attempt to launch an external protocol is made. The host will be given the option to cancel the launch, handle the popup dialog to hide the dialog, as well as disable the checkbox that, if selected, will give permissions to always allow the launch.
 
 # Description
 
-This event will fire before the registered protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a trustworthy origin a checkmark box will be displayed that will allow the user to always allow this registered protocol from this origin. The `NavigationStarting`, `NavigationCompleted`, `SourceChanged`, `ContentLoading`, and `HistoryChanged` events will not fire when a request is made to launch a registered protocol. 
+This event will be raised before the external protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a [trustworthy origin](#https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin) a checkmark box will be displayed that will allow the user to always allow this external protocol from this origin. The `NavigationStarting`, `NavigationCompleted`, `SourceChanged`, `ContentLoading`, and `HistoryChanged` events will not be raised when a request is made to launch an external protocol.
 
-There are two events associated with the registered protocol launch - one for the main frame, and one for non-main frame(s). In the case in which the launch request is made from a non-main frame, the frame will raise a `LaunchingRegisteredProtocol` event as well as `CoreWebView2.FrameLaunchingRegisteredProtocol` event. 
+The `LaunchingExternalProtocol` event will be raised on either `CoreWebView2` or `CoreWebView2Frame` depending on if the launch request is originating from the main frame or a non-main frame. A current limitation of our `CoreWebView2Frame` API is that it only supports top level iframes. Any nested iframes will not have a `CoreWebView2Frame` associated with them. In the case of a nested iframe requesting the external protocol launch, the event will be raised from the top level iframe.
 # Examples
 
 ## Win32 C++
     
 ```cpp 
 
-CHECK_FAILURE(m_webView->add_LaunchingRegisteredProtocol(
-    Callback<ICoreWebView2LaunchingRegisteredProtocolEventHandler>(
-        [this](
-            ICoreWebView2* sender,
-            ICoreWebView2LaunchingRegisteredProtocolEventArgs* args) {
-                wil::unique_cotaskmem_string uri;
-                CHECK_FAILURE(args->get_Uri(&uri));
-                if (wcscmp(uri.get(), L"calculator://") == 0)
-                {
-                    CHECK_FAILURE(args->put_Handled(TRUE));
-                    // If this matches our desired protocol, then suppress the
-                    // popup dialog.
-                }
-                else
-                {
-                    CHECK_FAILURE(args->put_Handled(FALSE));
-                    // Otherwise allow the popup dialog, and allow the user to decide
-                    // whether or not to allow the protocol to launch.
-                }
-            return S_OK;
-        })
-        .Get(),
-    &m_launchingRegisteredProtocolToken));
+AppWindow* m_appWindow;
+wil::com_ptr<ICoreWebView2> m_webView;
+EventRegistrationToken m_launchingExternalProtocolToken = {};
+EventRegistrationToken m_frameLaunchingExternalProtocolToken = {};
+EventRegistrationToken m_frameCreatedToken = {};
 
-CHECK_FAILURE(frame->add_LaunchingRegisteredProtocol(
-    Callback<ICoreWebView2FrameLaunchingRegisteredProtocolEventHandler>(
-        [this](
-            ICoreWebView2Frame* sender,
-            ICoreWebView2LaunchingRegisteredProtocolEventArgs* args) {
-                wil::unique_cotaskmem_string uri;
-                CHECK_FAILURE(args->get_Uri(&uri));
-                if (wcscmp(uri.get(), L"calculator://") == 0)
+void RegisterLaunchingExternalProtocolHandler()
+{
+    auto webView5 = m_webView.try_query<ICoreWebView2_5>();
+    if (webView5)
+    {
+        CHECK_FAILURE(webView5->add_LaunchingExternalProtocol(
+            Callback<ICoreWebView2LaunchingExternalProtocolEventHandler>(
+                [this](
+                    ICoreWebView2* sender,
+                    ICoreWebView2LaunchingExternalProtocolEventArgs* args) {
+                        wil::unique_cotaskmem_string uri;
+                        CHECK_FAILURE(args->get_Uri(&uri));
+                        if (wcsicmp(uri.get(), L"calculator://") == 0)
+                        {
+                            CHECK_FAILURE(args->put_Handled(TRUE));
+                            // If this matches our desired protocol, then suppress the
+                            // popup dialog.
+                        }
+                        else
+                        {
+                            // Otherwise allow the popup dialog, and allow the user to decide
+                            // whether or not to allow the protocol to launch.
+                        }
+                    return S_OK;
+                })
+                .Get(),
+            &m_launchingExternalProtocolToken));
+    }
+    auto webView4 = m_webview.try_query<ICoreWebView2_4>();
+    if (webView4)
+    {
+        // Note that FrameCreated will only ever be raised for top level iframes.
+        // However, any launching external protocol requests from nested iframes 
+        // will be raised from the top level frame.
+        CHECK_FAILURE(webView4->add_FrameCreated(
+            Callback<ICoreWebView2FrameCreatedEventHandler>(
+                [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args) -> HRESULT
                 {
-                    // If this matches our desired protocol, then suppress the
-                    // popup dialog.
-                    CHECK_FAILURE(args->put_Handled(TRUE));
-                }
-                else
-                {
-                    // Otherwise revoke permissions previously granted to this protocol 
-                    // from this origin. This will trigger the dialog to appear to allow the user
-                    // to confirm or deny the protocol launch.
-                    CHECK_FAILURE(args->put_RevokeProtocolPermissionsPerOrigin(TRUE));
-                }
-                return S_OK;
-        })
-        .Get(),
-    &m_frameLaunchingRegisteredProtocolToken));
+                    wil::com_ptr<ICoreWebView2Frame> webViewFrame;
+                    CHECK_FAILURE(args->get_Frame(&webViewFrame));
+
+                    auto webViewFrame3 = webViewFrame.try_query<ICoreWebView2Frame3>();
+                    if (webViewFrame3)
+                    {
+                        CHECK_FAILURE(webViewFrame3->add_LaunchingExternalProtocol(
+                        Callback<ICoreWebView2FrameLaunchingExternalProtocolEventHandler>(
+                            [this](
+                                ICoreWebView2Frame* sender,
+                                ICoreWebView2LaunchingExternalProtocolEventArgs* args) {
+                                    wil::unique_cotaskmem_string uri;
+                                    CHECK_FAILURE(args->get_Uri(&uri));
+                                    if (wcsicmp(uri.get(), L"calculator://") == 0)
+                                    {
+                                        // If this matches our desired protocol, then suppress the
+                                        // popup dialog.
+                                        CHECK_FAILURE(args->put_Handled(TRUE));
+                                    }
+                                    else
+                                    {
+                                        // Otherwise revoke permissions previously granted to this protocol 
+                                        // from this origin as well as disable the always open checkbox.
+                                        CHECK_FAILURE(args->put_DisableAlwaysOpenCheckbox(TRUE));
+                                    }
+                                    return S_OK;
+                            })
+                            .Get(),
+                        &m_frameLaunchingExternalProtocolToken));
+                    }
+                    return S_OK;
+            }).Get(),
+            &m_frameCreatedToken));
+    }
+}
     
-``` 
+```
 
 ## .NET and WinRT
 
 ```c #
-
-void WebView_LaunchingRegisteredProtocol(object target, CoreWebView2LaunchingRegisteredProtocolEventArgs e)
+private WebView2 webView;
+void RegisterLaunchingExternalProtocolHandler() 
 {
-    if (e.Uri == "calculator:///") 
+    // Safeguarding the handler when unsupported runtime is used.
+    try
     {
-        // If this matches our desired protocol, then suppress the popup dialog.
-        e.Handled = true;
-    }
-    else 
-    {
-        // Otherwise allow the popup dialog, and allow the user to decide 
-        // whether or not to allow the protocol to launch.
-        e.Handled = false;
-    }
-    webView.CoreWebView2.FrameCreated += (sender, args) =>
-    {
-        // Apply the same logic as above to non-main frame raising the event.
-        args.Frame.LaunchingRegisteredProtocol += (frameSender, LaunchingRegisteredProtocolArgs) =>
-        {
-            if (LaunchingRegisteredProtocolArgs.Uri == "calculator:///") 
+        webView.CoreWebView2.LaunchingExternalProtocol += (CoreWebView2 sender, CoreWebView2LaunchingExternalProtocolEventArgs e) {
+            if (e.Uri == "calculator:///") 
             {
                 // If this matches our desired protocol, then suppress the popup dialog.
                 e.Handled = true;
             }
             else 
             {
-                // Otherwise revoke permissions previously granted to this protocol 
-                // from this origin. This will trigger the dialog to appear to allow the user
-                // to confirm or deny the protocol launch.
-                e.RevokeProtocolPermissionsPerOrigin = true;
+                // Otherwise allow the popup dialog, and allow the user to decide 
+                // whether or not to allow the protocol to launch.
             }
         };
+    }
+    catch (NotImplementedException exception) 
+    {
+        // If the runtime support is not there we probably want this
+        // to be a no-op.
+    }
+
+    webView.CoreWebView2.FrameCreated += (CoreWebView2Frame sender, CoreWebView2FrameCreatedEventArgs args) =>
+    {
+        // Safeguarding the handler when unsupported runtime is used.
+        try
+        {
+            // Apply the same logic as above to non-main frame raising the event.
+            args.Frame.LaunchingExternalProtocol += (LaunchingExternalProtocolSender, LaunchingExternalProtocolArgs) =>
+            {
+                if (LaunchingExternalProtocolArgs.Uri == "calculator:///") 
+                {
+                    // If this matches our desired protocol, then suppress the popup dialog.
+                    LaunchingExternalProtocolArgs.Handled = true;
+                }
+                else 
+                {
+                    // Otherwise revoke permissions previously granted to this protocol 
+                    // from this origin as well as disable the always open checkbox.
+                    LaunchingExternalProtocolArgs.DisableAlwaysOpenCheckbox = true;
+                }
+            };
+        }
+        catch (NotImplementedException exception)
+        {
+            // If the runtime support is not there we probably want this
+            // to be a no-op.
+        }
     };
 }
 
@@ -116,78 +166,67 @@ See [API Details](#api-details) section below for API reference.
 // This is the ICoreWebView2_11 interface.
 [uuid(cc39bea3-d6d8-471b-919f-da253e2fbf03), object, pointer_default(unique)] 
 interface ICoreWebView2_11 : IUnknown {
-  /// Add an event handler for the `RegisteredProtocol` event.
-  /// The RegisteredProtocol event fires when a launch request is made to a protocol
-  /// that is registered with the Windows OS. The host has the option to
+  /// Add an event handler for the `LaunchingExternalProtocol` event.
+  /// The `LaunchingExternalProtocol` event is raised when a launch request is made to a
+  /// protocol that is registered with the OS. The host has the option to
   /// handle this event by suppressing the popup dialog that gives the user
   /// the option to allow the protocol launch. The host also has the option to
   /// programatically cancel the protocol launch.
-  /// The host also is given the opportunity to revoke previous permissions 
-  /// given to this origin to launch the protocol automatically.
+  /// The host also is given the opportunity to disable the always open checkbox 
+  /// which also revokes previous permissions given to this protocol/origin.
   /// The `NavigationStarting`, `NavigationCompleted, `SourceChanged`,
-  /// `ContentLoading`, and `HistoryChanged` events will not fire, regardless
+  /// `ContentLoading`, and `HistoryChanged` events will not be raised, regardless
   /// of whether the `Cancel` or `Handled` property is set to `TRUE` or
   /// `FALSE`. This behavior holds true for the frame navigation events as
   /// well.
-  HRESULT add_LaunchingRegisteredProtocol(
-      [in] ICoreWebView2LaunchingRegisteredProtocolEventHandler* eventHandler,
+  HRESULT add_LaunchingExternalProtocol(
+      [in] ICoreWebView2LaunchingExternalProtocolEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with
-  /// `add_LaunchingRegisteredProtocol`.
-  HRESULT remove_LaunchingRegisteredProtocol(
+  /// `add_LaunchingExternalProtocol`.
+  HRESULT remove_LaunchingExternalProtocol(
       [in] EventRegistrationToken token);
 }
 
 // This is the ICoreWebView2Frame3 interface.
 [uuid(fe1d3718-fe8d-48ab-8594-9e3fff6755ac), object, pointer_default(unique)] 
 interface ICoreWebView2Frame3 : IUnknown {
-  /// Add an event handler for the `FrameRegisteredProtocol` event.
-  /// A frame will raise a `LaunchingRegisteredProtocol` event and
-  /// a `CoreWebView2.FrameLaunchingRegisteredProtocol` event. All of the
-  /// `FrameLaunchingRegisteredProtocol` event handlers for the current 
-  /// frame will be run before the `LaunchingRegisteredProtocol` event handlers. 
-  /// All of the event handlers share a common `LaunchingRegisteredProtocolEventArgs` 
-  /// object. Whichever event handler is last to change the 
-  /// `LaunchingRegisteredProtocolEventArgs.Cancel` property will
-  /// decide if the frame protocol request launch will be cancelled. 
-  /// Whichever event handler is last to change the
-  /// `LaunchingRegisteredProtocolEventArgs.Handled` property will decide if
-  /// the dialog will be suppressed. Whichever event handler is last to change the 
-  /// `LaunchingRegisteredProtocolEventArgs.RevokeProtocolPermissionsPerOrigin` 
-  /// property will determine if the permissions for that origin per protocol
-  /// will be revoked. 
+  /// Add an event handler for the `LaunchingExternalProtocol` event.
+  /// A frame will raise a `LaunchingExternalProtocol` event when any non-main
+  /// frames attempt to launch an external protocol. This event aligns with the 
+  /// event raised on the `CoreWebView2` interface. 
 
-  HRESULT add_LaunchingRegisteredProtocol(
-      [in] ICoreWebView2FrameLaunchingRegisteredProtocolEventHandler* eventHandler,
+  HRESULT add_LaunchingExternalProtocol(
+      [in] ICoreWebView2FrameLaunchingExternalProtocolEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Remove an event handler previously added with `add_LaunchingRegisteredProtocol`.
-  HRESULT remove_LaunchingRegisteredProtocol(
+  /// Remove an event handler previously added with `add_LaunchingExternalProtocol`.
+  HRESULT remove_LaunchingExternalProtocol(
       [in] EventRegistrationToken token);
 }
 
-/// Receives `LaunchingRegisteredProtocol` events for main frame.
+/// Receives `LaunchingExternalProtocol` events for main frame.
 [uuid(e5fea648-79c9-47aa-8314-f471fe627649), object, pointer_default(unique)] 
-interface ICoreWebView2LaunchingRegisteredProtocolEventHandler: IUnknown {
+interface ICoreWebView2LaunchingExternalProtocolEventHandler: IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2* sender,
-      [in] ICoreWebView2LaunchingRegisteredProtocolEventArgs* args);
+      [in] ICoreWebView2LaunchingExternalProtocolEventArgs* args);
 }
 
-/// Receives `LaunchingRegisteredProtocol` events for non-main frame.
+/// Receives `LaunchingExternalProtocol` events for non-main frame.
 [uuid(a898c12c-f949-474c-913b-428770cfc177), object, pointer_default(unique)] 
-interface ICoreWebView2FrameLaunchingRegisteredProtocolEventHandler: IUnknown {
+interface ICoreWebView2FrameLaunchingExternalProtocolEventHandler: IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2Frame* sender,
-      [in] ICoreWebView2LaunchingRegisteredProtocolEventArgs* args);
+      [in] ICoreWebView2LaunchingExternalProtocolEventArgs* args);
 }
 
-/// Event args for `LaunchingRegisteredProtocol` event.
+/// Event args for `LaunchingExternalProtocol` event.
 [uuid(fc43b557-9713-4a67-af8d-a76ef3a206e8), object, pointer_default(unique)] 
-interface ICoreWebView2LaunchingRegisteredProtocolEventArgs: IUnknown {
+interface ICoreWebView2LaunchingExternalProtocolEventArgs: IUnknown {
   /// The uri of the requested protocol.
 
   [propget] HRESULT Uri([out, retval] LPWSTR* uri);
@@ -198,38 +237,40 @@ interface ICoreWebView2LaunchingRegisteredProtocolEventArgs: IUnknown {
 
   [propget] HRESULT Cancel([out, retval] BOOL* cancel);
 
-  /// Sets the `Cancel` property.
+  /// Sets the `Cancel` property. The default value is `FALSE`.
 
   [propput] HRESULT Cancel([in] BOOL cancel);
 
   /// The host may set this flag to `TRUE` to hide the dialog.
   /// The protocol request will continue as normal if it is not
-  /// cancelled, although there will be no default UI shown. By default the
-  /// value is `FALSE` and the default registered protocol dialog is shown.
+  /// cancelled, although there will be no default UI shown. The default
+  /// value is `FALSE` and the default external protocol dialog is shown.
 
   [propget] HRESULT Handled([out, retval] BOOL* handled);
 
-  /// Sets the `Handled` property.
+  /// Sets the `Handled` property. The default value is `FALSE`.
 
   [propput] HRESULT Handled([in] BOOL handled);
 
-  /// The host may set this flag to `TRUE` to revoke previous permissions given
-  /// to this protocol/origin. In the case in which the registered protocol
-  /// launch is being requested from a trustworthy origin, the dialog
-  /// prompt (if not handled) will display a checkbox that gives the user the option to
+  /// The host may set this flag to `TRUE` to disable the always open checkbox. 
+  /// This will also revoke previous permissions given to this protocol/origin.
+  /// The always open checkbox is displayed only when the 
+  /// launch is being requested from a trustworthy origin and gives the user the option to
   /// always allow this origin to open links of this type in the associated app.
-  /// Once checked by the user, this protocol for this origin will be launched automatically
-  /// without displaying the dialog prompt.
-  /// If the `Cancel` property is set to `TRUE` while this property is set to
-  /// `TRUE` the registered protocol will not be launched in this instance. If `Handled` is set  
-  /// to `TRUE` the dialog prompt will still be disabled regardless of this property, but the 
-  /// permissions will be revoked in the future if this property is set to `TRUE`. 
+  /// See [trustworthy origin]
+  /// (https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin) 
+  /// for more information regarding trustworthy origins. See [always open checkbox]
+  /// (https://docs.microsoft.com/en-us/DeployEdge/microsoft-edge-policies#externalprotocoldialogshowalwaysopencheckbox)
+  /// for more information regarding the always open checkbox.
+  /// Permissions will be revoked in the future if this property is set to `TRUE` regardless of the 
+  /// values of the `Cancel` or `Handled` properties. 
+  /// The default value is `FALSE`.
 
-  [propget] HRESULT RevokeProtocolPermissionsPerOrigin(
-      [out, retval] BOOL* revokeProtocolPermissionsPerOrigin);
+  [propget] HRESULT DisableAlwaysOpenCheckbox(
+      [out, retval] BOOL* disableAlwaysOpenCheckbox);
 
-  /// Sets the `RevokeProtocolPermissionsPerOrigin` property.
-  [propput] HRESULT RevokeProtocolPermissionsPerOrigin([in] BOOL revokeProtocolPermissionsPerOrigin);
+  /// Sets the `DisableAlwaysOpenCheckbox` property.
+  [propput] HRESULT DisableAlwaysOpenCheckbox([in] BOOL disableAlwaysOpenCheckbox);
 }
 
 ``` 
@@ -238,27 +279,27 @@ interface ICoreWebView2LaunchingRegisteredProtocolEventArgs: IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2LaunchingRegisteredProtocolEventArgs;
+    runtimeclass CoreWebView2LaunchingExternalProtocolEventArgs;
     
-    runtimeclass CoreWebView2LaunchingRegisteredProtocolEventArgs
+    runtimeclass CoreWebView2LaunchingExternalProtocolEventArgs
     {
-        // CoreWebView2LaunchingRegisteredProtocolEventArgs members
+        // CoreWebView2LaunchingExternalProtocolEventArgs members
         String Uri { get; };
         Boolean Cancel { get; set; };
         Boolean Handled {get; set; };
-        Boolean RevokeProtocolPermissionsPerOrigin {get; set; };
+        Boolean DisableAlwaysOpenCheckbox {get; set; };
     }
 
     runtimeclass CoreWebView2
     {
         // CoreWebView2 
-        event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2LaunchingRegisteredProtocolEventArgs> LaunchingRegisteredProtocolEventArgs;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2LaunchingExternalProtocolEventArgs> LaunchingExternalProtocol;
     }
 
     runtimeclass CoreWebView2Frame
     {
         //CoreWebView2Frame
-        event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, CoreWebView2LaunchingRegisteredProtocolEventArgs> LaunchingRegisteredProtocolEventArgs;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, CoreWebView2LaunchingExternalProtocolEventArgs> LaunchingExternalProtocol;
     }
 }
 ```
