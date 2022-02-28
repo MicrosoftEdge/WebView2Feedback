@@ -1,6 +1,3 @@
-StatusCode
-===
-
 # Background
 In the `NavigationCompleted` event, the `WebErrorStatus` property provides information about why a
 navigation may have failed.  However, this is more geared toward network failures, and doesn't
