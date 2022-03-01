@@ -19,8 +19,8 @@ The following code snippets demonstrate how the ExecuteScriptWithResult can be u
 ``` cpp
 void ScriptComponent::ExecuteScriptWithResult(LPCWSTR script)
 {
-    wil::com_ptr<ICoreWebView2Staging2> webview2 =
-        m_webView.try_query<ICoreWebView2Staging2>();
+    wil::com_ptr<ICoreWebView2_10> webview2 =
+        m_webView.try_query<ICoreWebView2_10>();
 
     // The main interface for excute script, the first param is the string
     // which user want to execute, the second param is the callback to process
@@ -29,10 +29,10 @@ void ScriptComponent::ExecuteScriptWithResult(LPCWSTR script)
         script,
         // The callback function has two param, the first one is the status of call.
         // it will always be the S_OK for now, and the second is the result struct.
-        Callback<ICoreWebView2StagingExecuteScriptWithResultCompletedHandler>(
+        Callback<ICoreWebView2ExecuteScriptWithResultCompletedHandler>(
             [this](
                 HRESULT errorCode
-                ICoreWebView2StagingExecuteScriptResult* result) -> HRESULT
+                ICoreWebView2ExecuteScriptResult* result) -> HRESULT
             {
                 if (errorCode != S_OK || result == nullptr) 
                 {
@@ -41,7 +41,7 @@ void ScriptComponent::ExecuteScriptWithResult(LPCWSTR script)
                 }
                 else 
                 {
-                    wil::com_ptr<ICoreWebView2StagingExecuteScriptException> exception;
+                    wil::com_ptr<ICoreWebView2ExecuteScriptException> exception;
                     BOOL is_success;
 
                     // User should always invoke the get_IsSuccess firstly to get the execution status.
@@ -164,7 +164,7 @@ void ExecuteScriptWithResultAsync(String script)
 /// This is the exception struct when ExecuteScriptWithResult return false, user can
 /// use get_Exception to get it.
 [uuid(82F22B72-1B22-403E-A0B9-A8816C9C8E45), object, pointer_default(unique)]
-interface ICoreWebView2StagingExecuteScriptException : IUnknown {
+interface ICoreWebView2ExecuteScriptException : IUnknown {
 
   /// This will return the exception className, it would be got from the 
   /// `result.exceptionDetail.exception.className` in json result, this
@@ -186,7 +186,7 @@ interface ICoreWebView2StagingExecuteScriptException : IUnknown {
 
 /// This is the result for ExecuteScriptWithResult.
 [uuid(D2C59C5C-AD36-4CF4-87CF-2F5359F6D4CB), object, pointer_default(unique)]
-interface ICoreWebView2StagingExecuteScriptResult : IUnknown {
+interface ICoreWebView2ExecuteScriptResult : IUnknown {
 
   /// This property is true if ExecuteScriptWithResult successfully executed script with
   /// no unhandled exceptions and the result is available in the ResultAsJson property
@@ -206,28 +206,28 @@ interface ICoreWebView2StagingExecuteScriptResult : IUnknown {
   /// If IsSuccess return failed, user can use this interface to get exception to handle, 
   /// otherwise return E_INVALIDARG.
   [propget] HRESULT Exception(
-      [out, retval] ICoreWebView2StagingExecuteScriptException** exception);
+      [out, retval] ICoreWebView2ExecuteScriptException** exception);
 }
 
 /// This is the callback for ExecuteScriptWithResult
 [uuid(CECDD25B-E6E8-4A4E-B890-BBF95932564F), object, pointer_default(unique)]
-interface ICoreWebView2StagingExecuteScriptWithResultCompletedHandler : IUnknown {
+interface ICoreWebView2ExecuteScriptWithResultCompletedHandler : IUnknown {
 
   /// Provides the event args for the execute result.
   HRESULT Invoke(
       [in] HRESULT errorCode, 
-      [in] ICoreWebView2StagingExecuteScriptResult* result);
+      [in] ICoreWebView2ExecuteScriptResult* result);
 }
 
 /// This is the interface for getting string and exception with ExecuteScriptWithResult
 [uuid(67E0B57B-1AC7-4395-9793-5E4EF9C4B7D9), object, pointer_default(unique)]
-interface ICoreWebView2Staging2 : IUnknown {
+interface ICoreWebView2_10 : IUnknown {
   
   /// New execute javascript for user can get the string result and can get exception
   /// if execution fails.
   HRESULT ExecuteScriptWithResult(
       [in] LPCWSTR javaScript,
-      [in] ICoreWebView2StagingExecuteScriptWithResultCompletedHandler* handler);
+      [in] ICoreWebView2ExecuteScriptWithResultCompletedHandler* handler);
 }
 ```
 
