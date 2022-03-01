@@ -73,7 +73,7 @@ void NavigationCompletedSample()
 {
     _webview.NavigationCompleted += (object sender, CoreWebView2NavigationCompletedEventArgs args) =>
     {
-        int status_code = args.StatusCode;
+        int statusCode = args.StatusCode;
         if (status_code == 403)
         {
             ReportForbidden();
