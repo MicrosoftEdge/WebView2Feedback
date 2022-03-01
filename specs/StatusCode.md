@@ -15,7 +15,8 @@ the NavigationCompleted event.
 # Description
 The `NavigationCompletedEventArgs` interface will be given a new property, `StatusCode`, which has
 the HTTP status code of the navigation if it involved an HTTP request.  For instance, this will
-usually be 200 if the request was successful, 404 if page was not found, etc.
+usually be 200 if the request was successful, 404 if a page was not found, etc.  See
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Status for a list of common status codes.
 
 The `StatusCode` property will be 0 in the following cases:
 * The navigation did not involve an HTTP request.  For instance, if it was a navigation to a
@@ -43,7 +44,7 @@ void NavigationCompletedSample()
                 ICoreWebView2* sender,
                 ICoreWebView2NavigationCompletedEventArgs* args)
             {
-                ICoreWebView2NavigationCompletedEventArgs2* args2;
+                wil::com_ptr<ICoreWebView2NavigationCompletedEventArgs2> args2;
                 args->QueryInterface(IID_PPV_ARGS(&args2));
                 if (args2)
                 {
@@ -95,7 +96,30 @@ void NavigationCompletedSample()
 ```
 [uuid(6ECF0A0D-D45D-4279-B17E-6E5DC496BA38), object, pointer_default(unique)]
 interface ICoreWebViewNavigationCompletedEventArgs2 : ICoreWebView2NavigationCompletedEventArgs {
-    [propget] HRESULT StatusCode([out, retval] int* status_code);
+    /// The HTTP status code of the navigation if it involved an HTTP request.
+    /// For instance, this will usually be 200 if the request was successful, 404
+    /// if a page was not found, etc.  See
+    /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Status for a list of
+    /// common status codes.
+    ///
+    /// The `StatusCode` property will be 0 in the following cases:
+    /// * The navigation did not involve an HTTP request.  For instance, if it was
+    ///   a navigation to a file:// URL, or if it was a same-document navigation.
+    /// * The navigation failed before a response was received.  For instance, if
+    ///   the hostname was not found, or if there was a network error.
+    ///
+    /// In those cases, you can get more information from the `IsSuccess` and
+    /// `WebErrorStatus` properties.
+    ///
+    /// If the navigation receives a successful HTTP response, but the navigated
+    /// page calls `window.stop()` before it finishes loading, then `StatusCode`
+    /// may contain a success code like 200, but `IsSuccess` will be FALSE and
+    /// `WebErrorStatus` will be `COREWEBVIEW2_WEB_ERROR_STATUS_CONNECTION_ABORTED`.
+    ///
+    /// Since WebView2 handles HTTP continuations and redirects automatically, it
+    /// is unlikely for `StatusCode` to ever be in the 1xx or 3xx ranges.
+
+    [propget] HRESULT StatusCode([out, retval] INT* status_code);
 }
 ```
 
