@@ -203,7 +203,7 @@ interface ICoreWebView2ExecuteScriptResult : IUnknown {
   /// and otherwise returns E_INVALIDARG.
   HRESULT TryGetResultAsString([out, retval] LPWSTR* stringResult);
 
-  /// If IsSuccess return failed, user can use this interface to get exception to handle, 
+  /// If IsSuccess is false, you can use this property to get the unhandled exception thrown by script execution
   /// otherwise return E_INVALIDARG.
   [propget] HRESULT Exception(
       [out, retval] ICoreWebView2ExecuteScriptException** exception);
