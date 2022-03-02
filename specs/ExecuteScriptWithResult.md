@@ -164,7 +164,7 @@ void ExecuteScriptWithResultAsync(String script)
 /// This interface represents a JavaScript exception. If the CoreWebView2.ExecuteScriptWithResult result has IsSuccessful as false, you can use the result's Exception property to get the script exception.
 /// use get_Exception to get it.
 [uuid(82F22B72-1B22-403E-A0B9-A8816C9C8E45), object, pointer_default(unique)]
-interface ICoreWebView2ExecuteScriptException : IUnknown {
+interface ICoreWebView2ScriptException : IUnknown {
     /// The line number of the source where the exception occurred.
     [propget] HRESULT LineNumber([out, retval] UINT* value);
     /// The column number of the source where the exception occurred.
