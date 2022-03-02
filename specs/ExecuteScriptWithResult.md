@@ -213,7 +213,7 @@ interface ICoreWebView2ExecuteScriptResult : IUnknown {
 [uuid(CECDD25B-E6E8-4A4E-B890-BBF95932564F), object, pointer_default(unique)]
 interface ICoreWebView2ExecuteScriptWithResultCompletedHandler : IUnknown {
 
-  /// Provides the event args for the execute result.
+  /// Provides the result of ExecuteScriptWithResult
   HRESULT Invoke(
       [in] HRESULT errorCode, 
       [in] ICoreWebView2ExecuteScriptResult* result);
