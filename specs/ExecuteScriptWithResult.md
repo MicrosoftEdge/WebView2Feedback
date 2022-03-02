@@ -221,7 +221,7 @@ interface ICoreWebView2ExecuteScriptWithResultCompletedHandler : IUnknown {
 
 /// This is the interface for getting string and exception with ExecuteScriptWithResult
 [uuid(67E0B57B-1AC7-4395-9793-5E4EF9C4B7D9), object, pointer_default(unique)]
-interface ICoreWebView2_10 : IUnknown {
+interface ICoreWebView2_10 : ICoreWebView2_9 {
   
   /// New execute javascript for user can get the string result and can get exception
   /// if execution fails.
