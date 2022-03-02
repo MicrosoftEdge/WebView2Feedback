@@ -195,7 +195,7 @@ interface ICoreWebView2ExecuteScriptResult : IUnknown {
   /// can get via the Exception property.
   [propget] HRESULT IsSuccess([out, retval] BOOL* value); 
 
-  /// If IsSuccess return true, then this interface will return the raw json data for user
+  /// If IsSuccess is true, then this property is the JSON representation of the result of the script execution
   /// var the jsonResult, otherwise return E_INVALIDARG.
   [propget] HRESULT ResultAsJson([out, retval] LPWSTR* jsonResult);
 
