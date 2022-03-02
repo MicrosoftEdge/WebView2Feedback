@@ -204,7 +204,7 @@ interface ICoreWebView2ExecuteScriptResult : IUnknown {
   HRESULT TryGetResultAsString([out, retval] LPWSTR* stringResult);
 
   /// If IsSuccess is false, you can use this property to get the unhandled exception thrown by script execution
-  /// otherwise return E_INVALIDARG.
+  /// and otherwise returns E_INVALIDARG.
   [propget] HRESULT Exception(
       [out, retval] ICoreWebView2ExecuteScriptException** exception);
 }
