@@ -223,7 +223,7 @@ interface ICoreWebView2ExecuteScriptWithResultCompletedHandler : IUnknown {
 [uuid(67E0B57B-1AC7-4395-9793-5E4EF9C4B7D9), object, pointer_default(unique)]
 interface ICoreWebView2_10 : ICoreWebView2_9 {
   
-  /// New execute javascript for user can get the string result and can get exception
+  /// Allows you to execute JavaScript and receive the successful result as JSON or as a string, or in the case of an unhandled exception you can get the exception.
   /// if execution fails.
   HRESULT ExecuteScriptWithResult(
       [in] LPCWSTR javaScript,
