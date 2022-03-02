@@ -252,6 +252,7 @@ namespace Microsoft.Web.WebView2.Core
         String ResultAsJson { get; };
 
         String TryGetResultAsString();
+        CoreWebView2ExecuteScriptException Exception { get; };
     }
 
     runtimeclass CoreWebView2ExecuteScriptException
