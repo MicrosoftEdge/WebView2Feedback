@@ -1,17 +1,17 @@
 # Background
-Since the current ExecuteStrip interface is a little shabby, it is necessary
-to provide a new interface to let the user get more infomation, and easier to use.
-The new interface will provide the exception infomation if the script execute
-failed, and provide a new method to try to get the string to resolve the problem
-that the old interface is not friendly to the string return type.
+Our end developers have pointed out gaps in the existing CoreWebView2.ExecuteScript method, and it is necessary
+to provide a new method to let our end developers get more information in a more convenient manner.
+The new ExecuteScriptWithResult method will provide exception information if the executed script
+failed, and provides a new method to try to get the script execution result as a string rather than as JSON
+in order to make it more convenient to interact with string results.
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
 We propose extending `CoreWebView2` to provide an `ExecuteScriptWithResult` 
-method. The method will return a struct to manage the execute result, which can
-get the raw result and string if execute success, and can get exception when
-execute failed.
+method. The method acts like ExecuteScript, but returns a CoreWebView2ExecuteScriptResult object that can be used to
+get the script execution result as a JSON string or as a string value if execution succeeds, and can be used to get the exception when
+execution failed.
 
 # Examples
 The following code snippets demonstrate how the ExecuteScriptWithResult can be used:
@@ -161,12 +161,16 @@ void ExecuteScriptWithResultAsync(String script)
 # API Details
 ## Win32 C++
 ```c++
-/// This is the exception struct when ExecuteScriptWithResult return false, user can
+/// This interface represents a JavaScript exception. If the CoreWebView2.ExecuteScriptWithResult result has IsSuccessful as false, you can use the result's Exception property to get the script exception.
 /// use get_Exception to get it.
 [uuid(82F22B72-1B22-403E-A0B9-A8816C9C8E45), object, pointer_default(unique)]
 interface ICoreWebView2ExecuteScriptException : IUnknown {
+    /// The line number of the source where the exception occurred.
+    [propget] HRESULT LineNumber([out, retval] UINT* value);
+    /// The column number of the source where the exception occurred.
+    [propget] HRESULT ColumnNumber([out, retval] UINT* value);
 
-  /// This will return the exception className, it would be got from the 
+  /// The Name is the exception's class name. In the JSON it is `exceptionDetail.exception.className`. This is the empty string if the exception doesn't have a class name. This can happen if the script throws a non-Error object such as `throw "abc";`
   /// `result.exceptionDetail.exception.className` in json result, this
   /// could be empty if the exception doesn't have the specified element, 
   /// such as user active throw an exception like `throw "abc"`.
@@ -178,10 +182,10 @@ interface ICoreWebView2ExecuteScriptException : IUnknown {
   /// such as user active throw an exception like `throw "abc"`.
   [propget] HRESULT Message([out, retval] LPWSTR* value);
 
-  /// This will return the exception detail, it's a json struct with complete information for
+  /// This will return all details of the exception as a JSON string. In the case that script has thrown a non-Error object such as `throw "abc";` or any other non-Error object, you can get object specific properties.
   /// exception, if get_Name and get_Exception is not enough, user can use this interface and 
   /// get what they want.
-  [propget] HRESULT Detail([out, retval] LPWSTR* detail);
+  [propget] HRESULT ExceptionAsJSON([out, retval] LPWSTR* value);
 }
 
 /// This is the result for ExecuteScriptWithResult.
