@@ -7,6 +7,39 @@ We propose a new Webview2 event which would allow developers to access the curre
 # Examples
 ## Win32 C++ Registering a listener for favicon changes
 ```cpp
+m_webView2->add_FaviconChanged(
+    Callback<ICoreWebView2FaviconChangedEventHandler>(
+        [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
+            wil::unique_cotaskmem_string url;
+            Microsoft::WRL::ComPtr<ICoreWebView2Experimental12>
+                webview2Experimental;
+            CHECK_FAILURE(
+                sender->QueryInterface(IID_PPV_ARGS(&webview2Experimental)));
+
+            CHECK_FAILURE(webview2Experimental->get_FaviconUri(&url));
+            std::wstring strUrl(url.get());
+
+            webview2Experimental->GetFavicon(
+                COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG,
+                Callback<ICoreWebView2ExperimentalGetFaviconCompletedHandler>(
+                    [this, strUrl](IStream* iconStream) -> HRESULT
+                    {
+                        Gdiplus::Bitmap iconBitmap(iconStream);
+                        wil::unique_hicon icon;
+                        if (!iconBitmap.GetHICON(&icon))
+                        {
+                            m_favicon = std::move(icon);
+                            SendMessage(
+                                m_appWindow->GetMainWindow(), WM_SETICON,
+                                ICON_SMALL, (LPARAM)m_favicon.get());
+                            m_statusBar.Show(strUrl);
+                        }
+
+                        return S_OK;
+                    })
+                    .Get());
+            return S_OK;
+        }).Get(), &m_faviconChangedToken);
 CHECK_FAILURE(m_webView->add_FaviconChanged(
     Callback<ICoreWebView2FaviconChangedEventHandler>(
     [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
@@ -40,8 +73,7 @@ CHECK_FAILURE(m_webView->add_FaviconChanged(
 ```c#
 webView.CoreWebView2.FaviconChanged += (CoreWebView2 sender, Object arg) =>
 {
-    System.IO.Stream stream = new System.IO.MemoryStream();
-    await webView.CoreWebView2.GetFaviconAsync(
+    IStream stream = await webView.CoreWebView2.GetFaviconAsync(
         CoreWebView2FaviconImageFormat.Png,
         stream);
     // setting the window Icon to the bitmap
@@ -89,9 +121,10 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// Add an event handler for the `FaviconChanged` event.
     /// The `FaviconChanged` event is raised when the 
     /// [favicon](https://developer.mozilla.org/en-US/docs/Glossary/Favicon)
-    /// of the top-level document changes or if script dynamically changes the favicon.
+    /// when the favicon had a different URL then the previous URL.
     /// The FaviconChanged event will be raised for first navigating to a new 
-    /// document, whether or not a document declares a Favicon in HTML. The event will 
+    /// document, whether or not a document declares a Favicon in HTML if the
+    /// favicon is different from the previous fav icon. The event will 
     /// be raised again if a favicon is declared in its HTML or has script 
     /// to set its favicon. The favicon information can then be retrieved with 
     /// `GetFavicon` and `FaviconUri`.
@@ -148,7 +181,7 @@ namespace Microsoft.Web.WebView2.Core
 
             event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> FaviconChanged;
 
-            Windows.Foundation.IAsyncAction GetFaviconAsync(CoreWebView2FaviconImageFormat format, Windows.Storage.Streams.IRandomAccessStream imageStream);
+            Windows.Foundation.IAsyncAction<IStream> GetFaviconAsync(CoreWebView2FaviconImageFormat format);
         }
     }
 }
