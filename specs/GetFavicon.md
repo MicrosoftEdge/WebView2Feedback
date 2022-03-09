@@ -54,7 +54,7 @@ CHECK_FAILURE(m_webView2->add_FaviconChanged(
 ```c#
 webView.CoreWebView2.FaviconChanged += (CoreWebView2 sender, Object arg) =>
 {
-    IStream stream = await webView.CoreWebView2.GetFaviconAsync(
+    IRandomAccessStream stream = await webView.CoreWebView2.GetFaviconAsync(
         CoreWebView2FaviconImageFormat.Png);
     // setting the window Icon to the bitmap
     this.Icon = BitmapFrame.Create(stream); 
@@ -156,7 +156,7 @@ namespace Microsoft.Web.WebView2.Core
         Png = 0,
         Jpeg = 1,
     };
-
+    
     runtimeclass CoreWebView2
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_10")]
@@ -165,7 +165,7 @@ namespace Microsoft.Web.WebView2.Core
 
             event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> FaviconChanged;
 
-            Windows.Foundation.IAsyncAction GetFaviconAsync(CoreWebView2FaviconImageFormat format);
+            Windows.Foundation.IAsyncOperation<Windows.Storage.Streams.IRandomAccessStream> GetFaviconAsync(CoreWebView2FaviconImageFormat format);
         }
     }
 }
