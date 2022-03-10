@@ -115,9 +115,10 @@ if (options.As(&options3) == S_OK) {
 
 ```c#
 // This is the ICoreWebView2CustomSchemeRegistrar Staging interface
-[uuid(6ba6f68e-e7dc-4903-a3cc-6a047b6dcb61), object, pointer_default(unique)]
-interface ICoreWebView2StagingCustomSchemeRegistrar : IUnknown {
-  // Register a custom scheme with the CoreWebView2Environment to be able to handle
+[uuid(d60ac92c-37a6-4b26-a39e-95cfe59047bb), object, pointer_default(unique)]
+interface ICoreWebView2StagingCustomSchemeRegistration : IUnknown {
+  // Represents the registration of a custom scheme with the CoreWebView2Environment.
+  // This allows the WebView2 app to be able to handle
   // WebResourceRequested event for requests with the specified scheme and
   // be able to navigate the WebView2 to the custom scheme. Once the environment
   // is created, the registrations are valid and immutable throughout the
@@ -133,33 +134,65 @@ interface ICoreWebView2StagingCustomSchemeRegistrar : IUnknown {
   // custom-scheme-without-host:path/to/resource has origin of custom-scheme-without-host:path/to/resource
   // For WebResourceRequested event, the request URIs and filter URIs with custom schemes
   // will be normalized according to RFC3986.
-  // `schemeName` is the name of the custom scheme to register.
-  // If `isSecure` is set, the scheme will treated as a secure context like https.
+
+  // The name of the custom scheme to register.
+  [propget] HRESULT SchemeName([out, retval] LPCWSTR* schemeName);
+  [propput] HRESULT SchemeName([in] LPCWSTR schemeName);
+
+  // Whether the scheme will treated as a secure context like https.
+  [propget] HRESULT IsSecure([out, retval] BOOL* isSecure);
+  // Set if the scheme will treated as a secure context.
+  [propput] HRESULT IsSecure([in] BOOL isSecure);
+
   // If `isCorsEnabled` is set, the scheme will be allowed for requests subject to
   // CORS rules as specified in https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS.
   // If it is not set, CORS requests with this scheme will be blocked.
+  [propget] HRESULT IsCorsEnabled([out, retval] BOOL* isCorsEnabled);
+  // Set CORS enabled for the scheme.
+  [propput] HRESULT IsCorsEnabled([in] BOOL isCorsEnabled);
+
   // If `isCspEnabled` is set, the scheme is allowed to be used for requests
   // that are subject to CSP including from itself as specified in
   // https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
   // If not set, such CSP subject requests will be blocked.
-  // `allowedOrigins` is the array of origins that are allowed to use the scheme,
+  [propget] HRESULT IsCspEnabled([out, retval] BOOL* isCspEnabled);
+  // Set CSP enabled for the scheme.
+  [propput] HRESULT IsCspEnabled([in] BOOL isCspEnabled);
+
+  // List of origins that are allowed to use the scheme,
   // subject to cross origin restrictions.
   // Origins are specified as a string in the format of scheme://host:port.
   // `*` wildcard can also be used on origins.
   // For example, "http://*.example.com:80".
   // Any origin from the custom scheme itself is allowed by default. If the
   // array is empty, no other origin except origins from same scheme are allowed.
-  HRESULT AddRegistration([in] LPCWSTR schemeName,
-                          [in] BOOL isSecure,
-                          [in] BOOL isCorsEnabled,
-                          [in] BOOL isCspEnabled,
-                          [in] UINT allowedOriginsCount,
-                          [in] LPCWSTR* allowedOrigins);
+  HRESULT GetAllowedOriginsList([out] LPCWSTR** allowedOriginsList, [out] UINT32* allowedOriginsListCount);
+  // Set the list of origins that are allowed to use the scheme.
+  HRESULT SetAllowedOriginsList([in] LPCWSTR* allowedOriginsList, [in] UINT32 allowedOriginsListCount);
+}
+
+// This is the ICoreWebView2StagingCustomSchemeRegistrationCollection Staging interface
+[uuid(6ba6f68e-e7dc-4903-a3cc-6a047b6dcb61), object, pointer_default(unique)]
+interface ICoreWebView2StagingCustomSchemeRegistrationCollection : IUnknown {
+  /// Gets the `ICoreWebView2StagingCustomSchemeRegistration` located in the
+  /// `ICoreWebView2StagingCustomSchemeRegistrationCollection` at the given index.
+  HRESULT GetValueAtIndex([in] UINT32 index,
+                          [out, retval] ICoreWebView2StagingCustomSchemeRegistration** registration);
+
+  /// Inserts a `ICoreWebView2StagingCustomSchemeRegistration` into the
+  /// `ICoreWebView2StagingCustomSchemeRegistrationCollection` at the given index.
+  HRESULT InsertValue(
+      [in] ICoreWebView2StagingCustomSchemeRegistration* value);
+
+  /// The number of `ICoreWebView2StagingCustomSchemeRegistration`s in the collection.
+  [propget] HRESULT Count([out, retval] UINT32* count);
 }
 
 [uuid(ac52d13f-0d38-475a-9dca-876580d6793e), object, pointer_default(unique)]
-interface ICoreWebView2EnvironmentOptions3 : IUnknown {
-  [propget] HRESULT CustomSchemeRegistrar([out, retval] ICoreWebView2CustomSchemeRegistrar** schemeRegistrar);
+interface ICoreWebView2StagingEnvironmentOptions : IUnknown {
+  /// Collection of custom scheme registrations
+  [propget] HRESULT CustomSchemeRegistrar(
+      [out, retval] ICoreWebView2StagingCustomSchemeRegistrationCollection** schemeRegistrar);
 }
 ```
 
@@ -167,54 +200,58 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2StagingCustomSchemeRegistrar
+    // Represents the registration of a custom scheme with the CoreWebView2Environment.
+    // This allows the WebView2 app to be able to handle
+    // WebResourceRequested event for requests with the specified scheme and
+    // be able to navigate the WebView2 to the custom scheme. Once the environment
+    // is created, the registrations are valid and immutable throughout the
+    // lifetime of the associated WebView2s' browser process and any WebView2
+    // environments sharing the browser process must be created with identical
+    // custom scheme registrations, otherwise the environment creation will fail.
+    // Any further attempts to register the same scheme will fail.
+    // The URIs of registered custom schemes will be treated similar to http URIs for their origins.
+    // They will have tuple origins for URIs with host and opaque origins for
+    // URIs without host as specified in https://html.spec.whatwg.org/multipage/origin.html
+    // Example:
+    // custom-scheme-with-host://hostname/path/to/resource has origin of custom-scheme-with-host://hostname
+    // custom-scheme-without-host:path/to/resource has origin of custom-scheme-without-host:path/to/resource
+    // For WebResourceRequested event, the request URIs and filter URIs with custom schemes
+    // will be normalized according to RFC3986.
+    runtimeclass CoreWebView2StagingCustomSchemeRegistration
     {
-        // Register a custom scheme with the CoreWebView2Environment to be able to handle
-        // WebResourceRequested event for requests with the specified scheme and
-        // be able to navigate the WebView2 to the custom scheme. Once the environment
-        // is created, the registrations are valid and immutable throughout the
-        // lifetime of the associated WebView2s' browser process and any WebView2
-        // environments sharing the browser process must be created with identical
-        // custom scheme registrations, otherwise the environment creation will fail.
-        // Any further attempts to register the same scheme will fail.
-        // The URIs of registered custom schemes will be treated similar to http URIs for their origins.
-        // They will have tuple origins for URIs with host and opaque origins for
-        // URIs without host as specified in https://html.spec.whatwg.org/multipage/origin.html
-        // Example:
-        // custom-scheme-with-host://hostname/path/to/resource has origin of custom-scheme-with-host://hostname
-        // custom-scheme-without-host:path/to/resource has origin of custom-scheme-without-host:path/to/resource
-        // For WebResourceRequested event, the request URIs and filter URIs with custom schemes
-        // will be normalized according to RFC3986.
-        // `schemeName` is the name of the custom scheme to register.
-        // If `isSecure` is set, the scheme will treated as a secure context like https.
+        // The name of the custom scheme to register.
+        String SchemeName { get; set; };
+
+        // Whether the scheme will treated as a secure context like https.
+        bool IsSecure { get; set; };
+
         // If `isCorsEnabled` is set, the scheme will be allowed for requests subject to
         // CORS rules as specified in https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS.
         // If it is not set, CORS requests with this scheme will be blocked.
+        bool IsCorsEnabled([out, retval] { get; set; };
+
         // If `isCspEnabled` is set, the scheme is allowed to be used for requests
         // that are subject to CSP including from itself as specified in
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
         // If not set, such CSP subject requests will be blocked.
-        // `allowedOrigins` is the array of origins that are allowed to use the scheme,
+        bool IsCspEnabled { get; set; };
+
+        // List of origins that are allowed to use the scheme,
         // subject to cross origin restrictions.
         // Origins are specified as a string in the format of scheme://host:port.
         // `*` wildcard can also be used on origins.
         // For example, "http://*.example.com:80".
         // Any origin from the custom scheme itself is allowed by default. If the
         // array is empty, no other origin except origins from same scheme are allowed.
-        HRESULT AddRegistration(String schemeName,
-                                bool isSecure,
-                                bool isCorsEnabled,
-                                bool isCspEnabled,
-                                String[] allowedOrigins);
+        IList<String> AllowedOriginsList { get; set; };
     }
 
     runtimeclass CoreWebView2EnvironmentOptions
     {
-        // ...
-
+        /// The registrations of custom schemes.
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions3")]
         {
-            CoreWebView2StagingCustomSchemeRegistrarCustomSchemeRegistrar { get; };
+            IList<CoreWebView2StagingCustomSchemeRegistration> CustomSchemeRegistrar { get; };
         }
     }
 }
