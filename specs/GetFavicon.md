@@ -105,7 +105,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// Add an event handler for the `FaviconChanged` event.
     /// The `FaviconChanged` event is raised when the 
     /// [favicon](https://developer.mozilla.org/en-US/docs/Glossary/Favicon)
-    /// when the favicon had a different URL then the previous URL.
+    /// had a different URL then the previous URL.
     /// The FaviconChanged event will be raised for first navigating to a new 
     /// document, whether or not a document declares a Favicon in HTML if the
     /// favicon is different from the previous fav icon. The event will 
