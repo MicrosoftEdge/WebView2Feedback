@@ -185,7 +185,7 @@ interface ICoreWebView2StagingCustomSchemeRegistrationCollection : IUnknown {
       [in] ICoreWebView2StagingCustomSchemeRegistration* value);
 
   /// The number of `ICoreWebView2StagingCustomSchemeRegistration`s in the collection.
-  [propget] HRESULT Count([out, retval] UINT32* count);
+  [propget] HRESULT Count([out, retval] UINT32* value);
 }
 
 [uuid(ac52d13f-0d38-475a-9dca-876580d6793e), object, pointer_default(unique)]
