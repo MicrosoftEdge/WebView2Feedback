@@ -232,7 +232,7 @@ namespace Microsoft.Web.WebView2.Core
 
         // If `isCspEnabled` is set, the scheme is allowed to be used for requests
         // that are subject to CSP including from itself as specified in
-        // https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
+        // [Content Security Policy - MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)
         // If not set, such CSP subject requests will be blocked.
         bool IsCspEnabled { get; set; };
 
