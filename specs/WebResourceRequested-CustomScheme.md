@@ -243,7 +243,7 @@ namespace Microsoft.Web.WebView2.Core
         // For example, "http://*.example.com:80".
         // Any origin from the custom scheme itself is allowed by default. If the
         // array is empty, no other origin except origins from same scheme are allowed.
-        IList<String> AllowedOriginsList { get; set; };
+        IList<String> AllowedOrigins { get; set; };
     }
 
     runtimeclass CoreWebView2EnvironmentOptions
