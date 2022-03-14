@@ -226,7 +226,7 @@ namespace Microsoft.Web.WebView2.Core
         bool IsSecure { get; set; };
 
         // If `isCorsEnabled` is set, the scheme will be allowed for requests subject to
-        // CORS rules as specified in https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS.
+        // CORS rules as specified in [Cross-Origin Resource Sharing - MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
         // If it is not set, CORS requests with this scheme will be blocked.
         bool IsCorsEnabled([out, retval] { get; set; };
 
