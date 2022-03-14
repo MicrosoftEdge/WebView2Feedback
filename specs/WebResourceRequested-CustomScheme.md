@@ -134,8 +134,8 @@ webView.CoreWebView2.WebResourceRequested += delegate (
 webView.CoreWebView2.Navigate(L"https://www.example.com");
 
 // The following XHR will execute in the context of https://www.example.com page and will succeed.
-// WebResourceRequested event will fire for this request as *.example.com is in the allowed origin list of custom-scheme.
-// The custom scheme has CORS enabled and. Since the response header provided in WebResourceRequested handler allows all origins for CORS
+// WebResourceRequested event will fire for this request as *.example.com is in the allowed origin list of custom-scheme and
+// the custom scheme has CORS enabled. Since the response header provided in WebResourceRequested handler allows all origins for CORS
 // the XHR succeeds.
 webView.CoreWebView2.ExecuteScriptAsync("var oReq = new XMLHttpRequest();\
                                         oReq.addEventListener(\"load\", reqListener);\
@@ -226,8 +226,8 @@ CHECK_FAILURE(m_webView->add_WebResourceRequested(
 CHECK_FAILURE(m_webView->Navigate(L"https://www.example.com"));
 
 // The following XHR will execute in the context of https://www.example.com page and will succeed.
-// WebResourceRequested event will fire for this request as *.example.com is in the allowed origin list of custom-scheme.
-// The custom scheme has CORS enabled and. Since the response header provided in WebResourceRequested handler allows all origins for CORS
+// WebResourceRequested event will fire for this request as *.example.com is in the allowed origin list of custom-scheme and
+// the custom scheme has CORS enabled. Since the response header provided in WebResourceRequested handler allows all origins for CORS
 // the XHR succeeds.
 CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
                                        L"oReq.addEventListener(\"load\", reqListener);"
@@ -261,7 +261,7 @@ CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
 ## COM API
 
 ```c#
-// This is the ICoreWebView2CustomSchemeRegistrar interface
+// This is the ICoreWebView2CustomSchemeRegistration interface
 [uuid(d60ac92c-37a6-4b26-a39e-95cfe59047bb), object, pointer_default(unique)]
 interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // Represents the registration of a custom scheme with the CoreWebView2Environment.
