@@ -69,7 +69,7 @@ RegisterCustomScheme
     area, just explanation enough to understand this new API, rather than telling
     the reader "go read 100 pages of background information posted at ...". 
 -->
-Currently the WebResourceRequested event does not fire for non-http(s) URIs. Spartan WebView has built-in support for ms-appx* URLs and support of providing an IUriToStreamResolver parameter in NavigateToLocalStreamUri. This would close the functional gap between WebView1 and WebView2 as the app can just provide a WebResourceResponse for a given custom protocol URI.
+Currently the WebResourceRequested event is not raised for non-http(s) URIs. Spartan WebView has built-in support for ms-appx* URLs and support of providing an IUriToStreamResolver parameter in NavigateToLocalStreamUri. This would close the functional gap between WebView1 and WebView2 as the app can just provide a WebResourceResponse for a given custom protocol URI.
 
 To be able to provide the ability to fire WebResourceRequested for custom schemes, WebView2 needs to be able to know how to treat such custom scheme URIs. By the W3C standard, custom schemes have opaque origins and do not participate in security policies. However, in order to requests with custom schemes to be useful, some of these URIs would need to act more like HTTP URIs. The app needs to be able to make the choices on which schemes to enable security policies for and make similar to HTTP URIs. The following questions arise:
 
