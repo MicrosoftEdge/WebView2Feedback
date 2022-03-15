@@ -397,7 +397,7 @@ namespace Microsoft.Web.WebView2.Core
         /// The registrations of custom schemes.
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions3")]
         {
-            IList<CoreWebView2StagingCustomSchemeRegistration> CustomSchemeRegistrations { get; };
+            IList<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
         }
     }
 }
