@@ -16,7 +16,7 @@ As a result, we introduce a new API to be able to register custom schemes and al
 
 # Conceptual pages (How To)
 
-WebResourceRequested event can also fire for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for using the CustomSchemeRegistrar. With each registration, the app will specify the security policies it wants enabled for the URLs with such schemes and it will also need to explicitly specify the origins that are allowed to interact with these custom scheme URIs.  The registrations are valid throughout the lifetime of the WebView2Environment and browser process and any other WebView2Environments that share the browser process must register exactly same schemes to be able to create a WebView2Environment.
+WebResourceRequested event can also fire for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for using the CustomSchemeRegistrar. With each registration, the app will specify the security policies it wants enabled for the URLs with such schemes and it will also need to explicitly specify the origins that are allowed to interact with these custom scheme URIs.  The registrations are valid throughout the lifetime of the CoreWebView2Environment and browser process. For multiple CoreWebView2Environments to share a browser process and user data folder, they must register exactly the same schemes.
 
 For each custom scheme the developer wants to register they can:
 1) Enable the scheme to be used for CORS requests provided the origin making the request is also in list of allowed origins list.
