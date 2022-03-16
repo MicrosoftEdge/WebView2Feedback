@@ -12,7 +12,7 @@ To be able to provide the ability to fire WebResourceRequested for custom scheme
 - Do custom schemes URIs participate in CORS policies?
 - Which origins should be able to issue requests from these custom schemes?
 
-As a result, we introduce a new API to be able to register custom schemes.
+As a result, we introduce a new API to be able to register custom schemes and allow the end developer to answer these questions as a part of registration.
 
 # Conceptual pages (How To)
 
