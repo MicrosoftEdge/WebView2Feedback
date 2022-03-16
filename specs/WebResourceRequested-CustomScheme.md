@@ -6,7 +6,7 @@ RegisterCustomScheme
 # Background
 Currently the WebResourceRequested event does not fire for non-http(s) URIs. Spartan WebView has built-in support for ms-appx* URLs and support of providing an IUriToStreamResolver parameter in NavigateToLocalStreamUri. Raising the CoreWebView2.WebResourceRequested would close the functional gap between WebView1 and WebView2 as the app can just provide a WebResourceResponse for a given custom protocol URI.
 
-To be able to provide the ability to fire WebResourceRequested for custom schemes, WebView2 needs to be able to know how to treat such custom scheme URIs. By the W3C standard, custom schemes have opaque origins and do not participate in security policies. However, in order to requests with custom schemes to be useful, some of these URIs would need to act more like HTTP URIs. The app needs to be able to make the choices on which schemes to enable security policies for and make similar to HTTP URIs. The following questions arise:
+To be able to provide the ability to fire WebResourceRequested for custom schemes, WebView2 needs to be able to know how to treat such custom scheme URIs. By the W3C standard, custom schemes have opaque origins and do not participate in security policies. However, in order to make web requests with custom schemes useful, some of these URIs would need to act more like HTTP URIs. The app needs to be able to make the choices on which schemes to enable security policies for and make similar to HTTP URIs. The following questions arise:
 
 - Are custom scheme URIs considered secure contexts?
 - Do custom schemes URIs participate in CORS policies?
@@ -18,14 +18,19 @@ As a result, we introduce a new API to be able to register custom schemes.
 
 WebResourceRequested event can also fire for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for using the CustomSchemeRegistrar. With each registration, the app will specify the security policies it wants enabled for the URLs with such schemes and it will also need to explicitly specify the origins that are allowed to interact with these custom scheme URIs.  The registrations are valid throughout the lifetime of the WebView2Environment and browser process and any other WebView2Environments that share the browser process must register exactly same schemes to be able to create a WebView2Environment.
 
+For each custom scheme the developer wants to register they can:
+1) Enable the scheme to be used for CORS requests provided the origin making the request is also in list of allowed origins list.
+2) Set it to be a secure context scheme to prevent insecure content warnings.
+3) Provide a list of origins that can make requests to the custom scheme.
+
 # Examples
 
 ## CustomSchemeRegistrations
 
-The following code sample registers 3 custom schemes on the WebView2EnvironmentOptions:
+The following code sample registers 3 custom schemes on the CoreWebView2EnvironmentOptions:
 
 -Scheme 1 has CORS enabled and has https://*.example.com in its allowed origins list.
--Scheme 2 has CORS enabled but has a null allowed origins list.
+-Scheme 2 has CORS enabled, but has a null allowed origins list.
 -Scheme 3 has CORS disabled and has https://*.example.com in its allowed origins list.
 
 It adds a WebResourceRequested handler for the requests to the custom schemes, which will serve the requests locally. Then it navigates the WebView to https://www.example.com and attempts to do XHRs with the three schemes. Only XHR from the scheme 1 will succeed because it's the only one with CORS enabled and has https://www.example.com in its allowed origin list.
@@ -34,12 +39,11 @@ CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
 string[] allowedOriginsList = new string[1];
 allowedOriginsList[0] = "https://*.example.com";
 
-options.CustomSchemeRegistrations.AddRegistration("custom-scheme", true /* isSecure*/,
-    true /* isCorsEnabled */, false, allowedOriginsList);
-options.CustomSchemeRegistrations.AddRegistration("custom-scheme-cors-disabled", true /* isSecure*/,
-    false /* isCorsEnabled */, false, allowedOriginsList);
-options.CustomSchemeRegistrations.AddRegistration("custom-scheme-not-in-allowed-origins", true /* isSecure*/,
-    true /* isCorsEnabled */, false, null);
+options.CustomSchemeRegistrations.Add(new CoreWebView2CustomSchemeRegistration("custom-scheme", true /* isSecure*/, true /* isCorsEnabled */, false, allowedOriginsList));
+options.CustomSchemeRegistrations.Add(new CoreWebView2CustomSchemeRegistration("custom-scheme-cors-disabled", true /* isSecure*/,
+    false /* isCorsEnabled */, false, allowedOriginsList));
+options.CustomSchemeRegistrations.Add(new CoreWebView2CustomSchemeRegistration("custom-scheme-not-in-allowed-origins", true /* isSecure*/,
+    true /* isCorsEnabled */, false, null));
 ...
 string customScheme = "custom-scheme";
 webView.CoreWebView2.AddWebResourceRequestedFilter(
@@ -93,24 +97,18 @@ webView.CoreWebView2.ExecuteScriptAsync("var oReq = new XMLHttpRequest();\
 ``` cpp
 Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions3> options3;
 if (options.As(&options3) == S_OK) {
-  wil::com_ptr<ICoreWebView2CustomSchemeRegistrationCollection> schemeRegistrations;
-  CHECK_FAILURE(options3->get_CustomSchemeRegistrations(&schemeRegistrations));
+  std::vector<Microsoft::WRL::ComPtr<ICoreWebView2CustomSchemeRegistration>> schemeRegistrations;
+  
   const WCHAR* allowedOrigins[1] = {L"https://*.example.com"};
-  auto customSchemeRegistration =
-      Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
+  schemeRegistrations.push_back(Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
           L"custom-scheme", TRUE /* isSecure*/, TRUE /* isCorsEnabled */,
-          1, allowedOrigins);
-  schemeRegistrations->InsertValueAtIndex(customSchemeRegistration.Get(), 0);
-  auto customSchemeRegistrationNotInOriginList =
-      Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
-          L"custom-scheme-not-in-allowed-origins-list", TRUE /* isSecure*/, TRUE /* isCorsEnabled */,
-          nullptr);
-  schemeRegistrar->InsertValueAtIndex(customSchemeRegistrationNotInOriginList.Get(), 1);
-  auto customSchemeRegistrationCorsDisabled =
-      Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
+          1, allowedOrigins));
+  schemeRegistrations.push_back(Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
+          L"custom-scheme-not-in-allowed-origins-list", TRUE /* isSecure*/, TRUE /* isCorsEnabled */, nullptr));
+  schemeRegistrations.push_back(Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
           L"custom-scheme-cors-disabled", TRUE /* isSecure*/, FALSE /* isCorsEnabled */,
-          allowedOrigins);
-  schemeRegistrar->InsertValueAtIndex(customSchemeRegistrationCorsDisabled.Get(), 2);
+          1, allowedOrigins));
+  CHECK_FAILURE(options3->SetCustomSchemeRegistrations(schemeRegistrations.size(), schemeRegistrations.data());
 }
 ...
 
@@ -221,9 +219,9 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   [propget] HRESULT SchemeName([out, retval] LPCWSTR* schemeName);
   [propput] HRESULT SchemeName([in] LPCWSTR value);
 
-  // Whether the scheme will treated as a secure context like https.
+  // Whether the scheme will be treated as a secure context like https.
   [propget] HRESULT IsSecure([out, retval] BOOL* isSecure);
-  // Set if the scheme will treated as a secure context.
+  // Set if the scheme will be treated as a secure context.
   [propput] HRESULT IsSecure([in] BOOL value);
 
   // If `isCorsEnabled` is set, the scheme will be allowed for requests subject to
@@ -248,35 +246,20 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // For example, "http://*.example.com:80".
   // Any origin from the custom scheme itself is allowed by default. If the
   // array is empty, no other origin except origins from same scheme are allowed.
-  HRESULT GetAllowedOrigins([out] LPCWSTR** allowedOriginsList, [out] UINT32* allowedOriginsListCount);
+  HRESULT GetAllowedOrigins([out] UINT32* allowedOriginsListCount, [out] LPCWSTR** allowedOriginsList);
   // Set the list of origins that are allowed to use the scheme.
-  HRESULT SetAllowedOrigins([in] LPCWSTR* allowedOriginsList, [in] UINT32 allowedOriginsListCount);
-}
-
-// This is the ICoreWebView2CustomSchemeRegistrationCollection interface
-[uuid(6ba6f68e-e7dc-4903-a3cc-6a047b6dcb61), object, pointer_default(unique)]
-interface ICoreWebView2CustomSchemeRegistrationCollection : IUnknown {
-  /// Gets the `ICoreWebView2CustomSchemeRegistration` located in the
-  /// `ICoreWebView2CustomSchemeRegistrationCollection` at the given index.
-  HRESULT GetValueAtIndex([in] UINT32 index,
-                          [out, retval] ICoreWebView2CustomSchemeRegistration** registration);
-
-  /// Inserts a `ICoreWebView2CustomSchemeRegistration` into the
-  /// `ICoreWebView2CustomSchemeRegistrationCollection` at the given index.
-  HRESULT InsertValueAtIndex(
-      [in] UINT32 index,
-      [in] ICoreWebView2CustomSchemeRegistration* value);
-
-  /// The number of `ICoreWebView2CustomSchemeRegistration`s in the collection.
-  [propget] HRESULT Count([out, retval] UINT32* value);
+  HRESULT SetAllowedOrigins([in] UINT32 allowedOriginsListCount, [in] LPCWSTR* allowedOriginsList);
 }
 
 // This is the ICoreWebView2EnvironmentOptions3 interface
 [uuid(ac52d13f-0d38-475a-9dca-876580d6793e), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
-  /// Collection of custom scheme registrations
-  [propget] HRESULT CustomSchemeRegistrations(
-      [out, retval] ICoreWebView2CustomSchemeRegistrationCollection** schemeRegistrar);
+  /// List of custom scheme registrations.
+  HRESULT GetCustomSchemeRegistrations(
+      [out] UINT32* count, [out] ICoreWebView2CustomSchemeRegistration*** schemeRegistrations);
+  /// Set the list of custom scheme registrations to be used.
+  HRESULT, SetCustomSchemeRegistrations(
+      [in] UINT32 count, [in] ICoreWebView2CustomSchemeRegistration** schemeRegistrations);
 }
 ```
 
@@ -309,13 +292,13 @@ namespace Microsoft.Web.WebView2.Core
         // The name of the custom scheme to register.
         string SchemeName { get; set; };
 
-        // Whether the scheme will treated as a secure context like https.
+        // Whether the scheme will be treated as a secure context like https.
         bool IsSecure { get; set; };
 
         // If `isCorsEnabled` is set, the scheme will be allowed for requests subject to
         // CORS rules as specified in [Cross-Origin Resource Sharing - MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
         // If it is not set, CORS requests with this scheme will be blocked.
-        bool IsCorsEnabled([out, retval] { get; set; };
+        bool IsCorsEnabled { get; set; };
 
         // List of origins that are allowed to use the scheme,
         // subject to cross origin restrictions.
