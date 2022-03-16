@@ -37,14 +37,12 @@ CHECK_FAILURE(m_webView2->add_FaviconChanged(
                             SendMessage(
                                 m_appWindow->GetMainWindow(), WM_SETICON,
                                 ICON_SMALL, (LPARAM)m_favicon.get());
-                            m_statusBar.Show(strUrl);
                         }
                         else
                         {
                             SendMessage(
                                 m_appWindow->GetMainWindow(), WM_SETICON,
                                 ICON_SMALL, (LPARAM)IDC_NO);
-                            m_statusBar.Show(L"No Icon");
                         }
 
                         return S_OK;
@@ -57,13 +55,15 @@ CHECK_FAILURE(m_webView2->add_FaviconChanged(
 ```
 ## .NET / WinRT Registering a listener for favicon changes
 ```c#
-webView.CoreWebView2.FaviconChanged += (CoreWebView2 sender, Object arg) =>
+webView.CoreWebView2.FaviconChanged += (object sender, Object arg) =>
 {
-    IRandomAccessStream stream = await webView.CoreWebView2.GetFaviconAsync(
-        CoreWebView2FaviconImageFormat.Png);
-    // setting the window Icon to the bitmap
-    this.Icon = BitmapFrame.Create(stream); 
-
+    string value = webView.CoreWebView2.FaviconUri;
+    System.IO.Stream stream = await webView.CoreWebView2.GetFaviconAsync(
+      CoreWebView2FaviconImageFormat.Png);
+    if (stream == null || stream.Length == 0)
+        this.Icon = null;
+    else
+        this.Icon = BitmapFrame.Create(stream);
 };
 ```
 # API Notes
