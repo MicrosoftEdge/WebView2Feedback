@@ -12,40 +12,45 @@ Gdiplus::GdiplusStartupInput gdiplusStartupInput;
 // Initialize GDI+.
 Gdiplus::GdiplusStartup(&gdiplusToken_, &gdiplusStartupInput, NULL);
 CHECK_FAILURE(m_webView2->add_FaviconChanged(
-    Callback<ICoreWebView2ExperimentalFaviconChangedEventHandler>(
+    Callback<ICoreWebView2FaviconChangedEventHandler>(
         [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
-            if (m_faviconChanged)
-            {
-                wil::unique_cotaskmem_string url;
-                Microsoft::WRL::ComPtr<ICoreWebView2>
-                    webview2Experimental;
-                CHECK_FAILURE(
-                    sender->QueryInterface(IID_PPV_ARGS(&webview2)));
+            wil::unique_cotaskmem_string url;
+            Microsoft::WRL::ComPtr<ICoreWebView2>
+                webview2;
+            CHECK_FAILURE(
+                sender->QueryInterface(IID_PPV_ARGS(&webview2)));
 
-                CHECK_FAILURE(webview2Experimental->get_FaviconUri(&url));
-                std::wstring strUrl(url.get());
+            CHECK_FAILURE(webview2->get_FaviconUri(&url));
+            std::wstring strUrl(url.get());
 
-                webview2->GetFavicon(
-                    COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG,
-                    Callback<ICoreWebView2ExperimentalGetFaviconCompletedHandler>(
-                        [this, strUrl](HRESULT errorCode, IStream* iconStream) -> HRESULT
+            webview2->GetFavicon(
+                COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG,
+                Callback<ICoreWebView2GetFaviconCompletedHandler>(
+                    [this, strUrl](HRESULT errorCode, IStream* iconStream) -> HRESULT
+                    {
+                        CHECK_FAILURE(errorCode);
+                        Gdiplus::Bitmap iconBitmap(iconStream);
+                        wil::unique_hicon icon;
+                        if (iconBitmap.GetHICON(&icon) == Gdiplus::Status::Ok)
                         {
-                            CHECK_FAILURE(errorCode);
-                            Gdiplus::Bitmap iconBitmap(iconStream);
-                            wil::unique_hicon icon;
-                            if (!iconBitmap.GetHICON(&icon))
-                            {
-                                m_favicon = std::move(icon);
-                                SendMessage(
-                                    m_appWindow->GetMainWindow(), WM_SETICON,
-                                    ICON_SMALL, (LPARAM)m_favicon.get());
-                                m_statusBar.Show(strUrl);
-                            }
+                            m_favicon = std::move(icon);
+                            SendMessage(
+                                m_appWindow->GetMainWindow(), WM_SETICON,
+                                ICON_SMALL, (LPARAM)m_favicon.get());
+                            m_statusBar.Show(strUrl);
+                        }
+                        else
+                        {
+                            SendMessage(
+                                m_appWindow->GetMainWindow(), WM_SETICON,
+                                ICON_SMALL, (LPARAM)IDC_NO);
+                            m_statusBar.Show(L"No Icon");
+                        }
 
-                            return S_OK;
-                        })
-                        .Get());
-            }
+                        return S_OK;
+                    })
+                    .Get());
+
             return S_OK;
         }).Get(), &m_faviconChangedToken));
 }
@@ -92,14 +97,14 @@ interface ICoreWebView2FaviconChangedEventHandler : IUnknown {
 /// then no data would be copied into the imageStream.
 /// For more details, see the `GetFavicon` API.
 [uuid(A2508329-7DA8-49D7-8C05-FA125E4AEE8D), object, pointer_default(unique)]
-interface ICoreWebView2ExperimentalGetFaviconCompletedHandler : IUnknown {
+interface ICoreWebView2GetFaviconCompletedHandler : IUnknown {
   /// Called to notify the favicon has been retrieved.
   HRESULT Invoke(
     [in] HRESULT errorCode,
     [in] IStream* faviconStream);
 }
 
-/// This is the ICoreWebView2 Experimental Favicon interface.
+/// This is the ICoreWebView2 Favicon interface.
 [uuid(DC838C64-F64B-4DC7-98EC-0992108E2157), object, pointer_default(unique)]
 interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// Add an event handler for the `FaviconChanged` event.
@@ -113,7 +118,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
     /// to set its favicon. The favicon information can then be retrieved with 
     /// `GetFavicon` and `FaviconUri`.
     HRESULT add_FaviconChanged(
-        [in] ICoreWebViewFaviconChangedEventHandler* eventHandler,
+        [in] ICoreWebView2FaviconChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
 
     /// Remove the event handler for `FaviconChanged` event.
