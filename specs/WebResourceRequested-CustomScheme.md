@@ -16,7 +16,7 @@ As a result, we introduce a new API to be able to register custom schemes and al
 
 # Conceptual pages (How To)
 
-WebResourceRequested event can also be raised for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for using the CustomSchemeRegistrar. With each registration, the app will specify the security policies it wants enabled for the URIs with such schemes and it will also need to explicitly specify the origins that are allowed to interact with these custom scheme URIs.  The registrations are valid throughout the lifetime of the WebView2Environment and browser process and any other WebView2Environments that share the browser process must register exactly same schemes to be able to create a WebView2Environment.
+WebResourceRequested event can also be raised for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for. With each registration, the app will specify the security policies it wants enabled for the URIs with such schemes and it will also need to explicitly specify the origins that are allowed to interact with these custom scheme URIs.  The registrations are valid throughout the lifetime of the WebView2Environment and browser process and any other WebView2Environments that share the browser process must register exactly same schemes to be able to create a WebView2Environment.
 
 For each custom scheme the developer wants to register they can:
 1) Enable the scheme to be used for CORS requests provided the origin making the request is also in list of allowed origins list.
@@ -205,7 +205,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // lifetime of the associated WebView2s' browser process and any WebView2
   // environments sharing the browser process must be created with identical
   // custom scheme registrations, otherwise the environment creation will fail.
-  // Any further attempts to register the same scheme will fail.
+  // If there are multiple entries for the same scheme in the registrations list, the environment creation will also fail.
   // The URIs of registered custom schemes will be treated similar to http URIs for their origins.
   // They will have tuple origins for URIs with host and opaque origins for
   // URIs without host as specified in https://html.spec.whatwg.org/multipage/origin.html
@@ -231,10 +231,12 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // Set CORS enabled for the scheme.
   [propput] HRESULT IsCorsEnabled([in] BOOL value);
 
-  // List of origins that are allowed to use the scheme,
-  // subject to cross origin restrictions.
+  // List of origins that are allowed to issue requests with the custom scheme.
+  // Except origins with custom scheme itself and no-origin requests,
+  // the origin of any request to the custom scheme URL
+  // needs to be in this list. Note that cross origin restrictions still apply. 
   // Origins are specified as a string in the format of scheme://host:port.
-  // `*` wildcard can also be used on origins.
+  // The origins are string pattern matched with `*` (matches 0 or more characters) and `?` (matches 0 or 1 character) wildcards.
   // For example, "http://*.example.com:80".
   // Any origin from the custom scheme itself is allowed by default. If the
   // array is empty, no other origin except origins from same scheme are allowed.
