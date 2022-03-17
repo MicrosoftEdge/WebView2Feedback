@@ -208,7 +208,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // If there are multiple entries for the same scheme in the registrations list, the environment creation will also fail.
   // The URIs of registered custom schemes will be treated similar to http URIs for their origins.
   // They will have tuple origins for URIs with host and opaque origins for
-  // URIs without host as specified in https://html.spec.whatwg.org/multipage/origin.html
+  // URIs without host as specified in [7.5 Origin - HTML Living Standard](https://html.spec.whatwg.org/multipage/origin.html)
   // Example:
   // custom-scheme-with-host://hostname/path/to/resource has origin of custom-scheme-with-host://hostname
   // custom-scheme-without-host:path/to/resource has origin of custom-scheme-without-host:path/to/resource
@@ -225,7 +225,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   [propput] HRESULT IsSecure([in] BOOL value);
 
   // If `isCorsEnabled` is set, the scheme will be allowed for requests subject to
-  // CORS rules as specified in https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS.
+  // CORS rules as specified in [Cross-Origin Resource Sharing - MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
   // If it is not set, CORS requests with this scheme will be blocked.
   [propget] HRESULT IsCorsEnabled([out, retval] BOOL* isCorsEnabled);
   // Set CORS enabled for the scheme.
@@ -234,7 +234,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // List of origins that are allowed to issue requests with the custom scheme.
   // Except origins with custom scheme itself and no-origin requests,
   // the origin of any request to the custom scheme URL
-  // needs to be in this list. Note that cross origin restrictions still apply. 
+  // needs to be in this list. Note that cross-origin restrictions still apply. 
   // Origins are specified as a string in the format of scheme://host:port.
   // The origins are string pattern matched with `*` (matches 0 or more characters) and `?` (matches 0 or 1 character) wildcards.
   // For example, "http://*.example.com:80".
@@ -274,7 +274,7 @@ namespace Microsoft.Web.WebView2.Core
     // Any further attempts to register the same scheme will fail.
     // The URIs of registered custom schemes will be treated similar to http URIs for their origins.
     // They will have tuple origins for URIs with host and opaque origins for
-    // URIs without host as specified in [7.5 Origin - HTML Standard](https://html.spec.whatwg.org/multipage/origin.html)
+    // URIs without host as specified in [7.5 Origin - HTML Living Standard](https://html.spec.whatwg.org/multipage/origin.html)
     // Example:
     // `custom-scheme-with-host://hostname/path/to/resource` has origin of `custom-scheme-with-host://hostname`
     // `custom-scheme-without-host:path/to/resource` has origin of `custom-scheme-without-host:path/to/resource`
@@ -296,10 +296,12 @@ namespace Microsoft.Web.WebView2.Core
         // If it is not set, CORS requests with this scheme will be blocked.
         bool IsCorsEnabled { get; set; };
 
-        // List of origins that are allowed to use the scheme,
-        // subject to cross origin restrictions.
+        // List of origins that are allowed to issue requests with the custom scheme.
+        // Except origins with custom scheme itself and no-origin requests,
+        // the origin of any request to the custom scheme URL
+        // needs to be in this list. Note that cross-origin restrictions still apply. 
         // Origins are specified as a string in the format of scheme://host:port.
-        // `*` wildcard can also be used on origins.
+        // The origins are string pattern matched with `*` (matches 0 or more characters) and `?` (matches 0 or 1 character) wildcards.
         // For example, "http://*.example.com:80".
         // Any origin from the custom scheme itself is always allowed. If the
         // list is empty, no other origin except origins from same scheme are allowed.
