@@ -274,10 +274,10 @@ namespace Microsoft.Web.WebView2.Core
     // Any further attempts to register the same scheme will fail.
     // The URIs of registered custom schemes will be treated similar to http URIs for their origins.
     // They will have tuple origins for URIs with host and opaque origins for
-    // URIs without host as specified in https://html.spec.whatwg.org/multipage/origin.html
+    // URIs without host as specified in [7.5 Origin - HTML Standard](https://html.spec.whatwg.org/multipage/origin.html)
     // Example:
-    // custom-scheme-with-host://hostname/path/to/resource has origin of custom-scheme-with-host://hostname
-    // custom-scheme-without-host:path/to/resource has origin of custom-scheme-without-host:path/to/resource
+    // `custom-scheme-with-host://hostname/path/to/resource` has origin of `custom-scheme-with-host://hostname`
+    // `custom-scheme-without-host:path/to/resource` has origin of `custom-scheme-without-host:path/to/resource`
     // For WebResourceRequested event, the cases of request URIs and filter URIs with custom schemes
     // will be normalized according to generic URI syntax rules. Any non-ASCII characters will be preserved.
     runtimeclass CoreWebView2CustomSchemeRegistration
@@ -301,7 +301,7 @@ namespace Microsoft.Web.WebView2.Core
         // Origins are specified as a string in the format of scheme://host:port.
         // `*` wildcard can also be used on origins.
         // For example, "http://*.example.com:80".
-        // Any origin from the custom scheme itself is allowed by default. If the
+        // Any origin from the custom scheme itself is always allowed. If the
         // list is empty, no other origin except origins from same scheme are allowed.
         IList<String> AllowedOrigins { get; };
     }
