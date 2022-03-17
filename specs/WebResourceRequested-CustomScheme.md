@@ -272,7 +272,7 @@ namespace Microsoft.Web.WebView2.Core
     // Any further attempts to register the same scheme will fail.
     // The URIs of registered custom schemes will be treated similar to http URIs for their origins.
     // They will have tuple origins for URIs with host and opaque origins for
-    // URIs without host as specified in https://html.spec.whatwg.org/multipage/origin.html
+    // URIs without host as specified in [7.5 Origin - HTML Standard](https://html.spec.whatwg.org/multipage/origin.html)
     // Example:
     // `custom-scheme-with-host://hostname/path/to/resource` has origin of `custom-scheme-with-host://hostname`
     // `custom-scheme-without-host:path/to/resource` has origin of `custom-scheme-without-host:path/to/resource`
