@@ -23,9 +23,9 @@ The following code snippets demonstrate how the ExecuteScriptWithResult can be u
 // 'let str_0 = "This is a string"; let n_0= str_0.replace(/a/i, "microsoft"); n_0;'
 static std::wstring GenerateScriptCode(LPCWSTR str, LPCWSTR reg, LPCWSTR item)
 {
-    if (str == nullptr || reg == nullptr)
+    if (str == nullptr || reg == nullptr || item == nullptr)
     {
-        return nullptr;
+        return L"";
     }
 
     // This variable is used to ensure that the
@@ -41,18 +41,22 @@ static std::wstring GenerateScriptCode(LPCWSTR str, LPCWSTR reg, LPCWSTR item)
     return sw.str();
 }
 
-// The first case is that the script is executed successfully,
-// and we successfully get the replaced string.
-void MatchRegWithScript_1(wil::com_ptr<ICoreWebView2> m_webView)
+// This is a demo that uses regular expressions in 
+// javascript to complete string replacement, it will handle
+// the case of successful execution and execution exception
+void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
+    , LPCWSTR str
+    , LPCWSTR reg
+    , LPCWSTR item)
 {
-    wil::com_ptr<ICoreWebView2Staging2> webview2 = m_webView.try_query<ICoreWebView2Staging2>();
+    wil::com_ptr<ICoreWebView2_10> webview2 = webView.try_query<ICoreWebView2_10>();
 
-    auto scriptCode = GenerateScriptCode(L"This is a string", L"\"This\"", L"It");
+    auto scriptCode = GenerateScriptCode(str, reg, item);
     webview2->ExecuteScriptWithResult(
         scriptCode.c_str(),
-        Callback<ICoreWebView2StagingExecuteScriptWithResultCompletedHandler>(
+        Callback<ICoreWebView2ExecuteScriptWithResultCompletedHandler>(
             [](
-                HRESULT errorCode, ICoreWebView2StagingExecuteScriptResult* result) -> HRESULT
+                HRESULT errorCode, ICoreWebView2ExecuteScriptResult* result) -> HRESULT
             {
                 if (errorCode != S_OK || result == nullptr)
                 {
@@ -62,13 +66,13 @@ void MatchRegWithScript_1(wil::com_ptr<ICoreWebView2> m_webView)
                 else
                 {
                     wil::unique_cotaskmem_string stringData;
-                    wil::unique_cotaskmem_string rawJsonData;
 
-                    BOOL is_success;
-                    if (result->get_IsSuccess(&is_success) == S_OK && is_success)
+                    BOOL isSuccess;
+                    result->get_IsSuccess(&isSuccess);
+                    // Here is the successful execution.
+                    // We will use a MessageBox to print the replaced result.
+                    if (isSuccess)
                     {
-                        result->get_ResultAsJson(&rawJsonData);
-
                         // We try to use TryGetResultAsString to get the string result here.
                         // Since the javascript platform's `string.replace` returns a string,
                         // the call here will succeed.
@@ -81,94 +85,43 @@ void MatchRegWithScript_1(wil::com_ptr<ICoreWebView2> m_webView)
                         }
                         else
                         {
-                            MessageBox(nullptr, rawJsonData.get(), L"ExecuteScript Result",
-                                MB_OK);
                             MessageBox(nullptr, stringData.get(), L"ExecuteScript Result",
                                 MB_OK);
                         }
                     }
-                }
-                return S_OK;
-            })
-            .Get());
-}
-
-
-// The second case is when the execution throws an exception due to a regex error,
-// we can catch and handle it via `get_Exception` in c++.
-void MatchRegWithScript_2(wil::com_ptr<ICoreWebView2> m_webView)
-{
-    wil::com_ptr<ICoreWebView2Staging2> webview2 = m_webView.try_query<ICoreWebView2Staging2>();
-
-    auto scriptCode = GenerateScriptCode(L"This is a string", L"/a", L"It");
-    webview2->ExecuteScriptWithResult(
-        scriptCode.c_str(),
-        Callback<ICoreWebView2StagingExecuteScriptWithResultCompletedHandler>(
-            [](
-                HRESULT errorCode, ICoreWebView2StagingExecuteScriptResult* result) -> HRESULT
-            {
-                if (errorCode != S_OK || result == nullptr)
-                {
-                    MessageBox(
-                        nullptr, L"Get execute status failed!", L"ExecuteScript Result", MB_OK);
-                }
-                else
-                {
-                    wil::com_ptr<ICoreWebView2StagingExecuteScriptException> exception;
-                    BOOL is_success;
-                    // The is_success will return false since an incorrect regular expression
-                    // was passed in.
-                    if (result->get_IsSuccess(&is_success) == S_OK && !is_success)
+                    // Here is the case of execution exception. 
+                    // We will use MessageBox to print exception-related information
+                    else
                     {
+                        wil::com_ptr<ICoreWebView2ExecuteScriptException> exception;
+                        
                         result->get_Exception(&exception);
 
-                        // Get the exception name, this could return the empty string,
+                        // The ExceptionName property could be the empty string if script throws a non-Error object, 
                         // such as `throw 1`.
-                        // In this case, we will get 'SyntaxError'.
                         wil::unique_cotaskmem_string exceptionName;
-                        if (exception && exception->get_Name(&exceptionName) == S_OK)
-                        {
-                            MessageBox(
-                                nullptr, exceptionName.get(), L"ExecuteScript Result", MB_OK);
-                        }
+                        exception->get_Name(&exceptionName);
 
-                        // Get the exception message, this could return the empty
-                        // string, such as `throw 1`.
-                        // In this case, we will get 'SyntaxError: Invalid regular expression:
-                        // missing /'.
+                        // The ExceptionMessage property could be the empty string if script throws a non-Error object, 
+                        // such as `throw 1`.
                         wil::unique_cotaskmem_string exceptionMessage;
-                        if (exception && exception->get_Message(&exceptionMessage) == S_OK)
-                        {
-                            MessageBox(
-                                nullptr, exceptionMessage.get(), L"ExecuteScript Result",
-                                MB_OK);
-                        }
-
-                        // Get the exception detail, it's a json struct data with all
-                        // exception infomation , we can parse it and get the detail
-                        // what we need.
-                        wil::unique_cotaskmem_string exceptionDetail;
-                        if (exception &&
-                            exception->get_ExceptionAsJSON(&exceptionDetail) == S_OK)
-                        {
-                            MessageBox(
-                                nullptr, exceptionDetail.get(), L"ExecuteScript Result", MB_OK);
-                        }
-
+                        exception->get_Message(&exceptionMessage)
 
                         // Get the location of the exception, note that the coordinates
                         // here are 0 as the starting position.
-                        // In this case, we will get the coordinate: `LineNumber:0, ColumnNumber:55`.
                         uint32_t lineNumber = 0;
                         uint32_t columnNumber = 0;
-                        if (exception && exception->get_LineNumber(&lineNumber) == S_OK &&
-                            exception->get_ColumnNumber(&columnNumber) == S_OK)
-                        {
-                            auto exception_location_info =
-                                L"LineNumber:" + std::to_wstring(lineNumber) +
+                        exception->get_LineNumber(&lineNumber);
+                        exception->get_ColumnNumber(&columnNumber);
+
+                        auto exceptionInfo = 
+                                L"The script execution failed." + 
+                                L"\nName: " + exceptionName.get() +
+                                L"\nMessage: " + exceptionMessage.get() +
+                                L"\nLineNumber: " + std::to_wstring(lineNumber) +
                                 L", ColumnNumber:" + std::to_wstring(columnNumber);
                             MessageBox(
-                                nullptr, exception_location_info.c_str(),
+                                nullptr, exceptionInfo.c_str(),
                                 L"ExecuteScript Result", MB_OK);
                         }
                     }
@@ -192,21 +145,19 @@ class ExecuteScriptWithResultDemo {
     }
 
 
-    // The first case is that the script is executed successfully,
-    // and we successfully get the replaced string.
-    public void MatchRegWithScript_1() {
+    // This is a demo that uses regular expressions in 
+    // javascript to complete string replacement, it will handle
+    // the case of successful execution and execution exception
+    public void MatchRegWithScript(String str, String reg, String item) {
         var environment = webView2Control.CoreWebView2.Environment;
-        String script = GenerateScriptCode("This is a string", "\"This\"", "It");
+        String script = GenerateScriptCode(str, reg, item);
         CoreWebView2ExecuteScriptResult result = await ExecuteScriptWithResultAsync(script);
         
         bool isSuccess = result.IsSuccess;
-        // It will return true, and we will get the replaced string.
-        if (isSuccess) {
-            Debug.WriteLine($"raw json data for replaced string: {result.ResultAsJson}");
-            
+        // Here is the successful execution.
+        if (isSuccess) {            
             // Try to get the string result, it will throw an exception
             // if the result type isn't string type.
-            
             try {
                 String stringResult = result.TryGetResultAsString();
                 Debug.WriteLine($"replaced string: {result.stringResult}");
@@ -215,45 +166,16 @@ class ExecuteScriptWithResultDemo {
                 Debug.WriteLine($"Non-string message received");
             }
         }
-    }
-
-
-    // The second case is when the execution throws an exception due to a regex error,
-    // we can catch and handle it via `Exception` in c++.
-    public void MatchRegWithScript_2() {
-        var environment = webView2Control.CoreWebView2.Environment;
-        String script = GenerateScriptCode("This is a string", "/a", "It");
-        CoreWebView2ExecuteScriptResult result = await ExecuteScriptWithResultAsync(script);
-
-        bool isSuccess = result.IsSuccess;
-        // It will return false, then we can get the its exception
-        // to handle the error in javascrpt
-        if (!isSuccess) {
+        // Here is the case of execution exception.
+        else
+        {
             var exception = result.Exception;
-            
-            // Get the exception name, this could return the empty string,
-            // such as `throw 1`.
-            // In this case, we will get 'SyntaxError'.
-            Debug.WriteLine($"exception name: {exception.Name}");
-            
-            // Get the exception message, this could return the empty
-            // string, such as `throw 1`.
-            // In this case, we will get 'SyntaxError: Invalid regular expression:
-            // missing /'.
-            Debug.WriteLine($"exception message: {exception.Message}");
-            
-            
-            // Get the exception detail, it's a json struct data with all
-            // exception infomation, we can parse it and get the detail
-            // what we need.
-            Debug.WriteLine($"exception detail: {exception.ExceptionAsJSON}");
-            
-            // Get the location of the exception, note that the coordinates
-            // here are 0 as the starting position.
-            // In this case, we will get the coordinate: `LineNumber:0, ColumnNumber:55`.
-            String coordinate = "LineNumber:" + exception.LineNumber + 
+            String exceptionInfo = "The script execution failed." + 
+                "\nName:" + exception.Name +
+                "\nMesssge: " + exception.Message +
+                "\n LineNumber:" + exception.LineNumber + 
                 ", ColumnNumber:" + exception.ColumnNumber;
-            Debug.WriteLine($"exception coordinate: {coordinate}");
+            Debug.WriteLine($"{exceptionInfo}");
         }
     }
 }
@@ -266,7 +188,7 @@ class ExecuteScriptWithResultDemo {
 /// If the CoreWebView2.ExecuteScriptWithResult result has IsSuccessful as false,
 /// you can use the result's Exception property to get the script exception.
 [uuid(82F22B72-1B22-403E-A0B9-A8816C9C8E45), object, pointer_default(unique)]
-interface ICoreWebView2ScriptException : IUnknown {
+interface ICoreWebView2ExecuteScriptException : IUnknown {
 
   /// The line number of the source where the exception occurred.
   /// In the JSON it is `exceptionDetail.lineNumber`.
@@ -384,4 +306,3 @@ namespace Microsoft.Web.WebView2.Core
     }
 }
 ```
-
