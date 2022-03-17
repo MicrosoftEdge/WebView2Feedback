@@ -4,9 +4,9 @@ RegisterCustomScheme
 ===
 
 # Background
-Currently the WebResourceRequested event does not fire for non-http(s) URIs. Spartan WebView has built-in support for ms-appx* URIs and support of providing an IUriToStreamResolver parameter in NavigateToLocalStreamUri. Raising the CoreWebView2.WebResourceRequested would close the functional gap between WebView1 and WebView2 as the app can just provide a WebResourceResponse for a given custom protocol URI.
+Currently the WebResourceRequested event is not raised for non-http(s) URIs. Spartan WebView has built-in support for ms-appx* URIs and support of providing an IUriToStreamResolver parameter in NavigateToLocalStreamUri. Raising the CoreWebView2.WebResourceRequested would close the functional gap between WebView1 and WebView2 as the app can just provide a WebResourceResponse for a given custom protocol URI.
 
-To be able to provide the ability to fire WebResourceRequested for custom schemes, WebView2 needs to be able to know how to treat such custom scheme URIs. By the W3C standard, custom schemes have opaque origins and do not participate in security policies. However, in order to make web requests with custom schemes useful, some of these URIs would need to act more like HTTP URIs. The app needs to be able to make the choices on which schemes to enable security policies for and make similar to HTTP URIs. The following questions arise:
+To be able to provide the ability to raise WebResourceRequested for custom schemes, WebView2 needs to be able to know how to treat such custom scheme URIs. By the W3C standard, custom schemes have opaque origins and do not participate in security policies. However, in order to make web requests with custom schemes useful, some of these URIs would need to act more like HTTP URIs. The app needs to be able to make the choices on which schemes to enable security policies for and make similar to HTTP URIs. The following questions arise:
 
 - Are custom scheme URIs considered secure contexts?
 - Do custom schemes URIs participate in CORS policies?
@@ -16,7 +16,7 @@ As a result, we introduce a new API to be able to register custom schemes and al
 
 # Conceptual pages (How To)
 
-WebResourceRequested event can also fire for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for using the CustomSchemeRegistrar. With each registration, the app will specify the security policies it wants enabled for the URIs with such schemes and it will also need to explicitly specify the origins that are allowed to interact with these custom scheme URIs.  The registrations are valid throughout the lifetime of the WebView2Environment and browser process and any other WebView2Environments that share the browser process must register exactly same schemes to be able to create a WebView2Environment.
+WebResourceRequested event can also be raised for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for using the CustomSchemeRegistrar. With each registration, the app will specify the security policies it wants enabled for the URIs with such schemes and it will also need to explicitly specify the origins that are allowed to interact with these custom scheme URIs.  The registrations are valid throughout the lifetime of the WebView2Environment and browser process and any other WebView2Environments that share the browser process must register exactly same schemes to be able to create a WebView2Environment.
 
 For each custom scheme the developer wants to register they can:
 1) Enable the scheme to be used for CORS requests provided the origin making the request is also in list of allowed origins list.
@@ -73,7 +73,7 @@ webView.CoreWebView2.WebResourceRequested += delegate (
 webView.CoreWebView2.Navigate(L"https://www.example.com");
 
 // The following XHR will execute in the context of https://www.example.com page and will succeed.
-// WebResourceRequested event will fire for this request as *.example.com is in the allowed origin list of custom-scheme and
+// WebResourceRequested event will be raised for this request as *.example.com is in the allowed origin list of custom-scheme and
 // the custom scheme has CORS enabled. Since the response header provided in WebResourceRequested handler allows all origins for CORS
 // the XHR succeeds.
 webView.CoreWebView2.ExecuteScriptAsync("var oReq = new XMLHttpRequest();\
@@ -81,13 +81,13 @@ webView.CoreWebView2.ExecuteScriptAsync("var oReq = new XMLHttpRequest();\
                                         oReq.open(\"GET\", \"custom-scheme://example-data.json\");\
                                         oReq.send();");
 // The following XHR will fail because *.example.com is in the not allowed origin list of custom-scheme2.
-// The WebResourceRequested event will not fire for this request.
+// The WebResourceRequested event will not be raised for this request.
 webView.CoreWebView2.ExecuteScriptAsync("var oReq = new XMLHttpRequest();\
                                         oReq.addEventListener(\"load\", reqListener);\
                                         oReq.open(\"GET\", \"custom-scheme-not-in-allowed-origins://example-data.json\");\
                                         oReq.send();");
 // The following XHR will fail because CORS is not enabled for custom-scheme-cors-disabled.
-// The WebResourceRequested event will not fire for this request.
+// The WebResourceRequested event will not be raised for this request.
 webView.CoreWebView2.ExecuteScriptAsync("var oReq = new XMLHttpRequest();\
                                         oReq.addEventListener(\"load\", reqListener);\
                                         oReq.open(\"GET\", \"custom-scheme-cors-disabled://example-data.json\");\
@@ -159,7 +159,7 @@ CHECK_FAILURE(m_webView->add_WebResourceRequested(
 CHECK_FAILURE(m_webView->Navigate(L"https://www.example.com"));
 
 // The following XHR will execute in the context of https://www.example.com page and will succeed.
-// WebResourceRequested event will fire for this request as *.example.com is in the allowed origin list of custom-scheme and
+// WebResourceRequested event will be raised for this request as *.example.com is in the allowed origin list of custom-scheme and
 // the custom scheme has CORS enabled. Since the response header provided in WebResourceRequested handler allows all origins for CORS
 // the XHR succeeds.
 CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
@@ -170,7 +170,7 @@ CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
                                           [](HRESULT error, PCWSTR result) -> HRESULT { return S_OK; })
                                           .Get()));
 // The following XHR will fail because *.example.com is in the not allowed origin list of custom-scheme2.
-// The WebResourceRequested event will not fire for this request.
+// The WebResourceRequested event will not be raised for this request.
 CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
                                        L"oReq.addEventListener(\"load\", reqListener);"
                                        L"oReq.open(\"GET\", \"custom-scheme-not-in-allowed-origins://example-data.json\");"
@@ -179,7 +179,7 @@ CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
                                           [](HRESULT error, PCWSTR result) -> HRESULT { return S_OK; })
                                           .Get()));
 // The following XHR will fail because CORS is disabled for custom-scheme-cors-disabled.
-// The WebResourceRequested event will not fire for this request.
+// The WebResourceRequested event will not be raised for this request.
 CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
                                        L"oReq.addEventListener(\"load\", reqListener);"
                                        L"oReq.open(\"GET\", \"custom-scheme-cors-disabled://example-data.json\");"
@@ -231,14 +231,6 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // Set CORS enabled for the scheme.
   [propput] HRESULT IsCorsEnabled([in] BOOL value);
 
-  // If `isCspEnabled` is set, the scheme is allowed to be used for requests
-  // that are subject to CSP including from itself as specified in
-  // https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
-  // If not set, such CSP subject requests will be blocked.
-  [propget] HRESULT IsCspEnabled([out, retval] BOOL* isCspEnabled);
-  // Set CSP enabled for the scheme.
-  [propput] HRESULT IsCspEnabled([in] BOOL value);
-
   // List of origins that are allowed to use the scheme,
   // subject to cross origin restrictions.
   // Origins are specified as a string in the format of scheme://host:port.
@@ -246,9 +238,9 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // For example, "http://*.example.com:80".
   // Any origin from the custom scheme itself is allowed by default. If the
   // array is empty, no other origin except origins from same scheme are allowed.
-  HRESULT GetAllowedOrigins([out] UINT32* allowedOriginsListCount, [out] LPCWSTR** allowedOriginsList);
+  HRESULT GetAllowedOrigins([out] UINT32* allowedOriginsCount, [out] LPCWSTR** allowedOrigins);
   // Set the list of origins that are allowed to use the scheme.
-  HRESULT SetAllowedOrigins([in] UINT32 allowedOriginsListCount, [in] LPCWSTR* allowedOriginsList);
+  HRESULT SetAllowedOrigins([in] UINT32 allowedOriginsCount, [in] LPCWSTR* allowedOrigins);
 }
 
 // This is the ICoreWebView2EnvironmentOptions3 interface
@@ -256,10 +248,12 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// List of custom scheme registrations.
   HRESULT GetCustomSchemeRegistrations(
-      [out] UINT32* count, [out] ICoreWebView2CustomSchemeRegistration*** schemeRegistrations);
+      [out] UINT32* count,
+      [out] ICoreWebView2CustomSchemeRegistration*** schemeRegistrations);
   /// Set the list of custom scheme registrations to be used.
   HRESULT, SetCustomSchemeRegistrations(
-      [in] UINT32 count, [in] ICoreWebView2CustomSchemeRegistration** schemeRegistrations);
+      [in] UINT32 count,
+      [in] const ICoreWebView2CustomSchemeRegistration** schemeRegistrations);
 }
 ```
 
