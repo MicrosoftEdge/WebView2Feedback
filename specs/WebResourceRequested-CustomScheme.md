@@ -274,7 +274,7 @@ namespace Microsoft.Web.WebView2.Core
     // They will have tuple origins for URIs with host and opaque origins for
     // URIs without host as specified in https://html.spec.whatwg.org/multipage/origin.html
     // Example:
-    // custom-scheme-with-host://hostname/path/to/resource has origin of custom-scheme-with-host://hostname
+    // `custom-scheme-with-host://hostname/path/to/resource` has origin of `custom-scheme-with-host://hostname`
     // `custom-scheme-without-host:path/to/resource` has origin of `custom-scheme-without-host:path/to/resource`
     // For WebResourceRequested event, the cases of request URIs and filter URIs with custom schemes
     // will be normalized according to generic URI syntax rules. Any non-ASCII characters will be preserved.
