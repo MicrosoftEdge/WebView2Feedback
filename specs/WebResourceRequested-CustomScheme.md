@@ -299,7 +299,7 @@ namespace Microsoft.Web.WebView2.Core
         // Origins are specified as a string in the format of scheme://host:port.
         // `*` wildcard can also be used on origins.
         // For example, "http://*.example.com:80".
-        // Any origin from the custom scheme itself is allowed by default. If the
+        // Any origin from the custom scheme itself is always allowed. If the
         // list is empty, no other origin except origins from same scheme are allowed.
         IList<String> AllowedOrigins { get; };
     }
