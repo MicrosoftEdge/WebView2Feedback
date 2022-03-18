@@ -2,18 +2,18 @@ RegisterCustomScheme
 ===
 
 # Background
-Currently the WebResourceRequested event is not raised for non-http(s) URIs. Spartan WebView has built-in support for ms-appx* URIs and support of providing an IUriToStreamResolver parameter in NavigateToLocalStreamUri. Raising the CoreWebView2.WebResourceRequested would close the functional gap between WebView1 and WebView2 as the app can just provide a WebResourceResponse for a given custom protocol URI.
+Currently the WebResourceRequested event is not raised for non-http(s) URIs. Spartan WebView has built-in support for ms-appx* URIs and support of providing an IUriToStreamResolver parameter in NavigateToLocalStreamUri. Raising the CoreWebView2.WebResourceRequested for custom scheme URIs would close the functional gap between WebView1 and WebView2 as the app can just provide a WebResourceResponse for a given custom scheme URI.
 
-To be able to provide the ability to raise WebResourceRequested for custom schemes, WebView2 needs to be able to know how to treat such custom scheme URIs. By the W3C standard, custom schemes have opaque origins and do not participate in security policies. However, in order to make web requests with custom schemes useful, some of these URIs would need to act more like HTTP URIs. The app needs to be able to make the choices on which schemes to enable security policies for and make similar to HTTP URIs. The following questions arise:
+To be able to provide the ability to raise WebResourceRequested for custom schemes, WebView2 needs to be able to know how to treat such custom scheme URIs. By the W3C standard, custom schemes have opaque origins and do not participate in security policies. However, in order to make web requests with custom schemes useful, some of these URIs would need to act more like HTTP URIs, while keeping security in mind. The following questions arise:
 
 - Are custom scheme URIs considered secure contexts?
-- Which origins should be able to issue requests from these custom schemes to prevent an untrusted origin from reading trusted data?
+- Which origins should be able to issue requests from these custom schemes to prevent an untrusted origin from reading trusted data from the app?
 
 As a result, we introduce a new API to be able to register custom schemes and allow the end developer to answer these questions as a part of registration.
 
 # Conceptual pages (How To)
 
-WebResourceRequested event can also be raised for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for. With each registration, the app will specify whether the URIs with such schemes are considered secure context and it will also need to explicitly specify the origins that are allowed to make requests to these custom scheme URIs. The registrations are valid throughout the lifetime of the CoreWebView2Environment and browser process and any other CoreWebView2Environments that share the browser process must register exactly same schemes to be able to create a CoreWebView2Environment. The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35).
+WebResourceRequested event can also be raised for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for. With each registration, the app will specify whether the URIs with such schemes are considered secure context and it will also need to explicitly specify the origins that are allowed to make requests to these custom scheme URIs to ensure that untrusted origins cannot read trusted data from the app. The registrations are valid throughout the lifetime of the CoreWebView2Environment and browser process and any other CoreWebView2Environments that share the browser process must register exactly same schemes to be able to create a CoreWebView2Environment. The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35).
 
 For each custom scheme the developer wants to register they can:
 - Set it to be a secure context scheme to prevent insecure content warnings.
