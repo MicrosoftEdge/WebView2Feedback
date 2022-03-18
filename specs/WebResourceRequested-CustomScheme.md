@@ -185,8 +185,9 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // Example:
   // custom-scheme-with-host://hostname/path/to/resource has origin of custom-scheme-with-host://hostname
   // custom-scheme-without-host:path/to/resource has origin of custom-scheme-without-host:path/to/resource
-  // For WebResourceRequested event, the request URIs and filter URIs with custom schemes
-  // will be normalized according to RFC3986.
+  // For WebResourceRequested event, the cases of request URIs and filter URIs with custom schemes
+  // will be normalized according to generic URI syntax rules. Any non-ASCII characters will be preserved.
+  // The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35). The app needs to set the appropriate access headers in its WebResourceRequested handler to allow CORS requests.
 
   // The name of the custom scheme to register.
   [propget] HRESULT SchemeName([out, retval] LPCWSTR* schemeName);
@@ -250,6 +251,7 @@ namespace Microsoft.Web.WebView2.Core
     // `custom-scheme-without-host:path/to/resource` has origin of `custom-scheme-without-host:path/to/resource`
     // For WebResourceRequested event, the cases of request URIs and filter URIs with custom schemes
     // will be normalized according to generic URI syntax rules. Any non-ASCII characters will be preserved.
+    // The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35). The app needs to set the appropriate access headers in its WebResourceRequested handler to allow CORS requests.
     runtimeclass CoreWebView2CustomSchemeRegistration
     {
         // Constructor
