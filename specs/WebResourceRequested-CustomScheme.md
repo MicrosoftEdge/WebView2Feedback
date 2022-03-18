@@ -264,7 +264,7 @@ namespace Microsoft.Web.WebView2.Core
         bool IsSecure { get; set; };
 
         // List of origins that are allowed to issue requests with the custom scheme.
-        // Except origins with custom scheme itself and no-origin requests,
+        // Except origins with this same custom scheme, which is always allowed, and no-origin requests,
         // the origin of any request (requests that have the 
         // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin?msclkid=f7147fe3a64711ecbcde6eb3114a9946)) to the custom scheme URL
         // needs to be in this list. Note that cross-origin restrictions still apply. 
