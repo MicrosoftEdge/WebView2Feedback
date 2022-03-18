@@ -13,11 +13,11 @@ As a result, we introduce a new API to be able to register custom schemes and al
 
 # Conceptual pages (How To)
 
-WebResourceRequested event can also be raised for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for. With each registration, the app will specify whether the URIs with such schemes are considered secure context and it will also need to explicitly specify the origins that are allowed to make requests to these custom scheme URIs. The registrations are valid throughout the lifetime of the WebView2Environment and browser process and any other WebView2Environments that share the browser process must register exactly same schemes to be able to create a WebView2Environment. The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35).
+WebResourceRequested event can also be raised for custom schemes. For this, the app has to register the custom schemes it would like to be able to issue resource requests for. With each registration, the app will specify whether the URIs with such schemes are considered secure context and it will also need to explicitly specify the origins that are allowed to make requests to these custom scheme URIs. The registrations are valid throughout the lifetime of the CoreWebView2Environment and browser process and any other CoreWebView2Environments that share the browser process must register exactly same schemes to be able to create a CoreWebView2Environment. The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35).
 
 For each custom scheme the developer wants to register they can:
-1) Set it to be a secure context scheme to prevent insecure content warnings.
-2) Provide a list of origins that can make requests to the custom scheme.
+- Set it to be a secure context scheme to prevent insecure content warnings.
+- Provide a list of origins that can make requests to the custom scheme.
 
 # Examples
 
@@ -34,8 +34,8 @@ CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
 string[] allowedOriginsList = new string[1];
 allowedOriginsList[0] = "https://*.example.com";
 
-options.CustomSchemeRegistrations.Add(new CoreWebView2CustomSchemeRegistration("custom-scheme", true /* isSecure*/, false, allowedOriginsList));
-options.CustomSchemeRegistrations.Add(new CoreWebView2CustomSchemeRegistration("custom-scheme-not-in-allowed-origins", true /* isSecure*/, false, null));
+options.CustomSchemeRegistrations.Add(new CoreWebView2CustomSchemeRegistration("custom-scheme", true /* isSecure */, allowedOriginsList));
+options.CustomSchemeRegistrations.Add(new CoreWebView2CustomSchemeRegistration("custom-scheme-not-in-allowed-origins", true /* isSecure */, null));
 ...
 string customScheme = "custom-scheme";
 webView.CoreWebView2.AddWebResourceRequestedFilter(
@@ -187,7 +187,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // custom-scheme-without-host:path/to/resource has origin of custom-scheme-without-host:path/to/resource
   // For WebResourceRequested event, the cases of request URIs and filter URIs with custom schemes
   // will be normalized according to generic URI syntax rules. Any non-ASCII characters will be preserved.
-  // The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35). The app needs to set the appropriate access headers in its WebResourceRequested handler to allow CORS requests.
+  // The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and adheres to [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35). The app needs to set the appropriate access headers in its WebResourceRequested event handler to allow CORS requests.
 
   // The name of the custom scheme to register.
   [propget] HRESULT SchemeName([out, retval] LPCWSTR* schemeName);
@@ -199,18 +199,20 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   [propput] HRESULT IsSecure([in] BOOL value);
 
   // Array of origins that are allowed to issue requests with the custom scheme.
-  // Except origins with custom scheme itself and no-origin requests,
+  // Except origins with this same custom scheme, which are always allowed,
   // the origin of any request (requests that have the 
-  // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin?msclkid=f7147fe3a64711ecbcde6eb3114a9946)) // to the custom scheme URL needs to be in this list. Note that cross-origin restrictions still apply. 
+  // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin?msclkid=f7147fe3a64711ecbcde6eb3114a9946)) to the custom scheme URL
+  // needs to be in this list. No-origin requests are requests that do not have an Origin header,
+  // such as link navigations, embedded images and are always allowed.
+  // Note that cross-origin restrictions still apply. 
+  // If the list is empty, no cross-origin request to this scheme is allowed.
   // Origins are specified as a string in the format of scheme://host:port.
   // The origins are string pattern matched with `*` (matches 0 or more characters)
-  // and `?` (matches 0 or 1 character) wildcards
-  // just like the URI matching in the [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter?msclkid=33bd40dda64d11ec9390310f4f42d68a&view=webview2-dotnet-1.0.1150.38).
-  // For example, "http://*.example.com:80". 
-  // Any origin from the custom scheme itself is allowed by default. If the
-  // array is empty, no other origin except origins from same scheme are allowed.
+  // and `?` (matches 0 or 1 character) wildcards just like the URI matching in the
+  // [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter?msclkid=33bd40dda64d11ec9390310f4f42d68a&view=webview2-dotnet-1.0.1150.38).
+  // For example, "http://*.example.com:80".
   // The array of strings and the array here must be deallocated with CoTaskMemFree if
-  // using the CoreWebView2CustomSchemeRegistration class in WebView2EnvironmentOptions.h
+  // using the CoreWebView2CustomSchemeRegistration class in CoreWebView2EnvironmentOptions.h
   HRESULT GetAllowedOrigins([out] UINT32* allowedOriginsCount, [out] LPCWSTR** allowedOrigins);
   // Set the array of origins that are allowed to use the scheme.
   HRESULT SetAllowedOrigins([in] UINT32 allowedOriginsCount, [in] LPCWSTR* allowedOrigins);
@@ -219,7 +221,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
 // This is the ICoreWebView2EnvironmentOptions3 interface
 [uuid(ac52d13f-0d38-475a-9dca-876580d6793e), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
-  /// Array of custom scheme registrations. The array must be deallocated with CoTaskMemFree if using the CoreWebView2EnvironmentOptions class in WebView2EnvironmentOptions.h
+  /// Array of custom scheme registrations. The array must be deallocated with CoTaskMemFree if using the CoreWebView2EnvironmentOptions class in CoreWebView2EnvironmentOptions.h
   HRESULT GetCustomSchemeRegistrations(
       [out] UINT32* count,
       [out] ICoreWebView2CustomSchemeRegistration*** schemeRegistrations);
@@ -251,7 +253,7 @@ namespace Microsoft.Web.WebView2.Core
     // `custom-scheme-without-host:path/to/resource` has origin of `custom-scheme-without-host:path/to/resource`
     // For WebResourceRequested event, the cases of request URIs and filter URIs with custom schemes
     // will be normalized according to generic URI syntax rules. Any non-ASCII characters will be preserved.
-    // The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35). The app needs to set the appropriate access headers in its WebResourceRequested handler to allow CORS requests.
+    // The registered custom schemes also participate in [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS?msclkid=79c64f88a64c11ec8862c1ba8d05164c) and adheres to [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP?msclkid=870484bca64c11ecbe57b10ab5f74c35). The app needs to set the appropriate access headers in its WebResourceRequested event handler to allow CORS requests.
     runtimeclass CoreWebView2CustomSchemeRegistration
     {
         // Constructor
@@ -264,17 +266,18 @@ namespace Microsoft.Web.WebView2.Core
         bool IsSecure { get; set; };
 
         // List of origins that are allowed to issue requests with the custom scheme.
-        // Except origins with this same custom scheme, which is always allowed, and no-origin requests,
+        // Except origins with this same custom scheme, which are always allowed,
         // the origin of any request (requests that have the 
         // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin?msclkid=f7147fe3a64711ecbcde6eb3114a9946)) to the custom scheme URL
-        // needs to be in this list. Note that cross-origin restrictions still apply. 
+        // needs to be in this list. No-origin requests are requests that do not have an Origin header,
+        // such as link navigations, embedded images and are always allowed.
+        // Note that cross-origin restrictions still apply. 
+        // If the list is empty, no cross-origin request to this scheme is allowed.
         // Origins are specified as a string in the format of scheme://host:port.
         // The origins are string pattern matched with `*` (matches 0 or more characters)
         // and `?` (matches 0 or 1 character) wildcards
         // just like the URI matching in the [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter?msclkid=33bd40dda64d11ec9390310f4f42d68a&view=webview2-dotnet-1.0.1150.38).
         // For example, "http://*.example.com:80".
-        // Any origin from the custom scheme itself is always allowed. If the
-        // list is empty, no other origin except origins from same scheme are allowed.
         IList<String> AllowedOrigins { get; };
     }
 
