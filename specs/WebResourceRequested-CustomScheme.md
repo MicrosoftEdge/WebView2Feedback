@@ -151,7 +151,7 @@ CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
                                       Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
                                           [](HRESULT error, PCWSTR result) -> HRESULT { return S_OK; })
                                           .Get()));
-// The following XHR will fail because *.example.com is in the not allowed origin list of custom-scheme2.
+// The following XHR will fail because *.example.com is not in the allowed origin list of custom-scheme2.
 // The WebResourceRequested event will not be raised for this request.
 CHECK_FAILURE(m_webView->ExecuteScript(L"var oReq = new XMLHttpRequest();"
                                        L"oReq.addEventListener(\"load\", reqListener);"
