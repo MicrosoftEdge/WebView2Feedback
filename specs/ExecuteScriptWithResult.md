@@ -120,10 +120,9 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
                                 L"\nMessage: " + exceptionMessage.get() +
                                 L"\nLineNumber: " + std::to_wstring(lineNumber) +
                                 L", ColumnNumber:" + std::to_wstring(columnNumber);
-                            MessageBox(
-                                nullptr, exceptionInfo.c_str(),
-                                L"ExecuteScript Result", MB_OK);
-                        }
+                        MessageBox(
+                            nullptr, exceptionInfo.c_str(),
+                            L"ExecuteScript Result", MB_OK);
                     }
                 }
                 return S_OK;
@@ -173,7 +172,7 @@ class ExecuteScriptWithResultDemo {
             String exceptionInfo = "The script execution failed." + 
                 "\nName:" + exception.Name +
                 "\nMesssge: " + exception.Message +
-                "\n LineNumber:" + exception.LineNumber + 
+                "\nLineNumber:" + exception.LineNumber + 
                 ", ColumnNumber:" + exception.ColumnNumber;
             Debug.WriteLine($"{exceptionInfo}");
         }
