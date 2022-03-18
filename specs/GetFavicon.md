@@ -15,40 +15,39 @@ CHECK_FAILURE(m_webView2->add_FaviconChanged(
     Callback<ICoreWebView2FaviconChangedEventHandler>(
         [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT {
             wil::unique_cotaskmem_string url;
-            Microsoft::WRL::ComPtr<ICoreWebView2>
-                webview2;
-            CHECK_FAILURE(
-                sender->QueryInterface(IID_PPV_ARGS(&webview2)));
 
-            CHECK_FAILURE(webview2->get_FaviconUri(&url));
+            CHECK_FAILURE(sender->get_FaviconUri(&url));
             std::wstring strUrl(url.get());
-
-            webview2->GetFavicon(
-                COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG,
-                Callback<ICoreWebView2GetFaviconCompletedHandler>(
-                    [this, strUrl](HRESULT errorCode, IStream* iconStream) -> HRESULT
+            if (strUrl.empty())
+            {
+                m_favicon.reset();
+                SendMessage(m_appWindow->GetMainWindow(), WM_SETICON, ICON_SMALL, (LPARAM)NULL);
+            }
+            else
+            {
+                webview2->GetFavicon(
+                    COREWEBVIEW2_FAVICON_IMAGE_FORMAT_PNG,
+                    Callback<ICoreWebView2GetFaviconCompletedHandler>(
+                        [this](HRESULT errorCode, IStream* iconStream) -> HRESULT
                     {
                         CHECK_FAILURE(errorCode);
                         Gdiplus::Bitmap iconBitmap(iconStream);
                         wil::unique_hicon icon;
-                        if (iconBitmap.GetHICON(&icon) == Gdiplus::Status::Ok)
+                        if (iconBitmap.GetHICON(&icon) = Gdiplus::Status::Ok)
                         {
                             m_favicon = std::move(icon);
-                            SendMessage(
-                                m_appWindow->GetMainWindow(), WM_SETICON,
-                                ICON_SMALL, (LPARAM)m_favicon.get());
                         }
                         else
                         {
-                            SendMessage(
-                                m_appWindow->GetMainWindow(), WM_SETICON,
-                                ICON_SMALL, (LPARAM)IDC_NO);
+                            m_favicon.reset();
                         }
 
+                        SendMessage(
+                            m_appWindow->GetMainWindow(), WM_SETICON,
+                            ICON_SMALL, (LPARAM)m_favicon.get());
                         return S_OK;
-                    })
-                    .Get());
-
+                    }).Get());
+            }
             return S_OK;
         }).Get(), &m_faviconChangedToken));
 }
@@ -67,11 +66,15 @@ webView.CoreWebView2.FaviconChanged += (object sender, Object arg) =>
 };
 ```
 # API Notes
-Note that even if a web page does not have a Favicon, the FaviconChanged event
-is raised when the page is navigated to. The Favicon would be an
-empty image stream and empty Uri for the lack of a favicon. The end developer is expected to handle this scenario.
-Otherwise, we raise the FaviconChanged with an observed change to the
-Favicon. In that scenario, the CoreWebView2 has an updated value for the FaviconUri property, and the GetFavicon method to match the updated favicon.
+Note that even if a web page does not have a Favicon and there was not a previously
+loaded Favicon, the event is not raised. Otherwise if there is not Favicon and the
+previous page did have a Favicon, the FaviconChanged event is raised when the page
+is navigated. The Favicon would be an empty image stream and empty Uri for the lack
+of a favicon. The end developer is expected to handle this scenario. Otherwise, we
+raise the FaviconChanged with an observed change to the Favicon. In that scenario,
+the CoreWebView2 has an updated value for the FaviconUri property, and the
+GetFavicon method to match the updated favicon. Loading the same Favicon twice does
+re-raise the FaviconChanged event.
 See [API Details](#api-details) Section below for API reference
 # API Details
 ## Win32 C++
@@ -144,10 +147,10 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
 
 [v1_enum]
 typedef enum COREWEBVIEW2_FAVICON_IMAGE_FORMAT {
-    /// Indicates that CoreWebView2.GetFaviconAsync should return the favicon in PNG format.
+    /// Indicates that CoreWebView2.GetFavicon should return the favicon in PNG format.
     COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG,
 
-    /// Indicates that CoreWebView2.GetFaviconAsync should return the favicon in JPG format.
+    /// Indicates that CoreWebView2.GetFavicon should return the favicon in JPG format.
     COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_JPEG,
 }
 ```
