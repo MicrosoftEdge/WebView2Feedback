@@ -28,7 +28,7 @@ The following code sample registers 2 custom schemes on the CoreWebView2Environm
 -Scheme 1 has https://*.example.com in its allowed origins list.
 -Scheme 2 has a null allowed origins list.
 
-It adds a WebResourceRequested handler for the requests to the custom schemes, which will serve the requests locally. Then it navigates the WebView to https://www.example.com and attempts to do XHRs with the three schemes. Only XHR from the scheme 1 will succeed because it's the one that has https://www.example.com in its allowed origin list.
+It adds a WebResourceRequested handler for the requests to the custom schemes, which will serve the requests locally. Then it navigates the WebView2 to https://www.example.com and attempts to use XMLHttpRequest (XHR) with both schemes. Only XHR to scheme 1 will succeed because it's the one that has https://www.example.com in its allowed origin list.
 ``` c#
 CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
 string[] allowedOriginsList = new string[1];
