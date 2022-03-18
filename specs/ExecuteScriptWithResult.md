@@ -257,16 +257,16 @@ interface ICoreWebView2ExecuteScriptWithResultCompletedHandler : IUnknown {
 [uuid(67E0B57B-1AC7-4395-9793-5E4EF9C4B7D9), object, pointer_default(unique)]
 interface ICoreWebView2_10 : ICoreWebView2_9 {
   
-    /// Run JavaScript code from the javaScript parameter in the current
-    /// top-level document rendered in the WebView.
-    /// The result of the execution is returned asynchronously in the CoreWebView2ExecuteScriptResult object
-    /// which has methods and properties to obtain the successful result of script execution as well as any
-    /// unhandled JavaScript exceptions.
-    /// If this method is
-    /// run after the NavigationStarting event during a navigation, the script
-    /// runs in the new document when loading it, around the time
-    /// ContentLoading is run. This operation executes the script even if
-    /// ICoreWebView2Settings::IsScriptEnabled is set to FALSE.
+  /// Run JavaScript code from the javaScript parameter in the current
+  /// top-level document rendered in the WebView.
+  /// The result of the execution is returned asynchronously in the CoreWebView2ExecuteScriptResult object
+  /// which has methods and properties to obtain the successful result of script execution as well as any
+  /// unhandled JavaScript exceptions.
+  /// If this method is
+  /// run after the NavigationStarting event during a navigation, the script
+  /// runs in the new document when loading it, around the time
+  /// ContentLoading is run. This operation executes the script even if
+  /// ICoreWebView2Settings::IsScriptEnabled is set to FALSE.
   HRESULT ExecuteScriptWithResult(
       [in] LPCWSTR javaScript,
       [in] ICoreWebView2ExecuteScriptWithResultCompletedHandler* handler);
