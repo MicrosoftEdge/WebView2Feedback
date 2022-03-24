@@ -13,12 +13,12 @@ going with the simplest approach, and adding a new property that provides an HTT
 the NavigationCompleted event.
 
 # Description
-The `NavigationCompletedEventArgs` interface will be given a new property, `StatusCode`, which has
-the HTTP status code of the navigation if it involved an HTTP request.  For instance, this will
+The `NavigationCompletedEventArgs` interface will be given a new property, `HttpStatusCode`, which
+has the HTTP status code of the navigation if it involved an HTTP request.  For instance, this will
 usually be 200 if the request was successful, 404 if a page was not found, etc.  See
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Status for a list of common status codes.
 
-The `StatusCode` property will be 0 in the following cases:
+The `HttpStatusCode` property will be 0 in the following cases:
 * The navigation did not involve an HTTP request.  For instance, if it was a navigation to a
   file:// URL, or if it was a same-document navigation.
 * The navigation failed before a response was received.  For instance, if the hostname was not
@@ -27,11 +27,11 @@ The `StatusCode` property will be 0 in the following cases:
 In those cases, you can get more information from the `IsSuccess` and `WebErrorStatus` properties.
 
 If the navigation receives a successful HTTP response, but the navigated page calls
-`window.stop()` before it finishes loading, then `StatusCode` may contain a success code like 200,
-but `IsSuccess` will be false and `WebErrorStatus` will be `ConnectionAborted`.
+`window.stop()` before it finishes loading, then `HttpStatusCode` may contain a success code like
+200, but `IsSuccess` will be false and `WebErrorStatus` will be `ConnectionAborted`.
 
 Since WebView2 handles HTTP continuations and redirects automatically, it is unlikely for
-`StatusCode` to ever be in the 1xx or 3xx ranges.
+`HttpStatusCode` to ever be in the 1xx or 3xx ranges.
 
 # Examples
 ## Win32 C++
@@ -49,7 +49,7 @@ void NavigationCompletedSample()
                 if (args2)
                 {
                     int status_code;
-                    args2->get_StatusCode(&status_code);
+                    args2->get_HttpStatusCode(&status_code);
                     if (status_code == 403)
                     {
                         ReportForbidden();
@@ -74,7 +74,7 @@ void NavigationCompletedSample()
 {
     _webview.NavigationCompleted += (object sender, CoreWebView2NavigationCompletedEventArgs args) =>
     {
-        int statusCode = args.StatusCode;
+        int statusCode = args.HttpStatusCode;
         if (status_code == 403)
         {
             ReportForbidden();
@@ -102,7 +102,7 @@ interface ICoreWebViewNavigationCompletedEventArgs2 : ICoreWebView2NavigationCom
     /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Status for a list of
     /// common status codes.
     ///
-    /// The `StatusCode` property will be 0 in the following cases:
+    /// The `HttpStatusCode` property will be 0 in the following cases:
     /// * The navigation did not involve an HTTP request.  For instance, if it was
     ///   a navigation to a file:// URL, or if it was a same-document navigation.
     /// * The navigation failed before a response was received.  For instance, if
@@ -112,14 +112,14 @@ interface ICoreWebViewNavigationCompletedEventArgs2 : ICoreWebView2NavigationCom
     /// `WebErrorStatus` properties.
     ///
     /// If the navigation receives a successful HTTP response, but the navigated
-    /// page calls `window.stop()` before it finishes loading, then `StatusCode`
+    /// page calls `window.stop()` before it finishes loading, then `HttpStatusCode`
     /// may contain a success code like 200, but `IsSuccess` will be FALSE and
     /// `WebErrorStatus` will be `COREWEBVIEW2_WEB_ERROR_STATUS_CONNECTION_ABORTED`.
     ///
     /// Since WebView2 handles HTTP continuations and redirects automatically, it
-    /// is unlikely for `StatusCode` to ever be in the 1xx or 3xx ranges.
+    /// is unlikely for `HttpStatusCode` to ever be in the 1xx or 3xx ranges.
 
-    [propget] HRESULT StatusCode([out, retval] INT* status_code);
+    [propget] HRESULT HttpStatusCode([out, retval] INT* status_code);
 }
 ```
 
@@ -133,7 +133,7 @@ namespace Microsoft.Web.WebView2.Core
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2NavigationCompletedEventArgs2")]
         {
-            int StatusCode { get; };
+            int HttpStatusCode { get; };
         }
     }
 }
