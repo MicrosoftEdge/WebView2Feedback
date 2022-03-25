@@ -21,7 +21,7 @@ The following code snippets demonstrate how the ExecuteScriptWithResult can be u
 // Using std::wstringstream to generate script code,
 // it will generate the code like
 // 'let str_0 = "This is a string"; let n_0= str_0.replace(/a/i, "microsoft"); n_0;'
-static std::wstring GenerateScriptCode(LPCWSTR str, LPCWSTR reg, LPCWSTR item)
+std::wstring GenerateScriptCode(LPCWSTR str, LPCWSTR reg, LPCWSTR item)
 {
     if (str == nullptr || reg == nullptr || item == nullptr)
     {
@@ -42,7 +42,7 @@ static std::wstring GenerateScriptCode(LPCWSTR str, LPCWSTR reg, LPCWSTR item)
 }
 
 // This is a demo that uses regular expressions in 
-// javascript to complete string replacement, it will handle
+// JavaScript to complete string replacement, it will handle
 // the case of successful execution and execution exception
 void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
     , LPCWSTR str
@@ -51,6 +51,12 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
 {
     wil::com_ptr<ICoreWebView2_10> webview2 = webView.try_query<ICoreWebView2_10>();
 
+    if (!webview2)
+    {
+        // ExecuteScriptWithResult is not supported by this WebView.
+        return;
+    }
+
     auto scriptCode = GenerateScriptCode(str, reg, item);
     webview2->ExecuteScriptWithResult(
         scriptCode.c_str(),
@@ -58,73 +64,70 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
             [](
                 HRESULT errorCode, ICoreWebView2ExecuteScriptResult* result) -> HRESULT
             {
-                if (errorCode != S_OK || result == nullptr)
-                {
-                    MessageBox(
-                        nullptr, L"Get execute status failed!", L"ExecuteScript Result", MB_OK);
-                }
-                else
-                {
-                    wil::unique_cotaskmem_string stringData;
+                // There is usually no failure here, if the assertion fails,
+                // the runtime environment has an exception and needs to fail fast.
+                CHECK_FAILURE(errorCode);
 
-                    BOOL isSuccess;
-                    result->get_IsSuccess(&isSuccess);
-                    // Here is the successful execution.
-                    // We will use a MessageBox to print the replaced result.
-                    if (isSuccess)
+                wil::unique_cotaskmem_string stringData;
+
+                BOOL isSuccess;
+                result->get_Succeeded(&isSuccess);
+                // Here is the successful execution.
+                // We will use a MessageBox to print the replaced result.
+                if (isSuccess)
+                {
+                    // We try to use TryGetResultAsString to get the string result here.
+                    // Since the JavaScript platform's `string.replace` returns a string,
+                    // the call here will succeed.
+                    // If the script is replaced by `string.search`, the function will
+                    // return an int and the call will fail here.
+                    if (result->TryGetResultAsString(&stringData) != S_OK)
                     {
-                        // We try to use TryGetResultAsString to get the string result here.
-                        // Since the javascript platform's `string.replace` returns a string,
-                        // the call here will succeed.
-                        // If the script is replaced by `string.search`, the function will
-                        // return an int and the call will fail here.
-                        if (result->TryGetResultAsString(&stringData) != S_OK)
-                        {
-                            MessageBox(
-                                nullptr, L"Get string failed", L"ExecuteScript Result", MB_OK);
-                        }
-                        else
-                        {
-                            MessageBox(nullptr, stringData.get(), L"ExecuteScript Result",
-                                MB_OK);
-                        }
+                        MessageBox(
+                            nullptr, L"Get string failed", L"ExecuteScript Result", MB_OK);
                     }
-                    // Here is the case of execution exception. 
-                    // We will use MessageBox to print exception-related information
                     else
                     {
-                        wil::com_ptr<ICoreWebView2ExecuteScriptException> exception;
-                        
-                        result->get_Exception(&exception);
-
-                        // The ExceptionName property could be the empty string if script throws a non-Error object, 
-                        // such as `throw 1`.
-                        wil::unique_cotaskmem_string exceptionName;
-                        exception->get_Name(&exceptionName);
-
-                        // The ExceptionMessage property could be the empty string if script throws a non-Error object, 
-                        // such as `throw 1`.
-                        wil::unique_cotaskmem_string exceptionMessage;
-                        exception->get_Message(&exceptionMessage)
-
-                        // Get the location of the exception, note that the coordinates
-                        // here are 0 as the starting position.
-                        uint32_t lineNumber = 0;
-                        uint32_t columnNumber = 0;
-                        exception->get_LineNumber(&lineNumber);
-                        exception->get_ColumnNumber(&columnNumber);
-
-                        auto exceptionInfo = 
-                                L"The script execution failed." + 
-                                L"\nName: " + exceptionName.get() +
-                                L"\nMessage: " + exceptionMessage.get() +
-                                L"\nLineNumber: " + std::to_wstring(lineNumber) +
-                                L", ColumnNumber:" + std::to_wstring(columnNumber);
-                        MessageBox(
-                            nullptr, exceptionInfo.c_str(),
-                            L"ExecuteScript Result", MB_OK);
+                        MessageBox(nullptr, stringData.get(), L"ExecuteScript Result",
+                            MB_OK);
                     }
                 }
+                // Here is the case of execution exception. 
+                // We will use MessageBox to print exception-related information
+                else
+                {
+                    wil::com_ptr<ICoreWebView2ExecuteScriptException> exception;
+                    
+                    result->get_Exception(&exception);
+
+                    // The ExceptionName property could be the empty string if script throws a non-Error object, 
+                    // such as `throw 1`.
+                    wil::unique_cotaskmem_string exceptionName;
+                    exception->get_Name(&exceptionName);
+
+                    // The ExceptionMessage property could be the empty string if script throws a non-Error object, 
+                    // such as `throw 1`.
+                    wil::unique_cotaskmem_string exceptionMessage;
+                    exception->get_Message(&exceptionMessage)
+
+                    // Get the location of the exception, note that the coordinates
+                    // here are 0 as the starting position.
+                    uint32_t lineNumber = 0;
+                    uint32_t columnNumber = 0;
+                    exception->get_LineNumber(&lineNumber);
+                    exception->get_ColumnNumber(&columnNumber);
+
+                    auto exceptionInfo = 
+                            L"The script execution failed." + 
+                            L"\nName: " + exceptionName.get() +
+                            L"\nMessage: " + exceptionMessage.get() +
+                            L"\nLineNumber: " + std::to_wstring(lineNumber) +
+                            L", ColumnNumber:" + std::to_wstring(columnNumber);
+                    MessageBox(
+                        nullptr, exceptionInfo.c_str(),
+                        L"ExecuteScript Result", MB_OK);
+                }
+                
                 return S_OK;
             })
             .Get());
@@ -133,33 +136,34 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
 ```
 ## .NET and WinRT
 ```c#
-class ExecuteScriptWithResultDemo {
+class ExecuteScriptWithResultDemo 
+{
     int idx = 0;
 
-    private String GenerateScriptCode(String str, String reg, String item) {
-        String ret = "let str_" + idx + " = \"" + str + "\"; let n_" + idx + "= str_" + idx 
-            + ".replace(" + reg + ", \"" + item + "\"); n_" + idx + ";";
+    private String GenerateScriptCode(String str, String reg, String item) 
+    {
+        String ret = $"let str_{idx} = \"{str}\"; let n_{idx} = str_{idx}.replace({reg}, \"{item}\"); n_{idx};";
         ++idx;
         return ret;
     }
 
 
     // This is a demo that uses regular expressions in 
-    // javascript to complete string replacement, it will handle
+    // JavaScript to complete string replacement, it will handle
     // the case of successful execution and execution exception
-    public void MatchRegWithScript(String str, String reg, String item) {
-        var environment = webView2Control.CoreWebView2.Environment;
+    public void MatchRegWithScript(String str, String reg, String item) 
+    {
         String script = GenerateScriptCode(str, reg, item);
         CoreWebView2ExecuteScriptResult result = await ExecuteScriptWithResultAsync(script);
         
-        bool isSuccess = result.IsSuccess;
+        bool isSuccess = result.Succeeded;
         // Here is the successful execution.
         if (isSuccess) {            
             // Try to get the string result, it will throw an exception
             // if the result type isn't string type.
             try {
                 String stringResult = result.TryGetResultAsString();
-                Debug.WriteLine($"replaced string: {result.stringResult}");
+                Debug.WriteLine($"replaced string: {stringResult}");
             }
             catch (ArgumentException) {
                 Debug.WriteLine($"Non-string message received");
@@ -171,7 +175,7 @@ class ExecuteScriptWithResultDemo {
             var exception = result.Exception;
             String exceptionInfo = "The script execution failed." + 
                 "\nName:" + exception.Name +
-                "\nMesssge: " + exception.Message +
+                "\nMessage: " + exception.Message +
                 "\nLineNumber:" + exception.LineNumber + 
                 ", ColumnNumber:" + exception.ColumnNumber;
             Debug.WriteLine($"{exceptionInfo}");
@@ -184,7 +188,7 @@ class ExecuteScriptWithResultDemo {
 ## Win32 C++
 ```c++
 /// This interface represents a JavaScript exception.
-/// If the CoreWebView2.ExecuteScriptWithResult result has IsSuccessful as false,
+/// If the CoreWebView2.ExecuteScriptWithResult result has Succeeded as false,
 /// you can use the result's Exception property to get the script exception.
 [uuid(82F22B72-1B22-403E-A0B9-A8816C9C8E45), object, pointer_default(unique)]
 interface ICoreWebView2ExecuteScriptException : IUnknown {
@@ -214,7 +218,7 @@ interface ICoreWebView2ExecuteScriptException : IUnknown {
   /// This will return all details of the exception as a JSON string.
   /// In the case that script has thrown a non-Error object such as `throw "abc";`
   /// or any other non-Error object, you can get object specific properties.
-  [propget] HRESULT ExceptionAsJSON([out, retval] LPWSTR* value);
+  [propget] HRESULT ToJson([out, retval] LPWSTR* value);
 }
 
 /// This is the result for ExecuteScriptWithResult.
@@ -226,18 +230,30 @@ interface ICoreWebView2ExecuteScriptResult : IUnknown {
   /// or via the TryGetResultAsString method.
   /// If it is false then the script execution had an unhandled exception which you
   /// can get via the Exception property.
-  [propget] HRESULT IsSuccess([out, retval] BOOL* value); 
+  [propget] HRESULT Succeeded([out, retval] BOOL* value); 
 
-  /// If IsSuccess is true, then this property is the JSON representation of the result of the script execution
-  /// and otherwise returns E_INVALIDARG.
+  /// A function that has no explicit return value returns undefined. If the
+  /// script that was run throws an unhandled exception, then the result is
+  /// also "null". This method is applied asynchronously. If the method is
+  /// run before `ContentLoading`, the script will not be executed
+  /// and the string "null" will be returned.
+  
+  /// The return value description is as follows
+  /// 1. S_OK: Execution succeeds.
+  /// 2. E_POINTER: When the `jsonResult` is nullptr.
   [propget] HRESULT ResultAsJson([out, retval] LPWSTR* jsonResult);
 
-  /// If IsSuccess is true and the result of script execution is a string, this method provides the value of the string result
-  /// and otherwise returns E_INVALIDARG.
+  /// If Succeeded is true and the result of script execution is a string, this method provides the value of the string result
+  /// The return value description is as follows
+  /// 1. S_OK:                  Execution succeeds.
+  /// 2. E_ILLEGAL_METHOD_CALL: When the script result is not a string type.
+  /// 3. E_POINTER:             When the `stringResult` is nullptr.
   HRESULT TryGetResultAsString([out, retval] LPWSTR* stringResult);
 
-  /// If IsSuccess is false, you can use this property to get the unhandled exception thrown by script execution
-  /// and otherwise returns E_INVALIDARG.
+  /// If Succeeded is false, you can use this property to get the unhandled exception thrown by script execution
+  /// Note that due to the compatibility of the WinRT/.NET interface,
+  /// S_OK will be returned even if the acquisition fails.
+  /// We can determine whether the acquisition is successful by judging whether the `exception` is nullptr.
   [propget] HRESULT Exception(
       [out, retval] ICoreWebView2ExecuteScriptException** exception);
 }
@@ -256,7 +272,7 @@ interface ICoreWebView2ExecuteScriptWithResultCompletedHandler : IUnknown {
 [uuid(67E0B57B-1AC7-4395-9793-5E4EF9C4B7D9), object, pointer_default(unique)]
 interface ICoreWebView2_10 : ICoreWebView2_9 {
   
-  /// Run JavaScript code from the javaScript parameter in the current
+  /// Run JavaScript code from the JavaScript parameter in the current
   /// top-level document rendered in the WebView.
   /// The result of the execution is returned asynchronously in the CoreWebView2ExecuteScriptResult object
   /// which has methods and properties to obtain the successful result of script execution as well as any
@@ -290,7 +306,7 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2ExecuteScriptResult
     {
-        Boolean IsSuccess { get; };
+        Boolean Succeeded { get; };
 
         String ResultAsJson { get; };
 
@@ -309,7 +325,7 @@ namespace Microsoft.Web.WebView2.Core
 
         String Message { get; };
 
-        String ExceptionAsJSON { get; };
+        String ToJson { get; };
     }
 }
 ```
