@@ -134,14 +134,12 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
     [propget] HRESULT FaviconUri([out, retval] LPWSTR* value);
 
     /// Async function for getting the actual image data of the favicon.
-    /// If the `imageStream` is null, the `HRESULT` will be `E_POINTER`, otherwise
-    /// it is `S_OK`.
-    /// The image is copied to the `imageStream` object. If there is no image then
-    /// no data would be copied into the imageStream.
-    /// In either scenario the `completedHandler` is executed at the end of the operation.
+    /// The image is copied to the `imageStream` object in `ICoreWebView2GetFaviconCompletedHandler`.
+    /// If there is no image then no data would be copied into the imageStream.
+    /// The `format` is the file format to return the image stream.
+    /// `completedHandler` is executed at the end of the operation.
     HRESULT GetFavicon(
         [in] COREWEBVIEW2_FAVICON_IMAGE_FORMAT format,
-        [in] IStream* imageStream,
         [in] ICoreWebView2GetFaviconCompletedHandler* completedHandler);
 }
 
