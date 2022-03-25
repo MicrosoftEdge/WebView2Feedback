@@ -119,7 +119,7 @@ interface ICoreWebViewNavigationCompletedEventArgs2 : ICoreWebView2NavigationCom
     /// Since WebView2 handles HTTP continuations and redirects automatically, it
     /// is unlikely for `HttpStatusCode` to ever be in the 1xx or 3xx ranges.
 
-    [propget] HRESULT HttpStatusCode([out, retval] INT* status_code);
+    [propget] HRESULT HttpStatusCode([out, retval] INT* http_status_code);
 }
 ```
 
