@@ -49,13 +49,13 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
     , LPCWSTR reg
     , LPCWSTR item)
 {
-    wil::com_ptr<ICoreWebView2_10> webview2 = webView.try_query<ICoreWebView2_10>();
-
     if (!webview2)
     {
         // ExecuteScriptWithResult is not supported by this WebView.
         return;
     }
+
+    wil::com_ptr<ICoreWebView2_10> webview2 = webView.try_query<ICoreWebView2_10>();
 
     auto scriptCode = GenerateScriptCode(str, reg, item);
     webview2->ExecuteScriptWithResult(
