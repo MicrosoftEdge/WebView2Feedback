@@ -243,12 +243,9 @@ interface ICoreWebView2ExecuteScriptResult : IUnknown {
   /// 2. E_POINTER: When the `jsonResult` is nullptr.
   [propget] HRESULT ResultAsJson([out, retval] LPWSTR* jsonResult);
 
-  /// If Succeeded is true and the result of script execution is a string, this method provides the value of the string result
-  /// The return value description is as follows
-  /// 1. S_OK:                  Execution succeeds.
-  /// 2. E_ILLEGAL_METHOD_CALL: When the script result is not a string type.
-  /// 3. E_POINTER:             When the `stringResult` is nullptr.
-  HRESULT TryGetResultAsString([out, retval] LPWSTR* stringResult);
+  /// If Succeeded is true and the result of script execution is a string, this method provides the value of the string result,
+  /// and we will get the `FALSE` var value when the js result is not string type.
+  HRESULT TryGetResultAsString([out] LPWSTR* stringResult, [out, retval] BOOL* value);
 
   /// If Succeeded is false, you can use this property to get the unhandled exception thrown by script execution
   /// Note that due to the compatibility of the WinRT/.NET interface,
@@ -312,7 +309,7 @@ namespace Microsoft.Web.WebView2.Core
 
         CoreWebView2ExecuteScriptException Exception { get; };
 
-        String TryGetResultAsString();
+        Int32 TryGetResultAsString(out String stringResult);
     }
 
     runtimeclass CoreWebView2ExecuteScriptException
