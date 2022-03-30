@@ -49,13 +49,12 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
     , LPCWSTR reg
     , LPCWSTR item)
 {
+    wil::com_ptr<ICoreWebView2_10> webview2 = webView.try_query<ICoreWebView2_10>();
     if (!webview2)
     {
         // ExecuteScriptWithResult is not supported by this WebView.
         return;
     }
-
-    wil::com_ptr<ICoreWebView2_10> webview2 = webView.try_query<ICoreWebView2_10>();
 
     auto scriptCode = GenerateScriptCode(str, reg, item);
     webview2->ExecuteScriptWithResult(
@@ -76,12 +75,14 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
                 // We will use a MessageBox to print the replaced result.
                 if (isSuccess)
                 {
-                    // We try to use TryGetResultAsString to get the string result here.
+                    // We try to use `TryGetResultAsString` to get the string result here.
+                    // We can check the `isString` to get if the result is string type.
                     // Since the JavaScript platform's `string.replace` returns a string,
                     // the call here will succeed.
                     // If the script is replaced by `string.search`, the function will
                     // return an int and the call will fail here.
-                    if (result->TryGetResultAsString(&stringData) != S_OK)
+                    BOOL isString;
+                    if (result->TryGetResultAsString(&stringData, &isString) != S_OK || !isString)
                     {
                         MessageBox(
                             nullptr, L"Get string failed", L"ExecuteScript Result", MB_OK);
@@ -159,13 +160,15 @@ class ExecuteScriptWithResultDemo
         bool isSuccess = result.Succeeded;
         // Here is the successful execution.
         if (isSuccess) {            
-            // Try to get the string result, it will throw an exception
+            // Try to get the string result, it will return 0
             // if the result type isn't string type.
-            try {
-                String stringResult = result.TryGetResultAsString();
+            String stringResult;
+            if (result.TryGetResultAsString(stringResult) != 0)
+            {
                 Debug.WriteLine($"replaced string: {stringResult}");
             }
-            catch (ArgumentException) {
+            else 
+            {
                 Debug.WriteLine($"Non-string message received");
             }
         }
@@ -245,6 +248,9 @@ interface ICoreWebView2ExecuteScriptResult : IUnknown {
 
   /// If Succeeded is true and the result of script execution is a string, this method provides the value of the string result,
   /// and we will get the `FALSE` var value when the js result is not string type.
+  /// The return value description is as follows
+  /// 1. S_OK: Execution succeeds.
+  /// 2. E_POINTER: When the `stringResult` or `value` is nullptr.
   HRESULT TryGetResultAsString([out] LPWSTR* stringResult, [out, retval] BOOL* value);
 
   /// If Succeeded is false, you can use this property to get the unhandled exception thrown by script execution
