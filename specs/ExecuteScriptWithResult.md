@@ -20,7 +20,7 @@ The following code snippets demonstrate how the ExecuteScriptWithResult can be u
 // Tools function to generate the script code
 // Using std::wstringstream to generate script code,
 // it will generate the code like
-// 'let str_0 = "This is a string"; let n_0= str_0.replace(/a/i, "microsoft"); n_0;'
+// '(() => { let str = "abc"; let n = str.replace("b", "d"); return n; })();'
 std::wstring GenerateScriptCode(LPCWSTR str, LPCWSTR reg, LPCWSTR item)
 {
     if (str == nullptr || reg == nullptr || item == nullptr)
@@ -28,16 +28,12 @@ std::wstring GenerateScriptCode(LPCWSTR str, LPCWSTR reg, LPCWSTR item)
         return L"";
     }
 
-    // This variable is used to ensure that the
-    // variables in the script are unique.
-    static int idx = 0;
-
     static std::wstringstream sw;
     sw.clear();
 
-    sw << L"let str_" << idx << L" = \"" << str << L"\"; let n_" << idx << L"= str_" << idx
-       << L".replace(" << reg << L", \"" << item << L"\"); n_" << idx << L";";
-    ++idx;
+    sw << L"(() => { let str = \"" << str << L"\"; let n = str.replace("
+        << reg << L", \"" << item << L"\"); return n; })();";
+
     return sw.str();
 }
 
@@ -97,7 +93,7 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
                 // We will use MessageBox to print exception-related information
                 else
                 {
-                    wil::com_ptr<ICoreWebView2ExecuteScriptException> exception;
+                    wil::com_ptr<ICoreWebView2ScriptException> exception;
                     
                     result->get_Exception(&exception);
 
@@ -139,15 +135,11 @@ void MatchRegWithScript(wil::com_ptr<ICoreWebView2> webView
 ```c#
 class ExecuteScriptWithResultDemo 
 {
-    int idx = 0;
-
     private String GenerateScriptCode(String str, String reg, String item) 
     {
-        String ret = $"let str_{idx} = \"{str}\"; let n_{idx} = str_{idx}.replace({reg}, \"{item}\"); n_{idx};";
-        ++idx;
+        String ret = $"(() => {{ let str = \"{str}\"; let n = str.replace({reg}, \"{item}\"); return n; }})();";
         return ret;
     }
-
 
     // This is a demo that uses regular expressions in 
     // JavaScript to complete string replacement, it will handle
@@ -195,7 +187,7 @@ The spec file for `ExecuteScript` is [WebView2Feedback/specs/ExecuteScript.md](h
 /// If the CoreWebView2.ExecuteScriptWithResult result has Succeeded as false,
 /// you can use the result's Exception property to get the script exception.
 [uuid(82F22B72-1B22-403E-A0B9-A8816C9C8E45), object, pointer_default(unique)]
-interface ICoreWebView2ExecuteScriptException : IUnknown {
+interface ICoreWebView2ScriptException : IUnknown {
 
   /// The line number of the source where the exception occurred.
   /// In the JSON it is `exceptionDetail.lineNumber`.
@@ -259,7 +251,7 @@ interface ICoreWebView2ExecuteScriptResult : IUnknown {
   /// S_OK will be returned even if the acquisition fails.
   /// We can determine whether the acquisition is successful by judging whether the `exception` is nullptr.
   [propget] HRESULT Exception(
-      [out, retval] ICoreWebView2ExecuteScriptException** exception);
+      [out, retval] ICoreWebView2ScriptException** exception);
 }
 
 /// This is the callback for ExecuteScriptWithResult
@@ -299,7 +291,7 @@ namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2;
     runtimeclass CoreWebView2ExecuteScriptResult;
-    runtimeclass CoreWebView2ExecuteScriptException;
+    runtimeclass CoreWebView2ScriptException;
 
     runtimeclass CoreWebView2
     {
@@ -317,12 +309,12 @@ namespace Microsoft.Web.WebView2.Core
         // You can refer to the demo and documentation of `ExecuteScript`.
         String ResultAsJson { get; };
 
-        CoreWebView2ExecuteScriptException Exception { get; };
+        CoreWebView2ScriptException Exception { get; };
 
         Int32 TryGetResultAsString(out String stringResult);
     }
 
-    runtimeclass CoreWebView2ExecuteScriptException
+    runtimeclass CoreWebView2ScriptException
     {
         UInt32 LineNumber { get; };
 
