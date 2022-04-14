@@ -28,8 +28,7 @@ std::wstring GenerateScriptCode(LPCWSTR str, LPCWSTR reg, LPCWSTR item)
         return L"";
     }
 
-    static std::wstringstream sw;
-    sw.clear();
+    std::wstringstream sw;
 
     sw << L"(() => { let str = \"" << str << L"\"; let n = str.replace("
         << reg << L", \"" << item << L"\"); return n; })();";
