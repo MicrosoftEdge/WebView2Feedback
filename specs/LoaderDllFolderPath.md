@@ -1,3 +1,6 @@
+# Background
+For some reasons, there are some developers want to specify the path of 'WebView2Loader.dll' explicitly. So we add a API to enable it.
+
 # Description
 We add new `LoaderDllFolderPath` properties in `CoreWebView2Environment`.
 The API allow end developers to specify the folder's path where the `WebView2Loader.dll` is exited.
