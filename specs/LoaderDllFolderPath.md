@@ -1,0 +1,47 @@
+# Background
+The WebView2 loader code is what knows where to find and start or connect to already running WebView2 runtimes. This can either be statically linked for C based projects, or is also available as a standalone DLL. For .NET projects they must use the DLL since the loader code is native and we don't have a way to merge the native code into a managed module. Before this change the .NET WebView2 API module would look for the WebView2Loader.dll in the its same folder. But some .NET projects have requirements about where they can place DLLs and so this property is introduced to allow end developers to place the WebView2Loader.dll in any folder and specify the path of 'WebView2Loader.dll' explicitly.
+So we add an API to enable them to specify the path, so that they can use 'WebView2Loader.dll' from any path.
+
+# Description
+We add new static `LoaderDllFolderPath` property in `CoreWebView2Environment` class.
+The property allow the end developers to specify the folder's path containing `WebView2Loader.dll`.
+
+# Examples
+## C#
+```c#
+Task<CoreWebView2Environment> CreateEnvironmentAsync()
+{
+    // Specify a relative path '.'. There should be a 'WebView2Loader.dll' file in the folder.
+    CoreWebView2Environment.LoaderDllFolderPath = ".";
+    return CoreWebView2Environment.CreateAsync();
+}
+```
+
+# Remarks
+This property allows you to set the path of the folder containing the `WebView2Loader.dll`. This should be the path of a folder containing `WebView2Loader.dll` and not a path to the `WebView2Loader.dll` file itself.
+Note that the WebView2 SDK contains multiple `WebView2Loader.dll` files for different CPU architectures. When specifying folder path, you must specify one containing a `WebView2Loader.dll` module with a CPU architecture matching the current process CPU architecture.
+This property is used to load the `WebView2Loader.dll` module during calls to any of the static methods on `CoreWebView2Environment`. So, the path should be specified before any API called in `CoreWebView2Environment` class. Once `WebView2Loader.dll` is successfully loaded this property is no longer used.
+The path can be relative or absolute. Relative paths are relative to the path of the `Microsoft.Web.WebView2.Core.dll` module.
+If `LoaderDllFolderPath` is set and the `WebView2Loader.dll` file does not exist in that path or LoadLibrary cannot load the file, or LoadLibrary fails for any other reason, an exception corresponding to the LoadLibrary failure is thrown. For instance, if the file cannot be found a `DllNotFoundException` exception will be thrown.
+
+# API Notes
+See [API Details](#api-details) section below for API reference.
+
+# API Details
+## .NET and WinRT
+```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    public partial class CoreWebView2Environment
+    {
+        /// <summary>
+        /// This property allows you to set the path of the folder containing the `WebView2Loader.dll`. This should be the path of a folder containing `WebView2Loader.dll` and not a path to the `WebView2Loader.dll` file itself.
+        /// Note that the WebView2 SDK contains multiple `WebView2Loader.dll` files for different CPU architectures. When specifying folder path, you must specify one containing a `WebView2Loader.dll` module with a CPU architecture matching the current process CPU architecture.
+        /// This property is used to load the `WebView2Loader.dll` module during calls to any of the static methods on `CoreWebView2Environment`. So, the path should be specified before any API called in `CoreWebView2Environment` class. Once `WebView2Loader.dll` is successfully loaded this property is no longer used.
+        /// The path can be relative or absolute. Relative paths are relative to the path of the `Microsoft.Web.WebView2.Core.dll` module.
+        /// If `LoaderDllFolderPath` is set and the `WebView2Loader.dll` file does not exist in that path or LoadLibrary cannot load the file, or LoadLibrary fails for any other reason, an exception corresponding to the LoadLibrary failure is thrown. For instance, if the file cannot be found a `DllNotFoundException` exception will be thrown.
+        /// </summary>
+        public static string LoaderDllFolderPath { get; set; }
+    }
+}
+```
