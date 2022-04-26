@@ -1,0 +1,87 @@
+# Background
+
+[Edge SmartScreen](https://docs.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen) helps you identify reported phishing and malware websites,also helps you make informed decisions about downloads.
+
+In the current version of the Edge browser, users can switch the state of SmartScreen at any time. However, the webview2 application can only be set at initialization. In order to add more flexibility to the webview2 application. This API is added to keep the SmartScreen setting consistent with the browser. Development Users can control the status of SmartScreen at any time.
+
+In this document we describe the new setting. We'd appreciate your feedback.
+
+
+# Description
+The configuration of SmartScreen is stored in the user data folder. So its configuration is bound to the environment. Users can use ICoreWebView2Environment to control it.
+
+The default value for `IsSmartScreenEnabled` is `true`.
+When this setting is set to `false`, It will turn off SmartScreen protection when visiting web pages.
+
+Disabling/Enabling `IsSmartScreenEnabled` will take effect immediately.
+
+
+# Examples
+```cpp
+wil::com_ptr<ICoreWebView2Environment> enviroment;
+void SettingsComponent::ToggleSmartScreenEnabled()
+{
+    wil::com_ptr<ICoreWebView2Environment11> coreWebView2Enviroment11;
+    coreWebView2Enviroment11 =
+                m_webViewEnvironment.try_query<ICoreWebView2Environment11>();
+    if(coreWebView2Enviroment11) 
+    {
+        BOOL enabled;
+        CHECK_FAILURE(coreWebView2Enviroment11->get_IsSmartScreenEnabled(&enabled));
+        CHECK_FAILURE(coreWebView2Enviroment11->put_IsSmartScreenEnabled(enabled ? FALSE : TRUE));
+    }
+}
+```
+
+```c#
+void ToggleSmartScreenEnabled()
+{
+    var coreWebView2Enviroment = webView.CoreWebView2.Environment;
+    coreWebView2Enviroment.IsSmartScreenEnabled = !coreWebView2Enviroment.IsSmartScreenEnabled;
+}
+```
+
+# Remarks
+ All WebViews using the same user data folder share the same SmartScreen setting. When it is changed, the change will be applied to all WebViews using the same user data folder.
+
+# API Notes
+
+See [API Details](#api-details) section below for API reference.
+
+# API Details
+
+## Win32 C++
+```cpp
+[uuid(dc7ee01f-1fbf-440c-a11a-64472d18a27e), object, pointer_default(unique)] 
+interface ICoreWebView2Environment11 : ICoreWebView2Environment10 { 
+  /// SmartScreen helps you identify reported phishing and malware websites  
+  /// also helps you make informed decisions about downloads. 
+  /// `IsSmartScreenEnabled`  is used to control whether SmartScreen is turned on or not. 
+  /// All WebViews using the same user data folder share the same SmartScreen setting. 
+  /// When it is changed, the change will be applied to all WebViews using the 
+  /// same user data folder. 
+  /// \snippet SettingsComponent.cpp ToggleSmartScreenEnabled.
+  /// Get the IsSmartScreenEnabled property needs to be used after 
+  /// CreateCoreWebView2Controller is called.Otherwise return E_ACCESSDENIED.
+  [propget] HRESULT IsSmartScreenEnabled([out, retval] BOOL* value); 
+
+  /// Set the IsSmartScreenEnabled property. 
+  /// This configuration will be saved. 
+  /// The configuration from the last exit will be used on the next open
+  [propput] HRESULT IsSmartScreenEnabled([in] BOOL value); 
+
+} 
+```
+
+## .NET and WinRT
+
+```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    public partial class CoreWebView2Environment
+    {
+        public bool IsSmartScreenEnabled { get; set; };
+    }
+}
+
+```
