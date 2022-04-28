@@ -1,6 +1,6 @@
 # Background
 
-[Edge SmartScreen](https://docs.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen) helps you identify reported phishing and malware websites,also helps you make informed decisions about downloads.
+[Edge SmartScreen](https://docs.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen) helps you identify reported phishing and malware websites, and also helps you make informed decisions about downloads.
 
 In the current version of the Edge browser, users can switch the state of SmartScreen at any time. However, the webview2 application can only be set at initialization. In order to add more flexibility to the webview2 application. This API is added to keep the SmartScreen setting consistent with the browser. Development Users can control the status of SmartScreen at any time.
 
