@@ -300,7 +300,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // and `?` (matches 0 or 1 character) wildcards just like the URI matching in the
   // [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
   // For example, "http://*.example.com:80".
-  // The array of strings and the array here must be deallocated with CoTaskMemFree.
+  // The returned strings and the array itself must be deallocated with CoTaskMemFree.
   HRESULT GetAllowedOrigins([out] UINT32* allowedOriginsCount, [out] LPCWSTR** allowedOrigins);
   // Set the array of origins that are allowed to use the scheme.
   HRESULT SetAllowedOrigins([in] UINT32 allowedOriginsCount, [in] LPCWSTR* allowedOrigins);
