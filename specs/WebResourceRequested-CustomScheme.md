@@ -306,7 +306,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
 // This is the ICoreWebView2EnvironmentOptions3 interface
 [uuid(ac52d13f-0d38-475a-9dca-876580d6793e), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
-  /// Array of custom scheme registrations. The array must be deallocated with CoTaskMemFre.
+  /// Array of custom scheme registrations. The returned ICoreWebView2CustomSchemeRegistration pointers must be released, and the array itself must be deallocated with CoTaskMemFree.
   HRESULT GetCustomSchemeRegistrations(
       [out] UINT32* count,
       [out] ICoreWebView2CustomSchemeRegistration*** schemeRegistrations);
