@@ -92,7 +92,7 @@ webView.CoreWebView2.WebResourceRequested += delegate (
     if (uri.StartsWith(customScheme + ":") ||
         uri.StartsWith(customSchemeNotInAllowedOrigins))
     {
-        string assetsFilePath = L"data/";
+        String assetsFilePath = "data/";
         assetsFilePath += uri.Substring(customScheme.Length + 1);
         FileStream fileStream = new FileStream(assetsFilePath,
                                                FileMode.Open,
@@ -141,6 +141,10 @@ webView.CoreWebView2.ExecuteScriptAsync(
 ```
 
 ``` cpp
+#include <WebView2EnvironmentOptions.h> // CoreWebView2CustomSchemeRegistration is implemented here
+
+...
+
 Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions3> options3;
 if (options.As(&options3) == S_OK) {
   std::vector<Microsoft::WRL::ComPtr<ICoreWebView2CustomSchemeRegistration>> schemeRegistrations;
@@ -285,8 +289,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   [propput] HRESULT TreatAsSecure([in] BOOL value);
 
   // Array of origins that are allowed to issue requests with the custom scheme.
-  // Except origins with this same custom scheme, which are always allowed,
-  // the origin of any request (requests that have the
+  // Except origins with this same custom scheme the origin of any request (requests that have the
   // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin)) to the custom scheme URL
   // needs to be in this list. No-origin requests are requests that do not have an Origin header,
   // such as link navigations, embedded images and are always allowed.
@@ -317,7 +320,7 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
 }
 ```
 
-## .NET API
+## WinRT API
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
@@ -330,7 +333,7 @@ namespace Microsoft.Web.WebView2.Core
     // associated WebView2s' browser process and any WebView2 environments
     // sharing the browser process must be created with identical custom scheme
     // registrations, otherwise the environment creation will fail.
-    // Any further attempts to register the same scheme will fail.
+    // Any further attempts to register the same scheme will fail during environment creation.
     // The URIs of registered custom schemes will be treated similar to http
     // URIs for their origins.
     // They will have tuple origins for URIs with host and opaque origins for
@@ -355,7 +358,7 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2CustomSchemeRegistration(String schemeName);
 
         // The name of the custom scheme to register.
-        String SchemeName { get; set; };
+        String SchemeName { get; };
 
         // Whether the scheme will be treated as a
         // [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
@@ -389,7 +392,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions3")]
         {
             // List of custom scheme registrations.
-            IList<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
+            IVector<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
         }
     }
 }
