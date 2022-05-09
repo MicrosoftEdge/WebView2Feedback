@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Syncing to Azure DevOps
     steps:       
-    - uses: captainbrosset/github-actions-issue-to-work-item@simple-sync
+    - uses: champnic/github-actions-issue-to-work-item@simple-sync
       env:
         github_token: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"  
         ado_token: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
