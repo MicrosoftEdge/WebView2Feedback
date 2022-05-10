@@ -22,7 +22,7 @@ jobs:
       env:
         GH_PAT: '${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}'
         GH_OWNER: 'MicrosoftEdge'
-        GH_REPO: 'DevTools'
+        GH_REPO: 'WebView2Feedback'
         GH_TRACKED_LABELS: 'tracked'
         ADO_PAT: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
         ADO_ORG: 'microsoft'
