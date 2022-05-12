@@ -77,38 +77,39 @@ options.CustomSchemeRegistrations.Add(
   {
     TreatAsSecure = true
   });
+
+// Custom scheme registrations are validated here. In case invalid array is
+// passed, the environment creation task will throw InvalidArgumentException.
+auto environmentCreation = CoreWebView2Environment.CreateAsync(
+  CoreWebView2EnvironmentOptions options: options);
 ...
 
 webView.CoreWebView2.AddWebResourceRequestedFilter(
-        customScheme + ":*", All);
+        customScheme + ":*", CoreWebView2WebResourceContext.All);
 webView.CoreWebView2.AddWebResourceRequestedFilter(
-        customSchemeNotInAllowedOrigins + ":*", All);
+        customSchemeNotInAllowedOrigins + ":*", CoreWebView2WebResourceContext.All);
 webView.CoreWebView2.WebResourceRequested += delegate (
             object sender, CoreWebView2WebResourceRequestedEventArgs e)
 {
-    CoreWebView2WebResourceResponse response;
     CoreWebView2WebResourceRequest request = e.Request;
-    String uri = request.uri;
+    String uri = request.Uri;
     if (uri.StartsWith(customScheme + ":") ||
         uri.StartsWith(customSchemeNotInAllowedOrigins))
     {
         String assetsFilePath = "data/";
         assetsFilePath += uri.Substring(customScheme.Length + 1);
-        FileStream fileStream = new FileStream(assetsFilePath,
-                                               FileMode.Open,
-                                               FileAccess.Read);
-
-        if (stream)
-        {
-            e.Response = webView.CoreWebView2.CreateWebResourceResponse(
+        try {
+            FileStream fileStream = new FileStream(assetsFilePath,
+                                                FileMode.Open,
+                                                FileAccess.Read);
+            e.Response = webView.CoreWebView2.Environment.CreateWebResourceResponse(
                 fileStream,
                 200,
                 "OK",
                 "Content-Type: application/json\nAccess-Control-Allow-Origin: *");
         }
-        else
-        {
-            e.Response = webView.CoreWebView2.CreateWebResourceResponse(
+        catch (IOException) {
+            e.Response = webView.CoreWebView2.Environment.CreateWebResourceResponse(
                 null,
                 404,
                 "Not Found",
@@ -117,7 +118,7 @@ webView.CoreWebView2.WebResourceRequested += delegate (
     }
 }
 
-webView.CoreWebView2.Navigate(L"https://www.example.com");
+webView.CoreWebView2.Navigate("https://www.example.com");
 
 // The following XHR will execute in the context of https://www.example.com page
 // and will succeed.
@@ -126,28 +127,30 @@ webView.CoreWebView2.Navigate(L"https://www.example.com");
 // Since the response header provided in WebResourceRequested handler allows all
 // origins for CORS the XHR succeeds.
 webView.CoreWebView2.ExecuteScriptAsync(
-  "var oReq = new XMLHttpRequest();\
-  oReq.addEventListener(\"load\", reqListener);\
-  oReq.open(\"GET\", \"custom-scheme:example-data.json\");\
-  oReq.send();");
+    @"var oReq = new XMLHttpRequest();
+    oReq.addEventListener(""load"", reqListener);
+    oReq.open(""GET\"", ""custom-scheme:example-data.json"");
+    oReq.send();");
 // The following XHR will fail because *.example.com is in the not allowed
 // origin list of custom-scheme2. The WebResourceRequested event will not be
 // raised for this request.
 webView.CoreWebView2.ExecuteScriptAsync(
-  "var oReq = new XMLHttpRequest();\
-  oReq.addEventListener(\"load\", reqListener);\
-  oReq.open(\"GET\", \"custom-scheme-not-in-allowed-origins:example-data.json\");\
-  oReq.send();");
+    @"var oReq = new XMLHttpRequest();
+    oReq.addEventListener(""load"", reqListener);
+    oReq.open(""GET"", ""custom-scheme-not-in-allowed-origins:example-data.json"");
+    oReq.send();");
 ```
 
 ``` cpp
-#include <WebView2EnvironmentOptions.h> // CoreWebView2CustomSchemeRegistration is implemented here
+#include <WebView2EnvironmentOptions.h> // CoreWebView2CustomSchemeRegistration
+                                        // is implemented here
 
 ...
 
 Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions3> options3;
 if (options.As(&options3) == S_OK) {
-  std::vector<Microsoft::WRL::ComPtr<ICoreWebView2CustomSchemeRegistration>> schemeRegistrations;
+  std::vector<Microsoft::WRL::ComPtr<ICoreWebView2CustomSchemeRegistration>>
+    schemeRegistrations;
 
   const WCHAR* allowedOrigins[1] = {L"https://*.example.com"};
   schemeRegistrations.push_back(
@@ -162,8 +165,17 @@ if (options.As(&options3) == S_OK) {
           TRUE /* treatAsSecure*/,
           nullptr));
   CHECK_FAILURE(options3->SetCustomSchemeRegistrations(
-    schemeRegistrations.size(), schemeRegistrations.data());
+    schemeRegistrations.size(), schemeRegistrations.data()));
 }
+
+// Custom scheme registrations are validated here. In case invalid array is
+// passed, this will return E_INVALIDARGS and fail to create the environment.
+HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
+        subFolder, m_userDataFolder.c_str(), options.Get(),
+        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            this, &AppWindow::OnCreateEnvironmentCompleted)
+            .Get());
+
 ...
 
 CHECK_FAILURE(m_webView->AddWebResourceRequestedFilter(
@@ -178,7 +190,10 @@ CHECK_FAILURE(m_webView->add_WebResourceRequested(
         CHECK_FAILURE(args->get_Request(&request));
         wil::unique_cotaskmem_string uri;
         CHECK_FAILURE(request->get_Uri(&uri));
-        if (wcsncmp(uri.get(), L"custom-scheme", ARRAYSIZE(L"custom-scheme")-1) == 0)
+        if (wcsncmp(
+          uri.get(),
+          L"custom-scheme",
+          ARRAYSIZE(L"custom-scheme")-1) == 0)
         {
             std::wstring assetsFilePath = L"data/";
             assetsFilePath += wcsstr(uri.get(), L":") + 1;
@@ -190,18 +205,21 @@ CHECK_FAILURE(m_webView->add_WebResourceRequested(
             if (stream)
             {
                 CHECK_FAILURE(
-                    m_appWindow->GetWebViewEnvironment()->CreateWebResourceResponse(
+                    m_appWindow->GetWebViewEnvironment()->
+                      CreateWebResourceResponse(
                         stream.get(),
                         200,
                         L"OK",
-                        L"Content-Type: application/json\nAccess-Control-Allow-Origin: *",
+                        L"Content-Type: application/json\n"
+                        L"Access-Control-Allow-Origin: *",
                         &response));
                 CHECK_FAILURE(args->put_Response(response.get()));
             }
             else
             {
                 CHECK_FAILURE(
-                    m_appWindow->GetWebViewEnvironment()->CreateWebResourceResponse(
+                    m_appWindow->GetWebViewEnvironment()->
+                      CreateWebResourceResponse(
                         nullptr, 404, L"Not Found", L"", &response));
                 CHECK_FAILURE(args->put_Response(response.get()));
             }
@@ -226,8 +244,9 @@ CHECK_FAILURE(m_webView->ExecuteScript(
                   L"oReq.open(\"GET\", \"custom-scheme:example-data.json\");"
                   L"oReq.send();",
                   Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-                    [](HRESULT error, PCWSTR result) -> HRESULT { return S_OK; })
-                    .Get()));
+                    [](HRESULT error, PCWSTR result) -> HRESULT {
+                      return S_OK;
+                    }).Get()));
 // The following XHR will fail because *.example.com is not in the allowed
 // origin list of custom-scheme2. The WebResourceRequested event will not be
 // raised for this request.
@@ -237,8 +256,9 @@ CHECK_FAILURE(m_webView->ExecuteScript(
                   L"oReq.open(\"GET\", \"custom-scheme-not-in-allowed-origins:example-data.json\");"
                   L"oReq.send();",
                   Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-                    [](HRESULT error, PCWSTR result) -> HRESULT { return S_OK; })
-                    .Get()));
+                    [](HRESULT error, PCWSTR result) -> HRESULT {
+                      return S_OK;
+                    }).Get()));
 ```
 
 # API Details
@@ -249,7 +269,8 @@ CHECK_FAILURE(m_webView->ExecuteScript(
 // This is the ICoreWebView2CustomSchemeRegistration interface
 [uuid(d60ac92c-37a6-4b26-a39e-95cfe59047bb), object, pointer_default(unique)]
 interface ICoreWebView2CustomSchemeRegistration : IUnknown {
-  // Represents the registration of a custom scheme with the CoreWebView2Environment.
+  // Represents the registration of a custom scheme with the
+  // CoreWebView2Environment.
   // This allows the WebView2 app to be able to handle
   // WebResourceRequested event for requests with the specified scheme and
   // be able to navigate the WebView2 to the custom scheme. Once the environment
@@ -262,7 +283,8 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // The URIs of registered custom schemes will be treated similar to http URIs
   // for their origins.
   // They will have tuple origins for URIs with host and opaque origins for
-  // URIs without host as specified in [7.5 Origin - HTML Living Standard](https://html.spec.whatwg.org/multipage/origin.html)
+  // URIs without host as specified in
+  /// [7.5 Origin - HTML Living Standard](https://html.spec.whatwg.org/multipage/origin.html)
   // Example:
   // custom-scheme-with-host://hostname/path/to/resource has origin of
   // custom-scheme-with-host://hostname
@@ -288,32 +310,45 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // Set if the scheme will be treated as a Secure Context.
   [propput] HRESULT TreatAsSecure([in] BOOL value);
 
-  // Array of origins that are allowed to issue requests with the custom scheme.
-  // Except origins with this same custom scheme the origin of any request (requests that have the
-  // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin)) to the custom scheme URL
-  // needs to be in this list. No-origin requests are requests that do not have an Origin header,
-  // such as link navigations, embedded images and are always allowed.
+  // List of origins that are allowed to issue requests with the custom
+  // scheme.
+  // Except origins with this same custom scheme, which are always
+  // allowed, the origin of any request (requests that have the
+  // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin))
+  // to the custom scheme URL needs to be in this list. No-origin requests
+  // are requests that do not have an Origin header, such as link
+  // navigations, embedded images and are always allowed.
   // Note that cross-origin restrictions still apply.
-  // If the list is empty, no cross-origin request to this scheme is allowed.
-  // Origins are specified as a string in the format of scheme://host:port.
-  // The origins are string pattern matched with `*` (matches 0 or more characters)
-  // and `?` (matches 0 or 1 character) wildcards just like the URI matching in the
+  // If the list is empty, no cross-origin request to this scheme is
+  // allowed.
+  // Origins are specified as a string in the format of
+  // scheme://host:port.
+  // The origins are string pattern matched with `*` (matches 0 or more
+  // characters) and `?` (matches 0 or 1 character) wildcards just like
+  // the URI matching in the
   // [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
   // For example, "http://*.example.com:80".
-  // The returned strings and the array itself must be deallocated with CoTaskMemFree.
-  HRESULT GetAllowedOrigins([out] UINT32* allowedOriginsCount, [out] LPCWSTR** allowedOrigins);
+  // The returned strings and the array itself must be deallocated with
+  // CoTaskMemFree.
+  HRESULT GetAllowedOrigins(
+    [out] UINT32* allowedOriginsCount,
+    [out] LPCWSTR** allowedOrigins);
   // Set the array of origins that are allowed to use the scheme.
-  HRESULT SetAllowedOrigins([in] UINT32 allowedOriginsCount, [in] LPCWSTR* allowedOrigins);
+  HRESULT SetAllowedOrigins(
+    [in] UINT32 allowedOriginsCount,
+    [in] LPCWSTR* allowedOrigins);
 }
 
 // This is the ICoreWebView2EnvironmentOptions3 interface
 [uuid(ac52d13f-0d38-475a-9dca-876580d6793e), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
-  /// Array of custom scheme registrations. The returned ICoreWebView2CustomSchemeRegistration pointers must be released, and the array itself must be deallocated with CoTaskMemFree.
+  // Array of custom scheme registrations. The returned
+  // ICoreWebView2CustomSchemeRegistration pointers must be released, and the
+  // array itself must be deallocated with CoTaskMemFree.
   HRESULT GetCustomSchemeRegistrations(
       [out] UINT32* count,
       [out] ICoreWebView2CustomSchemeRegistration*** schemeRegistrations);
-  /// Set the array of custom scheme registrations to be used.
+  // Set the array of custom scheme registrations to be used.
   HRESULT SetCustomSchemeRegistrations(
       [in] UINT32 count,
       [in] const ICoreWebView2CustomSchemeRegistration** schemeRegistrations);
@@ -365,9 +400,10 @@ namespace Microsoft.Web.WebView2.Core
         // like https.
         Boolean TreatAsSecure { get; set; } = false;
 
-        // List of origins that are allowed to issue requests with the custom scheme.
-        // Except origins with this same custom scheme, which are always allowed,
-        // the origin of any request (requests that have the
+        // List of origins that are allowed to issue requests with the custom
+        // scheme.
+        // Except origins with this same custom scheme, which are always
+        // allowed, the origin of any request (requests that have the
         // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin))
         // to the custom scheme URL needs to be in this list. No-origin requests
         // are requests that do not have an Origin header, such as link
@@ -378,9 +414,8 @@ namespace Microsoft.Web.WebView2.Core
         // Origins are specified as a string in the format of
         // scheme://host:port.
         // The origins are string pattern matched with `*` (matches 0 or more
-        // characters)
-        // and `?` (matches 0 or 1 character) wildcards just like the URI
-        // matching in the
+        // characters) and `?` (matches 0 or 1 character) wildcards just like
+        // the URI matching in the
         // [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
         // For example, "http://*.example.com:80".
         IVector<String> AllowedOrigins { get; } = {};
