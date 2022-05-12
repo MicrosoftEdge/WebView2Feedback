@@ -87,7 +87,8 @@ auto environmentCreation = CoreWebView2Environment.CreateAsync(
 webView.CoreWebView2.AddWebResourceRequestedFilter(
         customScheme + ":*", CoreWebView2WebResourceContext.All);
 webView.CoreWebView2.AddWebResourceRequestedFilter(
-        customSchemeNotInAllowedOrigins + ":*", CoreWebView2WebResourceContext.All);
+        customSchemeNotInAllowedOrigins + ":*",
+        CoreWebView2WebResourceContext.All);
 webView.CoreWebView2.WebResourceRequested += delegate (
             object sender, CoreWebView2WebResourceRequestedEventArgs e)
 {
@@ -102,14 +103,17 @@ webView.CoreWebView2.WebResourceRequested += delegate (
             FileStream fileStream = new FileStream(assetsFilePath,
                                                 FileMode.Open,
                                                 FileAccess.Read);
-            e.Response = webView.CoreWebView2.Environment.CreateWebResourceResponse(
+            e.Response = webView.CoreWebView2.Environment.
+              CreateWebResourceResponse(
                 fileStream,
                 200,
                 "OK",
-                "Content-Type: application/json\nAccess-Control-Allow-Origin: *");
+                @"Content-Type: application/json\n
+                Access-Control-Allow-Origin: *");
         }
         catch (IOException) {
-            e.Response = webView.CoreWebView2.Environment.CreateWebResourceResponse(
+            e.Response = webView.CoreWebView2.Environment.
+              CreateWebResourceResponse(
                 null,
                 404,
                 "Not Found",
@@ -253,7 +257,7 @@ CHECK_FAILURE(m_webView->ExecuteScript(
 CHECK_FAILURE(m_webView->ExecuteScript(
                   L"var oReq = new XMLHttpRequest();"
                   L"oReq.addEventListener(\"load\", reqListener);"
-                  L"oReq.open(\"GET\", \"custom-scheme-not-in-allowed-origins:example-data.json\");"
+                  L"oReq.open(\"GET\",\"custom-scheme-not-in-allowed-origins:example-data.json\");"
                   L"oReq.send();",
                   Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
                     [](HRESULT error, PCWSTR result) -> HRESULT {
@@ -427,7 +431,8 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions3")]
         {
             // List of custom scheme registrations.
-            IVector<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
+            IVector<CoreWebView2CustomSchemeRegistration>
+              CustomSchemeRegistrations { get; };
         }
     }
 }
