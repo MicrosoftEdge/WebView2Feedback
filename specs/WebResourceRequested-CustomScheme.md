@@ -70,12 +70,14 @@ options.CustomSchemeRegistrations.Add(
   new CoreWebView2CustomSchemeRegistration(customScheme)
   {
     TreatAsSecure = true,
-    AllowedOrigins = { "https://*.example.com" }
+    AllowedOrigins = { "https://*.example.com" },
+    HasAuthorityComponent = true
   });
 options.CustomSchemeRegistrations.Add(
   new CoreWebView2CustomSchemeRegistration(customSchemeNotInAllowedOrigins)
   {
-    TreatAsSecure = true
+    TreatAsSecure = true,
+    HasAuthorityComponent = true
   });
 
 // Custom scheme registrations are validated here. In case invalid array is
@@ -286,14 +288,14 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // list, the environment creation will also fail.
   // The URIs of registered custom schemes will be treated similar to http URIs
   // for their origins.
-  // They will have tuple origins for URIs with host and opaque origins for
-  // URIs without host as specified in
+  // They will have tuple origins for URIs with authority component and opaque origins for
+  // URIs without authority component as specified in
   /// [7.5 Origin - HTML Living Standard](https://html.spec.whatwg.org/multipage/origin.html)
   // Example:
-  // custom-scheme-with-host://hostname/path/to/resource has origin of
-  // custom-scheme-with-host://hostname
-  // custom-scheme-without-host:path/to/resource has origin of
-  // custom-scheme-without-host:path/to/resource
+  // custom-scheme-with-authority://hostname/path/to/resource has origin of
+  // custom-scheme-with-authority://hostname
+  // custom-scheme-without-authority:path/to/resource has origin of
+  // custom-scheme-without-authority:path/to/resource
   // For WebResourceRequested event, the cases of request URIs and filter URIs
   // with custom schemes will be normalized according to generic URI syntax
   // rules. Any non-ASCII characters will be preserved.
@@ -310,6 +312,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // Whether the sites with this scheme will be treated as a
   // [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
   // like a HTTPS site.
+  // `false` by default.
   [propget] HRESULT TreatAsSecure([out, retval] BOOL* treatAsSecure);
   // Set if the scheme will be treated as a Secure Context.
   [propput] HRESULT TreatAsSecure([in] BOOL value);
@@ -341,6 +344,14 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   HRESULT SetAllowedOrigins(
     [in] UINT32 allowedOriginsCount,
     [in] LPCWSTR* allowedOrigins);
+
+  // Whether the scheme has an authority component.
+  // eg: custom-scheme-with-authority://authority/path
+  //     custom-scheme-without-authority:path
+  // `False` by default
+  [propget] HRESULT HasAuthorityComponent([out, retval] BOOL* hasAuthorityComponent);
+  // Get has authority component
+  [propput] HRESULT HasAuthorityComponent([in] BOOL  hasAuthorityComponent);
 }
 
 // This is the ICoreWebView2EnvironmentOptions3 interface
