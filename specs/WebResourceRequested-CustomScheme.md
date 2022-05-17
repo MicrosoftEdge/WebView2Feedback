@@ -164,12 +164,14 @@ if (options.As(&options3) == S_OK) {
           L"custom-scheme",
           TRUE /* treatAsSecure*/,
           1,
+          FALSE /* hasAuthorityComponent */,
           allowedOrigins));
   schemeRegistrations.push_back(
     Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
           L"custom-scheme-not-in-allowed-origins-list",
           TRUE /* treatAsSecure*/,
-          nullptr));
+          nullptr,
+          FALSE /* hasAuthorityComponent */));
   CHECK_FAILURE(options3->SetCustomSchemeRegistrations(
     schemeRegistrations.size(), schemeRegistrations.data()));
 }
@@ -434,6 +436,12 @@ namespace Microsoft.Web.WebView2.Core
         // [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
         // For example, "http://*.example.com:80".
         IVector<String> AllowedOrigins { get; } = {};
+
+        // Whether the scheme has an authority component.
+        // eg: custom-scheme-with-authority://authority/path
+        //     custom-scheme-without-authority:path
+        // `False` by default
+        Boolean HasAuthorityComponent {get; set; } = false;
     }
 
     runtimeclass CoreWebView2EnvironmentOptions
