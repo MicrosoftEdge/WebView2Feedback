@@ -275,38 +275,38 @@ CHECK_FAILURE(m_webView->ExecuteScript(
 
 ```c#
 // This is the ICoreWebView2CustomSchemeRegistration interface
+// This represents the registration of a custom scheme with the
+// CoreWebView2Environment.
+// This allows the WebView2 app to be able to handle
+// WebResourceRequested event for requests with the specified scheme and
+// be able to navigate the WebView2 to the custom scheme. Once the environment
+// is created, the registrations are valid and immutable throughout the
+// lifetime of the associated WebView2s' browser process and any WebView2
+// environments sharing the browser process must be created with identical
+// custom scheme registrations, otherwise the environment creation will fail.
+// If there are multiple entries for the same scheme in the registrations
+// list, the environment creation will also fail.
+// The URIs of registered custom schemes will be treated similar to http URIs
+// for their origins.
+// They will have tuple origins for URIs with authority component and opaque origins for
+// URIs without authority component as specified in
+/// [7.5 Origin - HTML Living Standard](https://html.spec.whatwg.org/multipage/origin.html)
+// Example:
+// custom-scheme-with-authority://hostname/path/to/resource has origin of
+// custom-scheme-with-authority://hostname
+// custom-scheme-without-authority:path/to/resource has origin of
+// custom-scheme-without-authority:path/to/resource
+// For WebResourceRequested event, the cases of request URIs and filter URIs
+// with custom schemes will be normalized according to generic URI syntax
+// rules. Any non-ASCII characters will be preserved.
+// The registered custom schemes also participate in
+// [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) and adheres
+// to [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP). The app
+// needs to set the appropriate access headers in its WebResourceRequested
+// event handler to allow CORS requests.
 [uuid(d60ac92c-37a6-4b26-a39e-95cfe59047bb), object, pointer_default(unique)]
 interface ICoreWebView2CustomSchemeRegistration : IUnknown {
-  // Represents the registration of a custom scheme with the
-  // CoreWebView2Environment.
-  // This allows the WebView2 app to be able to handle
-  // WebResourceRequested event for requests with the specified scheme and
-  // be able to navigate the WebView2 to the custom scheme. Once the environment
-  // is created, the registrations are valid and immutable throughout the
-  // lifetime of the associated WebView2s' browser process and any WebView2
-  // environments sharing the browser process must be created with identical
-  // custom scheme registrations, otherwise the environment creation will fail.
-  // If there are multiple entries for the same scheme in the registrations
-  // list, the environment creation will also fail.
-  // The URIs of registered custom schemes will be treated similar to http URIs
-  // for their origins.
-  // They will have tuple origins for URIs with authority component and opaque origins for
-  // URIs without authority component as specified in
-  /// [7.5 Origin - HTML Living Standard](https://html.spec.whatwg.org/multipage/origin.html)
-  // Example:
-  // custom-scheme-with-authority://hostname/path/to/resource has origin of
-  // custom-scheme-with-authority://hostname
-  // custom-scheme-without-authority:path/to/resource has origin of
-  // custom-scheme-without-authority:path/to/resource
-  // For WebResourceRequested event, the cases of request URIs and filter URIs
-  // with custom schemes will be normalized according to generic URI syntax
-  // rules. Any non-ASCII characters will be preserved.
-  // The registered custom schemes also participate in
-  // [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) and adheres
-  // to [CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP). The app
-  // needs to set the appropriate access headers in its WebResourceRequested
-  // event handler to allow CORS requests.
-
+  
   // The name of the custom scheme to register.
   [propget] HRESULT SchemeName([out, retval] LPCWSTR* schemeName);
   [propput] HRESULT SchemeName([in] LPCWSTR value);
@@ -347,10 +347,22 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
     [in] UINT32 allowedOriginsCount,
     [in] LPCWSTR* allowedOrigins);
 
-  // Whether the scheme has an authority component.
-  // eg: custom-scheme-with-authority://authority/path
-  //     custom-scheme-without-authority:path
-  // `False` by default
+  // Set this to `true` if the URLs with this custom scheme will have an
+  // authority component (a host for custom schemes).
+  // eg: custom-scheme-with-authority://host/path - Set to `true`
+  //     custom-scheme-without-authority:path - Set to `talse`
+  // When this is set to `true`, the URLs with this scheme will be
+  // interpreted as they have a
+  // [scheme and host](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-tuple) 
+  // origin similar to an http URL. Note that the port and user
+  // information are never included in the computation of origins for
+  // custom schemes. If you set `HasAuthorityComponent` to `true` and 
+  // use a URL with this scheme that does not have
+  // an authority component, the behavior of such URLs will be undefined.
+  // `false` by default. 
+  // If this is set to `false`, URLs with this scheme will have an
+  // [opaque origin](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-opaque)
+  // similar to a data URL. 
   [propget] HRESULT HasAuthorityComponent([out, retval] BOOL* hasAuthorityComponent);
   // Get has authority component
   [propput] HRESULT HasAuthorityComponent([in] BOOL  hasAuthorityComponent);
@@ -437,10 +449,22 @@ namespace Microsoft.Web.WebView2.Core
         // For example, "http://*.example.com:80".
         IVector<String> AllowedOrigins { get; } = {};
 
-        // Whether the scheme has an authority component.
-        // eg: custom-scheme-with-authority://authority/path
-        //     custom-scheme-without-authority:path
-        // `False` by default
+        // Set this to `True` if the URLs with this custom scheme will have an
+        // authority component (a host for custom schemes).
+        // eg: custom-scheme-with-authority://host/path - Set to `True`
+        //     custom-scheme-without-authority:path - Set to `False`
+        // When this is set to `True`, the URLs with this scheme will be
+        // interpreted as they have a
+        // [scheme and host](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-tuple) 
+        // origin similar to an http URL. Note that the port and user
+        // information are never included in the computation of origins for
+        // custom schemes. If you set `HasAuthorityComponent` to `True` and 
+        // use a URL with this scheme that does not have
+        // an authority component, the behavior of such URLs will be undefined.
+        // `False` by default. 
+        // If this is set to `False`, URLs with this scheme will have an
+        // [opaque origin](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-opaque)
+        // similar to a data URL. 
         Boolean HasAuthorityComponent {get; set; } = false;
     }
 
