@@ -306,7 +306,6 @@ CHECK_FAILURE(m_webView->ExecuteScript(
 // event handler to allow CORS requests.
 [uuid(d60ac92c-37a6-4b26-a39e-95cfe59047bb), object, pointer_default(unique)]
 interface ICoreWebView2CustomSchemeRegistration : IUnknown {
-  
   // The name of the custom scheme to register.
   [propget] HRESULT SchemeName([out, retval] LPCWSTR* schemeName);
   [propput] HRESULT SchemeName([in] LPCWSTR value);
@@ -324,7 +323,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // Except origins with this same custom scheme, which are always
   // allowed, the origin of any request (requests that have the
   // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin))
-  // to the custom scheme URL needs to be in this list. No-origin requests
+  // to the custom scheme URI needs to be in this list. No-origin requests
   // are requests that do not have an Origin header, such as link
   // navigations, embedded images and are always allowed.
   // Note that cross-origin restrictions still apply.
@@ -347,22 +346,26 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
     [in] UINT32 allowedOriginsCount,
     [in] LPCWSTR* allowedOrigins);
 
-  // Set this to `true` if the URLs with this custom scheme will have an
+  // Set this to `true` if the URIs with this custom scheme will have an
   // authority component (a host for custom schemes).
-  // For example, if you have a URI of the following form you should set the `HasAuthorityComponent` value as listed.
-  //     custom-scheme-without-authority:path - Set to `talse`
-  // When this is set to `true`, the URLs with this scheme will be
+  // For example, if you have a URI of the following form you should set the
+  // `HasAuthorityComponent` value as listed.
+  // | URI | Recommended HasAuthorityComponent value |
+  // | -- | -- |
+  // | ` custom-scheme-with-authority://host/path` | `true` |
+  // | `custom-scheme-without-authority:path` | `false` |
+  // When this is set to `true`, the URIs with this scheme will be
   // interpreted as having a
-  // [scheme and host](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-tuple) 
-  // origin similar to an http URL. Note that the port and user
+  // [scheme and host](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-tuple)
+  // origin similar to an http URI. Note that the port and user
   // information are never included in the computation of origins for
-  // custom schemes. If you set `HasAuthorityComponent` to `true` and 
-  // use a URL with this scheme that does not have
-  // an authority component, the behavior of such URLs will be undefined.
-  // This property is `false` by default. 
-  // If this is set to `false`, URLs with this scheme will have an
+  // custom schemes. If you set `HasAuthorityComponent` to `true` and
+  // use a URI with this scheme that does not have
+  // an authority component, the behavior of such URIs will be undefined.
+  // This property is `false` by default.
+  // If this is set to `false`, URIs with this scheme will have an
   // [opaque origin](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-opaque)
-  // similar to a data URL. 
+  // similar to a data URI.
   [propget] HRESULT HasAuthorityComponent([out, retval] BOOL* hasAuthorityComponent);
   // Get has authority component
   [propput] HRESULT HasAuthorityComponent([in] BOOL  hasAuthorityComponent);
@@ -434,7 +437,7 @@ namespace Microsoft.Web.WebView2.Core
         // Except origins with this same custom scheme, which are always
         // allowed, the origin of any request (requests that have the
         // [Origin header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin))
-        // to the custom scheme URL needs to be in this list. No-origin requests
+        // to the custom scheme URI needs to be in this list. No-origin requests
         // are requests that do not have an Origin header, such as link
         // navigations, embedded images and are always allowed.
         // Note that cross-origin restrictions still apply.
@@ -449,22 +452,26 @@ namespace Microsoft.Web.WebView2.Core
         // For example, "http://*.example.com:80".
         IVector<String> AllowedOrigins { get; } = {};
 
-        // Set this to `True` if the URLs with this custom scheme will have an
+        // Set this to `true` if the URIs with this custom scheme will have an
         // authority component (a host for custom schemes).
-        // eg: custom-scheme-with-authority://host/path - Set to `True`
-        //     custom-scheme-without-authority:path - Set to `False`
-        // When this is set to `True`, the URLs with this scheme will be
-        // interpreted as they have a
-        // [scheme and host](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-tuple) 
-        // origin similar to an http URL. Note that the port and user
+        // For example, if you have a URI of the following form you should set the
+        // `HasAuthorityComponent` value as listed.
+        // | URI | Recommended HasAuthorityComponent value |
+        // | -- | -- |
+        // | ` custom-scheme-with-authority://host/path` | `true` |
+        // | `custom-scheme-without-authority:path` | `false` |
+        // When this is set to `true`, the URIs with this scheme will be
+        // interpreted as having a
+        // [scheme and host](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-tuple)
+        // origin similar to an http URI. Note that the port and user
         // information are never included in the computation of origins for
-        // custom schemes. If you set `HasAuthorityComponent` to `True` and 
-        // use a URL with this scheme that does not have
-        // an authority component, the behavior of such URLs will be undefined.
-        // `False` by default. 
-        // If this is set to `False`, URLs with this scheme will have an
+        // custom schemes. If you set `HasAuthorityComponent` to `true` and
+        // use a URI with this scheme that does not have
+        // an authority component, the behavior of such URIs will be undefined.
+        // This property is `false` by default.
+        // If this is set to `false`, URIs with this scheme will have an
         // [opaque origin](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-opaque)
-        // similar to a data URL. 
+        // similar to a data URI.
         Boolean HasAuthorityComponent {get; set; } = false;
     }
 
