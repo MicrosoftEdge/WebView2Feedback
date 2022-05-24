@@ -349,7 +349,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
 
   // Set this to `true` if the URLs with this custom scheme will have an
   // authority component (a host for custom schemes).
-  // eg: custom-scheme-with-authority://host/path - Set to `true`
+  // For example, if you have a URI of the following form you should set the `HasAuthorityComponent` value as listed.
   //     custom-scheme-without-authority:path - Set to `talse`
   // When this is set to `true`, the URLs with this scheme will be
   // interpreted as they have a
