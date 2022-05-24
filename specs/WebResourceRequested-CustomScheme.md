@@ -359,7 +359,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // custom schemes. If you set `HasAuthorityComponent` to `true` and 
   // use a URL with this scheme that does not have
   // an authority component, the behavior of such URLs will be undefined.
-  // `false` by default. 
+  // This property is `false` by default. 
   // If this is set to `false`, URLs with this scheme will have an
   // [opaque origin](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-opaque)
   // similar to a data URL. 
