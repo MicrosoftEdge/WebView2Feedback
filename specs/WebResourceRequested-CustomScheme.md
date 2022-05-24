@@ -352,7 +352,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // For example, if you have a URI of the following form you should set the `HasAuthorityComponent` value as listed.
   //     custom-scheme-without-authority:path - Set to `talse`
   // When this is set to `true`, the URLs with this scheme will be
-  // interpreted as they have a
+  // interpreted as having a
   // [scheme and host](https://html.spec.whatwg.org/multipage/origin.html#concept-origin-tuple) 
   // origin similar to an http URL. Note that the port and user
   // information are never included in the computation of origins for
