@@ -76,8 +76,7 @@ options.CustomSchemeRegistrations.Add(
 options.CustomSchemeRegistrations.Add(
   new CoreWebView2CustomSchemeRegistration(customSchemeNotInAllowedOrigins)
   {
-    TreatAsSecure = true,
-    HasAuthorityComponent = true
+    TreatAsSecure = true
   });
 
 // Custom scheme registrations are validated here. In case invalid array is
@@ -135,7 +134,7 @@ webView.CoreWebView2.Navigate("https://www.example.com");
 webView.CoreWebView2.ExecuteScriptAsync(
     @"var oReq = new XMLHttpRequest();
     oReq.addEventListener(""load"", reqListener);
-    oReq.open(""GET\"", ""custom-scheme:example-data.json"");
+    oReq.open(""GET\"", ""custom-scheme://domain/example-data.json"");
     oReq.send();");
 // The following XHR will fail because *.example.com is in the not allowed
 // origin list of custom-scheme2. The WebResourceRequested event will not be
@@ -164,8 +163,8 @@ if (options.As(&options3) == S_OK) {
           L"custom-scheme",
           TRUE /* treatAsSecure*/,
           1,
-          FALSE /* hasAuthorityComponent */,
-          allowedOrigins));
+          allowedOrigins,
+          TRUE /* hasAuthorityComponent */));
   schemeRegistrations.push_back(
     Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
           L"custom-scheme-not-in-allowed-origins-list",
@@ -249,7 +248,7 @@ CHECK_FAILURE(m_webView->Navigate(L"https://www.example.com"));
 CHECK_FAILURE(m_webView->ExecuteScript(
                   L"var oReq = new XMLHttpRequest();"
                   L"oReq.addEventListener(\"load\", reqListener);"
-                  L"oReq.open(\"GET\", \"custom-scheme:example-data.json\");"
+                  L"oReq.open(\"GET\", \"custom-scheme://domain/example-data.json\");"
                   L"oReq.send();",
                   Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
                     [](HRESULT error, PCWSTR result) -> HRESULT {
@@ -283,7 +282,8 @@ CHECK_FAILURE(m_webView->ExecuteScript(
 // is created, the registrations are valid and immutable throughout the
 // lifetime of the associated WebView2s' browser process and any WebView2
 // environments sharing the browser process must be created with identical
-// custom scheme registrations, otherwise the environment creation will fail.
+// custom scheme registrations (order does not matter), otherwise the
+// environment creation will fail.
 // If there are multiple entries for the same scheme in the registrations
 // list, the environment creation will also fail.
 // The URIs of registered custom schemes will be treated similar to http URIs
