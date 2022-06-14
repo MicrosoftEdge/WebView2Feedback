@@ -160,17 +160,14 @@ if (options.As(&options3) == S_OK) {
   const WCHAR* allowedOrigins[1] = {L"https://*.example.com"};
   schemeRegistrations.push_back(
     Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
-          L"custom-scheme",
-          TRUE /* treatAsSecure*/,
-          1,
-          allowedOrigins,
-          TRUE /* hasAuthorityComponent */));
+          L"custom-scheme"));
+  schemeRegistrations.back()->put_HasAuthorityComponent(true);
+  schemeRegistrations.back()->put_TreatAsSecure(true);
+  schemeRegistrations.back()->SetAllowedOrigins(1, allowedOrigins);
   schemeRegistrations.push_back(
     Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
-          L"custom-scheme-not-in-allowed-origins-list",
-          TRUE /* treatAsSecure*/,
-          nullptr,
-          FALSE /* hasAuthorityComponent */));
+          L"custom-scheme-not-in-allowed-origins-list"));
+  schemeRegistrations.back()->put_TreatAsSecure(true);
   CHECK_FAILURE(options3->SetCustomSchemeRegistrations(
     schemeRegistrations.size(), schemeRegistrations.data()));
 }
