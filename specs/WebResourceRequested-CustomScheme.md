@@ -161,13 +161,13 @@ if (options.As(&options3) == S_OK) {
   schemeRegistrations.push_back(
     Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
           L"custom-scheme"));
-  schemeRegistrations.back()->put_HasAuthorityComponent(true);
-  schemeRegistrations.back()->put_TreatAsSecure(true);
+  schemeRegistrations.back()->put_HasAuthorityComponent(TRUE);
+  schemeRegistrations.back()->put_TreatAsSecure(TRUE);
   schemeRegistrations.back()->SetAllowedOrigins(1, allowedOrigins);
   schemeRegistrations.push_back(
     Microsoft::WRL::Make<CoreWebView2CustomSchemeRegistration>(
           L"custom-scheme-not-in-allowed-origins-list"));
-  schemeRegistrations.back()->put_TreatAsSecure(true);
+  schemeRegistrations.back()->put_TreatAsSecure(TRUE);
   CHECK_FAILURE(options3->SetCustomSchemeRegistrations(
     schemeRegistrations.size(), schemeRegistrations.data()));
 }
