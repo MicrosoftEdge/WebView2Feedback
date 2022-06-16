@@ -60,7 +60,7 @@ m_webviewEventSource->add_WebResourceRequested(
 [v1_enum]
 typedef enum COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE {
   /// Indicates that web resource is requested from main page including dedicated workers and iframes.
-  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_MAIN = 1,
+  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_DOCUMENTS = 1,
 
   /// Indicates that web resource is requested from shared worker.
   COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SHARED_WORKER = 2,
@@ -74,15 +74,16 @@ typedef enum COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE {
 cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE);")
 
 [uuid(1cc6a402-3724-4e4a-9099-8cf60f2f93a1), object, pointer_default(unique)]
-interface ICoreWebView2: IUnknown {
+interface ICoreWebView2_16: ICoreWebView2_15 {
   /// Extends AddWebResourceRequestedFilter to support events from shared
   /// and service workers. To receive all raised events filters have to be added
   /// before main page navigation.
-  /// Because service worker runs separately from main page its WebResourceRequested
-  /// will be raised for all webviews which are subscribed to
-  /// COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER request source.
-  /// It is recommended to enable WebResourceRequested filter for service workers
-  /// only on a main WebView to avoid handling the same WebResourceRequested
+  /// Because service worker runs separately from any one HTML document its WebResourceRequested
+  /// will be raised for all CoreWebView2s that have appropriate filters added in the
+  /// corresponding CoreWebView2Environment.
+  /// You should only add a WebResourceRequested filter for
+  /// COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER on
+  /// one CoreWebView2 to avoid handling the same WebResourceRequested
   /// event multiple times.
   ///
   /// For more information about web resource requested filters, navigate to
@@ -116,10 +117,13 @@ interface ICoreWebView2WebResourceRequestedEventArgs : IUnknown {
 ```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core
 {
+    void AddWebResourceRequestedFilter(String uri, CoreWebView2WebResourceContext ResourceContext);
+    void RemoveWebResourceRequestedFilter(String uri, CoreWebView2WebResourceContext ResourceContext);
+
     [flags]
     enum CoreWebView2WebResourceRequestSource
     {
-        Main = 0x00000001,
+        Documents = 0x00000001,
         SharedWorker = 0x00000002,
         ServiceWorker = 0x00000004,
         All = 0xFFFFFFFF,
@@ -130,12 +134,12 @@ namespace Microsoft.Web.WebView2.Core
         void AddWebResourceRequestedFilter(
                 String uri,
                 CoreWebView2WebResourceContext ResourceContext,
-                CoreWebView2WebResourceRequestSource ResourceSource);
+                CoreWebView2WebResourceRequestSource RequestSource);
 
         void RemoveWebResourceRequestedFilter(
                 String uri,
                 CoreWebView2WebResourceContext ResourceContext,
-                CoreWebView2WebResourceRequestSource ResourceSource);
+                CoreWebView2WebResourceRequestSource RequestSource);
     }
 
     runtimeclass CoreWebView2WebResourceRequestedEventArgs
