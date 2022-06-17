@@ -89,9 +89,31 @@ cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE);
 
 [uuid(1cc6a402-3724-4e4a-9099-8cf60f2f93a1), object, pointer_default(unique)]
 interface ICoreWebView2_16: ICoreWebView2_15 {
-  /// Extends AddWebResourceRequestedFilter to support events from shared
-  /// and service workers. To receive all raised events filters have to be added
-  /// before main page navigation.
+  /// A web resource request with a resource context that matches this
+  /// filter's resource context, an URI that matches this filter's URI
+  /// wildcard string for corresponding request source will be raised via
+  /// the `WebResourceRequested` event. To receive all raised events filters have
+  /// to be added before main page navigation.
+  ///
+  /// The `uri` parameter value is a wildcard string matched against the URI
+  /// of the web resource request. This is a glob style
+  /// wildcard string in which a `*` matches zero or more characters and a `?`
+  /// matches exactly one character.
+  /// These wildcard characters can be escaped using a backslash just before
+  /// the wildcard character in order to represent the literal `*` or `?`.
+  ///
+  /// The matching occurs over the URI as a whole string and not limiting
+  /// wildcard matches to particular parts of the URI.
+  /// The wildcard filter is compared to the URI after the URI has been
+  /// normalized, any URI fragment has been removed, and non-ASCII hostnames
+  /// have been converted to punycode.
+  ///
+  /// Specifying a `nullptr` for the uri is equivalent to an empty string which
+  /// matches no URIs.
+  ///
+  /// For more information about resource context filters, navigate to
+  /// [COREWEBVIEW2_WEB_RESOURCE_CONTEXT].
+  ///
   /// Because service worker runs separately from any one HTML document its WebResourceRequested
   /// will be raised for all CoreWebView2s that have appropriate filters added in the
   /// corresponding CoreWebView2Environment.
@@ -100,8 +122,22 @@ interface ICoreWebView2_16: ICoreWebView2_15 {
   /// one CoreWebView2 to avoid handling the same WebResourceRequested
   /// event multiple times.
   ///
-  /// For more information about web resource requested filters, navigate to
-  /// AddWebResourceRequestedFilter.
+  /// For more information about request source, navigate to
+  /// [COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE].
+  ///
+  /// | URI Filter String | Request URI | Match | Notes |
+  /// | ---- | ---- | ---- | ---- |
+  /// | `*` | `https://contoso.com/a/b/c` | Yes | A single * will match all URIs |
+  /// | `*://contoso.com/*` | `https://contoso.com/a/b/c` | Yes | Matches everything in contoso.com across all schemes |
+  /// | `*://contoso.com/*` | `https://example.com/?https://contoso.com/` | Yes | But also matches a URI with just the same text anywhere in the URI |
+  /// | `example` | `https://contoso.com/example` | No | The filter does not perform partial matches |
+  /// | `*example` | `https://contoso.com/example` | Yes | The filter matches across URI parts  |
+  /// | `*example` | `https://contoso.com/path/?example` | Yes | The filter matches across URI parts |
+  /// | `*example` | `https://contoso.com/path/?query#example` | No | The filter is matched against the URI with no fragment |
+  /// | `*example` | `https://example` | No | The URI is normalized before filter matching so the actual URI used for comparison is `https://example.com/` |
+  /// | `*example/` | `https://example` | Yes | Just like above, but this time the filter ends with a / just like the normalized URI |
+  /// | `https://xn--qei.example/` | `https://&#x2764;.example/` | Yes | Non-ASCII hostnames are normalized to punycode before wildcard comparison |
+  /// | `https://&#x2764;.example/` | `https://xn--qei.example/` | No | Non-ASCII hostnames are normalized to punycode before wildcard comparison |
   HRESULT AddWebResourceRequestedFilterWithRequestSource(
     [in] LPCWSTR const uri,
     [in] COREWEBVIEW2_WEB_RESOURCE_CONTEXT const resourceContext,
