@@ -5,31 +5,34 @@ WebResourceRequested events for workers
 Currently [WebResourceRequested events](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/iwebview2webview5?view=webview2-0.8.355#add_webresourcerequested) are raised only for main page HTTP requests. We are extending [AddWebResourceRequestedFilter](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/iwebview2webview5?view=webview2-0.8.355#addwebresourcerequestedfilter) API to allow you additionally to subscribe to events raised from Service or Shared workers and fixing oop iframes events as part of the main page.
 
 # Examples
-Subscribe to WebResourceRequested event for service workers
+Subscribe to WebResourceRequested event for service workers and override the image in request with the local one
 
 .Net
 ```c#
-Controller.CoreWebView2.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSource.ServiceWorker);
-Controller.CoreWebView2.WebResourceRequested += (sender, e) =>
+webView.CoreWebView2.AddWebResourceRequestedFilter("*.jpg", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSource.ServiceWorker);
+webView.CoreWebView2.WebResourceRequested += (sender, args) =>
 {
-    string message =  "{" + WebResourceRequestedToJsonString(e.Request, e.RequestSource);
-    message += WebViewPropertiesToJsonString(sender) + "}";
-    PostEventMessage(message);
+    if (args.RequestSource == CoreWebView2WebResourceRequestSource.ServiceWorker &&
+        args.ResourceContext == CoreWebView2WebResourceContext.Image)
+    {
+        Stream fileStream = new FileStream("new_image.jpg", FileMode.Open, FileAccess.Read, FileShare.Read);
+        CoreWebView2WebResourceResponse overriddenResponse =
+            webView.CoreWebView2.Environment.CreateWebResourceResponse(fileStream, 200, "OK", "Content-Type: image/jpeg");
+        args.Response = overriddenResponse;
+    }
 };
+webView.CoreWebView2.Navigate("https://www.url.com/");
 ```
 
 C++
 ```cpp
 m_webviewEventSource->AddWebResourceRequestedFilterWithRequestSource(
-            L"*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL,
+            L"*.jpg", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL,
             COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER);
 m_webviewEventSource->add_WebResourceRequested(
         Callback<ICoreWebView2WebResourceRequestedEventHandler>(
-            [this](ICoreWebView2* webview, ICoreWebView2WebResourceRequestedEventArgs* args)
+            [this, file_path](ICoreWebView2* webview, ICoreWebView2WebResourceRequestedEventArgs* args)
                 -> HRESULT {
-                wil::com_ptr<ICoreWebView2WebResourceRequest> webResourceRequest;
-                CHECK_FAILURE(args->get_Request(&webResourceRequest));
-                std::wstring source;
                 wil::com_ptr<ICoreWebView2WebResourceRequestedEventArgs2>
                     webResourceRequestArgs;
                 if (SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&webResourceRequestArgs))))
@@ -37,16 +40,27 @@ m_webviewEventSource->add_WebResourceRequested(
                     COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE requestSource =
                         COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_ALL;
                     webResourceRequestArgs->get_RequestSource(&requestSource);
-                    if (requestSource != COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_ALL)
+                    COREWEBVIEW2_WEB_RESOURCE_CONTEXT context;
+                    args->get_ResourceContext(&context);
+                    if (requestSource ==
+                            COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER &&
+                        context == COREWEBVIEW2_WEB_RESOURCE_CONTEXT_IMAGE)
                     {
-                        source =
-                            L", \"source\": " + WebRequestSourceToString(requestSource);
+                        Microsoft::WRL::ComPtr<IStream> response_stream;
+                        Microsoft::WRL::ComPtr<ICoreWebView2_2> webview2;
+                        Microsoft::WRL::ComPtr<ICoreWebView2Environment> environment;
+                        CHECK_FAILURE(m_webviewEventSource->QueryInterface(IID_PPV_ARGS(&webview2)));
+                        CHECK_FAILURE(webview2->get_Environment(&environment));
+                        CHECK_FAILURE(SHCreateStreamOnFileEx(
+                            file_path, STGM_READ, FILE_ATTRIBUTE_NORMAL,
+                            FALSE, nullptr, &response_stream));
+                        Microsoft::WRL::ComPtr<ICoreWebView2WebResourceResponse> response;
+                        CHECK_FAILURE(environment->CreateWebResourceResponse(
+                            response_stream.Get(), 200, L"OK", L"Content-Type: image/jpeg",
+                            &response));
+                        args->put_Response(response.Get());
                     }
                 }
-                std::wstring message = L"{" + WebResourceRequestedToJsonString(webResourceRequest.get(), source);
-                message += WebViewPropertiesToJsonString(m_webviewEventSource.get());
-                message += L"}";
-                PostEventMessage(message);
                 return S_OK;
             })
             .Get(),
