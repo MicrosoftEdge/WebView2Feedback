@@ -1,12 +1,12 @@
 # Background
 
-We are exposing an event that will be raised when an attempt to launch an external protocol is made. The host will be given the option to cancel the launch, handle the popup dialog to hide the dialog, as well as disable the checkbox that, if selected, will give permissions to always allow the launch.
+We are exposing an event that will be raised when an attempt to launch an external protocol is made. The host will be given the option to cancel the launch, hide the dialog, as well as disable the checkbox that, if selected, will give permissions to always allow the launch.
 
 # Description
 
-This event will be raised before the external protocol launch occurs. Currently a popup dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a [trustworthy origin](#https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin) a checkmark box will be displayed that will allow the user to always allow this external protocol from this origin. The `NavigationStarting`, `NavigationCompleted`, `SourceChanged`, `ContentLoading`, and `HistoryChanged` events will not be raised when a request is made to launch an external protocol.
+This event will be raised before the external protocol launch occurs. Currently a dialog is displayed in which the user can click `Open` or `Cancel`. If the request is made from a [trustworthy origin](https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin) a checkmark box will be displayed that will allow the user to always allow this external protocol from this origin. The `NavigationStarting`, `NavigationCompleted`, `SourceChanged`, `ContentLoading`, and `HistoryChanged` events will not be raised when a request is made to launch an external protocol.
 
-The `LaunchingExternalProtocol` event will be raised on either `CoreWebView2` or `CoreWebView2Frame` depending on if the launch request is originating from the main frame or a non-main frame. A current limitation of our `CoreWebView2Frame` API is that it only supports top level iframes. Any nested iframes will not have a `CoreWebView2Frame` associated with them. In the case of a nested iframe requesting the external protocol launch, the event will be raised from the top level iframe.
+The `LaunchingExternalProtocol` event will be raised on either `CoreWebView2` or `CoreWebView2Frame` depending on if the launch request is originating from the main frame or a non-main frame. In the case of a nested iframe requesting the external protocol launch, the event will be raised from the top level iframe.
 # Examples
 
 ## Win32 C++
@@ -34,26 +34,22 @@ void RegisterLaunchingExternalProtocolHandler()
                         if (wcsicmp(uri.get(), L"calculator://") == 0)
                         {
                             CHECK_FAILURE(args->put_Handled(TRUE));
-                            // If this matches our desired protocol, then suppress the
-                            // popup dialog.
+                            // If this matches our desired protocol, then suppress the dialog.
                         }
                         else
                         {
-                            // Otherwise allow the popup dialog, and allow the user to decide
+                            // Otherwise allow the dialog, and let the user to decide
                             // whether or not to allow the protocol to launch.
                         }
                     return S_OK;
                 })
                 .Get(),
             &m_launchingExternalProtocolToken));
-    }
-    auto webView4 = m_webview.try_query<ICoreWebView2_4>();
-    if (webView4)
-    {
+
         // Note that FrameCreated will only ever be raised for top level iframes.
-        // However, any launching external protocol requests from nested iframes 
+        // Any launching external protocol requests from nested iframes 
         // will be raised from the top level frame.
-        CHECK_FAILURE(webView4->add_FrameCreated(
+        CHECK_FAILURE(webView5->add_FrameCreated(
             Callback<ICoreWebView2FrameCreatedEventHandler>(
                 [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args) -> HRESULT
                 {
@@ -73,7 +69,7 @@ void RegisterLaunchingExternalProtocolHandler()
                                     if (wcsicmp(uri.get(), L"calculator://") == 0)
                                     {
                                         // If this matches our desired protocol, then suppress the
-                                        // popup dialog.
+                                        // dialog.
                                         CHECK_FAILURE(args->put_Handled(TRUE));
                                     }
                                     else
@@ -101,54 +97,36 @@ void RegisterLaunchingExternalProtocolHandler()
 private WebView2 webView;
 void RegisterLaunchingExternalProtocolHandler() 
 {
-    // Safeguarding the handler when unsupported runtime is used.
-    try
-    {
-        webView.CoreWebView2.LaunchingExternalProtocol += (CoreWebView2 sender, CoreWebView2LaunchingExternalProtocolEventArgs e) {
-            if (e.Uri == "calculator:///") 
-            {
-                // If this matches our desired protocol, then suppress the popup dialog.
-                e.Handled = true;
-            }
-            else 
-            {
-                // Otherwise allow the popup dialog, and allow the user to decide 
-                // whether or not to allow the protocol to launch.
-            }
-        };
-    }
-    catch (NotImplementedException exception) 
-    {
-        // If the runtime support is not there we probably want this
-        // to be a no-op.
-    }
+    webView.CoreWebView2.LaunchingExternalProtocol += (CoreWebView2 sender, CoreWebView2LaunchingExternalProtocolEventArgs e) {
+        if (e.Uri == "calculator:///") 
+        {
+            // If this matches our desired protocol, then suppress the popup dialog.
+            e.Handled = true;
+        }
+        else 
+        {
+            // Otherwise allow the dialog, and let the user to decide 
+            // whether or not to allow the protocol to launch.
+        }
+    };
 
     webView.CoreWebView2.FrameCreated += (CoreWebView2Frame sender, CoreWebView2FrameCreatedEventArgs args) =>
     {
-        // Safeguarding the handler when unsupported runtime is used.
-        try
+        // Apply the same logic as above to non-main frame raising the event.
+        args.Frame.LaunchingExternalProtocol += (LaunchingExternalProtocolSender, LaunchingExternalProtocolArgs) =>
         {
-            // Apply the same logic as above to non-main frame raising the event.
-            args.Frame.LaunchingExternalProtocol += (LaunchingExternalProtocolSender, LaunchingExternalProtocolArgs) =>
+            if (LaunchingExternalProtocolArgs.Uri == "calculator:///") 
             {
-                if (LaunchingExternalProtocolArgs.Uri == "calculator:///") 
-                {
-                    // If this matches our desired protocol, then suppress the popup dialog.
-                    LaunchingExternalProtocolArgs.Handled = true;
-                }
-                else 
-                {
-                    // Otherwise revoke permissions previously granted to this protocol 
-                    // from this origin as well as disable the always open checkbox.
-                    LaunchingExternalProtocolArgs.DisableAlwaysOpenCheckbox = true;
-                }
-            };
-        }
-        catch (NotImplementedException exception)
-        {
-            // If the runtime support is not there we probably want this
-            // to be a no-op.
-        }
+                // If this matches our desired protocol, then suppress the dialog.
+                LaunchingExternalProtocolArgs.Handled = true;
+            }
+            else 
+            {
+                // Otherwise revoke permissions previously granted to this protocol 
+                // from this origin as well as disable the always open checkbox.
+                LaunchingExternalProtocolArgs.DisableAlwaysOpenCheckbox = true;
+            }
+        };
     };
 }
 
