@@ -179,23 +179,29 @@ namespace Microsoft.Web.WebView2.Core
         All = 0xFFFFFFFF,
     };
 
-    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_Manual")]
+    runtimeclass CoreWebView2
     {
-        void AddWebResourceRequestedFilter(
-                String uri,
-                CoreWebView2WebResourceContext ResourceContext,
-                CoreWebView2WebResourceRequestSource RequestSource);
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_Manual")]
+        {
+            void AddWebResourceRequestedFilter(
+                    String uri,
+                    CoreWebView2WebResourceContext resourceContext,
+                    CoreWebView2WebResourceRequestSource requestSource);
 
-        void RemoveWebResourceRequestedFilter(
-                String uri,
-                CoreWebView2WebResourceContext ResourceContext,
-                CoreWebView2WebResourceRequestSource RequestSource);
+            void RemoveWebResourceRequestedFilter(
+                    String uri,
+                    CoreWebView2WebResourceContext resourceContext,
+                    CoreWebView2WebResourceRequestSource requestSource);
+        }
     }
 
-    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingWebResourceRequestedEventArgs")]
+    runtimeclass CoreWebView2WebResourceRequestedEventArgs
     {
-        // ICoreWebView2StagingWebResourceRequestedEventArgs members
-        CoreWebView2WebResourceRequestSource RequestSource { get; };
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingWebResourceRequestedEventArgs")]
+        {
+            // ICoreWebView2StagingWebResourceRequestedEventArgs members
+            CoreWebView2WebResourceRequestSource RequestSource { get; };
+        }
     }
 }
 ```
