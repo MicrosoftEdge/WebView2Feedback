@@ -120,8 +120,8 @@ interface ICoreWebView2_16: ICoreWebView2_15 {
   /// For more information about request source, navigate to
   /// [COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE].
   ///
-  /// Because service worker runs separately from any one HTML document its WebResourceRequested
-  /// will be raised for all CoreWebView2s that have appropriate filters added in the
+  /// Because service workers and shared workers run separately from any one HTML document theirs
+  /// WebResourceRequested will be raised for all CoreWebView2s that have appropriate filters added in the
   /// corresponding CoreWebView2Environment.
   /// You should only add a WebResourceRequested filter for
   /// COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER on
