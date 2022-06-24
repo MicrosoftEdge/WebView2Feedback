@@ -2,7 +2,7 @@ Family Safety
 ===
 
 # Background
-Provide end evelolper a new API to toggle Family Safety feature on and off. End developer can use this API to enable and disable the Family Safety feature. Also provided a iframe filter toggle API to ensure iframes also go through Family Safety services for all subframe navigations.
+Provide end evelolper a new API to toggle Family Safety feature on and off. End developer can use this API to enable and disable the Family Safety feature. Also provided a iframe filter toggle API to ensure iframes also go through Family Safety services for all subframe navigations if the developer chose to enable iframe support.
 
 # Examples
 ## WinRT and .NET   
@@ -10,7 +10,7 @@ Provide end evelolper a new API to toggle Family Safety feature on and off. End 
 void FamilySafetyFeatureCmdExecuted(object target, ExecutedRoutedEventArgs e)
 {
     webView.IsFamilySafetyFeatureEnabled = !webView.IsFamilySafetyFeatureEnabled;
-    MessageBox.Show("Family Safety is" + (webView.IsFamilySafetyFeatureEnabled ? " enabled " : " disabled ") + "after the next ?????.");
+    MessageBox.Show("Family Safety is" + (webView.IsFamilySafetyFeatureEnabled ? " enabled " : " disabled ") + "after the next restart.");
 }
 
 void FamilySafetyIframeFilterCmdExecuted(object target, ExecutedRoutedEventArgs e)
@@ -24,7 +24,7 @@ void FamilySafetyIframeFilterCmdExecuted(object target, ExecutedRoutedEventArgs 
 ## Win32 C++
 ```cpp
 
-// Enable the feature
+// Enable the Family Safety feature
 HRESULT ToggleFamilySafetyFeature()
 {
     BOOL areFSEnabled;
@@ -38,7 +38,7 @@ HRESULT ToggleFamilySafetyFeature()
         nullptr,
         (std::wstring(L"Family Safety will be ") +
             (!areFSEnabled ? L"enabled" : L"disabled") +
-            L" after the next ????.").c_str(),
+            L" after the next restart.").c_str(),
         L"Settings change", MB_OK);
     return true;
 }
