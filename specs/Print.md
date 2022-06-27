@@ -295,10 +295,10 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   [propput] HRESULT Collate([in] BOOL value);
 
   /// Color of the print. The default value is `TRUE`.
-  [propget] HRESULT Color([out, retval] BOOL* value);
+  [propget] HRESULT IsColor([out, retval] BOOL* value);
 
   /// Set the `Color` property.
-  [propput] HRESULT Color([in] BOOL value);
+  [propput] HRESULT IsColor([in] BOOL value);
 
   /// Printer's duplex settings. See `COREWEBVIEW2_PRINT_SIDE` for descriptions 
   /// of print sides. The default value is `COREWEBVIEW2_PRINT_SIDE_SINGLE`. 
@@ -392,8 +392,8 @@ namespace Microsoft.Web.WebView2.Core
             String PageRanges { get; set; };
             Int32 PagesPerSheet { get; set; };
             Int32 Copies { get; set; };
-            Boolean Collate { get; set; };
-            Boolean Color { get; set; };
+            Boolean IsCollate { get; set; };
+            Boolean IsColor { get; set; };
             CoreWebView2PrintSide PrintSide { get; set; };
             Int32 QualityHorizontal { get; set; };
             Int32 QualityVertical { get; set; };
