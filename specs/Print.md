@@ -203,7 +203,7 @@ typedef enum COREWEBVIEW2_PRINT_SIDE {
 } COREWEBVIEW2_PRINT_SIDE;
 
 [uuid(92269C88-1CC1-47E0-9A87-71458409BA15), object, pointer_default(unique)]
-interface ICoreWebView2_15 : IUnknown {
+interface ICoreWebView2_15 : ICoreWebView2_14 {
   /// Print the current page asynchronously to the specified printer with the provided settings.
   /// See `ICoreWebView2PrintSettings2` for description of settings. The handler will return `E_ABORT`
   /// if `printerName` is empty or null or invalid or invalid settings for a given printer.
