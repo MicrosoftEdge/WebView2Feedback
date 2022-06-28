@@ -211,7 +211,7 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
   /// The async `PrintWithSettings` operation completes when it finishes 
   /// printing to the printer. At this time the `ICoreWebView2SPrintWithSettingsCompletedHandler` 
   /// is invoked. Only one `Printing` operation can be in progress at a time. If
-  /// `PrintWithSettings` is called while a `PrintWithSettings` or `PrintToPdf` or `PrintToPDFStream` 
+  /// `PrintWithSettings` is called while a `PrintWithSettings` or `PrintToPdf` or `PrintToPdfStream` 
   /// job is in progress, the completed handler is immediately invoked with an error.
   ///
   /// \snippet AppWindow.cpp PrintWithSettings
