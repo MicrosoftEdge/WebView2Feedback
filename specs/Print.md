@@ -23,7 +23,7 @@ PrintSettings2 object extends PrintSettings to support printing to a printer.
 # Examples
 ## Print
 
-You can use `Print` method to programmatically open a print dialog without end user interaction. Currently devs are using Javascript window.print() using WebView2 ExecuteScriptAsync api to invoke
+You can use the `Print` method to programmatically open a print dialog without end user interaction. Currently devs are using JavaScript `window.print()` using the `CoreWebView2.ExecuteScriptAsync` API to invoke the
 browser print preview dialog. But there isn't a way to invoke open the system print dialog programmatically nor will `window.print()` work if script is disabled on the page, or the document is a PDF or other non-HTML document.
 
 // This example shows the user a print dialog. If `printDialogKind` is COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER_PRINT_PREVIEW, opens a browser print preview dialog, otherwise opens a system print dialog.       
