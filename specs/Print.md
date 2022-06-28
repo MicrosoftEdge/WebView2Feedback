@@ -5,7 +5,7 @@ Print API
 # Background
 
 Developers have requested the ability to programmatically print the current page optionally using a print dialog in WebView2. Currently the end user can open a print preview dialog by pressing "Ctrl+ P" or selecting "Print" from the context menu in a document or can open the system print dialog by pressing 
-"Ctrl + Shift + P" or clicking "Print using system dialog" link in print preview dialog. This API gives developers the ability to open print dialog without requiring the end user interaction and also can print without a dialog to a specific printer by configuring the print settings. 
+"Ctrl + Shift + P" or clicking the "Print using system dialog" link in the print preview dialog. This API gives developers the ability to open the print dialog without requiring the end user interaction and also can print without a dialog to a specific printer by configuring the print settings. 
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
