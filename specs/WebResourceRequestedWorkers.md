@@ -9,10 +9,10 @@ Subscribe to WebResourceRequested event for service workers and override the ima
 
 .Net
 ```c#
-webView.CoreWebView2.AddWebResourceRequestedFilter("*.jpg", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSource.ServiceWorker);
+webView.CoreWebView2.AddWebResourceRequestedFilter("*.jpg", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSourceKinds.ServiceWorker);
 webView.CoreWebView2.WebResourceRequested += (sender, args) =>
 {
-    if (args.RequestSource == CoreWebView2WebResourceRequestSource.ServiceWorker &&
+    if (args.RequestSourceKinds == CoreWebView2WebResourceRequestSourceKinds.ServiceWorker &&
         args.ResourceContext == CoreWebView2WebResourceContext.Image)
     {
         Stream fileStream = new FileStream("new_image.jpg", FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -26,9 +26,9 @@ webView.CoreWebView2.Navigate("https://www.url.com/");
 
 C++
 ```cpp
-m_webviewEventSource->AddWebResourceRequestedFilterWithRequestSource(
+m_webviewEventSource->AddWebResourceRequestedFilterWithRequestSourceKinds(
             L"*.jpg", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL,
-            COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER);
+            COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_SERVICE_WORKER);
 m_webviewEventSource->add_WebResourceRequested(
         Callback<ICoreWebView2WebResourceRequestedEventHandler>(
             [this, file_path](ICoreWebView2* webview, ICoreWebView2WebResourceRequestedEventArgs* args)
@@ -37,13 +37,13 @@ m_webviewEventSource->add_WebResourceRequested(
                     webResourceRequestArgs;
                 if (SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&webResourceRequestArgs))))
                 {
-                    COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE requestSource =
-                        COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_ALL;
-                    webResourceRequestArgs->get_RequestSource(&requestSource);
+                    COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS requestSourceKinds =
+                        COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_ALL;
+                    webResourceRequestArgs->get_RequestSourceKinds(&requestSourceKinds);
                     COREWEBVIEW2_WEB_RESOURCE_CONTEXT context;
                     args->get_ResourceContext(&context);
-                    if (requestSource ==
-                            COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER &&
+                    if (requestSourceKinds ==
+                            COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_SERVICE_WORKER &&
                         context == COREWEBVIEW2_WEB_RESOURCE_CONTEXT_IMAGE)
                     {
                         Microsoft::WRL::ComPtr<IStream> response_stream;
@@ -72,20 +72,20 @@ m_webviewEventSource->add_WebResourceRequested(
 ```c#
 /// Specifies the source of `WebResourceRequested` event.
 [v1_enum]
-typedef enum COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE {
+typedef enum COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS {
   /// Indicates that web resource is requested from main page including dedicated workers and iframes.
-  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_DOCUMENT = 1,
+  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_DOCUMENT = 1,
 
   /// Indicates that web resource is requested from shared worker.
-  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SHARED_WORKER = 2,
+  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_SHARED_WORKER = 2,
 
   /// Indicates that web resource is requested from service worker.
-  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER = 4,
+  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_SERVICE_WORKER = 4,
 
   /// Indicates that web resource is requested from any supported source.
-  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_ALL = 0XFFFFFFFF
-} COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE;
-cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE);")
+  COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_ALL = 0XFFFFFFFF
+} COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS;
+cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS);")
 
 [uuid(1cc6a402-3724-4e4a-9099-8cf60f2f93a1), object, pointer_default(unique)]
 interface ICoreWebView2_16: ICoreWebView2_15 {
@@ -114,17 +114,18 @@ interface ICoreWebView2_16: ICoreWebView2_15 {
   /// For more information about resource context filters, navigate to
   /// [COREWEBVIEW2_WEB_RESOURCE_CONTEXT].
   ///
-  /// The `requestSource` is a mask of one or more `COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE`. OR
-  /// operation(s) can be applied to multiple `COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE` to
-  /// create a mask representing those data types. API returns `E_INVALIDARG` if `requestSource` equals to zero.
-  /// For more information about request source, navigate to
-  /// [COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE].
+  /// The `requestSourceKinds` is a mask of one or more `COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS`. OR
+  /// operation(s) can be applied to multiple `COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS` to
+  /// create a mask representing those data types. API returns `E_INVALIDARG` if `requestSourceKinds` equals to zero.
+  /// For more information about request source kinds, navigate to
+  /// [COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS].
   ///
   /// Because service workers and shared workers run separately from any one HTML document theirs
   /// WebResourceRequested will be raised for all CoreWebView2s that have appropriate filters added in the
   /// corresponding CoreWebView2Environment.
   /// You should only add a WebResourceRequested filter for
-  /// COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_SERVICE_WORKER on
+  /// COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_SERVICE_WORKER or
+  /// COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_SHARED_WORKER on
   /// one CoreWebView2 to avoid handling the same WebResourceRequested
   /// event multiple times.
   ///
@@ -141,28 +142,28 @@ interface ICoreWebView2_16: ICoreWebView2_15 {
   /// | `*example/` | `https://example` | Yes | Just like above, but this time the filter ends with a / just like the normalized URI |
   /// | `https://xn--qei.example/` | `https://&#x2764;.example/` | Yes | Non-ASCII hostnames are normalized to punycode before wildcard comparison |
   /// | `https://&#x2764;.example/` | `https://xn--qei.example/` | No | Non-ASCII hostnames are normalized to punycode before wildcard comparison |
-  HRESULT AddWebResourceRequestedFilterWithRequestSource(
+  HRESULT AddWebResourceRequestedFilterWithRequestSourceKinds(
     [in] LPCWSTR const uri,
     [in] COREWEBVIEW2_WEB_RESOURCE_CONTEXT const resourceContext,
-    [in] COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE const requestSource);
+    [in] COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS const requestSourceKinds);
 
   /// Removes a matching WebResource filter that was previously added for the
   /// `WebResourceRequested` event.  If the same filter was added multiple
   /// times, then it must be removed as many times as it was added for the
   /// removal to be effective.  Returns `E_INVALIDARG` for a filter that was
   /// never added.
-  HRESULT RemoveWebResourceRequestedFilterWithRequestSource(
+  HRESULT RemoveWebResourceRequestedFilterWithRequestSourceKinds(
       [in] LPCWSTR const uri,
       [in] COREWEBVIEW2_WEB_RESOURCE_CONTEXT const resourceContext,
-      [in] COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE const requestSource);
+      [in] COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS const requestSourceKinds);
  }
 
 /// Event args for the `WebResourceRequested` event.
 [uuid(572f38f9-c317-4b6c-8dd2-c8b894779bbb), object, pointer_default(unique)]
 interface ICoreWebView2WebResourceRequestedEventArgs : IUnknown {
   /// The web resource request source.
-  [propget] HRESULT RequestSource(
-  [out, retval] COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE* requestSource);
+  [propget] HRESULT RequestSourceKinds(
+  [out, retval] COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS* requestSourceKinds);
 }
 ```
 
@@ -171,7 +172,7 @@ interface ICoreWebView2WebResourceRequestedEventArgs : IUnknown {
 namespace Microsoft.Web.WebView2.Core
 {
     [flags]
-    enum CoreWebView2WebResourceRequestSource
+    enum CoreWebView2WebResourceRequestSourceKinds
     {
         Document = 0x00000001,
         SharedWorker = 0x00000002,
@@ -181,26 +182,28 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2
     {
+        // ...
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_Manual")]
         {
             void AddWebResourceRequestedFilter(
                     String uri,
                     CoreWebView2WebResourceContext resourceContext,
-                    CoreWebView2WebResourceRequestSource requestSource);
+                    CoreWebView2WebResourceRequestSourceKinds requestSourceKinds);
 
             void RemoveWebResourceRequestedFilter(
                     String uri,
                     CoreWebView2WebResourceContext resourceContext,
-                    CoreWebView2WebResourceRequestSource requestSource);
+                    CoreWebView2WebResourceRequestSourceKinds requestSourceKinds);
         }
     }
 
     runtimeclass CoreWebView2WebResourceRequestedEventArgs
     {
+        // ...
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingWebResourceRequestedEventArgs")]
         {
             // ICoreWebView2StagingWebResourceRequestedEventArgs members
-            CoreWebView2WebResourceRequestSource RequestSource { get; };
+            CoreWebView2WebResourceRequestSourceKinds RequestSourceKinds { get; };
         }
     }
 }
