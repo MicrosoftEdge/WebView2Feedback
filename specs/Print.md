@@ -287,7 +287,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// for the specified printer, and the current value is not changed.
   [propput] HRESULT Copies([in] INT32 value);
 
-  /// Collate of the printer. The default value is `FALSE`. 
+  /// True if the printed document should be collated. The default value is `FALSE`. 
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT Collate([out, retval] BOOL* value);
 
