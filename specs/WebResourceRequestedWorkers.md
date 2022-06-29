@@ -2,7 +2,7 @@ WebResourceRequested events for workers
 ===
 
 # Background
-Currently [WebResourceRequested events](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/iwebview2webview5?view=webview2-0.8.355#add_webresourcerequested) are raised only for main page HTTP requests. We are extending [AddWebResourceRequestedFilter](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/iwebview2webview5?view=webview2-0.8.355#addwebresourcerequestedfilter) API to allow you additionally to subscribe to events raised from Service or Shared workers and fixing oop iframes events as part of the main page.
+Currently [WebResourceRequested events](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/iwebview2webview5?view=webview2-0.8.355#add_webresourcerequested) are raised only for top level document HTTP requests. We are extending [AddWebResourceRequestedFilter](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/iwebview2webview5?view=webview2-0.8.355#addwebresourcerequestedfilter) API to allow you additionally to subscribe to events raised from Service or Shared workers and fixing an issue where out of process iframes did not raise WebResourceRequested events as part of the main page.
 
 # Examples
 Subscribe to WebResourceRequested event for service workers and override the image in request with the local one
@@ -160,7 +160,7 @@ interface ICoreWebView2_16: ICoreWebView2_15 {
 
 /// Event args for the `WebResourceRequested` event.
 [uuid(572f38f9-c317-4b6c-8dd2-c8b894779bbb), object, pointer_default(unique)]
-interface ICoreWebView2WebResourceRequestedEventArgs : IUnknown {
+interface ICoreWebView2WebResourceRequestedEventArgs2 : ICoreWebView2WebResourceRequestedEventArgs {
   /// The web resource request source.
   [propget] HRESULT RequestSourceKinds(
   [out, retval] COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS* requestSourceKinds);
@@ -200,9 +200,9 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2WebResourceRequestedEventArgs
     {
         // ...
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingWebResourceRequestedEventArgs")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2WebResourceRequestedEventArgs2")]
         {
-            // ICoreWebView2StagingWebResourceRequestedEventArgs members
+            // ICoreWebView2WebResourceRequestedEventArgs2 members
             CoreWebView2WebResourceRequestSourceKinds RequestSourceKinds { get; };
         }
     }
