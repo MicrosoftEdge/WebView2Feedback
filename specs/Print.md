@@ -302,7 +302,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
 
   /// Printer's duplex settings. See `COREWEBVIEW2_PRINT_SIDE` for descriptions 
   /// of print sides. The default value is `COREWEBVIEW2_PRINT_SIDE_SINGLE`. 
-  /// This value is ignored in PrintToPdfStream method.
+  /// This property is ignored by the PrintToPdf and PrintToPdfStream methods.
   [propget] HRESULT PrintSide([out, retval] COREWEBVIEW2_PRINT_SIDE* value);
 
   /// Set the `PrintSide` property.
