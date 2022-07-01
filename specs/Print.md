@@ -66,13 +66,12 @@ bool AppWindow::PrintWithSettings()
 {
     TextInputDialog dialog(
         GetMainWindow(), L"Printer Name", L"Printer Name:",
-        L"Specify Printer Name as understood by the OS.", L"");
+        L"Specify printer name as understood by the OS.", L"");
     if (dialog.confirmed)
     {
         wil::com_ptr<ICoreWebView2_15> webView2_15;
         CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2_15)));
         CHECK_FEATURE_RETURN(webView2_15);
-
 
         wil::com_ptr<ICoreWebView2Environment11> webviewEnvironment11;
         CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
@@ -80,7 +79,6 @@ bool AppWindow::PrintWithSettings()
         CHECK_FEATURE_RETURN(webviewEnvironment11);
 
         wil::com_ptr<ICoreWebView2PrintSettings2> printSettings = nullptr;
-
         CHECK_FAILURE(webviewEnvironment11->CreatePrintSettings2(&printSettings));
         CHECK_FAILURE(printSettings->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
         CHECK_FAILURE(printSettings->put_PageWidth(8.5));
@@ -89,10 +87,9 @@ bool AppWindow::PrintWithSettings()
         CHECK_FAILURE(printSettings->put_PagesPerSheet(1));
         CHECK_FAILURE(printSettings->put_QualityHorizontal(600));
         CHECK_FAILURE(printSettings->put_QualityVertical(600));
-
         CHECK_FAILURE(printSettings->put_PrinterName((dialog.input).c_str()));
 
-        CHECK_FAILURE(ebView2_15->PrintWithSettings(
+        CHECK_FAILURE(webView2_15->PrintWithSettings(
             printSettings.get(), Callback<ICoreWebView2PrintWithSettingsCompletedHandler>(
                                  [this](HRESULT errorCode) -> HRESULT
                                  {
@@ -113,7 +110,7 @@ async void PrintWithSettings()
 {
     var dialog = new TextInputDialog(
                         title: "Printer Name",
-                        description: "Specify Printer Name as understood by the OS.",
+                        description: "Specify printer name as understood by the OS.",
                         defaultInput: "");
     if (dialog.ShowDialog() == true)
     {
@@ -147,13 +144,12 @@ bool AppWindow::PrintToPdfStream()
     CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2_15)));
     CHECK_FEATURE_RETURN(webView2_15);
 
-    wil::com_ptr<ICoreWebView2PrintSettings2> printSettings = nullptr;
-
     wil::com_ptr<ICoreWebView2Environment11> webviewEnvironment11;
             CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
                 IID_PPV_ARGS(&webviewEnvironment11)));
     CHECK_FEATURE_RETURN(webviewEnvironment11);
 
+    wil::com_ptr<ICoreWebView2PrintSettings2> printSettings = nullptr;
     CHECK_FAILURE(webviewEnvironment->CreatePrintSettings2(&printSettings));
     CHECK_FAILURE(printSettings->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
     CHECK_FAILURE(printSettings->put_ShouldPrintBackgrounds(true));
