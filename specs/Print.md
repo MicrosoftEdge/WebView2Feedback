@@ -7,7 +7,7 @@ Print API
 Developers have requested the ability to programmatically print the current page optionally using a print dialog in WebView2. Currently the end user can open a print preview dialog by pressing "Ctrl+ P" or selecting "Print" from the context menu in a document or can open the system print dialog by pressing
 "Ctrl + Shift + P" or clicking the "Print using system dialog" link in the print preview dialog. This API gives developers the ability to open the print dialog without requiring the end user interaction and also can print without a dialog to a specific printer by configuring the print settings.
 
-You can use `CoreWebView2.PrintToPdfAsync` API to print a current page as a pdf file to disk and then use native printing APIs to print the document to a specific printer. However, this API requires the PDF to be printed to the disk which can be prohibitive at times if the printed information is sensitive and also printing to printer without a dialog requires additional effort on the developers for cross platform apps.
+You can use `CoreWebView2.PrintToPdfAsync` API to print a current page as a pdf file to disk and then use native printing APIs to print the document to a specific printer. However, this API requires the PDF to be printed to the disk which can be prohibitive at times for some financial customers if the printed information is sensitive and also printing to printer without a dialog requires additional effort on the developers for cross platform apps.
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
@@ -59,63 +59,74 @@ void OpenPrintDialog(object target, ExecutedRoutedEventArgs e)
 
 You can use `PrintWithSettings` method to print to a specific printer without a print dialog. You can programatically configure print settings using `CreatePrintSettings2`, and call `PrintWithSettings` to print the current page.
 
-// This example prints the current page without a print dialog to the `Microsoft Print To PDF` printer with the settings.
+// This example prints the current page without a print dialog to the specified printer with the settings.
 
 ```cpp
 bool AppWindow::PrintWithSettings()
 {
-    wil::com_ptr<ICoreWebView2_15> webView2_15;
-    CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2_15)));
-    CHECK_FEATURE_RETURN(webView2_15);
+    TextInputDialog dialog(
+        GetMainWindow(), L"Printer Name", L"Printer Name:",
+        L"Specify Printer Name as understood by the OS.", L"");
+    if (dialog.confirmed)
+    {
+        std::wstring printerName = dialog.input;
+        auto webView2Staging6 = m_webView.try_query<ICoreWebView2Staging6>();
+        CHECK_FEATURE_RETURN(webView2Staging6);
 
-    wil::com_ptr<ICoreWebView2PrintSettings2> printSettings = nullptr;
+        auto webviewEnvironment = m_webViewEnvironment.try_query<ICoreWebView2StagingEnvironment>();
+        CHECK_FEATURE_RETURN(webviewEnvironment);
 
-    wil::com_ptr<ICoreWebView2Environment11> webviewEnvironment11;
-            CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
-                IID_PPV_ARGS(&webviewEnvironment11)));
-    CHECK_FEATURE_RETURN(webviewEnvironment11);
+        wil::com_ptr<ICoreWebView2StagingPrintSettings2> printSettings = nullptr;
+        CHECK_FAILURE(webviewEnvironment->CreatePrintSettings2(&printSettings));
+        CHECK_FAILURE(printSettings->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
+        CHECK_FAILURE(printSettings->put_PageWidth(8.5));
+        CHECK_FAILURE(printSettings->put_PageHeight(11));
+        CHECK_FAILURE(printSettings->put_ShouldPrintBackgrounds(true));
+        CHECK_FAILURE(printSettings->put_PagesPerSheet(1));
+        CHECK_FAILURE(printSettings->put_QualityHorizontal(600));
+        CHECK_FAILURE(printSettings->put_QualityVertical(600));
 
-    CHECK_FAILURE(webviewEnvironment11->CreatePrintSettings2(&printSettings));
-    CHECK_FAILURE(printSettings->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
-    CHECK_FAILURE(printSettings->put_PageWidth(8.5));
-    CHECK_FAILURE(printSettings->put_PageHeight(11));
-    CHECK_FAILURE(printSettings->put_ShouldPrintBackgrounds(true));
-    CHECK_FAILURE(printSettings->put_PagesPerSheet(1));
-    CHECK_FAILURE(printSettings->put_QualityHorizontal(600));
-    CHECK_FAILURE(printSettings->put_QualityVertical(600));;
-    CHECK_FAILURE(printSettings->put_PrinterName(L"Microsoft Print To PDF"));
+        CHECK_FAILURE(printSettings->put_PrinterName(printerName.c_str()));
 
-    CHECK_FAILURE(webView2_15->PrintWithSettings(
-            printSettings.get(),
-            Callback<ICoreWebView2PrintWithSettingsCompletedHandler>(
+        CHECK_FAILURE(webView2Staging6->PrintWithSettings(
+            printSettings.get(), Callback<ICoreWebView2StagingPrintWithSettingsCompletedHandler>(
                                  [this](HRESULT errorCode) -> HRESULT
                                  {
                                      AsyncMessageBox(
-                                         (errorCode == S_OK) ? L"Print to printer succeeded" : L"Print to printer failed",
+                                         (errorCode == S_OK) ? L"Print to printer succeeded"
+                                                             : L"Print to printer failed",
                                          L"Print to printer");
                                      return S_OK;
                                  })
                                  .Get()));
-     return true;
+    }
+    return true;
 }
 ```
 
 ```c#
 async void PrintWithSettings()
 {
-    CoreWebView2PrintSettings printSettings = null;
-    printSettings = WebViewEnvironment.CreatePrintSettings2();
-    printSettings.Orientation = CoreWebView2PrintOrientation.Portrait;
-    printSettings.PageWidth = 8.5;
-    printSettings.PageHeight = 11;
-    printSettings.ShouldPrintBackgrounds = true;
-    printSettings.PagesPerSheet = 1;
-    printSettings.QualityHorizontal = 600;
-    printSettings.QualityVertical = 600;
-    printSettings.PrinterName = "Microsoft Print To PDF";
+    var dialog = new TextInputDialog(
+                        title: "Printer Name",
+                        description: "Specify Printer Name as understood by the OS.",
+                        defaultInput: "");
+    if (dialog.ShowDialog() == true)
+    {
+        CoreWebView2PrintSettings printSettings = null;
+        printSettings = WebViewEnvironment.CreatePrintSettings2();
+        printSettings.Orientation = CoreWebView2PrintOrientation.Portrait;
+        printSettings.PageWidth = 8.5;
+        printSettings.PageHeight = 11;
+        printSettings.ShouldPrintBackgrounds = true;
+        printSettings.PagesPerSheet = 1;
+        printSettings.QualityHorizontal = 600;
+        printSettings.QualityVertical = 600;
+        printSettings.PrinterName = dialog.Input.Text;
 
-    await webView.CoreWebView2.PrintWithSettingsAsync(printSettings);
+        await webView.CoreWebView2.PrintWithSettingsAsync(printSettings);
             MessageBox.Show(this, "Printing is succeeded", "Print with Settings");
+    }
 }
 ```
 
