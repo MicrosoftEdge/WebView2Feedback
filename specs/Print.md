@@ -69,15 +69,19 @@ bool AppWindow::PrintWithSettings()
         L"Specify Printer Name as understood by the OS.", L"");
     if (dialog.confirmed)
     {
-        std::wstring printerName = dialog.input;
-        auto webView2Staging6 = m_webView.try_query<ICoreWebView2Staging6>();
-        CHECK_FEATURE_RETURN(webView2Staging6);
+        wil::com_ptr<ICoreWebView2_15> webView2_15;
+        CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2_15)));
+        CHECK_FEATURE_RETURN(webView2_15);
 
-        auto webviewEnvironment = m_webViewEnvironment.try_query<ICoreWebView2StagingEnvironment>();
-        CHECK_FEATURE_RETURN(webviewEnvironment);
 
-        wil::com_ptr<ICoreWebView2StagingPrintSettings2> printSettings = nullptr;
-        CHECK_FAILURE(webviewEnvironment->CreatePrintSettings2(&printSettings));
+        wil::com_ptr<ICoreWebView2Environment11> webviewEnvironment11;
+        CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
+                IID_PPV_ARGS(&webviewEnvironment11)));
+        CHECK_FEATURE_RETURN(webviewEnvironment11);
+
+        wil::com_ptr<ICoreWebView2PrintSettings2> printSettings = nullptr;
+
+        CHECK_FAILURE(webviewEnvironment11->CreatePrintSettings2(&printSettings));
         CHECK_FAILURE(printSettings->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
         CHECK_FAILURE(printSettings->put_PageWidth(8.5));
         CHECK_FAILURE(printSettings->put_PageHeight(11));
@@ -86,10 +90,10 @@ bool AppWindow::PrintWithSettings()
         CHECK_FAILURE(printSettings->put_QualityHorizontal(600));
         CHECK_FAILURE(printSettings->put_QualityVertical(600));
 
-        CHECK_FAILURE(printSettings->put_PrinterName(printerName.c_str()));
+        CHECK_FAILURE(printSettings->put_PrinterName((dialog.input).c_str()));
 
-        CHECK_FAILURE(webView2Staging6->PrintWithSettings(
-            printSettings.get(), Callback<ICoreWebView2StagingPrintWithSettingsCompletedHandler>(
+        CHECK_FAILURE(ebView2_15->PrintWithSettings(
+            printSettings.get(), Callback<ICoreWebView2PrintWithSettingsCompletedHandler>(
                                  [this](HRESULT errorCode) -> HRESULT
                                  {
                                      AsyncMessageBox(
@@ -288,7 +292,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// If it is missed then document total page count is used as the second number.
   ///
   /// If page range is not valid or if a page is greater than document total page count,
-  /// `ICoreWebView2StagingPrintWithSettingsCompletedHandler` handler will return `E_ABORT`.
+  /// `ICoreWebView2PrintWithSettingsCompletedHandler` handler will return `E_ABORT`.
   ///
   /// |       Example       | Valid |               Notes                   |
   /// "2"                   |  Yes  | Assuming document total page count >= 2.
@@ -427,7 +431,7 @@ namespace Microsoft.Web.WebView2.Core
         String FooterUri { get; set; };
 
         {
-            // ICoreWebView2StagingPrintSettings2 members
+            // ICoreWebView2PrintSettings2 members
             String PageRanges { get; set; };
             Int32 PagesPerSheet { get; set; };
             Int32 Copies { get; set; };
