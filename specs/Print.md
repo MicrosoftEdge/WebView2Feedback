@@ -4,20 +4,22 @@ Print API
 
 # Background
 
-Developers have requested the ability to programmatically print the current page optionally using a print dialog in WebView2. Currently the end user can open a print preview dialog by pressing "Ctrl+ P" or selecting "Print" from the context menu in a document or can open the system print dialog by pressing 
-"Ctrl + Shift + P" or clicking the "Print using system dialog" link in the print preview dialog. This API gives developers the ability to open the print dialog without requiring the end user interaction and also can print without a dialog to a specific printer by configuring the print settings. 
+Developers have requested the ability to programmatically print the current page optionally using a print dialog in WebView2. Currently the end user can open a print preview dialog by pressing "Ctrl+ P" or selecting "Print" from the context menu in a document or can open the system print dialog by pressing
+"Ctrl + Shift + P" or clicking the "Print using system dialog" link in the print preview dialog. This API gives developers the ability to open the print dialog without requiring the end user interaction and also can print without a dialog to a specific printer by configuring the print settings.
+
+You can use `CoreWebView2.PrintToPdfAsync` API to print a current page as a pdf file to disk and then use native printing APIs to print the document to a specific printer. However, this API requires the PDF to be printed to the disk which can be prohibitive at times if the printed information is sensitive and also printing to printer without a dialog requires additional effort on the developers for cross platform apps.
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
-We propose following API's 
+We propose following API's
 
 **Print API**: This API gives developers the ability to open a browser print preview dialog or system print dialog without requiring the end user interaction. This API consists of a Print method and can either open a browser print preview dialog or system print dialog based on COREWEBVIEW2_PRINT_DIALOG_KIND value.
 
-**Print without a print dialog**: This API gives developers the ability to print the current page without a print dialog to the specific printer. This API consists of an asynchronous PrintWithSettings method and a PrintSettings2 object. 
+**Print without a print dialog**: This API gives developers the ability to print the current page without a print dialog to the specific printer. This API consists of an asynchronous PrintWithSettings method and a PrintSettings2 object.
 PrintSettings2 object extends PrintSettings to support printing to a printer.
 
-**Print to PDF Stream**: This API gives developers printable PDF data, which can be used as a preview in a custom print preview dialog. This API consists of an asynchronous PrintToPdfStream method and a PrintSettings2 object. 
+**Print to PDF Stream**: This API gives developers printable PDF data, which can be used as a preview in a custom print preview dialog. This API consists of an asynchronous PrintToPdfStream method and a PrintSettings2 object.
 
 
 # Examples
@@ -26,7 +28,7 @@ PrintSettings2 object extends PrintSettings to support printing to a printer.
 You can use the `Print` method to programmatically open a print dialog without end user interaction. Currently devs are using JavaScript `window.print()` using the `CoreWebView2.ExecuteScriptAsync` API to invoke the
 browser print preview dialog. But there isn't a way to invoke open the system print dialog programmatically nor will `window.print()` work if script is disabled on the page, or the document is a PDF or other non-HTML document.
 
-// This example shows the user a print dialog. If `printDialogKind` is COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER_PRINT_PREVIEW, opens a browser print preview dialog, otherwise opens a system print dialog.       
+// This example shows the user a print dialog. If `printDialogKind` is COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER_PRINT_PREVIEW, opens a browser print preview dialog, otherwise opens a system print dialog.
 ```cpp
 bool AppWindow::OpenPrintDialog(COREWEBVIEW2_PRINT_DIALOG_KIND printDialogKind)
 {
@@ -122,7 +124,7 @@ async void PrintWithSettings()
 You can use `PrintToPdfStream` method to display as a preview in a custom print dialog. The app can also use this API to configure the custom print preview dialog unlike confining print preview dialog to the webview2 control.
 
 // This example prints the Pdf data of the current page to a stream.
-        
+
 ```cpp
 bool AppWindow::PrintToPdfStream()
 {
@@ -178,7 +180,7 @@ async void PrintToPdfStream()
 ## Win32 C++
 ``` cpp
 /// Specifies the print dialog kind.
-[v1_enum] 
+[v1_enum]
 typedef enum COREWEBVIEW2_PRINT_DIALOG_KIND {
   /// Opens the browser print preview dialog.
   COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER_PRINT_PREVIEW,
@@ -189,7 +191,7 @@ typedef enum COREWEBVIEW2_PRINT_DIALOG_KIND {
 } COREWEBVIEW2_PRINT_DIALOG_KIND;
 
 /// Specifies the printing side.
-[v1_enum] 
+[v1_enum]
 typedef enum COREWEBVIEW2_PRINT_SIDE {
   /// Single-sided printing.
   COREWEBVIEW2_PRINT_SIDE_SINGLE,
@@ -207,11 +209,11 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
   /// Print the current page asynchronously to the specified printer with the provided settings.
   /// See `ICoreWebView2PrintSettings2` for description of settings. The handler will return `E_ABORT`
   /// if `printerName` is empty or null or invalid or invalid settings for a given printer.
-  /// 
-  /// The async `PrintWithSettings` operation completes when it finishes 
-  /// printing to the printer. At this time the `ICoreWebView2SPrintWithSettingsCompletedHandler` 
+  ///
+  /// The async `PrintWithSettings` operation completes when it finishes
+  /// printing to the printer. At this time the `ICoreWebView2SPrintWithSettingsCompletedHandler`
   /// is invoked. Only one `Printing` operation can be in progress at a time. If
-  /// `PrintWithSettings` is called while a `PrintWithSettings` or `PrintToPdf` or `PrintToPdfStream` 
+  /// `PrintWithSettings` is called while a `PrintWithSettings` or `PrintToPdf` or `PrintToPdfStream` or `Print`
   /// job is in progress, the completed handler is immediately invoked with an error.
   ///
   /// \snippet AppWindow.cpp PrintWithSettings
@@ -219,10 +221,10 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
     [in] ICoreWebView2PrintSettings2* printSettings,
     [in] ICoreWebView2PrintWithSettingsCompletedHandler* handler);
 
-  /// Opens the print dialog to print the current page. See `COREWEBVIEW2_PRINT_DIALOG_KIND` 
+  /// Opens the print dialog to print the current page. See `COREWEBVIEW2_PRINT_DIALOG_KIND`
   /// for descriptions of print dialog kinds.
   /// The default value is `COREWEBVIEW2_PRINT_DIALOG_KIND_BROWSER_PRINT_PREVIEW`.
-  /// 
+  ///
   /// \snippet AppWindow::OpenPrintDialog
   HRESULT Print([in] COREWEBVIEW2_PRINT_DIALOG_KIND printDialogKind);
 
@@ -230,10 +232,10 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
   /// See `ICoreWebView2PrintSettings2` for description of settings. Passing
   /// nullptr for `printSettings` results in default print settings used.
   ///
-  /// The async `PrintToPdfStream` operation completes when it finishes 
-  /// writing to the stream. At this time the `ICoreWebView2PrintToPdfStreamCompletedHandler` 
+  /// The async `PrintToPdfStream` operation completes when it finishes
+  /// writing to the stream. At this time the `ICoreWebView2PrintToPdfStreamCompletedHandler`
   /// is invoked. Only one `Printing` operation can be in progress at a time. If
-  /// `PrintToPdfStream` is called while a `PrintToPDFStream` or `PrintToPdf` or `PrintWithSettings` 
+  /// `PrintToPdfStream` is called while a `PrintToPDFStream` or `PrintToPdf` or `PrintWithSettings` or `Print`
   /// job is in progress, the completed handler is immediately invoked with an error.
   ///
   /// \snippet AppWindow.cpp PrintToPdfStream
@@ -245,7 +247,7 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
 /// `errorCode` returns S_OK if the PrintWithSettings operation succeeded.
 [uuid(4B2FE043-1A1A-4924-803D-C05E5FDCA3B0), object, pointer_default(unique)]
 interface ICoreWebView2PrintWithSettingsCompletedHandler : IUnknown {
-  /// Provides the result of the corresponding asynchronous method. 
+  /// Provides the result of the corresponding asynchronous method.
   HRESULT Invoke([in] HRESULT errorCode);
 }
 
@@ -261,9 +263,31 @@ interface ICoreWebView2PrintToPdfStreamCompletedHandler : IUnknown {
 /// Settings used by the `PrintWithSettings` method.
 [uuid(DA3AD25C-D121-44DC-83DA-BF5E50DBF0DF), object, pointer_default(unique)]
 interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
-  /// Page range to print, e.g., `1-5, 8, 11-13`. Defaults to empty string,
-  /// which means print all pages. Invalid pages are ignored.
-  /// 
+  /// Page range to print. Defaults to empty string, which means print all pages.
+  ///
+  /// Print ranges should be separated by commas.
+  /// A valid page range has a parsable format and every page identifier is
+  /// greater than 0 unless wildcards are used(see below examples).
+  ///
+  /// Duplicates are not eliminated.
+  ///
+  /// Wildcard the first number must be larger than 0 and less or equal then document total page count.
+  /// If it is missed then 1 is used as the first number.
+  /// Wildcard the second number must be larger then the first number.
+  /// If it is missed then document total page count is used as the second number.
+  ///
+  /// If page range is not valid or if a page is greater than document total page count,
+  /// `ICoreWebView2StagingPrintWithSettingsCompletedHandler` handler will return `E_ABORT`.
+  ///
+  /// |       Example       | Valid |               Notes                   |
+  /// "2"                   |  Yes  | Assuming document total page count >= 2.
+  /// "1-4, 9, 3-6, 10, 11" |  Yes  | Assuming document total page count >= 11.
+  /// "1-4, -6"             |  Yes  | Assuming document total page count >= 6.
+  /// "2-"                  |  Yes  | Assuming document total page count >= 2, means from 2 to the * end.
+  /// "4-2, 11, -6"         |  No   |
+  ///  "-"                  |  Yes  | Assuming document total page count >= 1.
+  ///  "1-4dsf, 11"         |  No   | Regardless of document total page count.
+  ///
   /// The caller must free the returned string with `CoTaskMemFree`. See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings)
   [propget] HRESULT PageRanges([out, retval] LPWSTR* value);
@@ -278,30 +302,31 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// provided, and the current value is not changed.
   [propput] HRESULT PagesPerSheet([in] INT32 value);
 
-  /// Number of copies to print. The Default value is 1 and maximum 
-  /// copies count is 999. 
+  /// Number of copies to print. The Default value is 1 and maximum
+  /// copies count is 999.
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT Copies([out, retval] INT32* value);
 
-  /// Set the `Copies` property. Returns `E_INVALIDARG` if an invalid value is provided 
+  /// Set the `Copies` property. Returns `E_INVALIDARG` if an invalid value is provided
   /// for the specified printer, and the current value is not changed.
   [propput] HRESULT Copies([in] INT32 value);
 
-  /// True if the printed document should be collated. The default value is `FALSE`. 
+  /// True if the printed document should be collated. The default value is `FALSE`.
   /// This value is ignored in PrintToPdfStream method.
-  [propget] HRESULT Collate([out, retval] BOOL* value);
+  [propget] HRESULT ShouldCollate([out, retval] BOOL* value);
 
-  /// Set the `Collate` property.
-  [propput] HRESULT Collate([in] BOOL value);
+  /// Set the `ShouldCollate` property.
+  [propput] HRESULT ShouldCollate([in] BOOL value);
 
-  /// Color of the print. The default value is `TRUE`.
+  /// True if the print should be in color, otherwise prints in black and white.
+  /// The default value is `TRUE`.
   [propget] HRESULT IsColor([out, retval] BOOL* value);
 
-  /// Set the `Color` property.
+  /// Set the `IsColor` property.
   [propput] HRESULT IsColor([in] BOOL value);
 
-  /// Printer's duplex settings. See `COREWEBVIEW2_PRINT_SIDE` for descriptions 
-  /// of print sides. The default value is `COREWEBVIEW2_PRINT_SIDE_SINGLE`. 
+  /// Printer's duplex settings. See `COREWEBVIEW2_PRINT_SIDE` for descriptions
+  /// of print sides. The default value is `COREWEBVIEW2_PRINT_SIDE_SINGLE`.
   /// This property is ignored by the PrintToPdf and PrintToPdfStream methods.
   [propget] HRESULT PrintSide([out, retval] COREWEBVIEW2_PRINT_SIDE* value);
 
@@ -309,31 +334,34 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   [propput] HRESULT PrintSide([in] COREWEBVIEW2_PRINT_SIDE value);
 
   /// The horizontal printer resolution for the page, in dots per inch.
+  /// The default value is 600.
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT QualityHorizontal([out, retval] INT32* value);
 
-  /// Set the `QualityHorizontal` property. If an invalid value is provided 
+  /// Set the `QualityHorizontal` property. If an invalid value is provided
   /// for the specified printer, `ICoreWebView2PrintWithSettingsCompletedHandler`
   /// handler will return `E_ABORT`.
   [propput] HRESULT QualityHorizontal([in] INT32 value);
 
   /// The vertical printer resolution for the page, in dots per inch.
+  /// The default value is 600.
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT QualityVertical([out, retval] INT32* value);
 
-  /// Set the `QualityVertical` property. If an invalid value is provided 
+  /// Set the `QualityVertical` property. If an invalid value is provided
   /// for the specified printer, `ICoreWebView2PrintWithSettingsCompletedHandler`
   ///  handler will return `E_ABORT`.
   [propput] HRESULT QualityVertical([in] INT32 value);
 
-  /// The name of the printer to use.
+  /// The name of the printer to use. Defaults to empty string.
+  /// If the printer name is empty string or null, then it prints to the default printer on the OS.
   /// This value is ignored in PrintToPdfStream method.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings)
   [propget] HRESULT PrinterName([out, retval] LPWSTR* value);
 
-  /// Set the `PrinterName` property. If provided printer is empty or null or invalid,
+  /// Set the `PrinterName` property. If provided printer name is invalid,
   /// `ICoreWebView2PrintWithSettingsCompletedHandler` handler will return `E_ABORT`.
   [propput] HRESULT PrinterName([in] LPCWSTR value);
 }
@@ -343,7 +371,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
 [uuid(7A9CF5B6-3BDC-4C9D-A1BE-B512C9B2E74F), object, pointer_default(unique)]
 interface ICoreWebView2Environment : IUnknown
 {
-  /// Creates the `ICoreWebView2PrintSettings2` used by the `PrintWithSettings` 
+  /// Creates the `ICoreWebView2PrintSettings2` used by the `PrintWithSettings`
   /// and `PrintToPdfStream` method.
   HRESULT CreatePrintSettings2(
       [out, retval] ICoreWebView2PrintSettings2** printSettings);
@@ -392,7 +420,7 @@ namespace Microsoft.Web.WebView2.Core
             String PageRanges { get; set; };
             Int32 PagesPerSheet { get; set; };
             Int32 Copies { get; set; };
-            Boolean IsCollate { get; set; };
+            Boolean ShouldCollate { get; set; };
             Boolean IsColor { get; set; };
             CoreWebView2PrintSide PrintSide { get; set; };
             Int32 QualityHorizontal { get; set; };
