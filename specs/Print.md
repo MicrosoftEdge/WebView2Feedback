@@ -445,7 +445,7 @@ namespace Microsoft.Web.WebView2.Core
        CoreWebView2PrintSettings CreatePrintSettings2();
     }
 
-    runtimeclass CoreWebView2Settings
+    runtimeclass CoreWebView2
     {
         // ...
 
