@@ -282,7 +282,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   ///
   /// Duplicates are not eliminated.
   ///
-  /// Wildcard the first number must be larger than 0 and less or equal then document total page count.
+  /// In a page range of the form `[start page]-[last page]` the start page number must be larger than 0 and less than or equal to the document's total page count.
   /// If it is missed then 1 is used as the first number.
   /// Wildcard the second number must be larger then the first number.
   /// If the `last page` is not present, then the document total page count is used as the `last page`.
