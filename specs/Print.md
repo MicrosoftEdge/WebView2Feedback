@@ -243,7 +243,8 @@ typedef enum COREWEBVIEW2_PRINT_SIDE {
 interface ICoreWebView2_15 : ICoreWebView2_14 {
   /// Print the current page asynchronously to the specified printer with the provided settings.
   /// See `ICoreWebView2PrintSettings2` for description of settings. The handler will return `E_ABORT`
-  /// if `printerName` is empty or null or invalid or invalid settings for a given printer.
+  /// if `printerName` doesn't match with the name of any printers on the OS
+  /// or invalid settings for a given printer.
   ///
   /// The async `PrintWithSettings` operation completes when it finishes
   /// printing to the printer. At this time the `ICoreWebView2SPrintWithSettingsCompletedHandler`
@@ -310,7 +311,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// If the `last page` is not present, then the document total page count is used as the `last page`.
   ///
   /// If page range is not valid or if a page is greater than document total page count,
-  /// `ICoreWebView2PrintWithSettingsCompletedHandler` handler will return `E_ABORT`.
+  /// `ICoreWebView2PrintWithSettingsCompletedHandler` or ICoreWebView2PrintToPdfStreamCompletedHandler` handler will return `E_ABORT`.
   ///
   /// |       Example       | Valid |               Notes                   |
   /// "2"                   |  Yes  | Assuming document total page count >= 2.
