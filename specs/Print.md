@@ -285,7 +285,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// Wildcard the first number must be larger than 0 and less or equal then document total page count.
   /// If it is missed then 1 is used as the first number.
   /// Wildcard the second number must be larger then the first number.
-  /// If it is missed then document total page count is used as the second number.
+  /// If the `last page` is not present, then the document total page count is used as the `last page`.
   ///
   /// If page range is not valid or if a page is greater than document total page count,
   /// `ICoreWebView2PrintWithSettingsCompletedHandler` handler will return `E_ABORT`.
