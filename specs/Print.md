@@ -453,6 +453,7 @@ namespace Microsoft.Web.WebView2.Core
         {
             // This is only for the .NET API, not the WinRT API.
             void Print(CoreWebView2PrintDialogKind printDialogKind);
+            void Print();
 
             // This is only for the .NET API, not the WinRT API.
             Windows.Foundation.IAsyncAction PrintWithSettings(CoreWebView2PrintSettings printSettings);
