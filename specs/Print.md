@@ -276,7 +276,7 @@ interface ICoreWebView2PrintToPdfStreamCompletedHandler : IUnknown {
 interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// Page range to print. Defaults to empty string, which means print all pages.
   ///
-  /// Print ranges should be separated by commas.
+  /// The PageRanges property is a list of page ranges specifying one or more pages that should be printed separated by commas. Any whitespace between page ranges is ignored.
   /// A valid page range has a parsable format and every page identifier is
   /// greater than 0 unless wildcards are used(see below examples).
   ///
