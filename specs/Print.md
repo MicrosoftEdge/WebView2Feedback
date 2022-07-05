@@ -278,7 +278,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   ///
   /// The PageRanges property is a list of page ranges specifying one or more pages that should be printed separated by commas. Any whitespace between page ranges is ignored.
   /// A valid page range is either a single integer identifying the page to print, or a range in the form `[start page]-[last page]` where `start page` and `last page` are integers identifying the first and last inclusive pages respectively to print. Every page identifier is an integer
-  /// greater than 0 unless wildcards are used(see below examples).
+  /// greater than 0 unless wildcards are used (see below examples). The first page is 1.
   ///
   /// Duplicates are not eliminated.
   ///
