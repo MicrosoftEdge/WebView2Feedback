@@ -284,7 +284,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   ///
   /// In a page range of the form `[start page]-[last page]` the start page number must be larger than 0 and less than or equal to the document's total page count.
   /// If the `start page` is not present, then 1 is used as the `start page`.
-  /// Wildcard the second number must be larger then the first number.
+  /// The `last page` must be larger than the `start page`.
   /// If the `last page` is not present, then the document total page count is used as the `last page`.
   ///
   /// If page range is not valid or if a page is greater than document total page count,
