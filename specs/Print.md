@@ -46,10 +46,12 @@ void OpenPrintDialog(object target, ExecutedRoutedEventArgs e)
      string printDialog = e.Parameter.ToString();
      if (printDialog == "PrintPreview")
      {
-         webView.CoreWebView2.Print(CoreWebView2PrintDialogKind.BrowserPrintPreview);
+         // Opens the browser print preview dialog.
+         webView.CoreWebView2.Print();
      }
      else
      {
+         // Opens the system print dialog.
          webView.CoreWebView2.Print(CoreWebView2PrintDialogKind.SystemPrint);
      }
 }
@@ -57,7 +59,7 @@ void OpenPrintDialog(object target, ExecutedRoutedEventArgs e)
 
 ## PrintWithSettings
 
-You can use `PrintWithSettings` method to print to a specific printer without a print dialog. You can programatically configure print settings using `CreatePrintSettings2`, and call `PrintWithSettings` to print the current page.
+You can use `PrintWithSettings` method to print to a specific printer without a print dialog. You can programatically configure print settings using `CreatePrintSettings`, and call `PrintWithSettings` to print the current page.
 
 // This example prints the current page without a print dialog to the specified printer with the settings.
 
@@ -73,24 +75,28 @@ bool AppWindow::PrintWithSettings()
         CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2_15)));
         CHECK_FEATURE_RETURN(webView2_15);
 
-        wil::com_ptr<ICoreWebView2Environment11> webviewEnvironment11;
-        CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
-                IID_PPV_ARGS(&webviewEnvironment11)));
-        CHECK_FEATURE_RETURN(webviewEnvironment11);
+        wil::com_ptr<ICoreWebView2Environment6> webviewEnvironment6;
+        CHECK_FAILURE(m_webViewEnvironment->QueryInterface(IID_PPV_ARGS(&webviewEnvironment6)));
+        CHECK_FEATURE_RETURN(webviewEnvironment6);
 
-        wil::com_ptr<ICoreWebView2PrintSettings2> printSettings = nullptr;
-        CHECK_FAILURE(webviewEnvironment11->CreatePrintSettings2(&printSettings));
-        CHECK_FAILURE(printSettings->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
-        CHECK_FAILURE(printSettings->put_PageWidth(8.5));
-        CHECK_FAILURE(printSettings->put_PageHeight(11));
-        CHECK_FAILURE(printSettings->put_ShouldPrintBackgrounds(true));
-        CHECK_FAILURE(printSettings->put_PagesPerSheet(1));
-        CHECK_FAILURE(printSettings->put_QualityHorizontal(600));
-        CHECK_FAILURE(printSettings->put_QualityVertical(600));
-        CHECK_FAILURE(printSettings->put_PrinterName((dialog.input).c_str()));
+        wil::com_ptr<ICoreWebView2PrintSettings> printSettings = nullptr;
+        CHECK_FAILURE(webviewEnvironment6->CreatePrintSettings(&printSettings));
+
+        wil::com_ptr<ICoreWebView2PrintSettings2> printSettings2;
+        CHECK_FAILURE(printSettings->QueryInterface(IID_PPV_ARGS(&printSettings2)));
+        CHECK_FEATURE_RETURN(printSettings2);
+
+        CHECK_FAILURE(printSettings2->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
+        CHECK_FAILURE(printSettings2->put_PageWidth(8.5));
+        CHECK_FAILURE(printSettings2->put_PageHeight(11));
+        CHECK_FAILURE(printSettings2->put_ShouldPrintBackgrounds(true));
+        CHECK_FAILURE(printSettings2->put_PagesPerSheet(1));
+        CHECK_FAILURE(printSettings2->put_QualityHorizontal(600));
+        CHECK_FAILURE(printSettings2->put_QualityVertical(600));
+        CHECK_FAILURE(printSettings2->put_PrinterName((dialog.input).c_str()));
 
         CHECK_FAILURE(webView2_15->PrintWithSettings(
-            printSettings.get(), Callback<ICoreWebView2PrintWithSettingsCompletedHandler>(
+            printSettings2.get(), Callback<ICoreWebView2PrintWithSettingsCompletedHandler>(
                                  [this](HRESULT errorCode) -> HRESULT
                                  {
                                      AsyncMessageBox(
@@ -115,7 +121,7 @@ async void PrintWithSettings()
     if (dialog.ShowDialog() == true)
     {
         CoreWebView2PrintSettings printSettings = null;
-        printSettings = WebViewEnvironment.CreatePrintSettings2();
+        printSettings = WebViewEnvironment.CreatePrintSettings();
         printSettings.Orientation = CoreWebView2PrintOrientation.Portrait;
         printSettings.PageWidth = 8.5;
         printSettings.PageHeight = 11;
@@ -138,29 +144,40 @@ You can use `PrintToPdfStream` method to display as a preview in a custom print 
 // This example prints the Pdf data of the current page to a stream.
 
 ```cpp
+// Function to display current page pdf data in a custom print preview dialog.
+static void DisplayPdfDataInPrintDialog(IStream* pdfData)
+{
+    // You can display the printable pdf data in a custom print preview dialog to the end user.
+}
+
 bool AppWindow::PrintToPdfStream()
 {
     wil::com_ptr<ICoreWebView2_15> webView2_15;
     CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2_15)));
     CHECK_FEATURE_RETURN(webView2_15);
 
-    wil::com_ptr<ICoreWebView2Environment11> webviewEnvironment11;
-            CHECK_FAILURE(m_appWindow->GetWebViewEnvironment()->QueryInterface(
-                IID_PPV_ARGS(&webviewEnvironment11)));
-    CHECK_FEATURE_RETURN(webviewEnvironment11);
+    wil::com_ptr<ICoreWebView2Environment6> webviewEnvironment6;
+    CHECK_FAILURE(m_webViewEnvironment->QueryInterface(IID_PPV_ARGS(&webviewEnvironment6)));
+    CHECK_FEATURE_RETURN(webviewEnvironment6);
 
-    wil::com_ptr<ICoreWebView2PrintSettings2> printSettings = nullptr;
-    CHECK_FAILURE(webviewEnvironment->CreatePrintSettings2(&printSettings));
-    CHECK_FAILURE(printSettings->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
-    CHECK_FAILURE(printSettings->put_ShouldPrintBackgrounds(true));
+    wil::com_ptr<ICoreWebView2PrintSettings> printSettings = nullptr;
+    CHECK_FAILURE(webviewEnvironment6->CreatePrintSettings(&printSettings));
+
+    wil::com_ptr<ICoreWebView2PrintSettings2> printSettings2;
+    CHECK_FAILURE(printSettings->QueryInterface(IID_PPV_ARGS(&printSettings2)));
+    CHECK_FEATURE_RETURN(printSettings2);
+
+    CHECK_FAILURE(printSettings2->put_Orientation(COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT));
+    CHECK_FAILURE(printSettings2->put_ShouldPrintBackgrounds(true));
 
     CHECK_FAILURE(
         webView2_15->PrintToPdfStream(
-            printSettings.get(),
+            printSettings2.get(),
             Callback<ICoreWebView2PrintToPdfStreamCompletedHandler>(
                 [this](HRESULT errorCode, IStream* pdfData) -> HRESULT
                 {
                     CHECK_FAILURE(errorCode);
+                    DisplayPdfDataInPrintDialog(pdfData);
                     AsyncMessageBox(
                         (errorCode == S_OK) ? L"Print to PDF Stream succeeded"
                                    : L"Print to PDF Stream failed",
@@ -176,13 +193,20 @@ bool AppWindow::PrintToPdfStream()
 async void PrintToPdfStream()
 {
     CoreWebView2PrintSettings printSettings = null;
-    printSettings = WebViewEnvironment.CreatePrintSettings2();
+    printSettings = WebViewEnvironment.CreatePrintSettings();
     printSettings.Orientation = CoreWebView2PrintOrientation.Portrait;
     printSettings.ShouldPrintBackgrounds = true;
 
     MemoryStream pdfStream = new MemoryStream();
     System.IO.Stream stream = await webView.CoreWebView2.PrintToPdfStreamAsync(printSettings);
+    DisplayPdfDataInPrintDialog(pdfData);
     MessageBox.Show(this, "Print to PDF Stream succeeded", "Print To PDF Stream");
+}
+
+// Function to display current page pdf data in a custom print preview dialog.
+void DisplayPdfDataInPrintDialog(Stream pdfData)
+{
+    // You can display the printable pdf data in a custom print preview dialog to the end user.
 }
 ```
 
@@ -280,8 +304,6 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// A valid page range is either a single integer identifying the page to print, or a range in the form `[start page]-[last page]` where `start page` and `last page` are integers identifying the first and last inclusive pages respectively to print. Every page identifier is an integer
   /// greater than 0 unless wildcards are used (see below examples). The first page is 1.
   ///
-  /// Duplicates are not eliminated.
-  ///
   /// In a page range of the form `[start page]-[last page]` the start page number must be larger than 0 and less than or equal to the document's total page count.
   /// If the `start page` is not present, then 1 is used as the `start page`.
   /// The `last page` must be larger than the `start page`.
@@ -306,20 +328,21 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// Set the `PageRanges` property.
   [propput] HRESULT PageRanges([in] LPCWSTR value);
 
-  /// Number of pages per sheet. The Default value is 1 and maximum is 16.
+  /// Number of pages per sheet. Minimum value is `1` and the maximum is `16`.
+  /// The default value is 1
   [propget] HRESULT PagesPerSheet([out, retval] INT32* value);
 
   /// Set the `PagesPerSheet` property. Returns `E_INVALIDARG` if an invalid value is
   /// provided, and the current value is not changed.
   [propput] HRESULT PagesPerSheet([in] INT32 value);
 
-  /// Number of copies to print. The default value is 1 and the maximum
-  /// copies count is 999.
+  /// Number of copies to print. Minimum value is `1` and the maximum copies count is `999`.
+  /// The default value is 1.
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT Copies([out, retval] INT32* value);
 
   /// Set the `Copies` property. Returns `E_INVALIDARG` if an invalid value is provided
-  /// for the specified printer, and the current value is not changed.
+  /// and the current value is not changed.
   [propput] HRESULT Copies([in] INT32 value);
 
   /// True if the printed document should be collated. The default value is `FALSE`.
@@ -349,9 +372,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT QualityHorizontal([out, retval] INT32* value);
 
-  /// Set the `QualityHorizontal` property. If an invalid value is provided
-  /// for the specified printer, `ICoreWebView2PrintWithSettingsCompletedHandler`
-  /// handler will return `E_ABORT`.
+  /// Set the `QualityHorizontal` property.
   [propput] HRESULT QualityHorizontal([in] INT32 value);
 
   /// The vertical printer resolution for the page, in dots per inch.
@@ -359,33 +380,20 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT QualityVertical([out, retval] INT32* value);
 
-  /// Set the `QualityVertical` property. If an invalid value is provided
-  /// for the specified printer, `ICoreWebView2PrintWithSettingsCompletedHandler`
-  ///  handler will return `E_ABORT`.
+  /// Set the `QualityVertical` property.
   [propput] HRESULT QualityVertical([in] INT32 value);
 
   /// The name of the printer to use. Defaults to empty string.
   /// If the printer name is empty string or null, then it prints to the default printer on the OS.
   /// This value is ignored in PrintToPdfStream method.
   ///
-  /// The caller must free the returned string with `CoTaskMemFree`.  See
+  /// The caller must free the returned string with `CoTaskMemFree`. See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings)
   [propget] HRESULT PrinterName([out, retval] LPWSTR* value);
 
-  /// Set the `PrinterName` property. If provided printer name is invalid,
+  /// Set the `PrinterName` property. If provided printer name doesn't match with the name of any printers on the OS,
   /// `ICoreWebView2PrintWithSettingsCompletedHandler` handler will return `E_ABORT`.
   [propput] HRESULT PrinterName([in] LPCWSTR value);
-}
-
-/// This interface is an extension of the ICoreWebView2Environment that supports
-/// creating print settings for printing with settings and printing to PDF.
-[uuid(7A9CF5B6-3BDC-4C9D-A1BE-B512C9B2E74F), object, pointer_default(unique)]
-interface ICoreWebView2Environment : IUnknown
-{
-  /// Creates the `ICoreWebView2PrintSettings2` used by the `PrintWithSettings`
-  /// and `PrintToPdfStream` method.
-  HRESULT CreatePrintSettings2(
-      [out, retval] ICoreWebView2PrintSettings2** printSettings);
 }
 ```
 
@@ -426,6 +434,7 @@ namespace Microsoft.Web.WebView2.Core
         String HeaderTitle { get; set; };
         String FooterUri { get; set; };
 
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2PrintSettings2")]
         {
             // ICoreWebView2PrintSettings2 members
             String PageRanges { get; set; };
@@ -440,22 +449,15 @@ namespace Microsoft.Web.WebView2.Core
         }
     }
 
-    runtimeclass CoreWebView2Environment
-    {
-       CoreWebView2PrintSettings CreatePrintSettings2();
-    }
-
     runtimeclass CoreWebView2
     {
         // ...
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_15")]
         {
-            // This is only for the .NET API, not the WinRT API.
             void Print(CoreWebView2PrintDialogKind printDialogKind);
             void Print();
 
-            // This is only for the .NET API, not the WinRT API.
             Windows.Foundation.IAsyncAction PrintWithSettings(CoreWebView2PrintSettings printSettings);
 
             Windows.Foundation.IAsyncOperation<Windows.Storage.Streams.IRandomAccessStream> PrintToPdfStreamAsync(CoreWebView2PrintSettings printSettings);
