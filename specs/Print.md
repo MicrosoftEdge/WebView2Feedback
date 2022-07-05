@@ -313,7 +313,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// provided, and the current value is not changed.
   [propput] HRESULT PagesPerSheet([in] INT32 value);
 
-  /// Number of copies to print. The Default value is 1 and maximum
+  /// Number of copies to print. The default value is 1 and the maximum
   /// copies count is 999.
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT Copies([out, retval] INT32* value);
