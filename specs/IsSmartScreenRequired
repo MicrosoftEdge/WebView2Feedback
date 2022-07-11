@@ -2,9 +2,9 @@
 
 [Edge SmartScreen](https://docs.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen) helps you identify reported phishing and malware websites, and also helps you make informed decisions about downloads.
 
-Currently, users can use `options->put_AdditionalBrowserArguments(L"--disable-features=msSmartScreenProtection")` to control SmartScreen in the WebView2 application. It is essentially a startup parameter of the browser process. It must be determined when the WebView2Environment is created. And Cannot be modified at runtime.
+Currently, end developers can use `options->put_AdditionalBrowserArguments(L"--disable-features=msSmartScreenProtection")` to control SmartScreen in the WebView2 application. It is essentially a startup parameter of the browser process. It must be determined when the WebView2Environment is created. And and cannot be modified at runtime.
 
-To support more flexibility. We introduce a new API.
+To support more flexibility we introduce a new API.
 
 In this document we describe the new setting. We'd appreciate your feedback.
 
@@ -15,7 +15,7 @@ Users can use ICoreWebView2Settings to control it.When it is changed, all WebVie
 The default value for `IsSmartScreenRequired` is the current actual value.After this, this setting does not mean the actual situation, it only represents the intention of current WebView.
 When the set `false` takes effect, it will turn off SmartScreen protection when visiting web pages and performing downloads.
 
-Changes to `IsSmartScreenRequired` does not take effect until the next navigation or downloads.
+Changes to `IsSmartScreenRequired` does not take effect until the next navigation or download.
 
 
 # Examples
@@ -57,7 +57,7 @@ See [API Details](#api-details) section below for API reference.
 [uuid(d667d3a7-c1b7-479f-8833-db7547df6687), object, pointer_default(unique)]
 interface ICoreWebView2Settings11 : ICoreWebView2Settings10 {
   /// SmartScreen helps you identify reported phishing and malware websites  
-  /// also helps you make informed decisions about downloads. 
+  /// and also helps you make informed decisions about downloads. 
   /// `IsSmartScreenRequired`  is used to control whether SmartScreen is turned on or not. 
   /// All WebViews using the same user data folder share the same SmartScreen setting. 
   /// When it is changed, the change will be applied to all WebViews using the 
