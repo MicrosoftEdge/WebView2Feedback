@@ -62,18 +62,19 @@ interface ICoreWebView2Settings11 : ICoreWebView2Settings10 {
   /// and also helps you make informed decisions about downloads. 
   /// `IsSmartScreenRequired`  is used to control whether SmartScreen enabled or not. 
   /// SmartScreen is enabled or disabled for all CoreWebView2s in a CoreWebView2Environment. 
-  /// If CoreWebView2Setting.IsSmartScreenRequired is true for any CoreWebView2 in its associated CoreWebView2Environment, then SmartScreen is enabled. If CoreWebView2Setting.IsSmartScreenRequired is false for all CoreWebView2s in the associated CoreWebView2Environment, then SmartScreen is disabled.
+  /// If CoreWebView2Setting.IsSmartScreenRequired is true for any CoreWebView2 in its associated 
+  /// CoreWebView2Environment, then SmartScreen is enabled. If CoreWebView2Setting.IsSmartScreenRequired 
+  /// is false for all CoreWebView2s in the associated CoreWebView2Environment, then SmartScreen is disabled.
   /// When it is changed, the change will be applied to all WebViews using the 
   /// same user data folder. 
-  /// By default, it is the current actual state of SmartScreen.
+  /// The default value for `IsSmartScreenRequired` is true if SmartScreen is enabled when the CoreWebView2 
+  /// is created and false if SmartScreen is disabled when the CoreWebView2 is created. The value doesn't change 
+  /// if SmartScreen is enabled or disabled later.
   /// \snippet SettingsComponent.cpp ToggleSmartScreenEnabled.
   [propget] HRESULT IsSmartScreenRequired([out, retval] BOOL* value); 
 
   /// The setting of SmartScreen does not mean the actual situation, it only represents 
   /// the intention of each WebView2.
-  /// `put_IsSmartScreenRequired(true)` will always take effect when multiple WebView2s 
-  /// using the same user data folder call `put_IsSmartScreenRequired` at the same time.
-  /// `put_IsSmartScreenRequired(false)` only takes effect if all WebView2 settings are false.
   /// Set the `IsSmartScreenRequired` property. 
   [propput] HRESULT IsSmartScreenRequired([in] BOOL value); 
 }
@@ -82,10 +83,9 @@ interface ICoreWebView2Settings11 : ICoreWebView2Settings10 {
 ## .NET and WinRT
 namespace Microsoft.Web.WebView2.Core
 {
-    public partial class CoreWebView2Settings
+    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingSettings")]
     {
-        public bool IsSmartScreenRequired { get; set; };
-        public bool IsSmartScreenRequired { get; set; };
+        Boolean IsSmartScreenRequired { get; set; };
     }
 }
 
