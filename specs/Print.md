@@ -459,7 +459,7 @@ namespace Microsoft.Web.WebView2.Core
             void Print(CoreWebView2PrintDialogKind printDialogKind);
             void Print();
 
-            Windows.Foundation.IAsyncAction PrintWithSettings(CoreWebView2PrintSettings printSettings);
+            Windows.Foundation.IAsyncAction PrintWithSettingsAsync(CoreWebView2PrintSettings printSettings);
 
             Windows.Foundation.IAsyncOperation<Windows.Storage.Streams.IRandomAccessStream> PrintToPdfStreamAsync(CoreWebView2PrintSettings printSettings);
         }
