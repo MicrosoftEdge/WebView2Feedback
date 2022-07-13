@@ -199,9 +199,9 @@ interface ICoreWebView2_16 : ICoreWebView2_15 {
   ///
   /// If the request is made from a trustworthy origin
   /// (https://w3c.github.io/webappsec-secure-contexts#potentially-trustworthy-origin) 
-  /// a checkmark box will be displayed that will allow the user to always allow
-  /// this external protocol from this origin. If the user checks this box, upon the next 
-  /// request from that origin to that specific protocol, the event will still be raised.
+  /// a checkmark box will be displayed that gives the user the option to always allow
+  /// the external protocol to launch from this origin. If the user checks this box, upon the next 
+  /// request from that origin to the protocol, the event will still be raised.
   ///
   /// \snippet SettingsComponent.cpp LaunchingExternalProtocol
   HRESULT add_LaunchingExternalProtocol(
