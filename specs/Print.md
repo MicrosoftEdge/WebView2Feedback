@@ -178,10 +178,6 @@ bool AppWindow::PrintToPdfStream()
                 {
                     CHECK_FAILURE(errorCode);
                     DisplayPdfDataInPrintDialog(pdfData);
-                    AsyncMessageBox(
-                        (errorCode == S_OK) ? L"Print to PDF Stream succeeded"
-                                   : L"Print to PDF Stream failed",
-                        L"Print to PDF Stream");
                     return S_OK;
                 })
                 .Get()));
@@ -200,7 +196,6 @@ async void PrintToPdfStream()
     MemoryStream pdfStream = new MemoryStream();
     System.IO.Stream stream = await webView.CoreWebView2.PrintToPdfStreamAsync(printSettings);
     DisplayPdfDataInPrintDialog(pdfData);
-    MessageBox.Show(this, "Print to PDF Stream succeeded", "Print To PDF Stream");
 }
 
 // Function to display current page pdf data in a custom print preview dialog.
@@ -369,7 +364,12 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   [propput] HRESULT PrintSide([in] COREWEBVIEW2_PRINT_SIDE value);
 
   /// The horizontal printer resolution for the page, in dots per inch.
-  /// The default value is 600.
+  /// Use OS printer APIs to determine allowed values for the printer as quality
+  /// varies from printer to printer. The default value is 600.
+  ///
+  /// If QualityHorizontal is not allowed for the specific printer,
+  /// `ICoreWebView2PrintWithSettingsCompletedHandler` will return `E_ABORT`.
+  ///
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT QualityHorizontal([out, retval] INT32* value);
 
@@ -377,7 +377,12 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   [propput] HRESULT QualityHorizontal([in] INT32 value);
 
   /// The vertical printer resolution for the page, in dots per inch.
-  /// The default value is 600.
+  /// Use OS printer APIs to determine allowed values for the printer as quality
+  /// varies from printer to printer. The default value is 600.
+  ///
+  /// If QualityVertical is not allowed for the specific printer,
+  /// `ICoreWebView2PrintWithSettingsCompletedHandler` will return `E_ABORT`.
+  ///
   /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT QualityVertical([out, retval] INT32* value);
 
