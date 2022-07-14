@@ -83,7 +83,10 @@ interface ICoreWebView2Settings11 : ICoreWebView2Settings10 {
 ## .NET and WinRT
 namespace Microsoft.Web.WebView2.Core
 {
-    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingSettings")]
+    runtimeclass CoreWebView2Settings
+    {
+        // ...
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Settings11")]
     {
         Boolean IsSmartScreenRequired { get; set; };
     }
