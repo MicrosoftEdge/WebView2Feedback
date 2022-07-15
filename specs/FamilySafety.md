@@ -2,85 +2,46 @@ Family Safety
 ===
 
 # Background
-Provide end evelolper a new API to toggle Family Safety feature on and off. End developer can use this API to enable and disable the Family Safety feature. Also provided a iframe filter toggle API to ensure iframes also go through Family Safety services for all subframe navigations if the developer chose to enable iframe support.
+Provide end evelolper a new API to toggle Family Safety feature on and off. Once Family Safety is enabled, developer won't be able to turn it off while webview2 instance is running. Once enable, it will provide the same functionally as the browser like: Activity report, Safe Search and Web Filtering. Please see https://www.microsoft.com/en-us/microsoft-365/family-safety for details on Family Safety. 
 
 # Examples
 ## WinRT and .NET   
 ```c#
-void FamilySafetyFeatureCmdExecuted(object target, ExecutedRoutedEventArgs e)
+void WebView_ProcessInfosChanged(object sender, object e)
 {
-    webView.IsFamilySafetyFeatureEnabled = !webView.IsFamilySafetyFeatureEnabled;
-    MessageBox.Show("Family Safety is" + (webView.IsFamilySafetyFeatureEnabled ? " enabled " : " disabled ") + "after the next restart.");
-}
-
-void FamilySafetyIframeFilterCmdExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    webView.IsFamilySafetyFirstLevelIFrameFilteringEnabled = !webView.IsFamilySafetyFirstLevelIFrameFilteringEnabled;
-    MessageBox.Show("Family Safety iframe filering is" + (webView.IsFamilySafetyFirstLevelIFrameFilteringEnabled ? " enabled " : " disabled ") + "after the next navigation.");
+    WebViewEnvironment.IsFamilySafetyEnabled = true;
 }
 
 
 ```
 ## Win32 C++
 ```cpp
-
-// Enable the Family Safety feature
+// Enable the Family Safety feature upon webview environment creation complete
 HRESULT ToggleFamilySafetyFeature()
 {
-    BOOL areFSEnabled;
-    wil::com_ptr<ICoreWebView2Staging3> webview3 =
-        m_webView.try_query<ICoreWebView2Staging3>();
-    CHECK_FAILURE(webview3->get_IsFamilySafetyFeatureEnabled(
-        &areFSEnabled));
-    CHECK_FAILURE(webview3->get_IsFamilySafetyFeatureEnabled(
-        !areFSEnabled));
-    MessageBox(
-        nullptr,
-        (std::wstring(L"Family Safety will be ") +
-            (!areFSEnabled ? L"enabled" : L"disabled") +
-            L" after the next restart.").c_str(),
-        L"Settings change", MB_OK);
-    return true;
-}
-
-// Toggle the iframe filter settings
-HRESULT ToggleFamilySafetyIframeFilterSettings()
-{
-    BOOL areIframeFilterEnabled;
-    wil::com_ptr<ICoreWebView2Staging3> webview3 =
-        m_webView.try_query<ICoreWebView2Staging3>();
-    CHECK_FAILURE(webview3->get_IsFamilySafetyFirstLevelIFrameFilteringEnabled(
-        &areIframeFilterEnabled));
-    CHECK_FAILURE(webview3->put_IsFamilySafetyFirstLevelIFrameFilteringEnabled(
-        !areIframeFilterEnabled));
-    MessageBox(
-        nullptr,
-        (std::wstring(L"Iframe Filtering will be ") +
-            (!areIframeFilterEnabled ? L"enabled" : L"disabled") +
-            L" after the next navigation.").c_str(),
-        L"Settings change", MB_OK);
-    return true;
+    auto environmentStaing = m_webViewEnvironment.try_query<ICoreWebView2StagingEnvironment>();
+    CHECK_FEATURE_RETURN(environmentStaing);
+    environmentStaing->put_IsFamilySafetyEnabled(true);
 }
 ```
 
 # API Details    
 ```
-interface ICoreWebView2Staging3;
+interface ICoreWebView2Environment11;
 
-/// A continuation of the ICoreWebView2 interface to toggle Family Safety settings
-[uuid(EF7E5FD3-6FAD-4065-8387-15A37288477E), object, pointer_default(unique)]
-interface ICoreWebView2Staging3 : IUnknown {
-  /// `IsFamilySafetyFeatureEnabled` property is to enable/disable family safety feature.
-  [propget] HRESULT IsFamilySafetyFeatureEnabled([out, retval] BOOL* value);
-
-  /// Sets the `IsFamilySafetyFeatureEnabled` property.
-  [propput] HRESULT IsFamilySafetyFeatureEnabled([in] BOOL value);
-
-  /// `IsFamilySafetyFirstLevelIFrameFilteringEnabled` property is to enable/disable first level iframe support in family safety.
-  [propget] HRESULT IsFamilySafetyFirstLevelIFrameFilteringEnabled([out, retval] BOOL* value);
-
-  /// Sets the `IsFamilySafetyFirstLevelIFrameFilteringEnabled` property.
-  [propput] HRESULT IsFamilySafetyFirstLevelIFrameFilteringEnabled([in] BOOL value);
+/// This interface is an extension of the ICoreWebView2Environment that manages
+/// Family Safety settings. An object implementing the
+/// ICoreWebView2ExperimentalEnvironment3 interface will also implement
+/// ICoreWebView2Environment.
+[uuid(D0965AC5-11EB-4A49-AA1A-C8E9898F80AF), object, pointer_default(unique)]
+interface ICoreWebView2Environment11 : ICoreWebView2Environment {
+  /// When the Family Safety feature is enabled, webview provide the same functionalities as the browser for the child accounts:
+  /// Activity Reporting, Web Filtering and SafeSearch.
+  /// `IsFamilySafetyEnabled` property is to enable/disable family safety feature.
+  /// propery is disabled by default
+  [propget] HRESULT IsFamilySafetyEnabled([out, retval] BOOL* value);
+  /// Sets the `IsFamilySafetyEnabled` property.
+  [propput] HRESULT IsFamilySafetyEnabled([in] BOOL value);
 }
 ```
 
@@ -88,15 +49,13 @@ interface ICoreWebView2Staging3 : IUnknown {
 namespace Microsoft.Web.WebView2.Core
 {
     // ...
-    runtimeclass CoreWebView2
+    runtimeclass CoreWebView2Environment
     {
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironment")]
         {
-            // ICoreWebView2 members
-            Boolean IsFamilySafetyFeatureEnabled { get; set; };
-            Boolean IsFamilySafetyFirstLevelIFrameFilteringEnabled { get; set; };
+            // ICoreWebView2StagingEnvironment members
+            Boolean IsFamilySafetyEnabled { get; set; };
         }
-
-        // ...
     }
 }
 ```
