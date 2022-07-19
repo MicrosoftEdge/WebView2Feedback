@@ -1,20 +1,12 @@
 # Background
 
-We are exposing an event that will be raised when an attempt to launch an external protocol is made. The host will be given the option to cancel the launch as well as hide the default dialog and display a custom dialog.
+We are exposing an event that will be raised when an attempt to launch an external protocol is made. The host will be given the option to cancel the launch. Cancelling the launch gives the host the opportunity to hide the default dialog, display a custom dialog, and then launch the external protocol themselves.
 
 # Description
 
 This event will be raised before the external protocol launch occurs. When an attempt to launch an external protocol is made, the default dialog is displayed in which the user can select `Open` or `Cancel`.  The `NavigationStarting`, `NavigationCompleted`, `SourceChanged`, `ContentLoading`, and `HistoryChanged` events will not be raised when a request is made to launch an external protocol.
 
 The `LaunchingExternalProtocol` event will be raised on the `CoreWebView2` interface.
-
-The host may set the `Cancel` or `Handled` event args which would result in the following behavior:
-
-| Cancel | Handled | Outcome |
-|-|-|-|
-| False | False | Default dialog shown, URI optionally launched based on end user input |
-| False | True | No dialog, URI is launched |
-| True | * | No dialog shown, URI is not launched |
 
 # Examples
 
@@ -77,7 +69,14 @@ void RegisterLaunchingExternalProtocolHandler()
                                 MB_YESNOCANCEL | MB_ICONWARNING);
                             if (response == IDYES)
                             {
-                                args->put_Handled(true);
+                                args->put_Cancel(true);
+                                std::wstring protocol_url = L"calculator://";
+                                SHELLEXECUTEINFO info = {sizeof(info)};
+                                info.fMask = SEE_MASK_NOASYNC;
+                                info.lpVerb = L"open";
+                                info.lpFile = protocol_url.c_str();
+                                info.nShow = SW_SHOWNORMAL;
+                                ::ShellExecuteEx(&info);
                             }
                             else
                             {
@@ -147,7 +146,8 @@ void RegisterLaunchingExternalProtocolHandler()
                         switch (resultbox)
                         {
                             case MessageBoxResult.Yes:
-                                args.Handled = true;
+                                Process.Start("calc");
+                                args.Cancel = true;
                                 break;
 
                             case MessageBoxResult.No:
@@ -184,8 +184,6 @@ interface ICoreWebView2_16 : ICoreWebView2_15 {
   /// Add an event handler for the `LaunchingExternalProtocol` event.
   /// The `LaunchingExternalProtocol` event is raised when a launch request is made to
   /// a protocol that is registered with the OS. 
-  /// The `LaunchingExternalProtocol` event may suppress the default dialog
-  /// and replace the default dialog with a custom dialog.
   ///
   /// If a deferral is not taken on the event args, the external protocol launch is 
   /// blocked until the event handler returns.  If a deferral is taken, the
@@ -194,14 +192,14 @@ interface ICoreWebView2_16 : ICoreWebView2_15 {
   ///
   /// The `NavigationStarting`, `NavigationCompleted, `SourceChanged`,
   /// `ContentLoading`, and `HistoryChanged` events will not be raised, regardless
-  /// of whether the `Cancel` or `Handled` property is set to `TRUE` or
+  /// of whether the `Cancel` property is set to `TRUE` or
   /// `FALSE`. 
   ///
   /// If the request is made from a trustworthy origin
   /// (https://w3c.github.io/webappsec-secure-contexts#potentially-trustworthy-origin) 
   /// a checkmark box will be displayed that gives the user the option to always allow
-  /// the external protocol to launch from this origin. If the user checks this box, upon the next 
-  /// request from that origin to the protocol, the event will still be raised.
+  /// the external protocol to launch from this origin. If the user checks this box, upon the
+  /// next request from that origin to the protocol, the event will still be raised.
   ///
   /// \snippet SettingsComponent.cpp LaunchingExternalProtocol
   HRESULT add_LaunchingExternalProtocol(
@@ -237,25 +235,13 @@ interface ICoreWebView2LaunchingExternalProtocolEventArgs: IUnknown {
 
   /// The host may set this flag to cancel the external protocol launch.  If set to
   /// `TRUE`, the external protocol will not be launched, and the default
-  /// dialog is not displayed regardless of the `Handled` property.
+  /// dialog is not displayed.
 
   [propget] HRESULT Cancel([out, retval] BOOL* cancel);
 
   /// Sets the `Cancel` property. The default value is `FALSE`.
 
   [propput] HRESULT Cancel([in] BOOL cancel);
-
-  /// The host may set this flag to `TRUE` to hide the default 
-  /// dialog for this navigation.
-  /// The external protocol request will continue as normal if it is not
-  /// cancelled, although there will be no default UI shown. The default
-  /// value is `FALSE` and the default dialog is shown.
-
-  [propget] HRESULT Handled([out, retval] BOOL* handled);
-
-  /// Sets the `Handled` property.
-
-  [propput] HRESULT Handled([in] BOOL handled);
 
   /// Returns an `ICoreWebView2Deferral` object.  Use this operation to
   /// complete the event at a later time.
@@ -277,7 +263,6 @@ namespace Microsoft.Web.WebView2.Core
         String Uri { get; };
         String InitiatingUri { get; };
         Boolean Cancel { get; set; };
-        Boolean Handled {get; set; };
         Windows.Foundation.Deferral GetDeferral();
     }
 
