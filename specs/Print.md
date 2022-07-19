@@ -242,7 +242,7 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
   /// or invalid settings for a given printer.
   ///
   /// The async `PrintWithSettings` operation completes when it finishes
-  /// printing to the printer. At this time the `ICoreWebView2SPrintWithSettingsCompletedHandler`
+  /// printing to the printer. At this time the `ICoreWebView2PrintWithSettingsCompletedHandler`
   /// is invoked. Only one `Printing` operation can be in progress at a time. If
   /// `PrintWithSettings` is called while a `PrintWithSettings` or `PrintToPdf` or `PrintToPdfStream` or `Print`
   /// job is in progress, the completed handler is immediately invoked with an error.
@@ -266,7 +266,7 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
   /// The async `PrintToPdfStream` operation completes when it finishes
   /// writing to the stream. At this time the `ICoreWebView2PrintToPdfStreamCompletedHandler`
   /// is invoked. Only one `Printing` operation can be in progress at a time. If
-  /// `PrintToPdfStream` is called while a `PrintToPDFStream` or `PrintToPdf` or `PrintWithSettings` or `Print`
+  /// `PrintToPdfStream` is called while a `PrintToPdfStream` or `PrintToPdf` or `PrintWithSettings` or `Print`
   /// job is in progress, the completed handler is immediately invoked with an error.
   ///
   /// \snippet AppWindow.cpp PrintToPdfStream
@@ -357,7 +357,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
 
   /// Printer's duplex settings. See `COREWEBVIEW2_PRINT_SIDE` for descriptions
   /// of print sides. The default value is `COREWEBVIEW2_PRINT_SIDE_SINGLE`.
-  /// This property is ignored by the PrintToPdf and PrintToPdfStream methods.
+  /// This value is ignored in PrintToPdfStream method.
   [propget] HRESULT PrintSide([out, retval] COREWEBVIEW2_PRINT_SIDE* value);
 
   /// Set the `PrintSide` property.
