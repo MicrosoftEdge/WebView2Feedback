@@ -7,7 +7,7 @@ Provide end evelolper a new API to toggle Family Safety feature on and off. Once
 # Examples
 ## WinRT and .NET   
 ```c#
-void WebView_ProcessInfosChanged(object sender, object e)
+void WebView_ToggleFamilySafetyFeature(object sender, object e)
 {
     WebViewEnvironment.IsFamilySafetyEnabled = true;
 }
@@ -17,11 +17,11 @@ void WebView_ProcessInfosChanged(object sender, object e)
 ## Win32 C++
 ```cpp
 // Enable the Family Safety feature upon webview environment creation complete
-HRESULT ToggleFamilySafetyFeature()
+HRESULT ToggleFamilySafety()
 {
-    auto environmentStaing = m_webViewEnvironment.try_query<ICoreWebView2StagingEnvironment>();
-    CHECK_FEATURE_RETURN(environmentStaing);
-    environmentStaing->put_IsFamilySafetyEnabled(true);
+    auto environment11 = m_webViewEnvironment.try_query<ICoreWebView2Environment11>();
+    CHECK_FEATURE_RETURN(environment11);
+    environment11->put_IsFamilySafetyEnabled(true);
 }
 ```
 
@@ -31,7 +31,7 @@ interface ICoreWebView2Environment11;
 
 /// This interface is an extension of the ICoreWebView2Environment that manages
 /// Family Safety settings. An object implementing the
-/// ICoreWebView2ExperimentalEnvironment3 interface will also implement
+/// ICoreWebView2Environment11 interface will also implement
 /// ICoreWebView2Environment.
 [uuid(D0965AC5-11EB-4A49-AA1A-C8E9898F80AF), object, pointer_default(unique)]
 interface ICoreWebView2Environment11 : ICoreWebView2Environment {
@@ -51,9 +51,9 @@ namespace Microsoft.Web.WebView2.Core
     // ...
     runtimeclass CoreWebView2Environment
     {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironment")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment11")]
         {
-            // ICoreWebView2StagingEnvironment members
+            // ICoreWebView2Environment11 members
             Boolean IsFamilySafetyEnabled { get; set; };
         }
     }
