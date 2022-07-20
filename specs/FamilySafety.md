@@ -9,7 +9,7 @@ Provide end evelolper a new API to toggle Family Safety feature on and off. Once
 ```c#
 void WebView_ToggleFamilySafetyFeature(object sender, object e)
 {
-    WebViewEnvironment.IsFamilySafetyEnabled = true;
+    Control.CreationProperties.EnabledFamilySafety = true;
 }
 
 
@@ -19,29 +19,28 @@ void WebView_ToggleFamilySafetyFeature(object sender, object e)
 // Enable the Family Safety feature upon webview environment creation complete
 HRESULT ToggleFamilySafety()
 {
-    auto environment11 = m_webViewEnvironment.try_query<ICoreWebView2Environment11>();
-    CHECK_FEATURE_RETURN(environment11);
-    environment11->put_IsFamilySafetyEnabled(true);
+    Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions3> optionsStaging3;
+    if (options.As(&optionsStaging3) == S_OK)
+    {
+        optionsStaging3->put_EnabledFamilySafety(TRUE);
+    }
 }
 ```
 
 # API Details    
 ```
-interface ICoreWebView2Environment11;
+interface ICoreWebView2EnvironmentOptions3;
 
-/// This interface is an extension of the ICoreWebView2Environment that manages
-/// Family Safety settings. An object implementing the
-/// ICoreWebView2Environment11 interface will also implement
-/// ICoreWebView2Environment.
+/// Additional options used to create WebView2 Environment.
 [uuid(D0965AC5-11EB-4A49-AA1A-C8E9898F80AF), object, pointer_default(unique)]
-interface ICoreWebView2Environment11 : ICoreWebView2Environment {
+interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// When the Family Safety feature is enabled, webview provide the same functionalities as the browser for the child accounts:
   /// Activity Reporting, Web Filtering and SafeSearch.
-  /// `IsFamilySafetyEnabled` property is to enable/disable family safety feature.
+  /// `EnabledFamilySafety` property is to enable/disable family safety feature.
   /// propery is disabled by default
-  [propget] HRESULT IsFamilySafetyEnabled([out, retval] BOOL* value);
-  /// Sets the `IsFamilySafetyEnabled` property.
-  [propput] HRESULT IsFamilySafetyEnabled([in] BOOL value);
+  [propget] HRESULT EnabledFamilySafety([out, retval] BOOL* value);
+  /// Sets the `EnabledFamilySafety` property.
+  [propput] HRESULT EnabledFamilySafety([in] BOOL value);
 }
 ```
 
@@ -51,10 +50,13 @@ namespace Microsoft.Web.WebView2.Core
     // ...
     runtimeclass CoreWebView2Environment
     {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment11")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions3")]
         {
-            // ICoreWebView2Environment11 members
-            Boolean IsFamilySafetyEnabled { get; set; };
+            // ICoreWebView2EnvironmentOptions3 members
+            Boolean EnabledFamilySafety { get; set; };
+
+
+
         }
     }
 }
