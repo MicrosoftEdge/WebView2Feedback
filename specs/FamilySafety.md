@@ -37,7 +37,7 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// When `IsFamilySafetyEnabled` is `TRUE` WebView2 provides the same Family Safety functionality as the Edge browser for child accounts:
   /// Activity Reporting, Web Filtering and SafeSearch.
   /// `EnabledFamilySafety` property is to enable/disable family safety feature.
-  /// propery is disabled by default
+  /// It is `FALSE` by default.
   [propget] HRESULT EnabledFamilySafety([out, retval] BOOL* value);
   /// Sets the `EnabledFamilySafety` property.
   [propput] HRESULT EnabledFamilySafety([in] BOOL value);
