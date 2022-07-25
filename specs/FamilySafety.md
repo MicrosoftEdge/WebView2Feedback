@@ -53,7 +53,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions3")]
         {
             // ICoreWebView2EnvironmentOptions3 members
-            Boolean EnabledFamilySafety { get; set; };
+            Boolean IsFamilySafetyEnabled { get; set; };
 
 
 
