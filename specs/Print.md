@@ -89,8 +89,8 @@ print settings, and call `Print` to print the current web page.
 
 bool AppWindow::PrintToDefaultPrinter()
 {
-  wil::com_ptr<ICoreWebView2Staging6> webView2Staging6;
-  CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2Staging6)));
+  wil::com_ptr<ICoreWebView2_15> webView2_15;
+  CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2_15)));
 
   wil::com_ptr<ICoreWebView2Environment6> webviewEnvironment6;
   CHECK_FAILURE(m_webViewEnvironment->QueryInterface(IID_PPV_ARGS(&webviewEnvironment6)));
@@ -98,16 +98,16 @@ bool AppWindow::PrintToDefaultPrinter()
   wil::com_ptr<ICoreWebView2PrintSettings> printSettings = nullptr;
   CHECK_FAILURE(webviewEnvironment6->CreatePrintSettings(&printSettings));
 
-  wil::com_ptr<ICoreWebView2StagingPrintSettings2> printSettings2;
+  wil::com_ptr<ICoreWebView2PrintSettings2> printSettings2;
   CHECK_FAILURE(printSettings->QueryInterface(IID_PPV_ARGS(&printSettings2)));
 
   wil::unique_cotaskmem_string title;
   CHECK_FAILURE(m_webView->get_DocumentTitle(&title));
 
   // Prints current web page with the default page and printer settings.
-  CHECK_FAILURE(webView2Staging6->Print(
+  CHECK_FAILURE(webView2_15->Print(
       printSettings2.get(),
-      Callback<ICoreWebView2StagingPrintCompletedHandler>(
+      Callback<ICoreWebView2PrintCompletedHandler>(
           [&title, appWindow = m_appWindow](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
           {
             std::wstring message = L"";
@@ -125,7 +125,7 @@ bool AppWindow::PrintToDefaultPrinter()
               else if (errorCode == E_ABORT)
               {
                 message = L"Printing " + std::wstring(title.get()) +
-                                  L" document is in progress";
+                                  L" document already in progress";
               }
               else if (errorCode == E_FAIL)
               {
@@ -251,8 +251,8 @@ bool AppWindow::PrintToPrinter()
   std::wstring printerName = GetPrinterName();
   PrintSettings printInfo = GetSelectedPrinterPrintSettings(printerName);
 
-  wil::com_ptr<ICoreWebView2Staging6> webView2Staging6;
-  CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2Staging6)));
+  wil::com_ptr<ICoreWebView2_15> webView2_15;
+  CHECK_FAILURE(m_webView->QueryInterface(IID_PPV_ARGS(&webView2_15)));
 
   wil::com_ptr<ICoreWebView2Environment6> webviewEnvironment6;
   CHECK_FAILURE(m_webViewEnvironment->QueryInterface(IID_PPV_ARGS(&webviewEnvironment6)));
@@ -260,7 +260,7 @@ bool AppWindow::PrintToPrinter()
   wil::com_ptr<ICoreWebView2PrintSettings> printSettings = nullptr;
   CHECK_FAILURE(webviewEnvironment6->CreatePrintSettings(&printSettings));
 
-  wil::com_ptr<ICoreWebView2StagingPrintSettings2> printSettings2;
+  wil::com_ptr<ICoreWebView2PrintSettings2> printSettings2;
   CHECK_FAILURE(printSettings->QueryInterface(IID_PPV_ARGS(&printSettings2)));
 
   CHECK_FAILURE(printSettings2->put_Orientation(printInfo.Layout));
@@ -285,9 +285,9 @@ bool AppWindow::PrintToPrinter()
   wil::unique_cotaskmem_string title;
   CHECK_FAILURE(m_webView->get_DocumentTitle(&title));
 
-  CHECK_FAILURE(webView2Staging6->Print(
+  CHECK_FAILURE(webView2_15->Print(
       printSettings2.get(),
-      Callback<ICoreWebView2StagingPrintCompletedHandler>(
+      Callback<ICoreWebView2PrintCompletedHandler>(
           [&title, appWindow = m_appWindow](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
           {
             std::wstring message = L"";
@@ -309,7 +309,7 @@ bool AppWindow::PrintToPrinter()
               else if (errorCode == E_ABORT)
               {
                 message = L"Printing " + std::wstring(title.get()) +
-                                  L" document is in progress";
+                                  L" document already in progress";
               }
               else if (errorCode == E_FAIL)
               {
@@ -620,7 +620,7 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
 /// |        S_OK         |        False          | If specified printer is not found or printer status is not available, offline or error state. |
 /// |       E_FAIL        |        False          | Print operation is failed.                                                                    |
 /// |     E_INVALIDARG    |        False          | If the caller provides invalid settings for the specified printer.                            |
-/// |       E_ABORT       |        False          | Print operation is failed as printing job is in progress.                                     |
+/// |       E_ABORT       |        False          | Print operation is failed as printing job already in progress.                                     |
 [uuid(4B2FE043-1A1A-4924-803D-C05E5FDCA3B0), object, pointer_default(unique)]
 interface ICoreWebView2PrintCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
