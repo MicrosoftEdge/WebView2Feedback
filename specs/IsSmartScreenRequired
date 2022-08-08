@@ -2,7 +2,7 @@
 
 [Edge SmartScreen](https://docs.microsoft.com/en-us/deployedge/microsoft-edge-security-smartscreen) helps you identify reported phishing and malware websites, and also helps you make informed decisions about downloads.
 
-Currently, end developers can use `options->put_AdditionalBrowserArguments(L"--disable-features=msSmartScreenProtection")` to control SmartScreen in the WebView2 application. It is essentially a startup parameter of the browser process. It must be determined when the WebView2Environment is created. And and cannot be modified at runtime.
+Currently, developers can use `options->put_AdditionalBrowserArguments(L"--disable-features=msSmartScreenProtection")` to disable SmartScreen in the WebView2 application. It is essentially a startup parameter of the browser process and applies to all WebView2 instances associated with that WebView2Environment. It must be determined when the WebView2Environment is created, and it cannot be modified at runtime.
 
 To support more flexibility we introduce a new API.
 We initially considered an API like `CoreWebView2Environment.IsSmartScreenEnabled` that would directly change the value for all the processes. The problem is this is not easy to do for apps like Office who have multiple apps connected to the same browser process. In their case each app has IsSmartScreenEnabled and its hard for the browser process to know which change to the property should win. 
@@ -14,7 +14,7 @@ In this document we describe the new setting. We'd appreciate your feedback.
 
 
 # Description
-You can use CoreWebView2Settings.IsSmartScreen to control SmartScreen. SmartScreen is enabled or disabled per browser process, so all WebView2 applications sharing the same user data folder path also share SmartScreen being enabled or disabled.
+You can use CoreWebView2Settings.IsSmartScreenRequired to control SmartScreen. SmartScreen is enabled or disabled per browser process, so all WebView2 applications sharing the same user data folder path also share SmartScreen being enabled or disabled.
 If CoreWebView2Setting.IsSmartScreenRequired is true for any CoreWebView2 in its associated CoreWebView2Environment, then SmartScreen is enabled. If CoreWebView2Setting.IsSmartScreenRequired is false for all CoreWebView2s in their CoreWebView2Environment, then SmartScreen is disabled.
 The default value for `IsSmartScreenRequired` is true if SmartScreen is enabled when the CoreWebView2 is created and false if SmartScreen is disabled when the CoreWebView2 is created. The value doesn't change if SmartScreen is enabled or disabled later.
 
@@ -62,7 +62,7 @@ interface ICoreWebView2Settings11 : ICoreWebView2Settings10 {
   /// and also helps you make informed decisions about downloads. 
   /// `IsSmartScreenRequired`  is used to control whether SmartScreen enabled or not. 
   /// SmartScreen is enabled or disabled for all CoreWebView2s in a CoreWebView2Environment. 
-  /// If CoreWebView2Setting.IsSmartScreenRequired is true for any CoreWebView2 in its associated 
+  /// If CoreWebView2Setting.IsSmartScreenRequired is true for any CoreWebView2 associated to the same
   /// CoreWebView2Environment, then SmartScreen is enabled. If CoreWebView2Setting.IsSmartScreenRequired 
   /// is false for all CoreWebView2s in the associated CoreWebView2Environment, then SmartScreen is disabled.
   /// When it is changed, the change will be applied to all WebViews using the 
