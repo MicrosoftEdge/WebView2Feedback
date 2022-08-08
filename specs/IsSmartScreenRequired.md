@@ -1,6 +1,6 @@
 # Background
 
-[Edge SmartScreen](https://support.microsoft.com/en-us/microsoft-edge/how-can-smartscreen-help-protect-me-in-microsoft-edge-1c9a874a-6826-be5e-45b1-67fa445a74c8) helps end users identify reported phishing and malware websites, and also helps you make informed decisions about downloads.
+[Edge SmartScreen](https://support.microsoft.com/en-us/microsoft-edge/how-can-smartscreen-help-protect-me-in-microsoft-edge-1c9a874a-6826-be5e-45b1-67fa445a74c8) helps end users identify reported phishing and malware websites, and also helps end users make informed decisions about downloads.
 
 Currently, developers can use `options->put_AdditionalBrowserArguments(L"--disable-features=msSmartScreenProtection")` to disable SmartScreen in the WebView2 application. It is essentially a startup parameter of the browser process and applies to all WebView2 instances associated with that WebView2Environment. It must be determined when the WebView2Environment is created, and it cannot be modified at runtime.
 
