@@ -2,7 +2,7 @@
 
 [Edge SmartScreen](https://support.microsoft.com/en-us/microsoft-edge/how-can-smartscreen-help-protect-me-in-microsoft-edge-1c9a874a-6826-be5e-45b1-67fa445a74c8) helps end users identify reported phishing and malware websites, and also helps end users make informed decisions about downloads.
 
-Currently, developers can use `options->put_AdditionalBrowserArguments(L"--disable-features=msSmartScreenProtection")` to disable SmartScreen in the WebView2 application. It is essentially a startup parameter of the browser process and applies to all WebView2 instances associated with that WebView2Environment. It must be determined when the WebView2Environment is created, and it cannot be modified at runtime.
+Currently, developers can use `options->put_AdditionalBrowserArguments(L"--disable-features=msSmartScreenProtection")` to disable SmartScreen in the WebView2 application. It is a startup parameter of the browser process and applies to all WebView2 instances associated with that WebView2Environment. It must be determined when the WebView2Environment is created, and it cannot be modified at runtime.
 
 To support more flexibility we introduce a new API.
 
@@ -15,7 +15,7 @@ In this document we describe the new setting.
 # Description
 You can use CoreWebView2Settings.IsSmartScreenRequired to control SmartScreen. SmartScreen is enabled or disabled per browser process, so all WebView2 applications sharing the same user data folder path also share SmartScreen being enabled or disabled.
 If CoreWebView2Setting.IsSmartScreenRequired is true for any CoreWebView2 in its associated CoreWebView2Environment, then SmartScreen is enabled. If CoreWebView2Setting.IsSmartScreenRequired is false for all CoreWebView2s in their CoreWebView2Environment, then SmartScreen is disabled.
-The default value for `IsSmartScreenRequired` is true if SmartScreen is enabled when the CoreWebView2 is created and false if SmartScreen is disabled when the CoreWebView2 is created. The value doesn't change if SmartScreen is enabled or disabled later.
+The default value for `IsSmartScreenRequired` is true. When a new WebView is created, the SmartScreen state under the same CoreWebView2Environment will be reset to true.
 
 Changes to `IsSmartScreenRequired` take effect on the next navigation or download.
 
@@ -60,8 +60,8 @@ See [API Details](#api-details) section below for API reference.
 ```cpp
 [uuid(d667d3a7-c1b7-479f-8833-db7547df6687), object, pointer_default(unique)]
 interface ICoreWebView2Settings11 : ICoreWebView2Settings10 {
-  /// SmartScreen helps end users identify reported phishing and malware websites  
-  /// and also helps you make informed decisions about downloads. 
+  /// SmartScreen helps webviews identify reported phishing and malware websites and 
+  /// also helps users make informed decisions about downloads.
   /// `IsSmartScreenRequired`  is used to control whether SmartScreen enabled or not. 
   /// SmartScreen is enabled or disabled for all CoreWebView2s in a CoreWebView2Environment. 
   /// If CoreWebView2Setting.IsSmartScreenRequired is true for any CoreWebView2 associated to the same
@@ -69,9 +69,8 @@ interface ICoreWebView2Settings11 : ICoreWebView2Settings10 {
   /// is false for all CoreWebView2s in the associated CoreWebView2Environment, then SmartScreen is disabled.
   /// When it is changed, the change will be applied to all WebViews using the 
   /// same CoreWebView2Environment on the next navigation or download.
-  /// The default value for `IsSmartScreenRequired` is true if SmartScreen is enabled when the CoreWebView2 
-  /// is created and false if SmartScreen is disabled when the CoreWebView2 is created. The value doesn't change 
-  /// if SmartScreen is enabled or disabled later.
+  /// The default value for `IsSmartScreenRequired` is true. When a new WebView is created, the SmartScreen 
+  /// state under the same CoreWebView2Environment will be reset to true.
   [propget] HRESULT IsSmartScreenRequired([out, retval] BOOL* value); 
 
   /// Sets whether this webview2 instance needs SmartScreen protection for its content.
