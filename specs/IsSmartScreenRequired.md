@@ -68,7 +68,7 @@ interface ICoreWebView2Settings11 : ICoreWebView2Settings10 {
   /// CoreWebView2Environment, then SmartScreen is enabled. If CoreWebView2Setting.IsSmartScreenRequired 
   /// is false for all CoreWebView2s in the associated CoreWebView2Environment, then SmartScreen is disabled.
   /// When it is changed, the change will be applied to all WebViews using the 
-  /// same CoreWebView2Environment.
+  /// same CoreWebView2Environment on the next navigation or download.
   /// The default value for `IsSmartScreenRequired` is true if SmartScreen is enabled when the CoreWebView2 
   /// is created and false if SmartScreen is disabled when the CoreWebView2 is created. The value doesn't change 
   /// if SmartScreen is enabled or disabled later.
