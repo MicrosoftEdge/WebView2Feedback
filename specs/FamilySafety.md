@@ -2,13 +2,15 @@ Family Safety
 ===
 
 # Background
-Provide end evelolper a new API to toggle Family Safety feature on and off. Once Family Safety is enabled, developer won't be able to turn it off while webview2 instance is running. Once enable, it will provide the same functionally as the browser like: Activity report, Safe Search and Web Filtering. Please see https://www.microsoft.com/en-us/microsoft-365/family-safety for details on Family Safety. 
+Provide end evelolper a new API to toggle Family Safety feature on and off. Once Family Safety is enabled, developer won't be able to turn it off while webview2 instance is running. Once enable, it will provide the same functionally as the browser like: Activity report, Safe Search and Web Filtering. Besides toggling the feature, we also provide an API to add desired sites to the soft bypass list, so app functionality will not be impacted by Family Safety restricted mode. Parents can still over the site if they prefer.
+Please see https://www.microsoft.com/en-us/microsoft-365/family-safety for details on Family Safety. 
 
 # Examples
 ## WinRT and .NET   
 ```c#
 auto options = new CoreWebView2EnvironmentOptions();
 options.IsFamilySafetyEnabled = true;
+options.SetFamilySafetySoftByPassList(1, "appassets.example/AppStartPage.html");
 auto environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 ```
 ## Win32 C++
@@ -21,6 +23,9 @@ HRESULT InitializeWebView()
     if (options.As(&optionsStaging3) == S_OK)
     {
         optionsStaging3->put_IsFamilySafetyEnabled(TRUE);
+
+        const WCHAR* byPassLists[1] = {L"appassets.example/AppStartPage.html"};
+        optionsStaging3->SetFamilySafetySoftByPassList(1, byPassLists);
     }
 
     // CreateCoreWebView2EnvironmentWithOptions
@@ -45,6 +50,12 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   [propget] HRESULT IsFamilySafetyEnabled([out, retval] BOOL* value);
   /// Sets the `IsFamilySafetyEnabled` property.
   [propput] HRESULT IsFamilySafetyEnabled([in] BOOL value);
+
+  /// When Family Safety feature is enabled, provide ability to modify the soft by pass list so app remain functioning in BlockAll Mode,
+  /// parents can still override the URL if they want the app blocked.
+  /// \snippet AppWindow.cpp CoreWebView2FamilySafety
+  HRESULT GetFamilySafetySoftByPassList([out] UINT32* uriCounts, [out] LPWSTR** lists);
+  HRESULT SetFamilySafetySoftByPassList([in] UINT32 uriCounts, [in] LPCWSTR* lists);
 }
 ```
 
@@ -59,8 +70,8 @@ namespace Microsoft.Web.WebView2.Core
             // ICoreWebView2EnvironmentOptions3 members
             Boolean IsFamilySafetyEnabled { get; set; };
 
-
-
+            // List of bypass uris
+            IList<String> FamilySafetySoftByPassList { get; set;};
         }
     }
 }
