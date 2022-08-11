@@ -108,12 +108,13 @@ bool AppWindow::PrintToDefaultPrinter()
   CHECK_FAILURE(webView2_15->Print(
       printSettings2.get(),
       Callback<ICoreWebView2PrintCompletedHandler>(
-          [&title, appWindow = m_appWindow](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+          [title = title.get(),
+          appWindow = m_appWindow](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
           {
             std::wstring message = L"";
             if (errorCode == S_OK && isSuccessful)
             {
-              message = L"Printing " + std::wstring(title.get()) +
+              message = L"Printing " + std::wstring(title) +
                               L" document to printer is succedded";
             }
             else
@@ -124,12 +125,12 @@ bool AppWindow::PrintToDefaultPrinter()
               }
               else if (errorCode == E_ABORT)
               {
-                message = L"Printing " + std::wstring(title.get()) +
+                message = L"Printing " + std::wstring(title) +
                                   L" document already in progress";
               }
               else if (errorCode == E_FAIL)
               {
-                message = L"Printing " + std::wstring(title.get()) +
+                message = L"Printing " + std::wstring(title) +
                                   L" document to printer is failed";
               }
             }
@@ -288,12 +289,13 @@ bool AppWindow::PrintToPrinter()
   CHECK_FAILURE(webView2_15->Print(
       printSettings2.get(),
       Callback<ICoreWebView2PrintCompletedHandler>(
-          [&title, appWindow = m_appWindow](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+          [title = title.get(),
+          appWindow = m_appWindow](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
           {
             std::wstring message = L"";
             if (errorCode == S_OK && isSuccessful)
             {
-              message = L"Printing " + std::wstring(title.get()) +
+              message = L"Printing " + std::wstring(title) +
                               L" document to printer is succedded";
             }
             else
@@ -308,12 +310,12 @@ bool AppWindow::PrintToPrinter()
               }
               else if (errorCode == E_ABORT)
               {
-                message = L"Printing " + std::wstring(title.get()) +
+                message = L"Printing " + std::wstring(title) +
                                   L" document already in progress";
               }
               else if (errorCode == E_FAIL)
               {
-                message = L"Printing " + std::wstring(title.get()) +
+                message = L"Printing " + std::wstring(title) +
                                   L" document to printer is failed";
               }
             }
@@ -421,9 +423,9 @@ PrintSettings GetSelectedPrinterPrintSettings(string printerName)
 class PrintSettings
 {
   public CoreWebView2PrintOrientation Layout { get; set; }
-  public int Copies { get; set; }
-  public int PagesPerSheet { get; set; }
-  public string Pages { get; set; }
+  public int Copies { get; set; } = 1;
+  public int PagesPerSheet { get; set; } = 1;
+  public string Pages { get; set; } = "";
   public CoreWebView2PrintCollation Collation { get; set; }
   public CoreWebView2PrintColorMode ColorMode { get; set; }
   public CoreWebView2PrintDuplex Duplex { get; set; }
@@ -434,8 +436,8 @@ class PrintSettings
   public bool PrintBackgrounds { get; set; }
   public bool HeaderAndFooter { get; set; }
   public bool ShouldPrintSelectionOnly { get; set; }
-  public string HeaderTitle { get; set; }
-  public string FooterUri { get; set; }
+  public string HeaderTitle { get; set; } = "";
+  public string FooterUri { get; set; } = "";
 }
 ```
 
@@ -470,14 +472,26 @@ bool AppWindow::PrintToPdfStream()
 
   CHECK_FAILURE(printSettings2->put_ShouldPrintBackgrounds(true));
 
+  wil::unique_cotaskmem_string title;
+  CHECK_FAILURE(m_webView->get_DocumentTitle(&title));
+
   CHECK_FAILURE(
       webView2_15->PrintToPdfStream(
           printSettings2.get(),
           Callback<ICoreWebView2PrintToPdfStreamCompletedHandler>(
-              [this](HRESULT errorCode, IStream* pdfData) -> HRESULT
+              [title = title.get(),
+              appWindow = m_appWindow](HRESULT errorCode, IStream* pdfData) -> HRESULT
               {
-                CHECK_FAILURE(errorCode);
                 DisplayPdfDataInPrintDialog(pdfData);
+                std::wstring message = L"Printing " + std::wstring(title) +
+                                       L" document to PDF Stream " +
+                                       ((errorCode == S_OK) ? L"succedded" : L"failed");
+
+                if (appWindow)
+                {
+                  appWindow->AsyncMessageBox(message, L"Print to PDF Stream");
+                }
+
                 return S_OK;
               })
               .Get()));
@@ -492,8 +506,12 @@ async void PrintToPdfStream()
   printSettings = WebViewEnvironment.CreatePrintSettings();
   printSettings.ShouldPrintBackgrounds = true;
 
+  string title = webView.CoreWebView2.DocumentTitle;
+
   System.IO.Stream stream = await webView.CoreWebView2.PrintToPdfStreamAsync(printSettings);
   DisplayPdfDataInPrintDialog(stream);
+
+  MessageBox.Show(this, "Printing " + title + " document to PDF Stream succeeded", "Print To PDF Stream");
 }
 
 // Function to display current web page pdf data in a custom print preview dialog.
