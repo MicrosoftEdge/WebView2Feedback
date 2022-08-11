@@ -634,6 +634,7 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
 
 /// Receives the result of the `Print` method.
 /// |       errorCode     |       isSuccessful    |               Notes                                                                           |
+/// | --- | --- | --- |
 /// |        S_OK         |        True           | Print operation succeeded.                                                                    |
 /// |        S_OK         |        False          | If specified printer is not found or printer status is not available, offline or error state. |
 /// |       E_FAIL        |        False          | Print operation is failed.                                                                    |
