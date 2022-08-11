@@ -684,6 +684,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// The following examples assume a document with 20 total pages.
   ///
   /// |       Example         |       Result      |               Notes                                              |
+  /// | --- | --- | --- |
   /// | "2"                   |  Page 2           |                                                                  |
   /// | "1-4, 9, 3-6, 10, 11" |  Pages 1-6, 9-11  |                                                                  |
   /// | "1-4, -6"             |  Pages 1-6        | The "-6" is interpreted as "1-6".                                |
