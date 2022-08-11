@@ -15,9 +15,11 @@ In this document we describe the new setting.
 # Description
 You can use CoreWebView2Settings.IsReputationCheckingRequired to control SmartScreen. SmartScreen is enabled or disabled per browser process, so all WebView2 applications sharing the same user data folder path also share SmartScreen being enabled or disabled.
 If CoreWebView2Setting.IsReputationCheckingRequired is true for any CoreWebView2 using the same user data folder, then SmartScreen is enabled. If CoreWebView2Setting.IsReputationCheckingRequired is false for all CoreWebView2 using the same user data folder, then SmartScreen is disabled.
-The default value for `IsReputationCheckingRequired` is true. When a new CoreWebview2 is created, the SmartScreens of all CoreWebviews using the same user data folder are reset to true.
+The default value for `IsReputationCheckingRequired` is true. When creating a new CoreWebVIew2, if it is not set CoreWebView2Settings.IsReputationCheckingRequired, the SmartScreen state of all CoreWebView2s using the same user data folder will be reset to true when the new CoreWebView2 is navigated or downloaded.
 
 Changes to `IsReputationCheckingRequired` take effect on the next navigation or download.
+
+If the option `--disable-features=msSmartScreenProtection` is specified when CoreWebView2Environment is created, then SmartScreen cannot be set through CoreWebView2Settings.IsReputationCheckingRequired. In this scenario, SmartScreen is always turned off.
 
 
 # Examples
