@@ -43,10 +43,10 @@ void SettingsComponent::UpdateSmartScreenRequirementBeforeNavigating(bool isLoca
 ```
 
 ```c#
-void ToggleSmartScreenRequired()
+void UpdateSmartScreenRequirementBeforeNavigating(bool isLocalContent)
 {
     var settings = webView2Control.CoreWebView2.Settings;
-    settings.IsReputationCheckingRequired = !settings.IsReputationCheckingRequired;
+    settings.IsReputationCheckingRequired = !isLocalContent;
 }
 ```
 
