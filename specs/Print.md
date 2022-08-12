@@ -186,7 +186,7 @@ to print the current web page.
 
 struct PrintSettings
 {
-  COREWEBVIEW2_PRINT_ORIENTATION Layout = COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT;
+  COREWEBVIEW2_PRINT_ORIENTATION Orientation = COREWEBVIEW2_PRINT_ORIENTATION_PORTRAIT;
   int Copies = 1;
   int PagesPerSheet = 1;
   std::wstring Pages = L"";
@@ -264,7 +264,7 @@ bool AppWindow::PrintToPrinter()
   wil::com_ptr<ICoreWebView2PrintSettings2> printSettings2;
   CHECK_FAILURE(printSettings->QueryInterface(IID_PPV_ARGS(&printSettings2)));
 
-  CHECK_FAILURE(printSettings2->put_Orientation(printInfo.Layout));
+  CHECK_FAILURE(printSettings2->put_Orientation(printInfo.Orientation));
   CHECK_FAILURE(printSettings2->put_Copies(printInfo.Copies));
   CHECK_FAILURE(printSettings2->put_PagesPerSheet(printInfo.PagesPerSheet));
   CHECK_FAILURE(printSettings2->put_PageRanges(printInfo.Pages.c_str()));
@@ -341,7 +341,7 @@ async void PrintToPrinter()
     CoreWebView2PrintSettings printSettings = null;
     printSettings = WebViewEnvironment.CreatePrintSettings();
 
-    printSettings.Orientation = printInfo.Layout;
+    printSettings.Orientation = printInfo.Orientation;
     printSettings.Copies = printInfo.Copies;
     printSettings.PagesPerSheet = printInfo.PagesPerSheet;
     printSettings.PageRanges = printInfo.Pages;
@@ -422,7 +422,7 @@ PrintSettings GetSelectedPrinterPrintSettings(string printerName)
 
 class PrintSettings
 {
-  public CoreWebView2PrintOrientation Layout { get; set; }
+  public CoreWebView2PrintOrientation Orientation { get; set; }
   public int Copies { get; set; } = 1;
   public int PagesPerSheet { get; set; } = 1;
   public string Pages { get; set; } = "";
@@ -606,6 +606,14 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
   /// or `PrintToPdfStream` or `ShowPrintUI` job is in progress, the completed handler is
   /// immediately invoked with `E_ABORT` and `isSuccessful` set to FALSE.
   ///
+  /// |       errorCode     |       isSuccessful    |               Notes                                                                           |
+  /// | --- | --- | --- |
+  /// |        S_OK         |        True           | Print operation succeeded.                                                                    |
+  /// |        S_OK         |        False          | If specified printer is not found or printer status is not available, offline or error state. |
+  /// |       E_FAIL        |        False          | Print operation is failed.                                                                    |
+  /// |     E_INVALIDARG    |        False          | If the caller provides invalid settings for the specified printer.                            |
+  /// |       E_ABORT       |        False          | Print operation is failed as printing job already in progress.
+  ///
   /// \snippet AppWindow.cpp PrintToPrinter
   HRESULT Print(
     [in] ICoreWebView2PrintSettings2* printSettings,
@@ -632,14 +640,7 @@ interface ICoreWebView2_15 : ICoreWebView2_14 {
                            [in] ICoreWebView2PrintToPdfStreamCompletedHandler* handler);
 }
 
-/// Receives the result of the `Print` method.
-/// |       errorCode     |       isSuccessful    |               Notes                                                                           |
-/// | --- | --- | --- |
-/// |        S_OK         |        True           | Print operation succeeded.                                                                    |
-/// |        S_OK         |        False          | If specified printer is not found or printer status is not available, offline or error state. |
-/// |       E_FAIL        |        False          | Print operation is failed.                                                                    |
-/// |     E_INVALIDARG    |        False          | If the caller provides invalid settings for the specified printer.                            |
-/// |       E_ABORT       |        False          | Print operation is failed as printing job already in progress.                                     |
+/// Receives the result of the `Print` method.                               |
 [uuid(4B2FE043-1A1A-4924-803D-C05E5FDCA3B0), object, pointer_default(unique)]
 interface ICoreWebView2PrintCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
