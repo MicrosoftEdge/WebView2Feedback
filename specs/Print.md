@@ -335,31 +335,9 @@ bool AppWindow::PrintToPrinter()
 async void PrintToPrinter()
 {
   string printerName = GetPrinterName();
-  PrintSettings printInfo = GetSelectedPrinterPrintSettings(printerName);
+  CoreWebView2PrintSettings printSettings = GetSelectedPrinterPrintSettings(printerName);
   try
   {
-    CoreWebView2PrintSettings printSettings = null;
-    printSettings = WebViewEnvironment.CreatePrintSettings();
-
-    printSettings.Orientation = printInfo.Orientation;
-    printSettings.Copies = printInfo.Copies;
-    printSettings.PagesPerSheet = printInfo.PagesPerSheet;
-    printSettings.PageRanges = printInfo.Pages;
-    if (printInfo.Media == CoreWebView2PrintMediaSize.Custom)
-    {
-      printSettings.PageWidth = printInfo.PaperWidth;
-      printSettings.PageHeight = printInfo.PaperHeight;
-    }
-    printSettings.ColorMode = printInfo.ColorMode;
-    printSettings.Collation = printInfo.Collation;
-    printSettings.Duplex = printerInfo.Duplex;
-    printSettings.ScaleFactor = printerInfo.ScaleFactor;
-    printSettings.ShouldPrintBackgrounds = printerInfo.PrintBackgrounds;
-    printSettings.ShouldPrintHeaderAndFooter = printerInfo.HeaderAndFooter;
-    printSettings.HeaderTitle = printInfo.HeaderTitle;
-    printSettings.FooterUri = printInfo.FooterUri;
-    printSettings.PrinterName = printerName;
-
     string title = webView.CoreWebView2.DocumentTitle;
 
     bool isSuccessful = await webView.CoreWebView2.PrintAsync(printSettings);
@@ -405,11 +383,12 @@ string GetPrinterName()
 // Function to get print settings for the selected printer.
 // You may also choose get the capabilties from the native printer API, display to the user to get
  // the print settings for the current web page and for the selected printer.
-PrintSettings GetSelectedPrinterPrintSettings(string printerName)
+CoreWebView2PrintSettings GetSelectedPrinterPrintSettings(string printerName)
 {
-  PrintSettings printSettings = new PrintSettings();
-  printSettings.PrintBackgrounds = true;
-  printSettings.HeaderAndFooter = true;
+  CoreWebView2PrintSettings printSettings = null;
+  printSettings = WebViewEnvironment.CreatePrintSettings();
+  printSettings.ShouldPrintBackgrounds = true;
+  printSettings.ShouldPrintHeaderAndFooter = true;
 
   return printSettings;
 
@@ -418,26 +397,6 @@ PrintSettings GetSelectedPrinterPrintSettings(string printerName)
   // to get the capabilities of the selected printer.
   // Display the printer capabilities to the user along with the page settings.
   // Return the user selected settings.
-}
-
-class PrintSettings
-{
-  public CoreWebView2PrintOrientation Orientation { get; set; }
-  public int Copies { get; set; } = 1;
-  public int PagesPerSheet { get; set; } = 1;
-  public string Pages { get; set; } = "";
-  public CoreWebView2PrintCollation Collation { get; set; }
-  public CoreWebView2PrintColorMode ColorMode { get; set; }
-  public CoreWebView2PrintDuplex Duplex { get; set; }
-  public CoreWebView2PrintMediaSize Media { get; set; }
-  public double PaperWidth { get; set; } = 8.5;
-  public double PaperHeight { get; set; } = 11;
-  public double ScaleFactor { get; set; } = 1.0;
-  public bool PrintBackgrounds { get; set; }
-  public bool HeaderAndFooter { get; set; }
-  public bool ShouldPrintSelectionOnly { get; set; }
-  public string HeaderTitle { get; set; } = "";
-  public string FooterUri { get; set; } = "";
 }
 ```
 
