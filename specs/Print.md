@@ -729,6 +729,9 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// Set the `PrinterName` property. If provided printer name doesn't match with
   /// the name of any installed printers on the user OS, `ICoreWebView2PrintCompletedHandler` handler
   /// will return `errorCode` as `S_OK` and `isSuccessful` as FALSE.
+  ///
+  /// Use [Enum Printers](https://docs.microsoft.com/en-us/windows/win32/printdocs/enumprinters)
+  /// to enumerate available printers.
   [propput] HRESULT PrinterName([in] LPCWSTR value);
 }
 ```
