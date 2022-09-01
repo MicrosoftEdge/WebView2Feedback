@@ -259,6 +259,7 @@ namespace Microsoft.Web.WebView2.Core
         {
             Windows.Foundation.IMemoryBufferReference Buffer { get; };
         }
+        // Note that we are not exposing Handle from WinRT API.
     }
     
     runtimeclass CoreWebView2
