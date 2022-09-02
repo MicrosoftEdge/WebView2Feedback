@@ -2,7 +2,7 @@ Shared Buffer Between Native Application Code and Script
 ===
 
 # Background
-For some advanced scenarios, there is a need to exchange large data between WebView application process and trusted web pages that are considered as part of the app. Some examples:
+For some advanced scenarios, there is a need to exchange large amounts of data between the WebView2 application process and trusted web pages that are considered as part of the app. Some examples:
 - Web page generates large data, passes to native side to be further process or fed to other parts of the app or OS. Example: https://github.com/MicrosoftEdge/WebView2Feedback/issues/89.
 -	Native side generates large data for the web side to consume. The data might or might not come directly from files. Example: https://github.com/MicrosoftEdge/WebView2Feedback/issues/1005.
 To support these scenarios, we are adding an Edge WebView2 API to support shared buffer between app and renderer process, based on shared memory from the OS.
