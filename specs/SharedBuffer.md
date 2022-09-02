@@ -14,7 +14,7 @@ Then both the native application code and the script will be able to access the 
 
 Besides using the memory address directly, the shared buffer object can be accessed from native side via an IStream* object that you can get from the shared object.
 
-When the application code calls `ShareBufferToScript`, the script side will receive a `SharedBufferReceived` event containing the buffer as an `ArrayBuffer` object.
+When the application code calls `PostSharedBufferToScript`, the script side will receive a `SharedBufferReceived` event containing the buffer as an `ArrayBuffer` object.
 After receiving the shared buffer object, it can access it the same way as any other ArrayBuffer object, including transering to a web worker to process the data on
 the worker thread.
 
@@ -61,17 +61,17 @@ The script code will look like this:
         CHECK_FAILURE(environment->CreateSharedBuffer(bufferSize, &sharedBuffer));
         // Fill data into the shared memory via IStream.
         wil::com_ptr<IStream> stream;
-        CHECK_FAILURE(sharedBuffer->GetAccessStream(&stream));
+        CHECK_FAILURE(sharedBuffer->GetStream(&stream));
         CHECK_FAILURE(stream->Write(data, dataSize, nullptr));
         PCWSTR additionalDataAsJson = L"{\"read_only\":true}";
         if (forFrame)
         {
-            m_webviewFrame->ShareBufferToScript(
+            m_webviewFrame->PostSharedBufferToScript(
                 sharedBuffer.get(), /*isReadOnlyToScript*/TRUE, additionalDataAsJson);
         }
         else
         {
-            m_webView->ShareBufferToScript(
+            m_webView->PostSharedBufferToScript(
                sharedBuffer.get(), /*isReadOnlyToScript*/TRUE, additionalDataAsJson);
         }
         // Explicitly close the one time shared buffer to ensure that the resource is released timely.
@@ -82,7 +82,7 @@ The script code will look like this:
 ```c#
       var sharedBuffer = WebViewEnvironment.CreateSharedBuffer(bufferSize);
       // Fill data using access Stream
-      using (Stream stream = sharedBuffer.GetAccessStream())
+      using (Stream stream = sharedBuffer.GetStream())
       {
           using (StreamWriter writer = new StreamWriter(stream))
           {
@@ -92,11 +92,11 @@ The script code will look like this:
       string additionalDataAsJson = "{\"read_only\":true}";
       if (forFrame)
       {
-          m_webviewFrame.ShareBufferToScript(sharedBuffer, /*isReadOnlyToScript*/true, additionalDataAsJson);
+          m_webviewFrame.PostSharedBufferToScript(sharedBuffer, /*isReadOnlyToScript*/true, additionalDataAsJson);
       }
       else
       {
-           m_webview.ShareBufferToScript(sharedBuffer, /*isReadOnlyToScript*/true, additionalDataAsJson);
+           m_webview.PostSharedBufferToScript(sharedBuffer, /*isReadOnlyToScript*/true, additionalDataAsJson);
       }
       // Explicitly close the one time shared buffer to ensure that the resource is released timely.
       sharedBuffer.Close();
@@ -106,9 +106,9 @@ The script code will look like this:
 ## Win32 C++
 ```
 interface ICoreWebView2StagingEnvironment2 : IUnknown {
-  /// Create a shared memory based buffer with the specifid size in bytes.
+  /// Create a shared memory based buffer with the specified size in bytes.
   /// The buffer can be shared with web contents in WebView by calling
-  /// `ShareBufferToScript` on `CoreWebView2` or `CoreWebViewFrame` object.
+  /// `PostSharedBufferToScript` on `CoreWebView2` or `CoreWebViewFrame` object.
   /// Once shared, the same content of the buffer will be accessible from both
   /// the app process and script in WebView. Modification to the content will be visible
   /// to all parties that have access to the buffer.
@@ -126,10 +126,10 @@ interface ICoreWebView2StagingSharedBuffer : IUnknown {
   [propget] HRESULT Buffer([out, retval] BYTE** value);
 
   /// Get an IStream object that can be used to access the shared buffer.
-  HRESULT GetAccessStream([out, retval] IStream** value);
+  HRESULT GetStream([out, retval] IStream** value);
 
   /// The file mapping handle of the shared memory of the buffer.
-  /// Normal app should use `Buffer` or `GetAccessStream` to get memory address
+  /// Normal app should use `Buffer` or `GetStream` to get memory address
   /// or IStream object to access the buffer.
   /// For advanced scenario, you could duplicate this handle to another application
   /// process and create a mapping from the duplicated handle in that process to access
@@ -138,12 +138,12 @@ interface ICoreWebView2StagingSharedBuffer : IUnknown {
   
   /// Release the backing shared memory. The application should call this API when no
   /// access to the buffer is needed any more, to ensure that the underlying resources
-  /// are released timely even if the shared buffer object itself is not released due to some leaked
-  /// reference.
+  /// are released timely even if the shared buffer object itself is not released due to
+  /// some leaked reference.
   /// After the shared buffer is closed, accessing properties of the object will fail with
   /// `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`. Operations like Read or Write on the IStream objects
-  /// returned from `GetAccessStream` will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
-  /// `ShareBufferToScript` will also fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// returned from `GetStream` will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// `PostSharedBufferToScript` will also fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   ///
   /// The script code should call `chrome.webview.releaseSharedBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
@@ -151,6 +151,10 @@ interface ICoreWebView2StagingSharedBuffer : IUnknown {
   /// When script tries to access the buffer after calling `chrome.webview.releaseSharedBuffer`,
   /// JavaScript `TypeError` exception will be raised complaining about accessing a detached ArrayBuffer,
   /// the same exception when trying to access a transferred ArrayBuffer.
+  ///
+  /// Closing the buffer object on native side doesn't impact access from Script and releasing the buffer
+  /// from script doesn't impact access to the buffer from native side.
+  /// The underlying shared memory will be released by the OS when both native and script side releases the buffer.
   HRESULT Close();
 }
 
@@ -169,11 +173,11 @@ interface ICoreWebView2Staging7 : IUnknown {
   /// 
   /// The script code should call `chrome.webview.releaseSharedBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
-  /// as it does not need access the shared buffer any more.
+  /// as it does not need access to the shared buffer any more.
   ///
   /// Sharing a buffer to script has security risk. You should only share buffer with trusted site.
   /// 
-  HRESULT ShareBufferToScript(
+  HRESULT PostSharedBufferToScript(
     [in] ICoreWebView2StagingSharedBuffer* sharedBuffer,
     [in] BOOL isReadOnlyToScript,
     [in] LPCWSTR additionalDataAsJson);
@@ -194,11 +198,11 @@ interface ICoreWebView2StagingFrame2 : IUnknown {
   /// 
   /// The script code should call `chrome.webview.releaseSharedBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
-  /// as it does not need access the shared buffer any more.
+  /// as it does not need access to the shared buffer any more.
   ///
   /// Sharing a buffer to script has security risk. You should only share buffer with trusted site.
   /// 
-  HRESULT ShareBufferToScript(
+  HRESULT PostSharedBufferToScript(
     [in] ICoreWebView2StagingSharedBuffer* sharedBuffer,
     [in] BOOL isReadOnlyToScript,
     [in] LPCWSTR additionalDataAsJson);
@@ -213,26 +217,41 @@ namespace Microsoft.Web.WebView2.Core
 
     class CoreWebView2Environment
     {
-        public CoreWebView2SharedBuffer CreateSharedBuffer(ulong Size);
+        public CoreWebView2SharedBuffer CreateSharedBuffer(ulong size);
     }
 
-    class CoreWebView2SharedBuffer
+    class CoreWebView2SharedBuffer : System.IDisposable
     {
         public ulong Size { get; };
+        
+        /// The raw memory address of the buffer.
+        /// You can cast it to pointer to real data types like byte* to access the memory from `unsafe` code region.
+        /// Normal app should use `GetStream` to get a Stream object to access the buffer.
         public IntPtr Buffer { get; };
+        
+        /// The native file mapping handle of the shared memory of the buffer.
+        /// Normal app should use `GetStream` to get a Stream object to access the buffer.
+        /// For advanced scenario, you could use native APIs to duplicate this handle to another application
+        /// process and create a mapping from the duplicated handle in that process to access
+        /// the buffer from that separate process.
         public IntPtr Handle { get; };
-        public Stream GetAccessStream();
+        
+        public Stream GetStream();
+        
         void Close();
+        
+        // IDisposable
+        public void Dispose();
     }
     
     runtimeclass CoreWebView2
     {
-        public void ShareBufferToScript(CoreWebView2SharedBuffer sharedBuffer, bool isReadOnlyToScript, string additionalDataAsJson);
+        public void PostSharedBufferToScript(CoreWebView2SharedBuffer sharedBuffer, bool isReadOnlyToScript, string additionalDataAsJson);
     }
     
     class CoreWebView2Frame
     {
-        public void ShareBufferToScript(CoreWebView2SharedBuffer sharedBuffer, bool isReadOnlyToScript, string additionalDataAsJson);
+        public void PostSharedBufferToScript(CoreWebView2SharedBuffer sharedBuffer, bool isReadOnlyToScript, string additionalDataAsJson);
     }
 }
 
@@ -246,27 +265,36 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironment2")]
         {
-            CoreWebView2SharedBuffer CreateSharedBuffer(UInt64 Size);
+            CoreWebView2SharedBuffer CreateSharedBuffer(UInt64 size);
         }
     }
 
-    runtimeclass CoreWebView2SharedBuffer
+    runtimeclass CoreWebView2SharedBuffer : Windows.Foundation.IClosable
     {
         UInt64 Size { get; };
-        Windows.Storage.Streams.IRandomAccessStream GetAccessStream();
-        void Close();
+        
+        Windows.Storage.Streams.IRandomAccessStream GetStream();
+        
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2SharedBuffer_Manual")]
         {
+            /// A reference to the underlying memory of the shared buffer.
+            /// You can get IMemoryBufferByteAccess from the object to access the memory as an array of bytes.
+            /// See [I](https://docs.microsoft.com/en-us/uwp/api/windows.foundation.imemorybufferreference?view=winrt-22621)
+            /// for more details.
             Windows.Foundation.IMemoryBufferReference Buffer { get; };
         }
+        
         // Note that we are not exposing Handle from WinRT API.
-    }
+    
+        // IClosable
+        void Close();
+     }
     
     runtimeclass CoreWebView2
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Staging7")]
         {
-            void ShareBufferToScript(CoreWebView2SharedBuffer sharedBuffer, Boolean isReadOnlyToScript, String additionalDataAsJson);
+            void PostSharedBufferToScript(CoreWebView2SharedBuffer sharedBuffer, Boolean isReadOnlyToScript, String additionalDataAsJson);
         }
     }
     
@@ -274,7 +302,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingFrame2")]
         {
-            void ShareBufferToScript(CoreWebView2SharedBuffer sharedBuffer, Boolean isReadOnlyToScript, String additionalDataAsJson);
+            void PostSharedBufferToScript(CoreWebView2SharedBuffer sharedBuffer, Boolean isReadOnlyToScript, String additionalDataAsJson);
         }
     }
 }
