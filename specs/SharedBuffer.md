@@ -131,7 +131,7 @@ interface ICoreWebView2StagingSharedBuffer : IUnknown {
   /// The file mapping handle of the shared memory of the buffer.
   /// Normal app should use `Buffer` or `GetStream` to get memory address
   /// or IStream object to access the buffer.
-  /// For advanced scenario, you could duplicate this handle to another application
+  /// For advanced scenarios, you could duplicate this handle to another application
   /// process and create a mapping from the duplicated handle in that process to access
   /// the buffer from that separate process.
   [propget] HRESULT Handle([out, retval] HANDLE* value);
