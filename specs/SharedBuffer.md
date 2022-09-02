@@ -4,7 +4,7 @@ Shared Buffer Between Native Application Code and Script
 # Background
 For some advanced scenarios, there is a need to exchange large amounts of data between the WebView2 application process and trusted web pages that are considered as part of the app. Some examples:
 - Web page generates a large amount of data, and passes it to the native side to be further processed or fed to other parts of the app or OS. For example, the web page generates 100MBs of high DPI images to be printed and needs to pass that to the native code to print. See https://github.com/MicrosoftEdge/WebView2Feedback/issues/89.
--	Native side generates large data for the web side to consume. The data might or might not come directly from files. Example: https://github.com/MicrosoftEdge/WebView2Feedback/issues/1005.
+- Native side generates a large amount of data for the web side to consume. The data might or might not come directly from files. For example the native side has generated terrabytes of data to produce different graphs on the web side. See https://github.com/MicrosoftEdge/WebView2Feedback/issues/1005.
 To support these scenarios, we are adding an Edge WebView2 API to support sharing buffers between the WebView2 host app process and WebView2 renderer process, based on shared memory from the OS.
 
 The application code can use the APIs to create a shared buffer object, and share to scripts as [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer) object.
