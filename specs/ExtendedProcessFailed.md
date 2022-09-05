@@ -713,6 +713,8 @@ namespace Microsoft.Web.WebView2.Core
         LaunchFailed,
         /// The process died due to running out of memory.
         OutOfMemory,
+        /// The process exited because its corresponding profile was deleted.
+        ProfiledDeleted,
     };
 
     runtimeclass CoreWebView2ProcessFailedEventArgs
