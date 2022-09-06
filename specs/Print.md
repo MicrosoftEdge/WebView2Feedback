@@ -108,8 +108,7 @@ bool AppWindow::PrintToDefaultPrinter()
   CHECK_FAILURE(webView2_15->Print(
       printSettings2.get(),
       Callback<ICoreWebView2PrintCompletedHandler>(
-          [title = title.get(),
-          appWindow = m_appWindow](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+          [title = title.get(), this](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
           {
             std::wstring message = L"";
             if (errorCode == S_OK && isSuccessful)
@@ -135,10 +134,8 @@ bool AppWindow::PrintToDefaultPrinter()
               }
             }
 
-            if (appWindow)
-            {
-              appWindow->AsyncMessageBox(message, L"Print to default printer");
-            }
+            AsyncMessageBox(message, L"Print to default printer");
+
             return S_OK;
         })
         .Get()));
@@ -289,8 +286,7 @@ bool AppWindow::PrintToPrinter()
   CHECK_FAILURE(webView2_15->Print(
       printSettings2.get(),
       Callback<ICoreWebView2PrintCompletedHandler>(
-          [title = title.get(),
-          appWindow = m_appWindow](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+          [title = title.get(), this](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
           {
             std::wstring message = L"";
             if (errorCode == S_OK && isSuccessful)
@@ -320,10 +316,8 @@ bool AppWindow::PrintToPrinter()
               }
             }
 
-            if (appWindow)
-            {
-              appWindow->AsyncMessageBox(message, L"Print to printer");
-            }
+            AsyncMessageBox(message, L"Print to printer");
+
             return S_OK;
           })
           .Get()));
@@ -438,18 +432,14 @@ bool AppWindow::PrintToPdfStream()
       webView2_15->PrintToPdfStream(
           printSettings2.get(),
           Callback<ICoreWebView2PrintToPdfStreamCompletedHandler>(
-              [title = title.get(),
-              appWindow = m_appWindow](HRESULT errorCode, IStream* pdfData) -> HRESULT
+              [title = title.get(), this](HRESULT errorCode, IStream* pdfData) -> HRESULT
               {
                 DisplayPdfDataInPrintDialog(pdfData);
                 std::wstring message = L"Printing " + std::wstring(title) +
                                        L" document to PDF Stream " +
                                        ((errorCode == S_OK) ? L"succedded" : L"failed");
 
-                if (appWindow)
-                {
-                  appWindow->AsyncMessageBox(message, L"Print to PDF Stream");
-                }
+                AsyncMessageBox(message, L"Print to PDF Stream");
 
                 return S_OK;
               })
