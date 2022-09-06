@@ -268,9 +268,6 @@ namespace Microsoft.Web.WebView2.Core
         public Stream GetStream();
         
         void Close();
-        
-        // IDisposable
-        public void Dispose();
     }
     
     runtimeclass CoreWebView2
@@ -316,10 +313,7 @@ namespace Microsoft.Web.WebView2.Core
         }
         
         // Note that we are not exposing Handle from WinRT API.
-    
-        // IClosable
-        void Close();
-     }
+    }
     
     runtimeclass CoreWebView2
     {
