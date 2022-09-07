@@ -2,7 +2,7 @@ Process Info
 ===
 
 # Background
-Currently, the crash process is created asynchronously with the WebView2 process and listening for any crashes. Once a crash happens, the crash pad process will create a crash dump and send that to Microsoft services for diagnosis. Provide end developer a new API to toggle dump upload consent, once uploads are disabled, dump will still be generated but just not uploaded to Microsoft endpoints. Also, provide an API to get the crash dump folder.
+Currently, when a WebView2 is created a WebView2 crashpad process will be created in addition to starting a WebView2 browser process. If any WebView2 process crashes, the crashpad process will create crash dumps and send them to Microsoft for diagnosis. This document covers new APIs to allow the end developer to customize crash reporting. They can set the `CoreWebView2EnvironmentOptions.IsCustomCrashReportingEnabled` property to not have crash dumps sent to Microsoft and use the `CoreWebView2Environment.CrashDumpFolderPath` property to locate crash dumps and do whatever they like with them instead.
 
 # Examples
 ## WinRT and .NET   
