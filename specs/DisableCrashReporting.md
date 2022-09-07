@@ -85,7 +85,7 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2Environment
     {
-        String CrashDumpFolder { get; };
+        String CrashDumpFolderPath { get; };
     }
 
     // ...
