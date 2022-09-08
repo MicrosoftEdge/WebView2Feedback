@@ -53,7 +53,11 @@ interface ICoreWebView2EnvironmentOptions3;
 [uuid(F619312E-0399-4520-B700-30818441785A), object, pointer_default(unique)]
 interface ICoreWebView2Environment11 : ICoreWebView2Environment10 {
   /// Get the crash dump folder that all CoreWebView2's from this
-  /// environment are using. Whenever a WebView2 process crashes, a crash dump file will be created in the crash dump folder.
+  /// environment are using. Whenever a WebView2 process crashes, 
+  /// a crash dump file will be created in the crash dump folder.
+  /// A crash dump format is minidump files, please see
+  /// https://docs.microsoft.com/en-us/windows/win32/debug/minidump-files for 
+  /// detail documentation.
   // MSOWNERS: xiaqu@microsoft.com
   [propget] HRESULT CrashDumpFolderPath([out, retval] LPWSTR* value);
 }
