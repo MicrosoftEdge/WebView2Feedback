@@ -25,7 +25,7 @@ Then both the native application code and the script will be able to access the 
 # Conceptual pages (How To)
 
 Besides using the memory address directly, the shared buffer object can be accessed
-from native side via an IStream* object that you can get from the shared object.
+from native side via an IStream* object that you can get from the shared buffer object.
 
 When the application code calls `PostSharedBufferToScript`, the script side will
 receive a `SharedBufferReceived` event containing the buffer as an `ArrayBuffer` object.
@@ -37,14 +37,14 @@ As shared buffer normally represent a large memory, instead of waiting for garba
 collection to release the memory along with the owning objects, the application
 should try to release the buffer as soon as it doesn't need access to it.
 This can be done by calling Close() method on the shared buffer object, or
-`chrome.webview.releaseSharedBuffer` from script.
+`chrome.webview.releaseBuffer` from script.
 
 As the memory could contain sensitive information and corrupted memory could crash
 the application, the application should only share buffer with trusted sites.
 
 The application can use other messaging channel like `PostWebMessageAsJson` and
 `chrome.webview.postMessage` to inform the other side the desire to have a shared
-buffer and the status of the buffer (data is produced or consumed).
+buffer and the status of the buffer (like data is produced or consumed).
 
 # Examples
 
@@ -59,30 +59,26 @@ The script code will look like this:
         }
 
         function SharedBufferReceived(e) {
-            if (e.data && e.data.read_only) {
+            if (e.data && e.data.readOnly) {
                 // This is the one time read only buffer
-                let one_time_shared_buffer = e.sharedBuffer;
+                let oneTimeSharedBuffer = e.sharedBuffer;
                 // Consume the data from the buffer
-                DisplaySharedBufferData(one_time_shared_buffer);
+                DisplaySharedBufferData(oneTimeSharedBuffer);
                 // Release the buffer after consuming the data.
-                chrome.webview.releaseSharedBuffer(one_time_shared_buffer);
+                chrome.webview.releaseBuffer(oneTimeSharedBuffer);
             }
         }
 ```
 ## Win32 C++
 ```cpp
 
-        wil::com_ptr<ICoreWebView2Environment11> environment;
-        CHECK_FAILURE(
-            m_appWindow->GetWebViewEnvironment()->QueryInterface(IID_PPV_ARGS(&environment)));
-
         wil::com_ptr<ICoreWebView2SharedBuffer> sharedBuffer;
-        CHECK_FAILURE(environment->CreateSharedBuffer(bufferSize, &sharedBuffer));
+        CHECK_FAILURE(webviewEnvironment->CreateSharedBuffer(bufferSize, &sharedBuffer));
         // Fill data into the shared memory via IStream.
         wil::com_ptr<IStream> stream;
         CHECK_FAILURE(sharedBuffer->GetStream(&stream));
         CHECK_FAILURE(stream->Write(data, dataSize, nullptr));
-        PCWSTR additionalDataAsJson = L"{\"read_only\":true}";
+        PCWSTR additionalDataAsJson = L"{\"readOnly\":true}";
         if (forFrame)
         {
             m_webviewFrame->PostSharedBufferToScript(
@@ -106,10 +102,10 @@ The script code will look like this:
           {
               using (StreamWriter writer = new StreamWriter(stream))
               {
-                  writer.Write(bufferData);
+                  writer.Write(data);
               }
           }
-          string additionalDataAsJson = "{\"read_only\":true}";
+          string additionalDataAsJson = "{\"readOnly\":true}";
           if (forFrame)
           {
               m_webviewFrame.PostSharedBufferToScript(sharedBuffer, /*isReadOnlyToScript*/true, additionalDataAsJson);
@@ -164,17 +160,17 @@ interface ICoreWebView2SharedBuffer : IUnknown {
   /// objects returned from `GetStream` will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// `PostSharedBufferToScript` will also fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   ///
-  /// The script code should call `chrome.webview.releaseSharedBuffer` with
+  /// The script code should call `chrome.webview.releaseBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
   /// as it does not need access the shared buffer any more.
-  /// When script tries to access the buffer after calling `chrome.webview.releaseSharedBuffer`,
+  /// When script tries to access the buffer after calling `chrome.webview.releaseBuffer`,
   /// JavaScript `TypeError` exception will be raised complaining about accessing a
   /// detached ArrayBuffer, the same exception when trying to access a transferred ArrayBuffer.
   ///
   /// Closing the buffer object on native side doesn't impact access from Script and releasing
   /// the buffer from script doesn't impact access to the buffer from native side.
   /// The underlying shared memory will be released by the OS when both native and script side
-  /// releases the buffer.
+  /// release the buffer.
   HRESULT Close();
 }
 
@@ -193,7 +189,7 @@ interface ICoreWebView2_14 : IUnknown {
   /// violation in WebView renderer process and crash the renderer process.
   /// If the shared buffer is already closed, the API will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// 
-  /// The script code should call `chrome.webview.releaseSharedBuffer` with
+  /// The script code should call `chrome.webview.releaseBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
   /// as it does not need access to the shared buffer any more.
   ///
@@ -222,7 +218,7 @@ interface ICoreWebView2Frame4 : IUnknown {
   /// violation in WebView renderer process and crash the renderer process.
   /// If the shared buffer is already closed, the API will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// 
-  /// The script code should call `chrome.webview.releaseSharedBuffer` with
+  /// The script code should call `chrome.webview.releaseBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
   /// as it does not need access to the shared buffer any more.
   ///
