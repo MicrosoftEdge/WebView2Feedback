@@ -2,7 +2,7 @@ Process Info
 ===
 
 # Background
-Currently, when a WebView2 is created a WebView2 crashpad process will be created in addition to starting a WebView2 browser process. If any WebView2 process crashes, the crashpad process will create crash dumps and send them to Microsoft for diagnosis. This document covers new APIs to allow the end developer to customize crash reporting. They can set the `CoreWebView2EnvironmentOptions.IsCustomCrashReportingEnabled` property to not have crash dumps sent to Microsoft and use the `CoreWebView2Environment.CrashDumpFolderPath` property to locate crash dumps and do customization with them instead.
+Currently, when a WebView2 is created a WebView2 crashpad process will be created in addition to starting a WebView2 browser process. If any WebView2 process crashes, the crashpad process will create crash dumps and send them to Microsoft for diagnosis. This document covers new APIs to allow the end developer to customize crash reporting to help when running diagnostics and doing analysis. They can set the `CoreWebView2EnvironmentOptions.IsCustomCrashReportingEnabled` property to not have crash dumps sent to Microsoft and use the `CoreWebView2Environment.CrashDumpFolderPath` property to locate crash dumps and do customization with them instead.
 
 # Examples
 ## WinRT and .NET   
