@@ -82,6 +82,9 @@ interface ICoreWebView2Environment11 : ICoreWebView2Environment10 {
   /// A crash dump format is minidump files, please see
   /// https://docs.microsoft.com/en-us/windows/win32/debug/minidump-files for 
   /// detail documentation.
+  /// `ProcessFailed` event are raised everytime a crash happens, minidump files 
+  /// will be written to disk at that time. Developers can rely on `ProcessFailed` and 
+  /// `CrashDumpFolderPath` to customize crash dump experiences.
   // MSOWNERS: xiaqu@microsoft.com
   [propget] HRESULT CrashDumpFolderPath([out, retval] LPWSTR* value);
 }
