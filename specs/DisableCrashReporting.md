@@ -56,7 +56,7 @@ void AppWindow::ProcessFailed()
 	// Register a handler for the ProcessFailed event.
     CHECK_FAILURE(m_webView->add_ProcessFailed(
         Callback<ICoreWebView2ProcessFailedEventHandler>(
-            [this](ICoreWebView2* sender, ICoreWebView2ProcessFailedEventArgs* argsRaw)
+            [this, &crashDumpFolder](ICoreWebView2* sender, ICoreWebView2ProcessFailedEventArgs* argsRaw)
                 -> HRESULT {
                 // Custom processing
 				ProcessNewCrashDumps(crashDumpFolder);
