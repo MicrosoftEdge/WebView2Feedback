@@ -178,7 +178,7 @@ HRESULT AppWindow::DeleteProfile(ICoreWebView2Controller* controller)
     {
         wil::com_ptr<ICoreWebView2Profile> profile;
         CHECK_FAILURE(webview7->get_Profile(&profile));
-        auto profile2 = profile.try_query<ICoreWebView2StagingProfile4>;
+        auto profile2 = profile.try_query<ICoreWebView2StagingProfile4>();
         if (profile2)
         {
             CHECK_FAILURE(profile2->Delete());
@@ -370,8 +370,8 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   /// asynchronously exit with the reason:`COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED`.
   /// See 'COREWEBVIEW2_PROCESS_FAILED_REASON::COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED'
   /// for more details. The profile directory on disk will be actually deleted when the browser
-  /// process exits. Profile creation will fail if you create a new profile with the same name
-  /// as a profile that is being deleted.
+  /// process exits. Webview2 creation will fail with the HRESULT is ERROR_INVALID_STATE(0x8007139FL)
+  /// if you create it with the same name as a profile that is being deleted.
   HRESULT Delete(); 
 }
 ```
