@@ -16,13 +16,6 @@ void CreateEnvrionmentWithOption()
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 
-string _crashDumpFolder;
-
-void GetDumpFolder()
-{
-    _crashDumpFolder = webView.CoreWebView2.Environment.CrashDumpFolderPath;
-}
-
 void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
     webView.CoreWebView2.ProcessFailed += WebView_ProcessFailed;
@@ -31,6 +24,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 void WebView_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
 {
     // When process failed, do custom parsing with dumps
+    string crashDumpFolder = webView.CoreWebView2.Environment.CrashDumpFolderPath;
     ProcessNewCrashDumps(_crashDumpFolder);
 }
 
