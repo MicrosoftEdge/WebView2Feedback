@@ -16,10 +16,22 @@ void CreateEnvrionmentWithOption()
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 
-void DirFileChanged()
+string _crashDumpFolder;
+
+void GetDumpFolder()
 {
-    String crashDumpFolder = webView.CoreWebView2.Environment.CrashDumpFolderPath;
-    ProcessNewCrashDumps(crashDumpFolder);
+    _crashDumpFolder = webView.CoreWebView2.Environment.CrashDumpFolderPath;
+}
+
+void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
+{
+    webView.CoreWebView2.ProcessFailed += WebView_ProcessFailed;
+}
+
+void WebView_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
+{
+    // When process failed, do custom parsing with dumps
+    ProcessNewCrashDumps(_crashDumpFolder);
 }
 
 ```
@@ -34,12 +46,24 @@ void AppWindow::InitializeWebView()
     // ... CreateCoreWebView2EnvironmentWithOptions
 }
 
-void AppWindow::DirFileChanged()
+void AppWindow::ProcessFailed()
 {
+    // Get dump folder path
     wil::com_ptr<ICoreWebView2Environment11> environment;
-    wil::unique_cotaskmem_string crashPadPath;
-    CHECK_FAILURE(environment->get_CrashDumpFolderPath(&crashPadPath));
-    ProcessNewCrashDumps(crashDumpFolder);
+    wil::unique_cotaskmem_string crashDumpFolder;
+    CHECK_FAILURE(environment->get_CrashDumpFolderPath(&crashDumpFolder));
+	
+	// Register a handler for the ProcessFailed event.
+    CHECK_FAILURE(m_webView->add_ProcessFailed(
+        Callback<ICoreWebView2ProcessFailedEventHandler>(
+            [this](ICoreWebView2* sender, ICoreWebView2ProcessFailedEventArgs* argsRaw)
+                -> HRESULT {
+                // Custom processing
+				ProcessNewCrashDumps(crashDumpFolder);
+                return S_OK;
+            })
+            .Get(),
+        &m_processFailedToken));
 }
 ```
 
