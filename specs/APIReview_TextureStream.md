@@ -26,29 +26,58 @@ regards to frame copy.
 This is Javascript code common to both of the following samples:
 
 ```js
-// User click the video capture button.
+// User click the video capture button to start straming.
 document.querySelector('#showVideo').addEventListener('click',
   e => getStreamFromTheHost(e));
 async function getStreamFromTheHost(e) {
   try {
     // Request stream to the host with unique stream id.
+    // getTextureStream W3C standard MediaStream object that has only video
+    // MediaStreamTrack.
     const stream = await window.chrome.webview.getTextureStream('webview2-abcd1234');
     // The MediaStream object is returned and it gets video MediaStreamTrack element from it.
     const video_tracks = stream.getVideoTracks();
     const videoTrack = video_tracks[0];
+    window.videoTrack = videoTrack;
     // Show the video via Video Element.
     document.getElementById(video_id).srcObject = stream;
   } catch (error) {
     console.log(error);
   }
 }
+
+// Developer can use commands and events for MediaStream and MediaStreamTrack.
+
+// It will completely stop the current streaming. If it restarts, it
+// should call getTextureStream again.
+function stopStreaming() {
+  window.videoTrack.addEventListener('ended', () => {
+    delete window.videoTrack;
+  });
+
+  window.videoTrack.stop();
+}
+
+// Most of events on the MediaStream/MediaStreamTrack will be supported.
+
+// No video streaming from the host.
+window.videoTrack.addEventListener('mute', () => {
+  console.log('mute state);
+});
+
+// Sent to the track when data becomes available again, ending the muted state.
+window.videoTrack.addEventListener('unmut', () => {
+  console.log('unmute state);
+});
+
+  window.videoTrack.stop();
 ```
 
 ## Win32 C++
 ```cpp
 UINT32 luid,
 // Get the LUID (Graphic adapter) that the WebView renderer uses.
-coreWebView->GetRenderAdapterLUID(&luid);
+coreWebView->get_RenderAdapterLUID(&luid);
 // Create D3D device based on the WebView's LUID.
 ComPtr<D3D11Device> d3d_device = MyCreateD3DDevice(luid);
 // Register unique texture stream that the host can provide.
@@ -89,56 +118,27 @@ webviewTextureStream->add_TextureError(Callback<ICoreWebView2StagingTextureStrea
     return S_OK;
   }).Get(), &texture_token);
 
-// TextureStream APIs are called in the UI thread on the WebView2 process meanwhile Video capture
-// and composition could happen in worker thread or out of process.
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-  static ICoreWebView2Staging3* webview2_17 = nullptr;
-  TCHAR greeting[] = _T("Hello, Windows desktop!");
-  ComPtr<ID3D11Device> d3d_device;
-  HANDLE slimCoreHandle;
-  HRESULT hr;
-  ComPtr<ICoreWebView2StagingTexture> texture_buffer;
-  int64_t bufferId = -1;
-  switch (message)
-  {
-  case IDC_TEST_SEND_TEXTURE:
-    if (webviewTextureStream) {
-      // Present API should be called on same thread where main WebView
-      // object is created.
-      bufferId = (int)wParam;
-      texture_buffer = texture_address_to_buffer_ids[(HANDLE)bufferId];
-      // assert(texture_buffer != nullptr);
-      if (texture_buffer) {
-                 // Notify the renderer for updated texture on the shared buffer.
-        webviewTextureStream->SetBuffer(texture_buffer.Get(), texture_buffer_info_->timestamp);
-        webviewTextureStream->Present();
-      }
-    }
-    break;
-  case IDC_TEST_REQUEST_BUFFER:
-            // Retrieve available shared buffer.
-    hr = webviewTextureStream->GetAvailableBuffer(&texture_buffer);
-    if (SUCCEEDED(hr)) {
-      texture_buffer->get_Handle((HANDLE*)&bufferId);
-    }
-    SendBufferIdToOOFCaptureEngine(false, nullptr, bufferId);
-    break;
-  case IDC_TEST_CREATE_NEW_BUFFER:
-    if (webviewTextureStream) {
-      ComPtr<ICoreWebView2StagingTexture> texture_buffer;
-      UINT32 width = (UINT32)wParam;
-      UINT32 height = (UINT32)lParam;
-      // Create shared buffer.
-      webviewTextureStream->CreateSharedBuffer(width, height, &texture_buffer);
-      texture_buffer->get_Handle(&slimCoreHandle);
-      texture_address_to_buffer_ids[slimCoreHandle] = texture_buffer;
-      SendBufferIdToOOFCaptureEngine(true, slimCoreHandle, (int)slimCoreHandle);
-    }
-    break;
-  default:
-    return DefWindowProc(hWnd, message, wParam, lParam);
-    break;
+HRESULT CallWebView2API(bool createBuffer,
+                        UINT32 width,
+                        UINT32 height,
+                        bool requestAvailableBufer,
+                        bool sendTexture,
+                        ICoreWebView2StagingTexture* send_texture,
+                        UINT64 timestamp,
+                        ICoreWebView2StagingTexture** texture) {
+  if (createBuffer) {
+    // Create shared buffer.
+    return webviewTextureStream->CreateSharedBuffer(width, height, &texture);
+  }
+
+  if (requestAvailableBufer) {
+    return webviewTextureStream->GetAvailableBuffer(&texture);
+  }
+
+  if (sendTexture) {
+    // Notify the renderer for updated texture on the shared buffer.
+    webviewTextureStream->SetBuffer(send_texture, timestamp);
+    webviewTextureStream->Present();
   }
 }
 ```
@@ -184,16 +184,16 @@ interface ICoreWebView2Staging3 : IUnknown {
       [out, retval ] ICoreWebView2StagingTextureStream** value);
   /// Get the graphics adapter LUID of the renderer. The host should use this
   /// LUID adapter when creating D3D device to use with CreateTextureStream().
-HRESULT GetRenderAdapterLUID([out, retval] LUID* luid);
+  [propget] HRESULT RenderAdapterLUID([out, retval] LUID* luid);
   /// Listens for change of graphics adapter LUID of the browser.
-  /// The host can get the updated LUID by GetRenderAdapterLUID. It is expected
+  /// The host can get the updated LUID by RenderAdapterLUID. It is expected
   /// that the host updates texture's d3d Device with UpdateD3DDevice,
   /// removes existing buffers and creates new buffer.
-  HRESULT add_RenderAdapterLUIDUpdated(
-      [in] ICoreWebView2StagingRenderAdapterLUIDUpdatedEventHandler* eventHandler,
+  HRESULT add_RenderAdapterLUIDChanged(
+      [in] ICoreWebView2StagingRenderAdapterLUIDChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
   /// Remove listener for start stream request.
-  HRESULT remove_RenderAdapterLUIDUpdated(
+  HRESULT remove_RenderAdapterLUIDChanged(
       [in] EventRegistrationToken token);
 }
 /// This is the interface that handles texture streaming.
@@ -292,7 +292,7 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
       [out] EventRegistrationToken* token);
   /// Remove listener for texture error event.
   HRESULT remove_TextureError([in] EventRegistrationToken token);
-  /// Updates d3d Device when it is updated by RenderAdapterLUIDUpdated
+  /// Updates d3d Device when it is updated by RenderAdapterLUIDChanged
   /// event.
   HRESULT UpdateD3DDevice([in] IUnknown* d3dDevice);
 }
@@ -346,7 +346,7 @@ interface ICoreWebView2StagingTextureStreamTextureErrorEventArgs : IUnknown {
   HRESULT GetBuffer([out, retval] ICoreWebView2StagingTexture** buffer);
 }
 [uuid(431721e0-0f18-4d7b-bd4d-e5b1522bb110), object, pointer_default(unique)]
-interface ICoreWebView2StagingRenderAdapterLUIDUpdatedEventHandler : IUnknown {
+interface ICoreWebView2StagingRenderAdapterLUIDChangedEventHandler : IUnknown {
   /// Called to provide the implementer with the event args for the
   /// corresponding event.
   HRESULT Invoke(
@@ -354,7 +354,7 @@ interface ICoreWebView2StagingRenderAdapterLUIDUpdatedEventHandler : IUnknown {
       [in] IUnknown* args);
 }
 [uuid(431721e0-0f18-4d7b-bd4d-e5b1522bb110), object, pointer_default(unique)]
-interface ICoreWebView2StagingRenderAdapterLUIDUpdatedEventHandler : IUnknown {
+interface ICoreWebView2StagingRenderAdapterLUIDChangedEventHandler : IUnknown {
   /// Called to provide the implementer with the event args for the
   /// corresponding event.
   HRESULT Invoke(
