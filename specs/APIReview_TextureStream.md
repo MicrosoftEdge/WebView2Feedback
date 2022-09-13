@@ -1,31 +1,38 @@
-	
+TextureStream
+===============================================================================================
+
 # Background
-Many native apps use a native engine for real-time communication scenarios, which include video 
-capture, networking and video rendering.  However, often, these apps still use WebView or 
-Electrion for UI rendering. The separation between real-time video rendering and UI rendering 
+Many native apps use a native engine for real-time communication scenarios, which include video
+capture, networking and video rendering.  However, often, these apps still use WebView or
+Electron for UI rendering. The separation between real-time video rendering and UI rendering
 prevents apps from rendering real-time video inside the web contents. This forces apps to
-render the real-time video on top of the web contents, which is limiting. Rendering video on 
-top constrains the user experience and it may also cause performance problems.  
-We can ask the native apps to use web renderer for video handling because web standard already 
-provides these features through WebRTC APIs. The end developers, however, prefer to use 
+render the real-time video on top of the web contents, which is limiting. Rendering video on
+top constrains the user experience and it may also cause performance problems.
+We can ask the native apps to use web renderer for video handling because web standard already
+provides these features through WebRTC APIs. The end developers, however, prefer to use
 their existing engine such as capturing and composition, meanwhile using WebRTC API for rendering.
 
 # Description
-The proposed APIs will allow the end developers to stream the captured or composed video frame to 
-the WebView renderer where Javascript is able to insert the frame to the page through W3C standard 
+The proposed APIs will allow the end developers to stream the captured or composed video frame to
+the WebView renderer where Javascript is able to insert the frame to the page through W3C standard
 API of Video, MediaStream element for displaying it.
-The API will use the shared GPU texture buffer so that it can minimize the overall cost with 
+The API will use the shared GPU texture buffer so that it can minimize the overall cost with
 regards to frame copy.
 
 # Examples
-Javascript
+
+## Javascript
+
+This is Javascript code common to both of the following samples:
+
+```js
 // User click the video capture button.
 document.querySelector('#showVideo').addEventListener('click',
   e => getStreamFromTheHost(e));
 async function getStreamFromTheHost(e) {
   try {
     // Request stream to the host with unique stream id.
-    const stream = await window.chrome.webview.getTextureStream('webview2-abcd1234'); 
+    const stream = await window.chrome.webview.getTextureStream('webview2-abcd1234');
     // The MediaStream object is returned and it gets video MediaStreamTrack element from it.
     const video_tracks = stream.getVideoTracks();
     const videoTrack = video_tracks[0];
@@ -35,13 +42,16 @@ async function getStreamFromTheHost(e) {
     console.log(error);
   }
 }
-Win32 C++
+```
+
+## Win32 C++
+```cpp
 UINT32 luid,
 // Get the LUID (Graphic adapter) that the WebView renderer uses.
 coreWebView->GetRenderAdapterLUID(&luid);
 // Create D3D device based on the WebView's LUID.
 ComPtr<D3D11Device> d3d_device = MyCreateD3DDevice(luid);
-// Register unique texture stream that the host can provide. 
+// Register unique texture stream that the host can provide.
 ComPtr<ICoreWebView2TextureStream> webviewTextureStream;
 g_webviewStaging3->CreateTextureStream(L"webview2-abcd1234", d3d_device.Get(),  &webviewTextureStream);
 // Register the Origin URL that the target renderer could stream of the registered stream id. The request from not registered origin will fail to stream.
@@ -78,7 +88,7 @@ webviewTextureStream->add_TextureError(Callback<ICoreWebView2StagingTextureStrea
     }
     return S_OK;
   }).Get(), &texture_token);
-    
+
 // TextureStream APIs are called in the UI thread on the WebView2 process meanwhile Video capture
 // and composition could happen in worker thread or out of process.
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -131,8 +141,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     break;
   }
 }
+```
+
 # API Details
-Win32 C++
+```
 [v1_enum]
 typedef enum COREWEBVIEW2_TEXTURE_STREAM_ERROR_KIND {
   /// The host can't create a TextureStream instance more than once
@@ -349,5 +361,4 @@ interface ICoreWebView2StagingRenderAdapterLUIDUpdatedEventHandler : IUnknown {
       [in] ICoreWebView2Staging3 * sender,
       [in] IUnknown* args);
 }
-
-
+```
