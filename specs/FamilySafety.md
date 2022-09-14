@@ -8,10 +8,13 @@ Please see https://www.microsoft.com/en-us/microsoft-365/family-safety for detai
 # Examples
 ## WinRT and .NET   
 ```c#
-auto options = new CoreWebView2EnvironmentOptions();
-options.IsFamilySafetyEnabled = true;
-options.SetFamilySafetySoftByPassList(1, "appassets.example/AppStartPage.html");
-auto environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
+void CreateEnvrionmentWithOption()
+{
+    CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
+    options.IsFamilySafetyEnabled = true;
+    options.SetFamilySafetySoftByPassList(1, "appassets.example/AppStartPage.html");
+    auto environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
+}
 ```
 ## Win32 C++
 ```cpp
