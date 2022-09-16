@@ -11,7 +11,7 @@ as part of the app. Some examples:
   code to print. See https://github.com/MicrosoftEdge/WebView2Feedback/issues/89.
 - Native side generates a large amount of data for the web side to consume. The data
   might or might not come directly from files. For example the native side has generated
-  terrabytes of data to produce different graphs on the web side.
+  terabytes of data to produce different graphs on the web side.
   See https://github.com/MicrosoftEdge/WebView2Feedback/issues/1005.
 
 To support these scenarios, we are adding an Edge WebView2 API to support sharing
@@ -30,7 +30,7 @@ from native side via an IStream* object that you can get from the shared buffer 
 When the application code calls `PostSharedBufferToScript`, the script side will
 receive a `SharedBufferReceived` event containing the buffer as an `ArrayBuffer` object.
 After receiving the shared buffer object, it can access it the same way as any other
-ArrayBuffer object, including transering to a web worker to process the data on
+ArrayBuffer object, including transferring to a web worker to process the data on
 the worker thread.
 
 As shared buffer normally represent a large memory, instead of waiting for garbage
@@ -53,19 +53,19 @@ The example below illustrates how to send data from application to script for on
 The script code will look like this:
 ```
         window.onload = function () {
-            window.chrome.webview.addEventListener("SharedBufferReceived", e => {
+            window.chrome.webview.addEventListener("sharedbufferreceived", e => {
                 SharedBufferReceived(e);
             });
         }
 
         function SharedBufferReceived(e) {
-            if (e.data && e.data.readOnly) {
-                // This is the one time read only buffer
-                let oneTimeSharedBuffer = e.sharedBuffer;
-                // Consume the data from the buffer
-                DisplaySharedBufferData(oneTimeSharedBuffer);
+            if (e.additionalData && e.additionalData.contosoBufferKind == "contosoDisplayBuffer") {
+                let displayBuffer = e.getBuffer();
+                // Consume the data from the buffer (in the form of an ArrayBuffer)
+                let view = new UInt32Array(displayBuffer);
+                DisplaySharedBufferData(view);
                 // Release the buffer after consuming the data.
-                chrome.webview.releaseBuffer(oneTimeSharedBuffer);
+                chrome.webview.releaseBuffer(displayBuffer);
             }
         }
 ```
@@ -76,18 +76,18 @@ The script code will look like this:
         CHECK_FAILURE(webviewEnvironment->CreateSharedBuffer(bufferSize, &sharedBuffer));
         // Fill data into the shared memory via IStream.
         wil::com_ptr<IStream> stream;
-        CHECK_FAILURE(sharedBuffer->GetStream(&stream));
+        CHECK_FAILURE(sharedBuffer->OpenStream(&stream));
         CHECK_FAILURE(stream->Write(data, dataSize, nullptr));
-        PCWSTR additionalDataAsJson = L"{\"readOnly\":true}";
+        PCWSTR additionalDataAsJson = L"{\"contosoBufferKind\":\"contosoDisplayBuffer\"}";
         if (forFrame)
         {
             m_webviewFrame->PostSharedBufferToScript(
-                sharedBuffer.get(), /*isReadOnlyToScript*/TRUE, additionalDataAsJson);
+                sharedBuffer.get(), COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, additionalDataAsJson);
         }
         else
         {
             m_webView->PostSharedBufferToScript(
-               sharedBuffer.get(), /*isReadOnlyToScript*/TRUE, additionalDataAsJson);
+               sharedBuffer.get(), COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, additionalDataAsJson);
         }
         // Explicitly close the one time shared buffer to ensure that the resource is released timely.
         sharedBuffer->Close();
@@ -98,21 +98,21 @@ The script code will look like this:
       using (CoreWebView2SharedBuffer sharedBuffer = WebViewEnvironment.CreateSharedBuffer(bufferSize))
       {
           // Fill data using access Stream
-          using (Stream stream = sharedBuffer.GetStream())
+          using (Stream stream = sharedBuffer.OpenStream())
           {
               using (StreamWriter writer = new StreamWriter(stream))
               {
                   writer.Write(data);
               }
           }
-          string additionalDataAsJson = "{\"readOnly\":true}";
+          string additionalDataAsJson = "{\"contosoBufferKind\":\"contosoDisplayBuffer\"}";
           if (forFrame)
           {
-              m_webviewFrame.PostSharedBufferToScript(sharedBuffer, /*isReadOnlyToScript*/true, additionalDataAsJson);
+              m_webviewFrame.PostSharedBufferToScript(sharedBuffer, CoreWebView2SharedBufferAccess.ReadOnly, additionalDataAsJson);
           }
           else
           {
-               m_webview.PostSharedBufferToScript(sharedBuffer, /*isReadOnlyToScript*/true, additionalDataAsJson);
+               m_webview.PostSharedBufferToScript(sharedBuffer, CoreWebView2SharedBufferAccess.ReadOnly, additionalDataAsJson);
           }
       }
 ```
@@ -127,7 +127,6 @@ interface ICoreWebView2Environment11 : IUnknown {
   /// Once shared, the same content of the buffer will be accessible from both
   /// the app process and script in WebView. Modification to the content will be visible
   /// to all parties that have access to the buffer.
-  /// For 32bit application, the creation will fail with E_INVALIDARG if `size` is larger than 4GB.
   HRESULT CreateSharedBuffer(
     [in] UINT64 size,
     [out, retval] ICoreWebView2SharedBuffer** shared_buffer);
@@ -141,15 +140,17 @@ interface ICoreWebView2SharedBuffer : IUnknown {
   [propget] HRESULT Buffer([out, retval] BYTE** value);
 
   /// Get an IStream object that can be used to access the shared buffer.
-  HRESULT GetStream([out, retval] IStream** value);
+  HRESULT OpenStream([out, retval] IStream** value);
 
-  /// The file mapping handle of the shared memory of the buffer.
+  /// Returns a handle to the file mapping object that backs this shared buffer.
+  /// The returned handle is owned by the shared buffer object. You should not
+  /// call CloseHandle on it.
   /// Normal app should use `Buffer` or `GetStream` to get memory address
   /// or IStream object to access the buffer.
-  /// For advanced scenarios, you could duplicate this handle to another application
-  /// process and create a mapping from the duplicated handle in that process to access
-  /// the buffer from that separate process.
-  [propget] HRESULT Handle([out, retval] HANDLE* value);
+  /// For advanced scenarios, you could use file-mapping APIs to obtain other views
+  /// or duplicate this handle to another application process and create a view from
+  /// the duplicated handle in that process to access the buffer from that separate process.
+  [propget] HRESULT FileMappingHandle([out, retval] HANDLE* value);
   
   /// Release the backing shared memory. The application should call this API when no
   /// access to the buffer is needed any more, to ensure that the underlying resources
@@ -174,17 +175,24 @@ interface ICoreWebView2SharedBuffer : IUnknown {
   HRESULT Close();
 }
 
+typedef enum COREWEBVIEW2_SHARED_BUFFER_ACCESS {
+    // The script only has read access to the shared buffer
+    COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY,
+    // The script has read and write access to the shared buffer
+    COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_WRITE
+} COREWEBVIEW2_SHARED_BUFFER_ACCESS;
+
 interface ICoreWebView2_14 : IUnknown {
   /// Share a shared buffer object with script of the main frame in the WebView.
   /// The script will receive a `SharedBufferReceived` event from chrome.webview.
-  /// The event arg for that event will have the following properties:
-  ///   `sharedBuffer`: an ArrayBuffer object with the backing content from the shared buffer.
-  ///   `data`: an object as the result of parsing `additionalDataAsJson` as JSON string.
+  /// The event arg for that event will have the following methods and properties:
+  ///   `getBuffer()`: returns an ArrayBuffer object with the backing content from the shared buffer.
+  ///   `additionalData`: an object as the result of parsing `additionalDataAsJson` as JSON string.
   ///           This property will be `undefined` if `additionalDataAsJson` is nullptr or empty string.
   ///   `source`: with a value set as `chrome.webview` object.
   /// If a string is provided as `additionalDataAsJson` but it is not a valid JSON string,
   /// the API will fail with `E_INVALIDARG`.
-  /// If `isReadOnlyToScript` is true, the script will only have read access to the buffer.
+  /// If `access` is COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, the script will only have read access to the buffer.
   /// If the script tries to modify the content in a read only buffer, it will cause an access
   /// violation in WebView renderer process and crash the renderer process.
   /// If the shared buffer is already closed, the API will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
@@ -199,7 +207,7 @@ interface ICoreWebView2_14 : IUnknown {
   /// it could result in corrupted data that might even crash the application. 
   HRESULT PostSharedBufferToScript(
     [in] ICoreWebView2SharedBuffer* sharedBuffer,
-    [in] BOOL isReadOnlyToScript,
+    [in] COREWEBVIEW2_SHARED_BUFFER_ACCESS access,
     [in] LPCWSTR additionalDataAsJson);
 }
 
@@ -213,7 +221,7 @@ interface ICoreWebView2Frame4 : IUnknown {
   ///   `source`: with a value set as `chrome.webview` object.
   /// If a string is provided as `additionalDataAsJson` but it is not a valid JSON string,
   /// the API will fail with `E_INVALIDARG`.
-  /// If `isReadOnlyToScript` is true, the script will only have read access to the buffer.
+  /// If `access` is COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, the script will only have read access to the buffer.
   /// If the script tries to modify the content in a read only buffer, it will cause an access
   /// violation in WebView renderer process and crash the renderer process.
   /// If the shared buffer is already closed, the API will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
@@ -228,7 +236,7 @@ interface ICoreWebView2Frame4 : IUnknown {
   /// it could result in corrupted data that might even crash the application. 
   HRESULT PostSharedBufferToScript(
     [in] ICoreWebView2SharedBuffer* sharedBuffer,
-    [in] BOOL isReadOnlyToScript,
+    [in] COREWEBVIEW2_SHARED_BUFFER_ACCESS access,
     [in] LPCWSTR additionalDataAsJson);
 }
 
@@ -255,13 +263,13 @@ namespace Microsoft.Web.WebView2.Core
         public IntPtr Buffer { get; };
         
         /// The native file mapping handle of the shared memory of the buffer.
-        /// Normal app should use `GetStream` to get a Stream object to access the buffer.
+        /// Normal app should use `OpenStream` to get a Stream object to access the buffer.
         /// For advanced scenario, you could use native APIs to duplicate this handle to
         /// another application process and create a mapping from the duplicated handle in
         /// that process to access the buffer from that separate process.
-        public IntPtr Handle { get; };
+        public System.Runtime.InteropServices.SafeHandle FileMappingHandle { get; };
         
-        public Stream GetStream();
+        public Stream OpenStream();
         
         void Close();
     }
@@ -269,13 +277,13 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2
     {
         public void PostSharedBufferToScript(
-            CoreWebView2SharedBuffer sharedBuffer, bool isReadOnlyToScript, string additionalDataAsJson);
+            CoreWebView2SharedBuffer sharedBuffer, CoreWebView2SharedBufferAccess access, string additionalDataAsJson);
     }
     
     class CoreWebView2Frame
     {
         public void PostSharedBufferToScript(
-            CoreWebView2SharedBuffer sharedBuffer, bool isReadOnlyToScript, string additionalDataAsJson);
+            CoreWebView2SharedBuffer sharedBuffer, CoreWebView2SharedBufferAccess access, string additionalDataAsJson);
     }
 }
 
@@ -297,7 +305,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         UInt64 Size { get; };
         
-        Windows.Storage.Streams.IRandomAccessStream GetStream();
+        Windows.Storage.Streams.IRandomAccessStream OpenStream();
         
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2SharedBuffer_Manual")]
         {
@@ -316,7 +324,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_14")]
         {
             void PostSharedBufferToScript(
-                CoreWebView2SharedBuffer sharedBuffer, Boolean isReadOnlyToScript, String additionalDataAsJson);
+                CoreWebView2SharedBuffer sharedBuffer, CoreWebView2SharedBufferAccess access, String additionalDataAsJson);
         }
     }
     
@@ -325,7 +333,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Frame4")]
         {
             void PostSharedBufferToScript(
-                CoreWebView2SharedBuffer sharedBuffer, Boolean isReadOnlyToScript, String additionalDataAsJson);
+                CoreWebView2SharedBuffer sharedBuffer, CoreWebView2SharedBufferAccess access, String additionalDataAsJson);
         }
     }
 }
