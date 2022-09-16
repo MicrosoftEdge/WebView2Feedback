@@ -41,7 +41,7 @@ interface ICoreWebView2EnvironmentOptions3 : ICoreWebView2EnvironmentOptions2 {
   [propget] HRESULT CreationPriority([out, retval] CreationPriority* creationPriority);
 
   /// Sets the `CreationPriority` property.
-  /// The `CreationPriority` property` specifies that the creation priority WebView environment get created.
+  /// The `CreationPriority` property specifies that the creation priority WebView environment get created.
   /// WebView2 currernt has a functionality enabled by deafult which raises the launch priority to
   /// give improvements on the WebView2 creation time. Since this improvement is at the cost of occupying  
   /// higher CPU priority, we give developers options to decide by themselves.
