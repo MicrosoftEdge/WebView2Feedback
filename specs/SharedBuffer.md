@@ -60,7 +60,7 @@ The script code will look like this:
 
         function SharedBufferReceived(e) {
             if (e.additionalData && e.additionalData.contosoBufferKind == "contosoDisplayBuffer") {
-                let displayBuffer = e.buffer;
+                let displayBuffer = e.getBuffer();
                 // Consume the data from the buffer (in the form of an ArrayBuffer)
                 let displayBufferArray = new Uint8Array(displayBuffer);
                 DisplaySharedBufferData(displayBufferArray);
@@ -142,7 +142,7 @@ The script code will look like this:
                     if (displayBuffer)
                         chrome.webview.releaseBuffer(displayBuffer);
                     // Hold the shared buffer and the typed array view of it.
-                    displayBuffer = e.buffer;
+                    displayBuffer = e.getBuffer();
                     displayBufferArray = new Uint8Array(displayBuffer);
                 }
             });
@@ -349,8 +349,8 @@ typedef enum COREWEBVIEW2_SHARED_BUFFER_ACCESS {
 interface ICoreWebView2_14 : IUnknown {
   /// Share a shared buffer object with script of the main frame in the WebView.
   /// The script will receive a `SharedBufferReceived` event from chrome.webview.
-  /// The event arg for that event will have the following properties:
-  ///   `buffer()`: an ArrayBuffer object with the backing content from the shared buffer.
+  /// The event arg for that event will have the following methods and properties:
+  ///   `getBuffer()`: return an ArrayBuffer object with the backing content from the shared buffer.
   ///   `additionalData`: an object as the result of parsing `additionalDataAsJson` as JSON string.
   ///           This property will be `undefined` if `additionalDataAsJson` is nullptr or empty string.
   ///   `source`: with a value set as `chrome.webview` object.
@@ -382,8 +382,8 @@ interface ICoreWebView2_14 : IUnknown {
 interface ICoreWebView2Frame4 : IUnknown {
   /// Share a shared buffer object with script of the iframe in the WebView.
   /// The script will receive a `SharedBufferReceived` event from chrome.webview.
-  /// The event arg for that event will have the following properties:
-  ///   `buffer()`: an ArrayBuffer object with the backing content from the shared buffer.
+  /// The event arg for that event will have the following methods and properties:
+  ///   `getBuffer()`: return an ArrayBuffer object with the backing content from the shared buffer.
   ///   `additionalData`: an object as the result of parsing `additionalDataAsJson` as JSON string.
   ///           This property will be `undefined` if `additionalDataAsJson` is nullptr or empty string.
   ///   `source`: with a value set as `chrome.webview` object.
