@@ -28,8 +28,8 @@ Besides using the memory address directly, the shared buffer object can be acces
 from native side via an IStream* object that you can get from the shared buffer object.
 
 When the application code calls `PostSharedBufferToScript`, the script side will
-receive a `SharedBufferReceived` event containing the buffer as an `ArrayBuffer` object.
-After receiving the shared buffer object, it can access it the same way as any other
+receive a `sharedbufferreceived` event that you can get from it the buffer as an `ArrayBuffer` object.
+After getting the shared buffer, it can access it the same way as any other
 ArrayBuffer object, including transferring to a web worker to process the data on
 the worker thread.
 
@@ -60,10 +60,10 @@ The script code will look like this:
 
         function SharedBufferReceived(e) {
             if (e.additionalData && e.additionalData.contosoBufferKind == "contosoDisplayBuffer") {
-                let displayBuffer = e.getBuffer();
+                let displayBuffer = e.buffer;
                 // Consume the data from the buffer (in the form of an ArrayBuffer)
-                let view = new UInt32Array(displayBuffer);
-                DisplaySharedBufferData(view);
+                let displayBufferArray = new Uint8Array(displayBuffer);
+                DisplaySharedBufferData(displayBufferArray);
                 // Release the buffer after consuming the data.
                 chrome.webview.releaseBuffer(displayBuffer);
             }
@@ -73,48 +73,209 @@ The script code will look like this:
 ```cpp
 
         wil::com_ptr<ICoreWebView2SharedBuffer> sharedBuffer;
-        CHECK_FAILURE(webviewEnvironment->CreateSharedBuffer(bufferSize, &sharedBuffer));
-        // Fill data into the shared memory via IStream.
-        wil::com_ptr<IStream> stream;
-        CHECK_FAILURE(sharedBuffer->OpenStream(&stream));
-        CHECK_FAILURE(stream->Write(data, dataSize, nullptr));
+        CHECK_FAILURE(m_webviewEnvironment->CreateSharedBuffer(dataSize, &sharedBuffer));
+        BYTE* buffer;
+        CHECK_FAILURE(sharedBuffer->get_Buffer(&buffer));
+        // Fill buffer with data.
+        memcpy_s(buffer, dataSize, data, dataSize);
         PCWSTR additionalDataAsJson = L"{\"contosoBufferKind\":\"contosoDisplayBuffer\"}";
-        if (forFrame)
-        {
-            m_webviewFrame->PostSharedBufferToScript(
-                sharedBuffer.get(), COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, additionalDataAsJson);
-        }
-        else
-        {
-            m_webView->PostSharedBufferToScript(
-               sharedBuffer.get(), COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, additionalDataAsJson);
-        }
-        // Explicitly close the one time shared buffer to ensure that the resource is released timely.
+        m_webView->PostSharedBufferToScript(
+           sharedBuffer.get(), COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, additionalDataAsJson);
+
+        // The buffer automatically releases any resources if all references to it are released.
+        // As we are doing here, you could also explicitly close it when you don't access the buffer
+        // any more.to ensure that the resource is released timely even if there are some reference got leaked.
         sharedBuffer->Close();
+        
+```
+## .NET
+```c#
+      using (CoreWebView2SharedBuffer sharedBuffer = WebViewEnvironment.CreateSharedBuffer(dataSize))
+      {
+          // Fill buffer with data.
+          unsafe
+          {
+              byte* buffer = (byte*)(sharedBuffer.Buffer.ToPointer());
+              ulong dataToCopy = dataSize;
+              while (dataToCopy-- > 0) {
+                  *buffer++ = *data++;
+              }
+         }
+          string additionalDataAsJson = "{\"contosoBufferKind\":\"contosoDisplayBuffer\"}";
+           m_webview.PostSharedBufferToScript(sharedBuffer, CoreWebView2SharedBufferAccess.ReadOnly, additionalDataAsJson);
+      }
+```
+## WinRT
+```c#
+      using (CoreWebView2SharedBuffer sharedBuffer = WebViewEnvironment.CreateSharedBuffer(dataSize))
+      {
+          // Fill buffer with data.
+          unsafe
+          {
+              using (IMemoryBufferReference reference = sharedBuffer.Buffer)
+              {
+                  byte* buffer;
+                  uint capacity;
+                  ((IMemoryBufferByteAccess)reference).GetBuffer(out buffer, out capacity);
+                  byte* buffer = (byte*)(sharedBuffer.Buffer.ToPointer());
+                  ulong dataToCopy = dataSize;
+                  while (dataToCopy-- > 0) {
+                      *buffer++ = *data++;
+                  }
+              }
+         }
+          string additionalDataAsJson = "{\"contosoBufferKind\":\"contosoDisplayBuffer\"}";
+           m_webview.PostSharedBufferToScript(sharedBuffer, CoreWebView2SharedBufferAccess.ReadOnly, additionalDataAsJson);
+      }
+```
+
+The example below illustrates how to use a shared buffer to send data from application to script in an iframe multiple times.
+
+The script code will look like this:
+```
+        let displayBuffer;
+        let displayBufferArray;
+        window.onload = function () {
+            window.chrome.webview.addEventListener("sharedbufferreceived", e => {
+                if (e.additionalData && e.additionalData.contosoBufferKind == "contosoDisplayBuffer") {
+                    // Release potential previous buffer to ensure that the underlying resource can be released timely.
+                    if (displayBuffer)
+                        chrome.webview.releaseBuffer(displayBuffer);
+                    // Hold the shared buffer and the typed array view of it.
+                    displayBuffer = e.buffer;
+                    displayBufferArray = new Uint8Array(displayBuffer);
+                }
+            });
+            window.chrome.webview.addEventListener("message", e => {
+                if (e.data == "DisplayBufferUpdated") {
+                    // Consume the updated data
+                    DisplaySharedBufferData(displayBufferArray);
+                    // Notify the application that the data has been consumed
+                    window.chrome.webview.postMessage("DisplayBufferConsumed");
+                } else if (e.data = "ReleaseDisplayBuffer") {
+                    // Release the buffer, don't need it anymore.
+                    chrome.webview.releaseBuffer(displayBuffer);
+                    // Clear variables holding the buffer.
+                    displayBuffer = undefined;
+                    displayBufferArray = undefined;
+                }
+            });
+        }
+
+```
+## Win32 C++
+```cpp
+
+        void EnsureSharedBuffer(UINT64 bufferSize)
+        {
+            if (m_sharedBuffer && m_bufferSize >= bufferSize)
+                return;
+            // Close previous buffer if we have one.
+            if (m_sharedBuffer)
+                m_sharedBuffer->Close();
+            CHECK_FAILURE(webviewEnvironment->CreateSharedBuffer(bufferSize, &m_sharedBuffer));
+            CHECK_FAILURE(m_sharedBuffer->get_Size(&m_bufferSize);
+            PCWSTR additionalDataAsJson = L"{\"contosoBufferKind\":\"contosoDisplayBuffer\"}";
+            m_webviewFrame->PostSharedBufferToScript(
+                m_sharedBuffer.get(), COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, additionalDataAsJson);
+        }
+        
+        void ReleaseDisplayBuffer() 
+        {
+            if (m_sharedBuffer)
+            {
+                // Explicitly Close the shared buffer so that we don't have to wait for
+                // GC for the underlying shared memory to be released.
+                m_sharedBuffer->Close();
+                m_sharedBuffer = nullptr;
+                CHECK_FAILURE(m_webviewFrame->PostWebMessage(L"ReleaseDisplayBuffer"));
+            }
+        }
+
+        void UpdateDisplayBuffer() 
+        {
+            EnsureSharedBuffer(m_dataSize);
+            // Fill data into the shared memory via IStream.
+            wil::com_ptr<IStream> stream;
+            CHECK_FAILURE(sharedBuffer->OpenStream(&stream));
+            // The sample code assumes that the data itself contains info about the size
+            // of data to consume and we don't have to add it into the shared buffer or
+            // as part of the web message.
+            CHECK_FAILURE(stream->Write(m_data, m_dataSize, nullptr));
+            CHECK_FAILURE(m_webviewFrame->PostWebMessage(L"DisplayBufferUpdated"));
+        }
+
+        void OnFrameWebMessageReceived(PCWSTR message) 
+        {
+            std::wstring DisplayBufferConsumedMessage(L"DisplayBufferConsumed");
+            if (DisplayBufferConsumedMessage == message) 
+            {
+                if (m_hasMoreDataToSend)
+                {
+                    UpdateDisplayBuffer();
+                }
+                else
+                {
+                    ReleaseDisplayBuffer();
+                }
+            }
+        }
         
 ```
 ## WinRT and .NET
 ```c#
-      using (CoreWebView2SharedBuffer sharedBuffer = WebViewEnvironment.CreateSharedBuffer(bufferSize))
-      {
-          // Fill data using access Stream
-          using (Stream stream = sharedBuffer.OpenStream())
-          {
-              using (StreamWriter writer = new StreamWriter(stream))
-              {
-                  writer.Write(data);
-              }
-          }
-          string additionalDataAsJson = "{\"contosoBufferKind\":\"contosoDisplayBuffer\"}";
-          if (forFrame)
-          {
-              m_webviewFrame.PostSharedBufferToScript(sharedBuffer, CoreWebView2SharedBufferAccess.ReadOnly, additionalDataAsJson);
-          }
-          else
-          {
-               m_webview.PostSharedBufferToScript(sharedBuffer, CoreWebView2SharedBufferAccess.ReadOnly, additionalDataAsJson);
-          }
-      }
+        void EnsureSharedBuffer(ulong bufferSize)
+        {
+            if (m_sharedBuffer && m_sharedBuffer.Size >= bufferSize)
+                return;
+            // Dispose previous buffer if we have one.
+            if (m_sharedBuffer)
+                m_sharedBuffer.Dispose();
+            m_sharedBuffer = WebviewEnvironment.CreateSharedBuffer(bufferSize);
+            string additionalDataAsJson = "{\"contosoBufferKind\":\"contosoDisplayBuffer\"}";
+            m_webviewFrame.PostSharedBufferToScript(
+                m_sharedBuffer, CoreWebView2SharedBufferAccess.ReadOnly, additionalDataAsJson);
+        }
+        
+        void ReleaseDisplayBuffer() 
+        {
+            if (m_sharedBuffer)
+            {
+                // Explicitly dispose the shared buffer so that we don't have to wait for
+                // GC for the underlying shared memory to be released.
+                m_sharedBuffer.Dispose();
+                m_sharedBuffer = null;
+                CHECK_FAILURE(m_webviewFrame.PostWebMessage("ReleaseDisplayBuffer"));
+            }
+        }
+
+        void UpdateDisplayBuffer() 
+        {
+            EnsureSharedBuffer(m_dataSize);
+            // Fill data using access Stream
+            using (Stream stream = m_sharedBuffer.OpenStream())
+            {
+                using (StreamWriter writer = new StreamWriter(stream))
+                {
+                    writer.Write(m_data);
+                }
+            }
+        }
+
+        void OnFrameWebMessageReceived(string message) 
+        {
+            if (message == "DisplayBufferConsumed") 
+            {
+                if (m_hasMoreDataToSend)
+                {
+                    UpdateDisplayBuffer();
+                }
+                else
+                {
+                    ReleaseDisplayBuffer();                    
+                }
+            }
+        }
 ```
 
 # API Details
@@ -127,6 +288,8 @@ interface ICoreWebView2Environment11 : IUnknown {
   /// Once shared, the same content of the buffer will be accessible from both
   /// the app process and script in WebView. Modification to the content will be visible
   /// to all parties that have access to the buffer.
+  /// The shared buffer is presented to the script as ArrayBuffer. All JavaScript APIs
+  /// that works for ArrayBuffer including Atomics APIs can be used on it.
   HRESULT CreateSharedBuffer(
     [in] UINT64 size,
     [out, retval] ICoreWebView2SharedBuffer** shared_buffer);
@@ -145,7 +308,7 @@ interface ICoreWebView2SharedBuffer : IUnknown {
   /// Returns a handle to the file mapping object that backs this shared buffer.
   /// The returned handle is owned by the shared buffer object. You should not
   /// call CloseHandle on it.
-  /// Normal app should use `Buffer` or `GetStream` to get memory address
+  /// Normal app should use `Buffer` or `OpenStream` to get memory address
   /// or IStream object to access the buffer.
   /// For advanced scenarios, you could use file-mapping APIs to obtain other views
   /// or duplicate this handle to another application process and create a view from
@@ -156,10 +319,11 @@ interface ICoreWebView2SharedBuffer : IUnknown {
   /// access to the buffer is needed any more, to ensure that the underlying resources
   /// are released timely even if the shared buffer object itself is not released due to
   /// some leaked reference.
-  /// After the shared buffer is closed, accessing properties of the object will fail with
-  /// `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`. Operations like Read or Write on the IStream
-  /// objects returned from `GetStream` will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
-  /// `PostSharedBufferToScript` will also fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// After the shared buffer is closed, the buffer address and file mapping handle previously
+  /// obtained becomes invalid and cannot be used anymore. Accessing properties of the object
+  /// will fail with `RO_E_CLOSED`. Operations like Read or Write on the IStream objects returned
+  /// from `OpenStream` will fail with `RO_E_CLOSED`. `PostSharedBufferToScript` will also
+  /// fail with `RO_E_CLOSED`.
   ///
   /// The script code should call `chrome.webview.releaseBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
@@ -185,8 +349,8 @@ typedef enum COREWEBVIEW2_SHARED_BUFFER_ACCESS {
 interface ICoreWebView2_14 : IUnknown {
   /// Share a shared buffer object with script of the main frame in the WebView.
   /// The script will receive a `SharedBufferReceived` event from chrome.webview.
-  /// The event arg for that event will have the following methods and properties:
-  ///   `getBuffer()`: returns an ArrayBuffer object with the backing content from the shared buffer.
+  /// The event arg for that event will have the following properties:
+  ///   `buffer()`: an ArrayBuffer object with the backing content from the shared buffer.
   ///   `additionalData`: an object as the result of parsing `additionalDataAsJson` as JSON string.
   ///           This property will be `undefined` if `additionalDataAsJson` is nullptr or empty string.
   ///   `source`: with a value set as `chrome.webview` object.
@@ -195,11 +359,15 @@ interface ICoreWebView2_14 : IUnknown {
   /// If `access` is COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, the script will only have read access to the buffer.
   /// If the script tries to modify the content in a read only buffer, it will cause an access
   /// violation in WebView renderer process and crash the renderer process.
-  /// If the shared buffer is already closed, the API will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// If the shared buffer is already closed, the API will fail with `RO_E_CLOSED`.
   /// 
   /// The script code should call `chrome.webview.releaseBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
   /// as it does not need access to the shared buffer any more.
+  /// The application can post the same shared buffer object to multiple web pages or iframes, or
+  /// post to the same web page or iframe multiple times. Each `PostSharedBufferToScript` will
+  /// create a separate ArrayBuffer object with its own view of the memory and is separately
+  /// released. The underlying shared memory will be released when all the views are released.
   ///
   /// Sharing a buffer to script has security risk. You should only share buffer with trusted site.
   /// If a buffer is shared to a untrusted site, possible sensitive information could be leaked.
@@ -215,8 +383,8 @@ interface ICoreWebView2Frame4 : IUnknown {
   /// Share a shared buffer object with script of the iframe in the WebView.
   /// The script will receive a `SharedBufferReceived` event from chrome.webview.
   /// The event arg for that event will have the following properties:
-  ///   `sharedBuffer`: an ArrayBuffer object with the backing content from the shared buffer.
-  ///   `data`: an object as the result of parsing `additionalDataAsJson` as JSON string.
+  ///   `buffer()`: an ArrayBuffer object with the backing content from the shared buffer.
+  ///   `additionalData`: an object as the result of parsing `additionalDataAsJson` as JSON string.
   ///           This property will be `undefined` if `additionalDataAsJson` is nullptr or empty string.
   ///   `source`: with a value set as `chrome.webview` object.
   /// If a string is provided as `additionalDataAsJson` but it is not a valid JSON string,
@@ -224,11 +392,15 @@ interface ICoreWebView2Frame4 : IUnknown {
   /// If `access` is COREWEBVIEW2_SHARED_BUFFER_ACCESS_READ_ONLY, the script will only have read access to the buffer.
   /// If the script tries to modify the content in a read only buffer, it will cause an access
   /// violation in WebView renderer process and crash the renderer process.
-  /// If the shared buffer is already closed, the API will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
+  /// If the shared buffer is already closed, the API will fail with `RO_E_CLOSED`.
   /// 
   /// The script code should call `chrome.webview.releaseBuffer` with
   /// the shared buffer as the parameter to release underlying resources as soon
   /// as it does not need access to the shared buffer any more.
+  /// The application can post the same shared buffer object to multiple web pages or iframes, or
+  /// post to the same web page or iframe multiple times. Each `PostSharedBufferToScript` will
+  /// create a separate ArrayBuffer object with its own view of the memory and is separately
+  /// released. The underlying shared memory will be released when all the views are released.
   ///
   /// Sharing a buffer to script has security risk. You should only share buffer with trusted site.
   /// If a buffer is shared to a untrusted site, possible sensitive information could be leaked.
@@ -259,7 +431,7 @@ namespace Microsoft.Web.WebView2.Core
         /// The raw memory address of the buffer.
         /// You can cast it to pointer to real data types like byte* to access the memory
         /// from `unsafe` code region.
-        /// Normal app should use `GetStream` to get a Stream object to access the buffer.
+        /// Normal app should use `OpenStream` to get a Stream object to access the buffer.
         public IntPtr Buffer { get; };
         
         /// The native file mapping handle of the shared memory of the buffer.
@@ -274,6 +446,12 @@ namespace Microsoft.Web.WebView2.Core
         void Close();
     }
     
+    enum CoreWebView2SharedBufferAccess
+    {
+        ReadOnly = 0,
+        ReadWrite = 1
+    }
+
     runtimeclass CoreWebView2
     {
         public void PostSharedBufferToScript(
@@ -319,6 +497,12 @@ namespace Microsoft.Web.WebView2.Core
         // Note that we are not exposing Handle from WinRT API.
     }
     
+    enum CoreWebView2SharedBufferAccess
+    {
+        ReadOnly = 0,
+        ReadWrite = 1
+    }
+
     runtimeclass CoreWebView2
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_14")]
