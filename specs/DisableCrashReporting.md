@@ -2,17 +2,17 @@ Custom Crash Reports
 ===
 
 # Background
-Currently, when a WebView2 is created a WebView2 crashpad process will be created in addition to starting a WebView2 browser process. If any WebView2 process crashes, the crashpad process will create crash dumps and send them to Microsoft for diagnosis. This document covers new APIs to allow the end developer to customize crash reporting to help when running diagnostics and doing analysis. They can set the `CoreWebView2EnvironmentOptions.IsCustomCrashReportingEnabled` property to not have crash dumps sent to Microsoft and use the `CoreWebView2Environment.CrashDumpFolderPath` property to locate crash dumps and do customization with them instead.
+If any WebView2 process crashes, one or multiple minidump files will be created and sent to Microsoft for diagnosis. This document covers new APIs to allow the end developer to customize crash reporting to help when running diagnostics and doing analysis. They can set the `CoreWebView2EnvironmentOptions.IsCustomCrashReportingEnabled` property to true to prevent crash dumps from being sent to Microsoft and use the `CoreWebView2Environment.CrashDumpFolderPath` property to locate crash dumps and do customization with them instead.
 
 # Examples
 ## WinRT and .NET   
 ```c#
 
 /// Create WebView Environment with option
-void CreateEnvrionmentWithOption()
+void CreateEnvironmentWithOption()
 {
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
-    options.IsCustomCrashReportingEnabled = true;
+    options.CustomizeFailureReporting = true;
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 
@@ -24,8 +24,8 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 void WebView_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
 {
     // When process failed, do custom parsing with dumps
-    string crashDumpFolder = webView.CoreWebView2.Environment.CrashDumpFolderPath;
-    ProcessNewCrashDumps(crashDumpFolder);
+    string failureReportFolder = webView.CoreWebView2.Environment.FailureReportFolderPath;
+    ProcessNewCrashDumps(failureReportFolder);
 }
 
 ```
@@ -34,26 +34,26 @@ void WebView_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
 void AppWindow::InitializeWebView()
 {
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-    CHECK_FAILURE(options->put_IsCustomCrashReportingEnabled(TRUE));
+    CHECK_FAILURE(options->put_CustomizeFailureReporting(TRUE));
     // ... other option properties
 
     // ... CreateCoreWebView2EnvironmentWithOptions
-}
 
-void AppWindow::ProcessFailed()
-{
-    // Get dump folder path
-    wil::com_ptr<ICoreWebView2Environment11> environment;
-    wil::unique_cotaskmem_string crashDumpFolder;
-    CHECK_FAILURE(environment->get_CrashDumpFolderPath(&crashDumpFolder));
+    // Set up handler
+    wil::com_ptr<ICoreWebView2Environment> environment;
+    CHECK_FAILURE(m_webView->get_Environment(&environment));
+    wil::com_ptr<ICoreWebView2Environment11> environment11;
+    CHECK_FAILURE(environment->QueryInterface(IID_PPV_ARGS(&environment11));
+    wil::unique_cotaskmem_string failureReportFolder;
+    CHECK_FAILURE(environment11->get_FailureReportFolderPath(&failureReportFolder));
 	
 	// Register a handler for the ProcessFailed event.
     CHECK_FAILURE(m_webView->add_ProcessFailed(
         Callback<ICoreWebView2ProcessFailedEventHandler>(
-            [this, crashDumpFolder](ICoreWebView2* sender, ICoreWebView2ProcessFailedEventArgs* argsRaw)
+            [this, failureReportFolder = std::move(failureReportFolder)](ICoreWebView2* sender, ICoreWebView2ProcessFailedEventArgs* argsRaw)
                 -> HRESULT {
                 // Custom processing
-				ProcessNewCrashDumps(crashDumpFolder);
+				ProcessNewCrashDumps(failureReportFolder.get());
                 return S_OK;
             })
             .Get(),
@@ -78,23 +78,24 @@ interface ICoreWebView2Environment11 : ICoreWebView2Environment10 {
   /// detail documentation.
   /// `ProcessFailed` event are raised everytime a crash happens, minidump files 
   /// will be written to disk at that time. Developers can rely on `ProcessFailed` and 
-  /// `CrashDumpFolderPath` to customize crash dump experiences.
+  /// `FailureReportFolderPath` to customize crash dump experiences.
+  /// `FailureReportFolderPath` remains the same for the lifetime of the environment.
   // MSOWNERS: xiaqu@microsoft.com
-  [propget] HRESULT CrashDumpFolderPath([out, retval] LPWSTR* value);
+  [propget] HRESULT FailureReportFolderPath([out, retval] LPWSTR* value);
 }
 
 /// Additional options used to create WebView2 Environment.
 [uuid(3FB94506-58AB-4171-9082-E7D683471A48), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : ICoreWebView2EnvironmentOptions2 {
 
-  /// When `IsCustomCrashReportingEnabled` is set to `TRUE`, Windows won't send crash data to Microsoft endpoint.
-  /// `IsCustomCrashReportingEnabled` is default to be `FALSE`, in this case, WebView respect OS consent. 
+  /// When `CustomizeFailureReporting` is set to `TRUE`, Windows won't send crash data to Microsoft endpoint.
+  /// `CustomizeFailureReporting` is default to be `FALSE`, in this case, WebView respect OS consent. 
   // MSOWNERS: xiaqu@microsoft.com
-  [propget] HRESULT IsCustomCrashReportingEnabled([out, retval] BOOL* value);
+  [propget] HRESULT CustomizeFailureReporting([out, retval] BOOL* value);
 
-  /// Sets the `IsCustomCrashReportingEnabled` property.
+  /// Sets the `CustomizeFailureReporting` property.
   // MSOWNERS: xiaqu@microsoft.com
-  [propput] HRESULT IsCustomCrashReportingEnabled([in] BOOL value);
+  [propput] HRESULT CustomizeFailureReporting([in] BOOL value);
 }
 ```
 
@@ -106,12 +107,12 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2EnvironmentOptions
     {
         // ...
-        Boolean IsCustomCrashReportingEnabled { get; set; };
+        Boolean CustomizeFailureReporting { get; set; };
     }
 
     runtimeclass CoreWebView2Environment
     {
-        String CrashDumpFolderPath { get; };
+        String FailureReportFolderPath { get; };
     }
 
     // ...
