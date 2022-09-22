@@ -26,7 +26,13 @@ regards to frame copy.
 This is Javascript code common to both of the following samples:
 
 ```js
-// User click the video capture button to start straming.
+// getTextureStream sample.
+
+// Developer can stream from the host and its returned object is MediaStream
+// that is same what getUserMedia returns. Technically, developer can do all
+// what MediaStream and its video MediaStreamTrack provide.
+
+// Scenario: User clicks the button and show stream from the host via video element.
 document.querySelector('#showVideo').addEventListener('click',
   e => getStreamFromTheHost(e));
 async function getStreamFromTheHost(e) {
@@ -70,7 +76,42 @@ window.videoTrack.addEventListener('unmut', () => {
   console.log('unmute state);
 });
 
-  window.videoTrack.stop();
+```
+
+```js
+// registerTextureStream sample.
+
+// Developer can even send back the processed video frame to the host.
+
+// Scenario: User clicks to stream from the host and sends back them 1s late
+// to the host.
+document.querySelector('#sendBack').addEventListener('click',
+  e => getStreamFromTheHost(e));
+const transformer = new TransformStream({
+  async transform(videoFrame, controller) {
+    // Delay frame 100ms. 
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // We can create new video frame and edit them, and pass them back here 
+    // if needed.
+    controller.enqueue(videoFrame);
+  },
+});
+
+async function SendBackToHost(stream_id) {
+  console.log("stream_id:" + stream_id);
+  const mediaStream = await window.chrome.webview.getTextureStream(stream_id);
+  const videoStream = mediaStream.getVideoTracks()[0];
+
+  const trackProcessor = new MediaStreamTrackProcessor(videoStream);
+  const trackGenerator = new MediaStreamTrackGenerator('video');
+
+  // Test purpose, we send it back what just received.
+  window.chrome.webview.registerTextureStream(stream_id, trackGenerator);
+
+  trackProcessor.readable.pipeThrough(transformer).pipeTo(trackGenerator.writable)
+}
+
 ```
 
 ## Win32 C++
@@ -117,6 +158,26 @@ webviewTextureStream->add_TextureError(Callback<ICoreWebView2StagingTextureStrea
     }
     return S_OK;
   }).Get(), &texture_token);
+
+webviewTextureStream->AddTextureReceivedRequestedFilter(L"https://edge-webscratch");
+
+EventRegistrationToken post_token;
+webviewTextureStream->add_TextureReceived(Callback<ICoreWebView2StagingTextureStreamTextureReceivedEventHandler>(
+  [&](ICoreWebView2StagingTextureStream* sender, ICoreWebView2StagingTextureStreamTextureReceivedEventArgs* args) {
+    ULONGLONG timestamp;
+    args->get_Timestamp(&timestamp);
+
+    HANDLE handle;
+    args->get_Handle(&handle);
+    DrawTextureWithWICBitmap(handle);
+    return S_OK;
+  }).Get(), &post_token);
+
+EventRegistrationToken post_stop_token;
+webviewTextureStream->add_StopTextureReceived(Callback<ICoreWebView2StagingTextureStreamStopTextureReceivedEventHandler>(
+  [&](ICoreWebView2StagingTextureStream* sender, IUnknown* args) {
+    return S_OK;
+  }).Get(), &post_stop_token);
 
 HRESULT CallWebView2API(bool createBuffer,
                         UINT32 width,
@@ -295,6 +356,34 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// Updates d3d Device when it is updated by RenderAdapterLUIDChanged
   /// event.
   HRESULT UpdateD3DDevice([in] IUnknown* d3dDevice);
+  /// Event handler for processed texture by Javascript.
+  /// There is no Start event for texture received. Whenever texture are sent
+  /// from the Javascript, the event is triggered.
+  HRESULT add_TextureReceived(
+      [in] ICoreWebView2StagingTextureStreamTextureReceivedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+  HRESULT remove_TextureReceived([in] EventRegistrationToken token);
+  /// Event handler for stopping of the processed texture stream.
+  HRESULT add_StopTextureReceived(
+      [in] ICoreWebView2StagingTextureStreamStopTextureReceivedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+  HRESULT remove_StopTextureReceived([in] EventRegistrationToken token);
+  /// Creates number of shared buffers for texture received from the browser to
+  /// the host. The proper shared buffer count is important in order not to drop
+  /// video frame. Dropping video frame usually leads to poor video quality.
+  /// The default count is 4 based on heuristic test.
+  /// The buffer count is per different image size that means if there are
+  /// variable image sizes, then it will use more buffers.
+  [propput] HRESULT TextureReceivedBufferCount([in] UINT32 count);
+  /// Adds an allowed url origin for the given stream id for texture received
+  /// operation.  Javascript can send texture stream to the host only when
+  /// the origin it runs are allowed by the host.
+  /// The added origin should be registered first by the AddRequestedFilter
+  /// because registerTextureStream works only for the stream from
+  /// the getTextureStream.
+  HRESULT AddTextureReceivedRequestedFilter([in] LPCWSTR origin);
+  /// Remove added origin, which was added by AddTextureReceivedRequestedFilter.
+  HRESULT RemoveTextureReceivedRequestedFilter([in] LPCWSTR origin);
 }
 /// Texture stream buffer that the host writes to so that the Renderer
 /// will render on it.
@@ -359,6 +448,44 @@ interface ICoreWebView2StagingRenderAdapterLUIDChangedEventHandler : IUnknown {
   /// corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2Staging3 * sender,
+      [in] IUnknown* args);
+}
+/// This is the callback for texture received.
+[uuid(9ea4228c-295a-11ed-a261-0242ac120002), object, pointer_default(unique)]
+interface ICoreWebView2StagingTextureStreamTextureReceivedEventHandler : IUnknown {
+  /// Called to provide the implementer with the event args for the
+  /// corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2StagingTextureStream* sender,
+      [in] ICoreWebView2StagingTextureStreamTextureReceivedEventArgs* args);
+}
+/// This is the event args interface for texture received.
+[uuid(a4c2fa3a-295a-11ed-a261-0242ac120002), object, pointer_default(unique)]
+interface ICoreWebView2StagingTextureStreamTextureReceivedEventArgs : IUnknown {
+  /// Texture buffer handle. The handle's lifetime is owned by the
+  /// ICoreWebView2StagingTextureStream object so the host must not close it.
+
+  /// The same handle value will be used for same buffer so the host can use
+  /// handle value as a unique buffer key.
+  [propget] HRESULT Handle([out, retval] HANDLE* handle);
+
+  /// Texture buffer resource. The resource's lifetime is owned by the
+  /// ICoreWebView2StagingTextureStream object so the host must not close it.
+
+  /// The same resource value will be used for same buffer so the host can use
+  /// resource value as a unique buffer key.
+  [propget] HRESULT Resource([out, retval] IUnknown** resource);
+
+  /// It is timestamp that the original sent video frame's during SetBuffer.
+  [propget] HRESULT Timestamp([out, retval] ULONGLONG* timestamp);
+}
+/// This is the callback for texture received stop.
+[uuid(77eb4638-2f05-11ed-a261-0242ac120002), object, pointer_default(unique)]
+interface ICoreWebView2StagingTextureStreamStopTextureReceivedEventHandler : IUnknown {
+  /// Called to provide the implementer with the event args for the
+  /// corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2StagingTextureStream* sender,
       [in] IUnknown* args);
 }
 ```
