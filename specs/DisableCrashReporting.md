@@ -70,15 +70,16 @@ interface ICoreWebView2EnvironmentOptions3;
 /// getting the crash dump folder path
 [uuid(F619312E-0399-4520-B700-30818441785A), object, pointer_default(unique)]
 interface ICoreWebView2Environment11 : ICoreWebView2Environment10 {
-  /// Get the crash dump folder that all CoreWebView2's from this
-  /// environment are using. Whenever a WebView2 process crashes, 
-  /// a crash dump file will be created in the crash dump folder.
-  /// A crash dump format is minidump files, please see
-  /// https://docs.microsoft.com/en-us/windows/win32/debug/minidump-files for 
-  /// detail documentation.
-  /// `ProcessFailed` event are raised everytime a crash happens, minidump files 
-  /// will be written to disk at that time. Developers can rely on `ProcessFailed` and 
-  /// `FailureReportFolderPath` to customize crash dump experiences.
+  /// `FailureReportFolderPath` get the folder path of where minidump files is written.
+  /// Whenever a WebView2 process crashes, a crash dump file will be created in the crash dump folder.
+  /// A crash dump format is minidump files, please see 
+  /// https://docs.microsoft.com/en-us/windows/win32/debug/minidump-files for detailed documentation. 
+  /// Normally when a single child process failed, a minidump will be generated and written to disk, 
+  /// then `ProcessFailed` event is raised. But for unexpected crashes, minidump might not be generated 
+  /// at all, despite whether `ProcessFailed` event is raised. For times, that there are multiple 
+  /// processes failed, multiple minidump files could be generated. Thus `FailureReportFolderPath` 
+  /// could contain old minidump files that are not associated with a specific `ProcessFailed` event. 
+  /// For the best experience, please use `ProcessFailed` event along with the SystemFile watcher. 
   /// `FailureReportFolderPath` remains the same for the lifetime of the environment.
   // MSOWNERS: xiaqu@microsoft.com
   [propget] HRESULT FailureReportFolderPath([out, retval] LPWSTR* value);
