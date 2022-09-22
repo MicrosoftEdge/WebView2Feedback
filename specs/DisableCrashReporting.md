@@ -79,7 +79,6 @@ interface ICoreWebView2Environment11 : ICoreWebView2Environment10 {
   /// at all, despite whether `ProcessFailed` event is raised. For times, that there are multiple 
   /// processes failed, multiple minidump files could be generated. Thus `FailureReportFolderPath` 
   /// could contain old minidump files that are not associated with a specific `ProcessFailed` event. 
-  /// For the best experience, please use `ProcessFailed` event along with the SystemFile watcher. 
   /// `FailureReportFolderPath` remains the same for the lifetime of the environment.
   // MSOWNERS: xiaqu@microsoft.com
   [propget] HRESULT FailureReportFolderPath([out, retval] LPWSTR* value);
