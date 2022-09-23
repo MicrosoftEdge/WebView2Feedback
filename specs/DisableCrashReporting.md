@@ -9,6 +9,7 @@ If any WebView2 process crashes, one or multiple minidump files will be created 
 ```c#
 
 /// Create WebView Environment with option
+
 void CreateEnvironmentWithOption()
 {
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
@@ -21,16 +22,28 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
     webView.CoreWebView2.ProcessFailed += WebView_ProcessFailed;
 }
 
+var _processed_dump_files = new HashSet<string>();
+
 void WebView_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
 {
     // When process failed, do custom parsing with dumps
     string failureReportFolder = webView.CoreWebView2.Environment.FailureReportFolderPath;
-    ProcessNewCrashDumps(failureReportFolder);
+    string[] dump_files = Directory.GetFiles(failureReportFolder);
+    foreach (string dump_file in dump_files) {
+        if (!_processed_dump_files.Contains(dump_file)) {
+            _processed_dump_files.Add(dump_file);
+            ProcessNewCrashDumps(dump_file);
+        }
+    }
 }
 
 ```
 ## Win32 C++
 ```cpp
+#include <filesystem>
+using namespace std;
+namespace fs = std::filesystem;
+
 void AppWindow::InitializeWebView()
 {
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
@@ -46,14 +59,26 @@ void AppWindow::InitializeWebView()
     CHECK_FAILURE(environment->QueryInterface(IID_PPV_ARGS(&environment11));
     wil::unique_cotaskmem_string failureReportFolder;
     CHECK_FAILURE(environment11->get_FailureReportFolderPath(&failureReportFolder));
+
+    std::set<fs::path> processed_dump_files;
 	
 	// Register a handler for the ProcessFailed event.
     CHECK_FAILURE(m_webView->add_ProcessFailed(
         Callback<ICoreWebView2ProcessFailedEventHandler>(
-            [this, failureReportFolder = std::move(failureReportFolder)](ICoreWebView2* sender, ICoreWebView2ProcessFailedEventArgs* argsRaw)
-                -> HRESULT {
-                // Custom processing
-				ProcessNewCrashDumps(failureReportFolder.get());
+            [this, processed_dump_files, 
+            failureReportFolder = std::move(failureReportFolder)](
+                ICoreWebView2* sender,
+                ICoreWebView2ProcessFailedEventArgs* argsRaw) -> HRESULT
+            {
+                for (const auto& entry: fs::directory_iterator(failureReportFolder.get()))
+                {
+                    auto dump_file = entry.path().filename();
+                    if (processed_dump_files.count(dump_file) == 0)
+                    {
+                        processed_dump_files.insert(dump_file);
+                        ProcessNewCrashDumps(dump_file);
+                    }
+                }
                 return S_OK;
             })
             .Get(),
