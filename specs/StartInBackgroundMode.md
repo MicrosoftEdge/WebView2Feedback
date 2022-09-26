@@ -66,7 +66,7 @@ interface ICoreWebView2EnvironmentOptions3 : ICoreWebView2EnvironmentOptions2 {
   /// create the WebView2 browser process with high priority.
   /// Default is `COREWEBVIEW2_CREATION_PRIORITY_HIGH`.
   /// Note that 1)The host app's priority must be at least normal for 
-  /// COREWEBVIEW2_CREATION_PRIORITY_HIGH to be applied. Else, the WebView2 browser process 
+  /// `COREWEBVIEW2_CREATION_PRIORITY_HIGH` to be applied. Else, the WebView2 browser process 
   /// still get created with normal priority even with `COREWEBVIEW2_CREATION_PRIORITY_HIGH` setting.
   /// 2)Currently `CreationPriority` only applies to the creation of the WebView2 browser process.
   /// `CreationPriority` may be broadened to apply to other parts of WebView2 creation in the future.
