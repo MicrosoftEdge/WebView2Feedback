@@ -15,8 +15,6 @@ to use less system resources during the creation.
 the launch time improvement functionality with raising the launch priority during the creation.  
 * Default value is `COREWEBVIEW2_CREATION_PRIORITY_HIGH`.
 ## Notes
-* The version of Edge has to >=95 before applying the `CreationPriority`, this property will 
-be ingored from an ealier version.
 * The host app's priority is at least normal before applying the launch time improvement functionality. 
 Else, WebView2 still get created with normal priority even with `COREWEBVIEW2_CREATION_PRIORITY_HIGH` 
 setting.
