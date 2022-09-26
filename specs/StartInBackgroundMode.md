@@ -2,32 +2,25 @@ CreationPriority
 ===
 
 # Background
-WebView2 has a functionality enabled by default which raises the launch priority of WV2
-processes to ensure that WV2 processes are given higher CPU priority and access to resources 
-while creation, and that can bring improvements on time spent creating a WV2 instance. Since 
-this improvement is at the cost of taking higher CPU priority, we introduce `CreationPriority` 
+WebView2 has functionality enabled by default which raises the launch priority of WebView2
+processes to ensure that WebView2 processes are given higher CPU priority and access to resources
+during creation, and that can bring improvements on time spent creating a WebView2 instance. Since 
+this improvement is at the cost of taking higher CPU priority, we introduce the `CreationPriority` 
 property to give developers an option to decide by themselves.
 
 # Description
 * Setting `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_NORMAL` will signal WebView2 
-to use less system resources during the creation. 
+to have normal priority compared to other processes during the creation of the WebView2 browser 
+process.
 * Setting `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_HIGH` will attempt to enable 
-the launch time improvement functionality with raising the launch priority during the creation.  
+raise the priority of the creation of the WebView2 browser process.
 * Default value is `COREWEBVIEW2_CREATION_PRIORITY_HIGH`.
-## Notes
-* The host app's priority is at least normal before applying the launch time improvement functionality. 
-Else, WebView2 still get created with normal priority even with `COREWEBVIEW2_CREATION_PRIORITY_HIGH` 
-setting.
-* Currently launch time improvement functionality is only enabled for WebView2 manager process, so the 
-`CreationPriority` only effects the creation of manager process. `CreationPriority` can play the same 
-role for other process types like render process if WebView2 opts in launch time improvement functionality 
-for those types in the future.
 # Examples
 ## Win32 C++
 ```cpp
 auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-// Set `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_NORMAL` if you don't want to boost the 
-// launch time at the cost of using higher CPU priority during the launch phase.
+// Set CreationPriority` to COREWEBVIEW2_CREATION_PRIORITY_NORMAL to signal 
+// the WebView2 browser process to have normal priorty during creation".
 options->put_CreationPriority(COREWEBVIEW2_CREATION_PRIORITY_NORMAL);
 HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
   nullptr, m_userDataFolder.c_str(), options.Get(),
@@ -65,13 +58,18 @@ interface ICoreWebView2EnvironmentOptions3 : ICoreWebView2EnvironmentOptions2 {
   [propget] HRESULT CreationPriority([out, retval] COREWEBVIEW2_CREATION_PRIORITY* creationPriority);
 
   /// Sets the `CreationPriority` property.
-  /// The `CreationPriority` property specifies that the creation priority WebView
-  /// environment attempt to create.
-  /// Set `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_NORMAL` will create
-  /// WebView2 with normal priority.
-  /// Set `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_HIGH` will attempt
-  /// to create WebView2 with high priority.
+  /// The `CreationPriority` property specifies the priority used during the WebView2 
+  /// browser process creation.
+  /// Set `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_NORMAL` will create the
+  /// WebView2 browser process with normal priority.
+  /// Set `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_HIGH` will attempt to
+  /// create the WebView2 browser process with high priority.
   /// Default is `COREWEBVIEW2_CREATION_PRIORITY_HIGH`.
+  /// Note that 1)The host app's priority must be at least normal for 
+  /// COREWEBVIEW2_CREATION_PRIORITY_HIGH to be applied. Else, the WebView2 browser process 
+  /// still get created with normal priority even with `COREWEBVIEW2_CREATION_PRIORITY_HIGH` setting.
+  /// 2)Currently `CreationPriority` only applies to the creation of the WebView2 browser process.
+  /// `CreationPriority` may be broadened to apply to other parts of WebView2 creation in the future.
   // MSOWNERS: wangsongjin@microsoft.com
   [propput] HRESULT CreationPriority([in] COREWEBVIEW2_CREATION_PRIORITY creationPriority);
 }
