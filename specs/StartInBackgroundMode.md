@@ -19,7 +19,7 @@ raise the priority of the creation of the WebView2 browser process.
 ## Win32 C++
 ```cpp
 auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-// Set CreationPriority` to COREWEBVIEW2_CREATION_PRIORITY_NORMAL to signal 
+// Set `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_NORMAL` to signal 
 // the WebView2 browser process to have normal priorty during creation".
 options->put_CreationPriority(COREWEBVIEW2_CREATION_PRIORITY_NORMAL);
 HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
