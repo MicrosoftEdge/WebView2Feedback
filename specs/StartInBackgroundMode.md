@@ -19,9 +19,9 @@ raise the priority of the creation of the WebView2 browser process.
 ## Win32 C++
 ```cpp
 auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-/// Set webView2 browser process to have normal priority during creation, 
-/// which avoids to impact other host application processes acquiring 
-/// system resources.
+/// Set the WebView2 browser process to have normal priority during 
+/// creation, which avoids to impact other host application 
+/// processes acquiring system resources.
 options->put_CreationPriority(COREWEBVIEW2_CREATION_PRIORITY_NORMAL);
 HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
   nullptr, m_userDataFolder.c_str(), options.Get(),
@@ -66,11 +66,12 @@ interface ICoreWebView2EnvironmentOptions3 : ICoreWebView2EnvironmentOptions2 {
   /// Set `CreationPriority` to `COREWEBVIEW2_CREATION_PRIORITY_HIGH` will attempt to
   /// create the WebView2 browser process with high priority.
   /// Default is `COREWEBVIEW2_CREATION_PRIORITY_HIGH`.
-  /// Note that 1)The host app's priority must be at least normal for 
-  /// `COREWEBVIEW2_CREATION_PRIORITY_HIGH` to be applied. Else, the WebView2 browser process 
-  /// still get created with normal priority even with `COREWEBVIEW2_CREATION_PRIORITY_HIGH` setting.
-  /// 2)Currently `CreationPriority` only applies to the creation of the WebView2 browser process.
-  /// `CreationPriority` may be broadened to apply to other parts of WebView2 creation in the future.
+  /// Note that the host app's priority must be at least normal for 
+  /// `COREWEBVIEW2_CREATION_PRIORITY_HIGH` to be applied. Otherwise the WebView2 browser  
+  /// process still get created with normal priority even with `COREWEBVIEW2_CREATION_PRIORITY_HIGH` 
+  /// setting. Additionally, currently `CreationPriority` only applies to the creation of the 
+  /// WebView2 browser process. `CreationPriority` may be broadened to apply to other parts of 
+  /// WebView2 creation in the future.
   // MSOWNERS: wangsongjin@microsoft.com
   [propput] HRESULT CreationPriority([in] COREWEBVIEW2_CREATION_PRIORITY creationPriority);
 }
