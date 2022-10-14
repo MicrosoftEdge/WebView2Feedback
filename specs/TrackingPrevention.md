@@ -6,16 +6,16 @@ The WebView2 team has been asked for an API to toggle tracking prevention and al
 
 We are proposing two API's
 IsTrackingPreventionEnabled: This API allows you to enable/disable the tracking prevention feature. By default tracking prevention feature is enabled
-and set to `balanced` level for WebView2. You can set the `CoreWebView2EnvironmentOptions.IsTrackingPreventionEnabled` property to false to disable 
+and set to `Balanced` level for WebView2. You can set the `CoreWebView2EnvironmentOptions.IsTrackingPreventionEnabled` property to false to disable
 the tracking prevention feature for WebView2 before creating environment that also skips the related code and improves the performance.
 
-TrackingPreventionUserPreference: This API allows you to control levels of tracking prevention for WebView2 which are associated with a profile when 
-tracking prevention feature is enabled otherwise TrackingPreventionUserPreference is CoreWebView2TrackingPreventionUserPreferenceKind.Off and can't be changed to other kinds.
+TrackingPreventionUserPreference: This API allows you to control levels of tracking prevention for WebView2 which are associated with a profile when
+feature is enabled otherwise TrackingPreventionUserPreference is CoreWebView2TrackingPreventionUserPreferenceKind.Off and can't be changed to other kinds.
 The levels are similar to Edge: off, basic, balanced and strict.
 
 For reference, in the screenshot below, this API sets the levels of tracking prevention as a WebView2 API.
 
-![Edge Settings Appearance Page](https://github.com/MicrosoftEdge/WebView2Feedback/blob/api-appearance/specs/images/TrackingPreventionLevels.png)
+![Edge Tracking Prevention](images/TrackingPreventionLevels.png)
 
 # Examples
 ## IsTrackingPreventionEnabled
@@ -30,12 +30,12 @@ void CreateEnvironmentWithOption()
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 ```
-    
+
 ```cpp
 Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions3> options3;
 if (options.As(&options3) == S_OK)
 {
-    CHECK_FAILURE(options3->put_IsTrackingPreventionEnabled(m_TrackingPreventionEnabled ? TRUE : FALSE));
+    CHECK_FAILURE(options3->put_IsTrackingPreventionEnabled(FALSE));
 }
 ```
 
@@ -43,6 +43,8 @@ if (options.As(&options3) == S_OK)
 /// Example to set level of tracking preference.
 
 ```c#
+/// Below example set user level of tracking preference.
+
 void TrackingPreventionUserPrefCommandExecuted(object target, ExecutedRoutedEventArgs e)
 {
     try
@@ -51,7 +53,7 @@ void TrackingPreventionUserPrefCommandExecuted(object target, ExecutedRoutedEven
         if (userPreference == "Off")
         {
             WebViewProfile.TrackingPreventionUserPreference = CoreWebView2TrackingPreventionUserPreferenceKind.Off;
-        } 
+        }
         else if (userPreference == "Basic")
         {
             WebViewProfile.TrackingPreventionUserPreference = CoreWebView2TrackingPreventionUserPreferenceKind.Basic;
@@ -73,7 +75,7 @@ void TrackingPreventionUserPrefCommandExecuted(object target, ExecutedRoutedEven
     }
 }
 ```
-    
+
 ```cpp
 void SettingsComponent::SetTrackingPreventionUserPreference(
     COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND value)
@@ -100,16 +102,16 @@ void SettingsComponent::SetTrackingPreventionUserPreference(
 /// Tracking prevention user preference kind.
 [v1_enum] typedef enum COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND {
   COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND_OFF,
-  /// The least restrictive level of tracking prevention for users who enjoy 
+  /// The least restrictive level of tracking prevention for users who enjoy
   /// personalized advertisements and who do not mind being tracked on the web.
   /// This only protects users against malicious trackers such as fingerprints and crypto miners.
   COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND_BASIC,
-  /// The default level of tracking prevention for users who want to see less creepy 
-  /// advertisements that follow them around the web while they browse. Balanced aims to 
-  /// block trackers from sites that users never engage with while minimizing the risk of 
+  /// The default level of tracking prevention for users who want to see less creepy
+  /// advertisements that follow them around the web while they browse. Balanced aims to
+  /// block trackers from sites that users never engage with while minimizing the risk of
   /// compatibility issues on the web.
   COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND_BALANCED,
-  /// The most restrictive level of tracking prevention for users who are okay 
+  /// The most restrictive level of tracking prevention for users who are okay
   /// trading website compatibility for maximum privacy.
   COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND_STRICT,
 } COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND;
@@ -119,9 +121,9 @@ void SettingsComponent::SetTrackingPreventionUserPreference(
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// The `IsTrackingPreventionEnabled` property is used to toggle tracking prevention feature in WebView2.
   /// By default this feature is enabled and set to `COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND_BALANCED`.
-  /// You can set this property to false to disable the tracking prevention feature that also skips the related code and 
+  /// You can set this property to false to disable the tracking prevention feature that also skips the related code and
   /// improves the performance.
-  /// 
+  ///
   /// Tracking prevention protects users from online tracking by restricting
   /// the ability of trackers to access browser-based storage as well as the network.
   /// See [Tracking prevention](microsoft-edge/web-platform/tracking-prevention).
@@ -137,9 +139,9 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
 interface ICoreWebView2Profile5: IUnknown {
   /// The kind of tracking prevention user preference.
   /// See `COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND` for descriptions of levels.
-  /// 
+  ///
   /// `TrackingPreventionUserPreference` will be `COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND_OFF`
-  /// if `IsTrackingPreventionEnabled` of `ICoreWebView2EnvironmentOptions3` is false and can't be changed 
+  /// if `IsTrackingPreventionEnabled` of `ICoreWebView2EnvironmentOptions3` is false and can't be changed
   /// to other kinds.
   // MSOWNERS: monicach@microsoft.com
   [propget] HRESULT TrackingPreventionUserPreference(
