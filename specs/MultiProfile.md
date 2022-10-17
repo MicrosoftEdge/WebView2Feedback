@@ -165,6 +165,28 @@ void ScenarioCookieManagement::DeleteAllCookies()
     CHECK_FAILURE(m_cookieManager->DeleteAllCookies();
 }
 ```
+
+### Delete profile
+
+```cpp
+HRESULT AppWindow::DeleteProfile(ICoreWebView2Controller* controller)
+{
+    wil::com_ptr<ICoreWebView2> coreWebView2;
+    CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
+    auto webview7 = coreWebView2.try_query<ICoreWebView2_7>();
+    if (webview7)
+    {
+        wil::com_ptr<ICoreWebView2Profile> profile;
+        CHECK_FAILURE(webview7->get_Profile(&profile));
+        auto profile2 = profile.try_query<ICoreWebView2StagingProfile4>();
+        if (profile2)
+        {
+            CHECK_FAILURE(profile2->Delete());
+        }
+    }
+}
+```
+
 ## .NET and WinRT
 
 ### Create WebView2 with a specific profile, then access the profile property of WebView2
@@ -226,6 +248,17 @@ void DeleteAllCookies()
 }
 ```
 
+```csharp
+public DeleteProfile(CoreWebView2Controller controller)
+{
+    // Get the profile object.
+    CoreWebView2Profile profile = controller.CoreWebView2.Profile;
+    
+    // Delete current profile.
+    profile.Delete();
+}
+```
+
 # API Details
 
 ## Win32 C++
@@ -236,6 +269,7 @@ interface ICoreWebView2Environment5;
 interface ICoreWebView2_7;
 interface ICoreWebView2Profile;
 interface ICoreWebView2Profile2;
+interface ICoreWebView2Profile3;
 
 /// This interface is used to manage profile options that created by 'CreateCoreWebView2ControllerOptions'.
 [uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
@@ -328,6 +362,18 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
   /// See ICoreWebView2CookieManager.
   [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
 }
+
+[uuid(1c1ae2cc-d5c2-ffe3-d3e7-7857035d23b7), object, pointer_default(unique)]
+interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
+  /// All webviews on this profile will be closed, and the profile will be marked for deletion.
+  /// After the Delete() call completes, The render process of webviews on this profile will
+  /// asynchronously exit with the reason:`COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED`.
+  /// See 'COREWEBVIEW2_PROCESS_FAILED_REASON::COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED'
+  /// for more details. The profile directory on disk will be actually deleted when the browser
+  /// process exits. Webview2 creation will fail with the HRESULT is ERROR_INVALID_STATE(0x8007139FL)
+  /// if you create it with the same name as a profile that is being deleted.
+  HRESULT Delete(); 
+}
 ```
 
 ## .NET and WinRT
@@ -379,6 +425,12 @@ namespace Microsoft.Web.WebView2.Core
         String ProfilePath { get; };
 
         CoreWebView2CookieManager CookieManager { get; };
+        
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile3")]
+        {
+            // ICoreWebView2Profile3 members
+            void Delete();
+        }
     }
 }
 ```

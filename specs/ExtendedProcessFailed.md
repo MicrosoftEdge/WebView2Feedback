@@ -66,6 +66,7 @@ std::wstring ProcessComponent::ProcessFailedReasonToString(
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_CRASHED);
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_LAUNCH_FAILED);
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_OUT_OF_MEMORY);
+        REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED);
 
 #undef REASON_ENTRY
     }
@@ -544,6 +545,9 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_REASON {
 
   /// The process died due to running out of memory.
   COREWEBVIEW2_PROCESS_FAILED_REASON_OUT_OF_MEMORY,
+
+  /// The process exited because its corresponding profile was deleted.
+  COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED,
 } COREWEBVIEW2_PROCESS_FAILED_REASON;
 
 /// A continuation of `ICoreWebView2ProcessFailedEventArgs` interface.
@@ -709,6 +713,8 @@ namespace Microsoft.Web.WebView2.Core
         LaunchFailed,
         /// The process died due to running out of memory.
         OutOfMemory,
+        /// The process exited because its corresponding profile was deleted.
+        ProfiledDeleted,
     };
 
     runtimeclass CoreWebView2ProcessFailedEventArgs
