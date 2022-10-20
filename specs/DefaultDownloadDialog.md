@@ -11,8 +11,8 @@ position below your button, and alternating open and close calls when the button
 clicked on.
 
 For more complex customizations, you can use the Download APIs -
-[DownloadStarting](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2downloadstartingeventargs?view=webview2-1.0.961.33)
- and [DownloadOperation](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2downloadoperation?view=webview2-1.0.961.33) - to build custom download UI.
+[DownloadStarting](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2downloadstartingeventargs?view=webview2-1.0.961.33)
+ and [DownloadOperation](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2downloadoperation?view=webview2-1.0.961.33) - to build custom download UI.
 
 # Examples
 ```cpp

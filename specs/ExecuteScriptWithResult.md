@@ -1,5 +1,5 @@
 # Background
-Our end developers have pointed out gaps in the existing [CoreWebView2.ExecuteScript](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1150.38#executescript) method, and it is necessary
+Our end developers have pointed out gaps in the existing [CoreWebView2.ExecuteScript](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1150.38#executescript) method, and it is necessary
 to provide a new method to let our end developers get more information in a more convenient manner.
 The new ExecuteScriptWithResult method will provide exception information if the executed script
 failed, and provides a new method to try to get the script execution result as a string rather than as JSON
@@ -284,7 +284,7 @@ interface ICoreWebView2_10 : ICoreWebView2_9 {
 ```
 
 ## .NET and WinRT
-The documentation for the old interface [CoreWebView2.ExecuteScriptAsync(String) Method](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.executescriptasync?view=webview2-dotnet-1.0.1150.38#microsoft-web-webview2-core-corewebview2-executescriptasync(system-string)) is here.
+The documentation for the old interface [CoreWebView2.ExecuteScriptAsync(String) Method](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2.executescriptasync?view=webview2-dotnet-1.0.1150.38#microsoft-web-webview2-core-corewebview2-executescriptasync(system-string)) is here.
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {

@@ -489,7 +489,7 @@ namespace Microsoft.Web.WebView2.Core
         {
             /// A reference to the underlying memory of the shared buffer.
             /// You can get IMemoryBufferByteAccess from the object to access the memory as an array of bytes.
-            /// See [I](https://docs.microsoft.com/en-us/uwp/api/windows.foundation.imemorybufferreference?view=winrt-22621)
+            /// See [I](https://learn.microsoft.com/uwp/api/windows.foundation.imemorybufferreference?view=winrt-22621)
             /// for more details.
             Windows.Foundation.IMemoryBufferReference Buffer { get; };
         }

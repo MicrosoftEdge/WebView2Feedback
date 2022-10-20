@@ -722,7 +722,7 @@ interface ICoreWebView2PrintSettings2 : ICoreWebView2PrintSettings {
   /// the name of any installed printers on the user OS, `ICoreWebView2PrintCompletedHandler` handler
   /// will return `errorCode` as `S_OK` and `printStatus` as COREWEBVIEW2_PRINT_STATUS_PRINTER_UNAVAILABLE.
   ///
-  /// Use [Enum Printers](https://docs.microsoft.com/en-us/windows/win32/printdocs/enumprinters)
+  /// Use [Enum Printers](https://learn.microsoft.com/windows/win32/printdocs/enumprinters)
   /// to enumerate available printers.
   [propput] HRESULT PrinterName([in] LPCWSTR value);
 }

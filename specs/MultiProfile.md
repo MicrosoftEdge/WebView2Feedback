@@ -276,7 +276,7 @@ interface ICoreWebView2Profile3;
 interface ICoreWebView2ControllerOptions : IUnknown {
   /// The `ProfileName` property specifies the profile's name. It has a maximum length of 64 
   /// characters excluding the null terminator and must be a valid file name.
-  /// See [Naming Files, Paths, and Namespaces](https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file)
+  /// See [Naming Files, Paths, and Namespaces](https://learn.microsoft.com/windows/win32/fileio/naming-a-file)
   /// for more information on file names. It must contain only the following ASCII characters:
   ///
   ///  * alphabet characters: a-z and A-Z

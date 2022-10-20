@@ -6,22 +6,22 @@
 
 <!-- TEMPLATE
     The purpose of this spec is to describe new APIs, in a way
-    that will transfer to docs.microsoft.com (https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
+    that will transfer to learn.microsoft.com (https://learn.microsoft.com/microsoft-edge/webview2/).
 
     There are two audiences for the spec. The first are people that want to evaluate and
     give feedback on the API, as part of the submission process.
     So the second audience is everyone that reads there to learn how and why to use this API.
     Some of this text also shows up in Visual Studio Intellisense.
     When the PR is complete, the content within the 'Conceptual Pages' section of the review spec will be incorporated into the public documentation at
-    http://docs.microsoft.com (DMC).
+    http://learn.microsoft.com (LMC).
 
     For example, much of the examples and descriptions in the `RadialGradientBrush` API spec
     (https://github.com/microsoft/microsoft-ui-xaml-specs/blob/master/active/RadialGradientBrush/RadialGradientBrush.md)
-    were carried over to the public API page on DMC
-    (https://docs.microsoft.com/windows/winui/api/microsoft.ui.xaml.media.radialgradientbrush?view=winui-2.5)
+    were carried over to the public API page on LMC
+    (https://learn.microsoft.com/windows/winui/api/microsoft.ui.xaml.media.radialgradientbrush?view=winui-2.5)
 
-    Once the API is on DMC, that becomes the official copy, and this spec becomes an archive.
-    For example if the description is updated, that only needs to happen on DMC and needn't
+    Once the API is on LMC, that becomes the official copy, and this spec becomes an archive.
+    For example if the description is updated, that only needs to happen on LMC and needn't
     be duplicated here.
 
     Examples:
@@ -72,7 +72,7 @@ Title
 
 # Conceptual pages (How To)
 
-_(This is conceptual documentation that will go to docs.microsoft.com "how to" page)_
+_(This is conceptual documentation that will go to learn.microsoft.com "how to" page)_
 
 <!-- TEMPLATE
     (Optional)
@@ -82,7 +82,7 @@ _(This is conceptual documentation that will go to docs.microsoft.com "how to" p
 
     For example, there are several navigation events each with their own reference doc, but then
     there's also a concept doc on navigation
-    (https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events).
+    (https://learn.microsoft.com/microsoft-edge/webview2/concepts/navigation-events).
 
     Sometimes it's difficult to decide if text belongs on a how-to page or an API page.
     Because our API reference documentation is automatically turned into reference docs you can
@@ -147,7 +147,7 @@ _(This is conceptual documentation that will go to docs.microsoft.com "how to" p
 # API Details
 <!-- TEMPLATE
     The exact API, in IDL format for our COM API and
-    in MIDL3 format (https://docs.microsoft.com/en-us/uwp/midl-3/)
+    in MIDL3 format (https://learn.microsoft.com/uwp/midl-3/)
     when possible.
 
     Include every new or modified type but use // ... to remove any methods,
