@@ -278,7 +278,7 @@ is that `BrowserProcessExited` is raised for any **browser process** exit
 `ProcessFailed` is raised for **unexpected** process exits of any kind (browser,
 render, GPU, and all other types), or for main frame **render process**
 unresponsiveness. To learn more about the WebView2 Process Model, go to
-[Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+[Process model](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model).
 
 In the case the browser process crashes, both `BrowserProcessExited` and
 `ProcessFailed` events are raised, but the order is not guaranteed.
@@ -318,7 +318,7 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// due to browser process failure or normal shutdown (for example, when all
   /// associated WebViews are closed), after all resources have been released
   /// (including the user data folder). To learn about what these processes are,
-  /// go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+  /// go to [Process model](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model).
   ///
   /// A handler added with this method is called until removed with
   /// `remove_BrowserProcessExited`, even if a new browser process is bound to
@@ -344,7 +344,7 @@ interface ICoreWebView2Environment3 : ICoreWebView2Environment2
   /// **unexpected** process exits of any kind (browser, render, GPU, and all
   /// other types), or for main frame **render process** unresponsiveness. To
   /// learn more about the WebView2 Process Model, go to
-  /// [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+  /// [Process model](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model).
   ///
   /// In the case the browser process crashes, both `BrowserProcessExited` and
   /// `ProcessFailed` events are raised, but the order is not guaranteed. These
@@ -408,7 +408,7 @@ namespace Microsoft.Web.WebView2.Core
         /// terminate due to browser process failure or normal shutdown (for example,
         /// when all associated WebViews are closed), after all resources have been
         /// released (including the user data folder). To learn about what these processes
-        /// are, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+        /// are, go to [Process model](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model).
         ///
         /// Multiple app processes can share a browser process by creating their webviews
         /// from a `CoreWebView2Environment` with the same user data folder. When the entire
@@ -429,7 +429,7 @@ namespace Microsoft.Web.WebView2.Core
         /// `ProcessFailed` is raised  for **unexpected** process exits of any kind (browser,
         /// render, GPU, and all other types), or for main frame **render process**
         /// unresponsiveness. To learn more about the WebView2
-        /// Process Model, go to [Process model](https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model).
+        /// Process Model, go to [Process model](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model).
         ///
         /// In the case the browser process crashes, both `BrowserProcessExited` and
         /// `ProcessFailed` events are raised, but the order is not guaranteed. These

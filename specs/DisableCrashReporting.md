@@ -98,7 +98,7 @@ interface ICoreWebView2Environment11 : ICoreWebView2Environment10 {
   /// `FailureReportFolderPath` get the folder path of where minidump files is written.
   /// Whenever a WebView2 process crashes, a crash dump file will be created in the crash dump folder.
   /// A crash dump format is minidump files, please see 
-  /// https://docs.microsoft.com/en-us/windows/win32/debug/minidump-files for detailed documentation. 
+  /// https://learn.microsoft.com/windows/win32/debug/minidump-files for detailed documentation. 
   /// Normally when a single child process failed, a minidump will be generated and written to disk, 
   /// then `ProcessFailed` event is raised. But for unexpected crashes, minidump might not be generated 
   /// at all, despite whether `ProcessFailed` event is raised. For times, that there are multiple 

@@ -13,7 +13,7 @@
   that want to evaluate and give feedback on the API, as part of
   the submission process. When it's complete
   it will be incorporated into the public documentation at
-  docs.microsoft.com (https://docs.microsoft.com/en-us/microsoft-edge/webview2/).
+  learn.microsoft.com (https://learn.microsoft.com/microsoft-edge/webview2/).
   Hopefully we'll be able to copy it mostly verbatim.
   So the second audience is everyone that reads there to learn how
   and why to use this API.
