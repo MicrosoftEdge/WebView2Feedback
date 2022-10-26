@@ -149,11 +149,13 @@ interface ICoreWebView2Profile5: IUnknown {
   /// See `COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND` for descriptions of levels.
   ///
   /// `TrackingPreventionUserPreference` will be `COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND_OFF`
-  /// if `IsTrackingPreventionEnabled` is false and can't be changed to other kinds.
+  /// if `IsTrackingPreventionEnabled` is false.
   // MSOWNERS: monicach@microsoft.com
   [propget] HRESULT TrackingPreventionUserPreference(
       [out, retval] COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND* value);
   /// Set the `TrackingPreventionUserPreference` property.
+  ///
+  /// Returns with `E_ABORT` if `IsTrackingPreventionEnabled` is false.
   // MSOWNERS: monicach@microsoft.com
   [propput] HRESULT TrackingPreventionUserPreference(
       [in] COREWEBVIEW2_TRACKING_PREVENTION_USER_PREFERENCE_KIND value);
