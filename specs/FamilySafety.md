@@ -58,7 +58,7 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// parents can still override the URL if they want the app blocked.
   /// \snippet AppWindow.cpp CoreWebView2FamilySafety
   HRESULT GetFamilySafetySoftByPassList([out] UINT32* uriCounts, [out] LPWSTR** lists);
-  HRESULT SetFamilySafetySoftByPassList([in] UINT32 uriCounts, [in] LPCWSTR* lists);
+  HRESULT SetFamilySafetySoftByPassList([in] UINT32 urisCount, [in] LPCWSTR* uris);
 }
 ```
 
