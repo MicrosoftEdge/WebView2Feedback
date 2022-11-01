@@ -93,22 +93,22 @@ void SettingsComponent::SetTrackingPreventionLevel(
   /// The least restrictive level of tracking prevention. Set to this level to
   /// protect against malicious trackers but allows most other trackers and personalize content and ads.
   ///
-  /// See [table](/microsoft-edge/web-platform/tracking-prevention#current-tracking-prevention-behavior)
-  /// for finegrain information on what is being blocked/unblocked with this level. This can change with different Edge versions.
+  /// See [Current tracking prevention behavior](/microsoft-edge/web-platform/tracking-prevention#current-tracking-prevention-behavior)
+  /// for fine-grained information on what is being blocked with this level. This can change with different Edge versions.
   COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_BASIC,
   /// The default level of tracking prevention. Set to this level to
-  /// protect against social media tracking on top of malicious trackers. Content and ads will likely be less personalized.
+  /// protect against social media tracking in addition to malicious trackers. Content and ads will likely be less personalized.
   ///
-  /// See [table](/microsoft-edge/web-platform/tracking-prevention#current-tracking-prevention-behavior)
-  /// for finegrain information on what is being blocked/unblocked with this level. This can change with different Edge versions.
+  /// See [Current tracking prevention behavior](/microsoft-edge/web-platform/tracking-prevention#current-tracking-prevention-behavior)
+  /// for fine-grained information on what is being blocked with this level. This can change with different Edge versions.
   COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_BALANCED,
   /// The most restrictive level of tracking prevention. Set to this level to protect
   /// against malicious trackers and most trackers across sites. Content and ads will likely have minimal personalization.
   ///
   /// This level blocks the most trackers but could cause some websites to not behave as expected.
   ///
-  /// See [table](/microsoft-edge/web-platform/tracking-prevention#current-tracking-prevention-behavior)
-  /// for finegrain information on what is being blocked/unblocked with this level. This can change with different Edge versions.
+  /// See [Current tracking prevention behavior](/microsoft-edge/web-platform/tracking-prevention#current-tracking-prevention-behavior)
+  /// for fine-grained information on what is being blocked with this level. This can change with different Edge versions.
   COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_STRICT,
 } COREWEBVIEW2_TRACKING_PREVENTION_LEVEL;
 
@@ -129,7 +129,7 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   ///
   ///
   /// There is `TrackingPreventionLevel` property to control levels of tracking prevention of the WebView2's
-  /// associated with a same user profile. However, you can also turn off tracking prevention later using 
+  /// associated with a same user profile. However, you can also turn off tracking prevention later using
   /// `TrackingPreventionLevel` property and `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF` value
   /// but that doesn't improves runtime performance.
   /// See `TrackingPreventionLevel` for more details.
@@ -146,8 +146,8 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
 [uuid(ddc4070a-c873-11eb-b8bc-0242ac130003), object, pointer_default(unique)]
 interface ICoreWebView2Profile5: IUnknown {
   /// The `TrackingPreventionLevel` property sets the level of tracking prevention when `IsTrackingPreventionEnabled`
-  /// is enabled and otherwise fails with `E_ABORT`. This level would apply to the context of the user profile.
-  /// That is, other WebViews under the same user profile could be affected.
+  /// is enabled and otherwise level will not be updated and remains as `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF`
+  /// This level would apply to the context of the user profile. That is, all WebView2s sharing the same user profile will be affected.
   ///
   /// See `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL` for descriptions of levels.
   ///
@@ -164,7 +164,8 @@ interface ICoreWebView2Profile5: IUnknown {
       [out, retval] COREWEBVIEW2_TRACKING_PREVENTION_LEVEL* value);
   /// Set the `TrackingPreventionLevel` property.
   ///
-  /// Returns with `E_ABORT` if `IsTrackingPreventionEnabled` is false.
+  /// If `IsTrackingPreventionEnabled` is false, this property will not be updated and the current tracking prevention level will remain
+  /// as `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF`.
   [propput] HRESULT TrackingPreventionLevel(
       [in] COREWEBVIEW2_TRACKING_PREVENTION_LEVEL value);
 }
