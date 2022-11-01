@@ -57,7 +57,7 @@ interface ICoreWebView2EnvironmentOptions3;
 [uuid(D0965AC5-11EB-4A49-AA1A-C8E9898F80AF), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// When `IsFamilySafetyEnabled` is `TRUE` WebView2 provides the same Family Safety 
-  /// functionality as the Edge browser for child accounts: Activity Reporting, Web 
+  /// functionality as the Edge browser for child accounts on OS: Activity Reporting, Web 
   /// Filtering and SafeSearch. Please see https://www.microsoft.com/en-us/microsoft-365/family-safety for details.
   /// `IsFamilySafetyEnabled` property is to enable/disable family safety feature.
   /// It is `FALSE` by default.
