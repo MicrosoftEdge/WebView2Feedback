@@ -68,6 +68,8 @@ namespace Microsoft.Web.WebView2.Core
     // ...
     runtimeclass CoreWebView2Environment
     {
+        // ...
+        
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions3")]
         {
             // ICoreWebView2EnvironmentOptions3 members
