@@ -76,7 +76,7 @@ namespace Microsoft.Web.WebView2.Core
             Boolean IsFamilySafetyEnabled { get; set; };
 
             // List of bypass uris
-            IList<String> FamilySafetySoftByPassList { get; set; };
+            IVector<String> FamilySafetySoftByPassList { get; };
         }
     }
 }
