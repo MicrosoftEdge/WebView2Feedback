@@ -87,7 +87,7 @@ namespace Microsoft.Web.WebView2.Core
             Boolean IsFamilySafetyEnabled { get; set; };
 
             // List of allowed uris
-            IList<String> FamilySafetyAllowedUris { get; set; };
+            IVector<String> FamilySafetyAllowedUris { get; };
         }
     }
 }
