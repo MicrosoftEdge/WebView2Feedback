@@ -55,7 +55,7 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   [propput] HRESULT IsFamilySafetyEnabled([in] BOOL value);
 
   /// When Family Safety feature is enabled, provide ability to modify the soft by pass list so app remain functioning in BlockAll Mode,
-  /// parents can still override the URL if they want the app blocked.
+  /// parents can still override the URI if they want the app blocked.
   /// \snippet AppWindow.cpp CoreWebView2FamilySafety
   HRESULT GetFamilySafetySoftByPassList([out] UINT32* uriCounts, [out] LPWSTR** lists);
   HRESULT SetFamilySafetySoftByPassList([in] UINT32 urisCount, [in] LPCWSTR* uris);
