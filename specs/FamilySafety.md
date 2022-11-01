@@ -2,7 +2,7 @@ Family Safety
 ===
 
 # Background
-Provide end evelolper a new API to toggle Family Safety feature on and off. Once Family Safety is enabled, developer won't be able to turn it off while webview2 instance is running. Once enable, it will provide the same functionally as the browser like: Activity report, Safe Search and Web Filtering. Besides toggling the feature, we also provide an API to add desired sites to the soft bypass list, so app functionality will not be impacted by Family Safety restricted mode. Parents can still over the site if they prefer.
+Our customers have asked for a new API to toggle the Family Safety feature on and off. The Family Safety feature is enabled or disabled for a browser process instance, and the end developer won't be able to change it while the webview2 browser process instance is running. Once enabled, it will provide the same functionally as the browser Family Safety feature including: Activity reports, search filtering, and web filtering. Besides toggling the feature, we also provide an API to add desired sites to the soft bypass list, so app functionality will not be impacted by Family Safety. Additionally, parents can also override a block.
 Please see https://www.microsoft.com/en-us/microsoft-365/family-safety for details on Family Safety. 
 
 # Examples
