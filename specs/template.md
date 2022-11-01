@@ -97,6 +97,11 @@ _(This is conceptual documentation that will go to learn.microsoft.com "how to" 
     example code with each description in both C# (for our WinRT API or .NET API) and
     in C++ for our COM API. Use snippets of the sample code you wrote for the sample apps.
     The sample code for C++ and C# should demonstrate the same thing.
+    If you are introducing a JavaScript API or otherwise the sample relies on HTML or JS
+    include that and consider including it in its own HTML or JS sample code.
+
+    As an example of this section, see the Examples section for the Custom Downloads
+    APIs (https://github.com/MicrosoftEdge/WebView2Feedback/blob/master/specs/CustomDownload.md). 
 
     The general format is:
 
@@ -120,6 +125,14 @@ _(This is conceptual documentation that will go to learn.microsoft.com "how to" 
     }
     ```
 
+    If the sample code requires JS or HTML include that as well
+
+    ```html
+    <script>
+        chrome.webview.postMessage(...);
+    </script>
+    ```
+
     ## SecondFeatureName
 
     Feature explanation text goes here, including why an app would use it, how it
@@ -140,8 +153,15 @@ _(This is conceptual documentation that will go to learn.microsoft.com "how to" 
     }
     ```
 
-    As an example of this section, see the Examples section for the Custom Downloads
-    APIs (https://github.com/MicrosoftEdge/WebView2Feedback/blob/master/specs/CustomDownload.md). 
+
+    If the sample code requires JS or HTML include that as well
+
+    ```html
+    <script>
+        chrome.webview.postMessage(...);
+    </script>
+    ```
+
 -->
 
 # API Details
@@ -194,6 +214,33 @@ namespace Microsoft.Web.WebView2.Core
     }
 }
 ```
+
+If you are introducing a WebView2 JavaScript API include the TypeScript
+definition of that API and reference documentation for it as well.
+You can use https://www.typescriptlang.org/play to verify your TypeScript
+
+```ts
+interface WebView extends EventTarget {
+    postMessage(message: any) : void;
+    hostObjects: HostObjectsAsyncRoot;
+    // ...
+}
+
+interface HostObjectsAsyncRoot {
+    cleanupSome() : void;
+    options: HostObjectsOptions;
+}
+
+interface HostObjectsOptions {
+    forceLocalProperties: string[];
+    log: (...data: any[]) => void;
+    shouldSerializeDates: boolean;
+    defaultSyncProxy: boolean;
+    forceAsyncMethodMatches: RegExp[];
+    ignoreMemberNotFoundError: boolean;
+}
+```
+
 -->
 
 
