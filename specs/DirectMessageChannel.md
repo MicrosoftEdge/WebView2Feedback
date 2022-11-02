@@ -12,8 +12,7 @@ To overcome above problems, `Direct Message Channel`(DMC) is designed to enable 
 
 Multiple interfaces/APIs are exposed to support the direct message channel. On web side, `window.chrome.webview.getDirectMessageChannel` is exposed to request direct message channel object. On this channel object, you can `postMessage` to native side or listening to `disconnect`|`message` events to receive native messages. On native side, you can capture DirectMessageChannelCreated event raised by the request from web code and then you can get the `DirectMessageChannel` channel from event args. Through this channel, you can `PostWebMessageAsJson|String` to web side or listen to `WebMessageReceived` event to receive messages from web side. You can listen to `ChannelClosed` event to get notified when the channel is closed from web side, for example, when navigating away from current page.
 
-Direct message channel can also be transfered to host app child process to recreate and establish the direct communication tunnel between host app child process and WebView2 runtime renderer process.
-You can call `TakeTransferableBlobAndInvalidate` API of DirectMessageChannel object to create a transferable blob that can be sent to child process. It will also invalidate current DirectMessageChannel object, and set it to transferable state. Please note that this API cannot be called on a direct message channel that has already been started. Recreating the DirectMessageChannel can be done by passing this blob to `ReCreateDirectMessageChannel` API of WebView2 environment. Please also note that direct message channel can be started on a different thread it's created, but it must be created on the same thread the WebView2 environment is created.
+Direct message channel can also be transfered to host app child process to reconstruct and establish the direct communication tunnel between host app child process and WebView2 runtime renderer process. You can call `TakeTransferableBlobAndInvalidate` API of DirectMessageChannel object to create a transferable blob that can be sent to child process. It will also invalidate current DirectMessageChannel object, and set it to transferable state. Please note that this API cannot be called on a direct message channel that has already been started. Reconstructing the direct message channel can be done by passing this blob to `ReConstructDirectMessageChannel` API of WebView2 environment. Please also note that direct message channel can be started on a different thread it's created or constructed, but the creation or construction must happen on the same thread the WebView2 environment is created.
 
 # Examples
 ## DirectMessageChannel
@@ -322,7 +321,7 @@ ScenarioDirectWebMessage::ScenarioDirectWebMessage(AppWindow* appWindow)
 Except capturing the direct message channel on host app main process and setting up the direct communication
 tunnel between host app main process and WebView2 runtime renderer process, you can also set up the direct
 message channel between any child process of host app and renderer process via APIs exposed on channel
-`TakeTransferableBlobAndInvalidate` and `ReCreateDirectMessageChannel`.
+`TakeTransferableBlobAndInvalidate` and `ReConstructDirectMessageChannel`.
 ```cpp
 // On host app main proces, call `channel->TakeTransferableBlobAndInvalidate(handle, &blob)` to get the direct message
 // channel blob data and invalidate its state, then transfer the channel info blob data to child process via
@@ -351,9 +350,9 @@ void ScenarioDirectWebMessage::WriteChannelBlobToChildDMCPorcess(
     }
 }
 
-// In child process, you need to create WebView2 environment and in the environment creation
-// completed callback, call environment's `ReCreateDirectMessageChannel` API with the channel info
-// blob data to recreate the direct message channel.
+// In child process, you first need to create WebView2 environment and in the environment creation
+// completed callback, call environment's `ReConstructDirectMessageChannel` API with the channel info
+// blob data to reconstruct the direct message channel.
 HRESULT ChildProcessMessageChannel::OnCreateEnvironmentCompleted(
     HRESULT result,
     ICoreWebView2Environment* environment) {
@@ -365,9 +364,9 @@ HRESULT ChildProcessMessageChannel::OnCreateEnvironmentCompleted(
           .try_query<ICoreWebView2Environment11>();
 
   if (webViewEnvironment11) {
-    // Recreate the direct message channel object based on the blob data `m_directMessageChannelBlob`.
-    // `m_directMessageChannel` is the recreated direct message channel in child process.
-    CHECK_FAILURE(webViewEnvironment11->ReCreateDirectMessageChannel(
+    // Reconstruct the direct message channel object based on the blob data `m_directMessageChannelBlob`.
+    // `m_directMessageChannel` is the reconstructed direct message channel in child process.
+    CHECK_FAILURE(webViewEnvironment11->ReConstructDirectMessageChannel(
         const_cast<wchar_t*>(m_directMessageChannelBlob),
         &m_directMessageChannel));
 
@@ -436,12 +435,12 @@ interface ICoreWebView2StagingDirectMessageChannel : IUnknown {
   HRESULT PostWebMessageAsString([in] LPCWSTR webMessageAsString);
 
   /// Creates a transferable blob that can be sent to another process to
-  /// recreate the `DirectMessageChannel` with given handle of that process.
+  /// reconstruct the `DirectMessageChannel` with given handle of that process.
   /// This will invalidate the current direct message channel object, and prevent
   /// it from being started. This cannot be called on a direct message channel
   /// that has already been started, and is thus bound to the current thread.
-  /// Recreating the DirectMessageChannel can be done by passing this blob
-  /// to `ReCreateDirectMessageChannel' of the WebView environment.
+  /// Reconstructing the DirectMessageChannel can be done by passing this blob
+  /// to `ReConstructDirectMessageChannel' of the WebView environment.
   HRESULT TakeTransferableBlobAndInvalidate(
       [in] HANDLE handle,
       [out, retval] LPWSTR* directMessageChannelBlob);
@@ -548,9 +547,9 @@ interface ICoreWebView2StagingFrameDirectMessageChannelCreatedEventHandler : IUn
 
 [uuid(bc308ed0-fcd2-4f79-a0e4-5e7b2f109bb9), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironment3 : IUnknown {
-  /// Recreates a direct message channel from a blob to allow for single hop IPC
+  /// Reconstructs a direct message channel from a blob to allow for single hop IPC
   /// between host app's child process and a renderer process.
-  HRESULT ReCreateDirectMessageChannel(
+  HRESULT ReConstructDirectMessageChannel(
     [in] LPCWSTR directMessageChannelBlob,
     [out, retval] ICoreWebView2StagingDirectMessageChannel** directMessageChannel);
 }
@@ -561,10 +560,10 @@ interface ICoreWebView2StagingEnvironment3 : IUnknown {
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
 
   /// Gets the `OnlyUsedForDirectMessageChannel` property.
-  /// The property indicates whether the environment is only used to recreate direct message
+  /// The property indicates whether the environment is only used to reconstruct direct message
   /// channel. Once set to true, the environment created with this option can only be used to
-  /// recreate direct message channel and cannot be used to create WebView controller. Default to
-  /// false.
+  /// reconstruct direct message channel and cannot be used to create WebView controller. 
+  /// Default to false.
   [propget] HRESULT OnlyUsedForDirectMessageChannel([out, retval] BOOL* value);
 
   /// Sets the `OnlyUsedForDirectMessageChannel` property.
