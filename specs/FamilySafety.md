@@ -21,8 +21,8 @@ void CreateEnvrionmentWithOption()
     // by parents.
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     options.IsFamilySafetyEnabled = true;
-    // https://appassets.example/AppStartPage.html is used as an example app content.
-    options.FamilySafetyAllowedUris.Add("https://appassets.example/AppStartPage.html");
+    // appassets.example/AppStartPage.html is used as an example app content.
+    options.FamilySafetyAllowedUris.Add("appassets.example/AppStartPage.html");
     auto environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 ```
