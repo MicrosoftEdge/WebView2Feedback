@@ -50,7 +50,7 @@ public CreateWebView2Controller(IntPtr parentWindow)
 # API Details
 ```cpp
 [uuid(0c9a374f-20c3-4e3c-a640-67b78a7e0a48), object, pointer_default(unique)]
-interface ICoreWebView2ControllerOptions : IUnknown {
+interface ICoreWebView2StagingControllerOptions : IUnknown {
   /// Interface for locale region that is updated through the ControllerOptions
   /// API.
   /// The default region for WebView.  It applies to browser UI such as
@@ -64,6 +64,21 @@ interface ICoreWebView2ControllerOptions : IUnknown {
   /// will reflect the "en-GB" locale in V8.
   /// If V8 cannot find any matching locale on the input value, it will default
   /// to the display language as the locale.
+  ///
+  /// The Windows API `GetLocaleInfoEx` can be used if the LocaleRegion value
+  /// is always set to match the OS region
+  ///
+  /// ```cpp
+  /// int LanguageCodeBufferSize =
+  ///     ::GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SNAME, nullptr, 0);
+  /// std::unique_ptr<char[]> buffer(new char[LanguageCodeBufferSize]);
+  /// WCHAR* w_language_code = new WCHAR[LanguageCodeBufferSize];
+  /// ::GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SNAME, w_language_code,
+  ///                   LanguageCodeBufferSize);
+  /// wcstombs(buffer.get(), w_language_code, LanguageCodeBufferSize);
+  /// delete[] w_language_code;
+  /// return buffer;
+  /// ```
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
