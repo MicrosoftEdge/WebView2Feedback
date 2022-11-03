@@ -473,7 +473,6 @@ interface ICoreWebView2StagingDirectMessageChannel : IUnknown {
       [in] EventRegistrationToken token);
 }
 
-
 /// Receives `WebMessageReceived` events for direct message channel.
 [uuid(22D53EF3-1ED0-4532-B399-D3830D96EC7F), object, pointer_default(unique)]
 interface ICoreWebView2StagingDirectWebMessageReceivedEventHandler : IUnknown {
@@ -511,7 +510,7 @@ interface ICoreWebView2StagingDirectMessageChannelCreatedEventArgs : IUnknown {
       [out, retval] ICoreWebView2StagingDirectMessageChannel** channel);
 }
 
-[uuid(276f1679-c5ce-4739-b0f0-615196a1b65e), object, pointer_default(unique)]
+[uuid(276F1679-C5CE-4739-B0F0-615196A1B65E), object, pointer_default(unique)]
 interface ICoreWebView2Staging4 : IUnknown {
   /// This event runs when the top-level document of the WebView runs
   /// `chrome.webview.getDirectMessageChannel()`.
@@ -545,7 +544,7 @@ interface ICoreWebView2StagingFrameDirectMessageChannelCreatedEventHandler : IUn
     [in] ICoreWebView2StagingDirectMessageChannelCreatedEventArgs* args);
 }
 
-[uuid(bc308ed0-fcd2-4f79-a0e4-5e7b2f109bb9), object, pointer_default(unique)]
+[uuid(BC308ED0-FCD2-4F79-A0E4-5E7B2F109BB9), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironment3 : IUnknown {
   /// Reconstructs a direct message channel from a blob to allow for single hop IPC
   /// between host app's child process and a renderer process.
@@ -554,16 +553,16 @@ interface ICoreWebView2StagingEnvironment3 : IUnknown {
     [out, retval] ICoreWebView2StagingDirectMessageChannel** directMessageChannel);
 }
 
-/// Additional options used to create WebView2 Environment. A default implementation is
+/// Additional options used to create WebView Environment. A default implementation is
 /// provided in `WebView2EnvironmentOptions.h`.
-[uuid(FF85C98A-1BA7-4A6B-90C8-2B752C89E9E2), object, pointer_default(unique)]
+[uuid(FAB20EFB-C716-47AC-8FED-C8A65A8FA334), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
-
   /// Gets the `OnlyUsedForDirectMessageChannel` property.
   /// The property indicates whether the environment is only used to reconstruct direct message
   /// channel. Once set to true, the environment created with this option can only be used to
-  /// reconstruct direct message channel and cannot be used to create WebView controller. 
-  /// Default to false.
+  /// reconstruct direct message channel and cannot be used to create WebView controller.
+  /// Default to false for most cases, but if you want to call ReConstructDirectMessageChannel
+  /// API in this specific environment object, this property must be set to TRUE typically.
   [propget] HRESULT OnlyUsedForDirectMessageChannel([out, retval] BOOL* value);
 
   /// Sets the `OnlyUsedForDirectMessageChannel` property.
