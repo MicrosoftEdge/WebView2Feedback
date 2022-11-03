@@ -388,7 +388,7 @@ HRESULT ChildProcessMessageChannel::OnCreateEnvironmentCompleted(
 ```
 # API Details
 ```
-/// This is the ICoreWebView2StagingDirectMessageChannel interface.
+/// This is the ICoreWebView2DirectMessageChannel interface.
 [uuid(D73691D4-BF9C-4536-8768-C0F3B73126D4), object, pointer_default(unique)]
 interface ICoreWebView2StagingDirectMessageChannel : IUnknown {
   /// This is the |channel_name| specified by JS
@@ -473,7 +473,7 @@ interface ICoreWebView2StagingDirectMessageChannel : IUnknown {
       [in] EventRegistrationToken token);
 }
 
-/// Receives `WebMessageReceived` events for direct message channel.
+/// This is the callback for `WebMessageReceived` events on ICoreWebView2DirectMessageChannel.
 [uuid(22D53EF3-1ED0-4532-B399-D3830D96EC7F), object, pointer_default(unique)]
 interface ICoreWebView2StagingDirectWebMessageReceivedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
@@ -482,6 +482,7 @@ interface ICoreWebView2StagingDirectWebMessageReceivedEventHandler : IUnknown {
       [in] ICoreWebView2WebMessageReceivedEventArgs* args);
 }
 
+/// This is the callback for `ChannelClosed` events on ICoreWebView2DirectMessageChannel.
 [uuid(573B5EE5-21C7-4E9F-AE33-C65BD085ACEE), object, pointer_default(unique)]
 interface ICoreWebView2StagingDirectMessageChannelClosedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
@@ -491,13 +492,15 @@ interface ICoreWebView2StagingDirectMessageChannelClosedEventHandler : IUnknown 
       [in] IUnknown* args);
 }
 
+/// This is the callback for `DirectMessageChannelCreated` events on ICoreWebView2.
 [uuid(D9C99C1D-E657-46D4-99E6-40D27464A086), object, pointer_default(unique)]
 interface ICoreWebView2StagingDirectMessageChannelCreatedEventHandler : IUnknown {
   HRESULT Invoke(
-    [in] ICoreWebView2* sender,
+    [in] ICoreWebView2Staging4* sender,
     [in] ICoreWebView2StagingDirectMessageChannelCreatedEventArgs* args);
 }
 
+/// This is the event args interface for `DirectMessageChannelCreated` callback.
 [uuid(D1A53B0A-247A-4AAC-8A28-048F94DF55EC), object, pointer_default(unique)]
 interface ICoreWebView2StagingDirectMessageChannelCreatedEventArgs : IUnknown {
   /// Provides the newly created channel object. Once a direct message channel
@@ -510,6 +513,8 @@ interface ICoreWebView2StagingDirectMessageChannelCreatedEventArgs : IUnknown {
       [out, retval] ICoreWebView2StagingDirectMessageChannel** channel);
 }
 
+/// A continuation of the ICoreWebView2 interface to add or remove
+/// `DirectMessageChannelCreated` callback on ICoreWebView2.
 [uuid(276F1679-C5CE-4739-B0F0-615196A1B65E), object, pointer_default(unique)]
 interface ICoreWebView2Staging4 : IUnknown {
   /// This event runs when the top-level document of the WebView runs
@@ -524,6 +529,8 @@ interface ICoreWebView2Staging4 : IUnknown {
       [in] EventRegistrationToken token);
 }
 
+/// A continuation of the ICoreWebView2Frame interface to add or remove
+/// `DirectMessageChannelCreated` callback on ICoreWebView2Frame.
 [uuid(B0C00DA1-0297-4B80-BA70-54BF40AF4835), object, pointer_default(unique)]
 interface ICoreWebView2StagingFrame3 : IUnknown {
   /// This event runs when the document of the frame runs `chrome.webview.getDirectMessageChannel()`.
@@ -537,13 +544,16 @@ interface ICoreWebView2StagingFrame3 : IUnknown {
       [in] EventRegistrationToken token);
 }
 
+/// This is the callback for `DirectMessageChannelCreated` events on ICoreWebView2Frame.
 [uuid(DA0CACDF-E470-4827-B7F0-D7767AE46BF3), object, pointer_default(unique)]
 interface ICoreWebView2StagingFrameDirectMessageChannelCreatedEventHandler : IUnknown {
   HRESULT Invoke(
-    [in] ICoreWebView2Frame* sender,
+    [in] ICoreWebView2StagingFrame3* sender,
     [in] ICoreWebView2StagingDirectMessageChannelCreatedEventArgs* args);
 }
 
+/// A continuation of the ICoreWebView2Environment interface for reconstructing direct message
+/// channel object.
 [uuid(BC308ED0-FCD2-4F79-A0E4-5E7B2F109BB9), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironment3 : IUnknown {
   /// Reconstructs a direct message channel from a blob to allow for single hop IPC
@@ -553,8 +563,8 @@ interface ICoreWebView2StagingEnvironment3 : IUnknown {
     [out, retval] ICoreWebView2StagingDirectMessageChannel** directMessageChannel);
 }
 
-/// Additional options used to create WebView Environment. A default implementation is
-/// provided in `WebView2EnvironmentOptions.h`.
+/// A continuation of the ICoreWebView2EnvironmentOptions interface to specify whether
+/// the environment is only used to reconstruct direct message channel.
 [uuid(FAB20EFB-C716-47AC-8FED-C8A65A8FA334), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// Gets the `OnlyUsedForDirectMessageChannel` property.
