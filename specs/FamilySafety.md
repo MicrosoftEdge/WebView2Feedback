@@ -17,7 +17,7 @@ Please see https://www.microsoft.com/en-us/microsoft-365/family-safety for detai
 void CreateEnvrionmentWithOption()
 {
     // If parents set filtering rules to only allowed sites. App developers can use
-    // FamilySafetyAllowedUris to show app content and still honor general filer set
+    // FamilySafetyAllowedUris to show app content and still honor general filter settings set
     // by parents.
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     options.IsFamilySafetyEnabled = true;
