@@ -68,8 +68,8 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
 
   /// `GetFamilySafetyAllowedUris` and `SetFamilySafetyAllowedUris` allow developers to get and set
   /// the list of URIs that will be allowed by the Family Safety filter even when in Block All mode.
-  /// Each uri need to be added to the list indivually even with the same domain. No prefix needed
-  /// for the uri. Eg: `bing.com`. 
+  /// Uris with the same domain can be added by just adding the domain to the allowed list.
+  /// Individual uri can also be added to the allowed list with the full uri without https and www prefix.
   /// Family Safety provides web filtering control in two modes: Allow-all and Block-all. In 
   /// Allow-all mode, only sites that are blocked by the parents will be blocked. In 
   /// blocked-all mode, only allowed sites that are allowed by the parents are allowed. In this 
