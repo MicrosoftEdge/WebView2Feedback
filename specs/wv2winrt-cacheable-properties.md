@@ -25,8 +25,8 @@ performance.
         Boolean Available { get; };
 
         // This property has one value for the lifetime of the object so we mark it
-        // readonly to improve wv2winrt performance.
-		    [corewebview2readonly]
+        // memoizable to improve runtime performance.
+        [memoizable]
         String Model { get; };
         
         // ...
@@ -38,16 +38,34 @@ performance.
 ```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core
 {
-    /// You can use the CoreWebView2ReadOnly attribute on a runtimeclass property
-    /// definition in MIDL3 if the property value doesn't change for the lifetime
-    /// of its object. When an object is projected into JavaScript via 
+    /// You can use the `memoizable` attribute on a runtimeclass property
+    /// or runtimeclass method to indicate that the property value or
+    /// method return value can be cached.
+    ///
+    /// You can apply it to an instance property if the property
+    /// value doesn't change for the lifetime of its object instance.
+    /// You can apply it to a static property if the property value
+    /// doesn't change for the lifetime of the process.
+    /// You can apply it to an instance method if when the method is called
+    /// with the same parameters it always returns the same value for the
+    /// lifetime of its object instance.
+    /// You can apply it to a static method if when the method is called
+    /// with the same parameters it always returns the same value for the
+    /// lifetime of the process.
+    /// If the property type or the method return type is an object, the property
+    /// value must be the same object by reference or the method must return the
+    /// same object by reference in order to be memoizable. Merely returning an
+    /// equivalent but different object is not sufficient to be memoizable.
+    /// Similarly, a method call having the same parameters means the same object
+    /// references and not equivalent but different objects.
+    ///
+    /// When an object is projected into JavaScript via 
     /// `CoreWebView2.AddHostObjectToScript`, WebView2 will cache property values
     /// marked with this attribute. This can potentially improve performance by
-    /// reducing the number of cross-process calls to obtain the latest value of
-    /// the property.
-    [attributeusage(target_property)]
-    [attributename("corewebview2readonly")]
-    attribute CoreWebView2ReadOnlyAttribute
+    /// reducing the number of cross-process calls to obtain the latest value.
+    [attributeusage(target_property, target_method)]
+    [attributename("memoizable")]
+    attribute MemoizableAttribute
     {
     }
 }
@@ -56,14 +74,14 @@ namespace Microsoft.Web.WebView2.Core
 # Appendix
 
 Names considered for the attribute:
- * **Cacheable**: Caching is what WebView2 will do with the property rather than describing
- an aspect of the runtimeclass property.
+ * **Cacheable**
  * **ReadOnly**: Similar to C#'s readonly keyword which indicates a value won't change (once
- initialized). A more familiar term to end developers than 'immutable'. It does
- convey that the caller can't set it, but does it also convey that the implementer also
- cannot change the value?
- * **Immutable**: Perhaps more explicit than readonly that the implementer also cannot
- change the value, but perhaps less familiar of a term.
+ initialized). But does not convey that the implementer cannot change the value.
+ * **Immutable**: Similar to readonly
+ * **Const**: Does a better job indicating that the value does not change even by the
+ implementer.
+ * **Memoizable**: A broader term than cacheable that also applies to methods but more specific
+ than cacheable in that it better defines the kind of caching.
 
 For the sample code, the only code you have to write is applying the attribute to the
 property. The only effect this has is to potentially improve performance so there's no other
