@@ -74,7 +74,7 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// Allow-all mode, only sites that are blocked by the parents will be blocked. In 
   /// blocked-all mode, only allowed sites that are allowed by the parents are allowed. In this 
   /// scenario, apps using WebView2 will have their content blocked if enabled Family Safety in WebView2.
-  /// `SetFamilySafetyAllowedUris` provide the ability to add app content sites to a soft override 
+  /// `SetFamilySafetyAllowedUris` provide the ability to add app content sites to an override 
   /// list and allow app contents to go through in Block All Mode. Parents still have control
   /// to override those sites.
   /// Each uri need to be added to the list indivually even with the same domain. No prefix needed
