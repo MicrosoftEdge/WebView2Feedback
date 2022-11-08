@@ -21,8 +21,8 @@ void CreateEnvrionmentWithOption()
     // by parents.
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     options.IsFamilySafetyEnabled = true;
-    // appassets.example/AppStartPage.html is used as an example app content.
-    options.FamilySafetyAllowedUris.Add("appassets.example/AppStartPage.html");
+    // appassets.example is used as an example app content.
+    options.FamilySafetyAllowedUris.Add("appassets.example");
     auto environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 ```
@@ -35,8 +35,8 @@ HRESULT InitializeWebView()
     // by parents.
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
     options->put_IsFamilySafetyEnabled(TRUE);
-    // appassets.example/AppStartPage.html is used as an example app content.
-    const WCHAR* allowedUris[1] = {L"appassets.example/AppStartPage.html"};
+    // appassets.example is used as an example app content.
+    const WCHAR* allowedUris[1] = {L"appassets.example"};
     options->SetFamilySafetyAllowedUris(1, allowedUris);
     HRESULT hr = CreateCoreWebView2EnvironmentWithOptions("", nullptr, options.Get(),
     Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
