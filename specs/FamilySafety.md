@@ -30,18 +30,14 @@ void CreateEnvrionmentWithOption()
 ```cpp
 HRESULT InitializeWebView()
 {
-    // Enable the Family Safety feature upon webview environment creation complete
-    auto options = Microsoft::WRL::Make<CoreWebView2StagingEnvironmentOptions>();
-    Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions3> optionsStaging3;
-    if (options.As(&optionsStaging3) == S_OK)
-    {
-        optionsStaging3->put_IsFamilySafetyEnabled(TRUE);
-
-        const WCHAR* allowedUris[1] = {L"appassets.example/AppStartPage.html"};
-        optionsStaging3->SetFamilySafetyAllowedUris(1, allowedUris);
-    }
-
-    // CreateCoreWebView2EnvironmentWithOptions
+    // If parents set filtering rules to only allowed sites. App developers can use
+    // FamilySafetyAllowedUris to show app content and still honor general filter settings set
+    // by parents.
+    auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+    options->put_IsFamilySafetyEnabled(TRUE);
+    // appassets.example/AppStartPage.html is used as an example app content.
+    const WCHAR* allowedUris[1] = {L"appassets.example/AppStartPage.html"};
+    options->SetFamilySafetyAllowedUris(1, allowedUris);
     HRESULT hr = CreateCoreWebView2EnvironmentWithOptions("", nullptr, options.Get(),
     Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
         this, &AppWindow::OnCreateEnvironmentCompleted)
@@ -56,29 +52,29 @@ interface ICoreWebView2EnvironmentOptions3;
 /// Additional options used to create WebView2 Environment.
 [uuid(D0965AC5-11EB-4A49-AA1A-C8E9898F80AF), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
+  /// `IsFamilySafetyEnabled` property is to enable/disable family safety feature.
+  /// It is `FALSE` by default.
+  /// When `IsFamilySafetyEnabled` is `TRUE` WebView2 provides the same Family Safety 
+  /// functionality as the Edge browser. 
   /// Family Safety is a set of features available on Windows for managing children Internet 
   /// priviliges. Microsoft account may be linked to have a family relationship, with adults 
   /// and children. Adults have certain managements options over the children in their family, 
   /// where each option is applied per-child. Edge browser provide the following options: 
-  /// Activity reporting, Web filtering and SafeSearch. Please see https://support.microsoft.com/en-us/account-billing/getting-started-with-microsoft-family-safety-b6280c9d-38d7-82ff-0e4f-a6cb7e659344 for more 
-  /// details on each feature.
-  /// When `IsFamilySafetyEnabled` is `TRUE` WebView2 provides the same Family Safety 
-  /// functionality as the Edge browser. 
-  /// `IsFamilySafetyEnabled` property is to enable/disable family safety feature.
-  /// It is `FALSE` by default.
+  /// Activity reporting, Web filtering and SafeSearch. Please see 
+  /// https://aka.ms/EdgeFamilySafetyFeatureOverview for more details on each feature.
   [propget] HRESULT IsFamilySafetyEnabled([out, retval] BOOL* value);
   /// Sets the `IsFamilySafetyEnabled` property.
-  [propput] HRESULT IsFamilySafetyEnabled([in] BOOL value);
+  [propput] HRESULT IsFamilySaFetyEnabled([in] BOOL value);
 
+  /// `GetFamilySafetyAllowedUris` and `SetFamilySafetyAllowedUris` allow developers to get and set
+  /// the list of URIs that will be allowed by the Family Safety filter even when in Block All mode.
+  /// Each uri need to be added to the list indivually even with the same domain. No prefix needed
+  /// for the uri. Eg: `bing.com`. 
   /// Family Safety provides web filtering control in two modes: Allow-all and Block-all. In 
   /// Allow-all mode, only sites that are blocked by the parents will be blocked. In 
   /// blocked-all mode, only allowed sites that are allowed by the parents are allowed. In this 
   /// scenario, apps using WebView2 will have their content blocked if enabled Family Safety in WebView2.
-  /// `SetFamilySafetyAllowedUris` provide the ability to add app content sites to an override 
-  /// list and allow app contents to go through in Block All Mode. Parents still have control
-  /// to override those sites.
-  /// Each uri need to be added to the list indivually even with the same domain. No prefix needed
-  /// for the uri. Eg: `bing.com`. 
+  /// Please see https://aka.ms/EdgeFamilySafetyContentFiltering for more details.
   /// \snippet AppWindow.cpp CoreWebView2FamilySafety
   HRESULT GetFamilySafetyAllowedUris([out] UINT32* uriCounts, [out] LPWSTR** lists);
   HRESULT SetFamilySafetyAllowedUris([in] UINT32 urisCount, [in] LPCWSTR* uris);
