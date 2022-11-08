@@ -11,9 +11,9 @@ tracking prevention feature is enabled and set to `Balanced` level for WebView2.
 `CoreWebView2EnvironmentOptions.IsTrackingPreventionEnabled` property to false to disable the tracking prevention
 feature for WebView2 before creating environment that also skips the related code and improves the performance.
 
-TrackingPreventionUserPreference: This API allows you to control levels of tracking prevention for WebView2 which
-are associated with a profile when the feature is enabled and otherwise TrackingPreventionUserPreference is
-CoreWebView2TrackingPreventionUserPreferenceKind.Off and can't be changed to other kinds.
+TrackingPreventionLevel: This API allows you to control levels of tracking prevention for WebView2 which
+are associated with a profile when the feature is enabled and otherwise TrackingPreventionLevel is
+CoreWebView2TrackingPreventionLevel.Off and can't be changed to other kinds.
 The levels are similar to Edge: `Off`, `Basic`, `Balanced` and `Strict`.
 
 For reference, in the screenshot below, this API sets the levels of tracking prevention as a WebView2 API.
@@ -24,7 +24,7 @@ For reference, in the screenshot below, this API sets the levels of tracking pre
 ## IsTrackingPreventionEnabled
 
 ```c#
-/// Create WebView Environment with option that disable tracking prevention feature.
+Create WebView Environment with option that disable tracking prevention feature.
 
 void CreateEnvironmentWithOption()
 {
@@ -46,11 +46,10 @@ if (options.As(&options3) == S_OK)
 }
 ```
 
-## TrackingPreventionUserPreference
-/// Example to set level of tracking preference.
+## TrackingPreventionLevel
+Example of code in end user facing UI to change the TrackingPreventionLevel.
 
 ```c#
-/// Below example set level of tracking preference.
 
 void SetTrackingPreventionLevel(CoreWebView2TrackingPreventionLevel value)
 {
