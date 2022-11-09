@@ -25,8 +25,8 @@ performance.
         Boolean Available { get; };
 
         // This property has one value for the lifetime of the object so we mark it
-        // memoizable to improve runtime performance.
-        [memoizable]
+        // cacheable to improve runtime performance.
+        [cacheable]
         String Model { get; };
         
         // ...
@@ -38,7 +38,7 @@ performance.
 ```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core
 {
-    /// You can use the `memoizable` attribute on a runtimeclass property
+    /// You can use the `cacheable` attribute on a runtimeclass property
     /// or runtimeclass method to indicate that the property value or
     /// method return value can be cached.
     ///
@@ -52,20 +52,14 @@ namespace Microsoft.Web.WebView2.Core
     /// You can apply it to a static method if when the method is called
     /// with the same parameters it always returns the same value for the
     /// lifetime of the process.
-    /// If the property type or the method return type is an object, the property
-    /// value must be the same object by reference or the method must return the
-    /// same object by reference in order to be memoizable. Merely returning an
-    /// equivalent but different object is not sufficient to be memoizable.
-    /// Similarly, a method call having the same parameters means the same object
-    /// references and not equivalent but different objects.
     ///
     /// When an object is projected into JavaScript via 
     /// `CoreWebView2.AddHostObjectToScript`, WebView2 will cache property values
     /// marked with this attribute. This can potentially improve performance by
     /// reducing the number of cross-process calls to obtain the latest value.
     [attributeusage(target_property, target_method)]
-    [attributename("memoizable")]
-    attribute MemoizableAttribute
+    [attributename("cacheable")]
+    attribute CacheableAttribute
     {
     }
 }
@@ -74,7 +68,7 @@ namespace Microsoft.Web.WebView2.Core
 # Appendix
 
 Names considered for the attribute:
- * **Cacheable**
+ * **Cacheable**: A familiar term also used by python that more closely matches this feature.
  * **ReadOnly**: Similar to C#'s readonly keyword which indicates a value won't change (once
  initialized). But does not convey that the implementer cannot change the value.
  * **Immutable**: Similar to readonly
