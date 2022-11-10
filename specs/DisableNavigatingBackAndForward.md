@@ -1,12 +1,15 @@
 # API spec for disable navigating back/forward
 
 # Background
-This problem was first proposed by a developer on GitHub, who wants to prevent mouse Xbutton1 and XButton2. The reason for their superior level is to prevent users navigating back or forward.
+This problem was first proposed by a developer on GitHub, who wants to prevent users navigating back or forward using any of the built-in shortcut keys or special mouse buttons.
+
 Afterwards, Teams made similar demands. They wanted a mechanism which could support them in controlling the behaviors of `go back` and `go forward` freely, like disabling them.
 
-@Haichao Zhu has already finished some work on letting application developers handle all input and decide whether to suppress. This should be solvable in a generic way, as @Nic Champagne Williamson said. However, this feature hasn’t been released yet, and it might be better if we could provide a simpler and more direct way. 
+@Haichao Zhu has already finished some work on letting application developers handle all input and decide whether to suppress. 
 
-Therefore, our job is to provide a mechanism for developers to disable navigating back and forward without effort. 
+This should be solvable in a generic way. However, this feature hasn’t been released yet, and it might be better if we could provide a simpler and more direct way. 
+
+Therefore, our job is to provide a mechanism for developers to disable navigating back and forward without excessive effort.
 
 
 # Examples
@@ -26,9 +29,9 @@ CHECK_FAILURE(m_webView->add_NavigationStarting(
             wil::com_ptr<ICoreWebView2NavigationStartingEventArgs3> args3;
             if (SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&args3))))
             {
-                int entry_offset;
-                CHECK_FAILURE(stage_args->get_NavigationEntryOffset(&entry_offset));
-                if (entry_offset == -1 || entry_offset == 1) {
+                COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND history_change = COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER;
+                CHECK_FAILURE(args3->get_NavigationHistoryChange(&history_change));
+                 if (history_change != COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER) {
                      CHECK_FAILURE(args->put_Cancel(true));
                 }
             }
@@ -49,7 +52,8 @@ CHECK_FAILURE(m_webView->add_NavigationStarting(
 // `GoBack` or `GoForward`, it will be canceled.
 void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
 {
-    if (e.NavigationEntryOffset == -1 || e.NavigationEntryOffset == 1) {
+    if (e.NavigationHistoryChange != CoreWebView2NavigationHistoryChangeKind.Other)
+    {
         e.Cancel = true;
     }
 }
@@ -59,50 +63,47 @@ void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEve
 #### Win32 C++
 
 ```c++
+// Enums and structs
+[v1_enum]
+typedef enum COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND {
+  /// go back
+  COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_BACK,
+  /// go forward
+  COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_FORWARD,
+  /// other
+  COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER,
+} COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND;
+
 /// Extend `NavigationStartingEventArgs` by adding more information.
 [uuid(39A27807-2365-470B-AF28-885502121049), object, pointer_default(unique)]
 interface ICoreWebView2NavigationStartingEventArgs3 : ICoreWebView2NavigationStartingEventArgs2 {
 
-  /// Get the entry offset of this navigation, which contains information about whether for back or forward.
-  ///
-  /// MSOWNERS: pengyuanwang@microsoft.com
-  [propget] HRESULT NavigationEntryOffset([out, retval] int* entry_offset);
+  /// Get the history change kind of the navigation
+  [propget] HRESULT NavigationHistoryChange([out, retval] COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND* history_change);
+}
 }
 ```
 
 #### .NET and WinRT
 
-```c#
+```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core
 {
-    public partial class CoreWebView2NavigationStartingEventArgs
+    enum CoreWebView2NavigationHistoryChangeKind
     {
-        /// 
-        public int NavigationEntryOffset
+        Back = 0,
+        Forward = 1,
+        Other = 2,
+    };
+    // ..
+    runtimeclass CoreWebView2NavigationStartingEventArgs
+    {
+        // ICoreWebView2NavigationStartingEventArgs members
+        // ..
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2NavigationStartingEventArgs3")]
         {
-            get
-            {
-                try
-                {
-                    return
-                    _nativeICoreWebView2NavigationStartingEventArgs3.NavigationEntryOffset;
-
-                }
-                catch (InvalidCastException ex)
-                {
-                    if (ex.HResult == -2147467262)  // UI_E_WRONG_THREAD
-                        throw new InvalidOperationException($"{nameof(CoreWebView2)} members can only be accessed from the UI thread.", ex);
-
-                    throw ex;
-                }
-                catch (System.Runtime.InteropServices.COMException ex)
-                {
-                    if (ex.HResult == -2147019873)  // 0x8007139F
-                        throw new InvalidOperationException($"{nameof(CoreWebView2)} members cannot be accessed after the WebView2 control is disposed.", ex);
-
-                    throw ex;
-                }
-            }
+            // ICoreWebView2NavigationStartingEventArgs3 members
+            CoreWebView2NavigationHistoryChangeKind NavigationHistoryChange { get; };
         }
     }
 }
