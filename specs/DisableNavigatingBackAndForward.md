@@ -31,7 +31,8 @@ CHECK_FAILURE(m_webView->add_NavigationStarting(
             {
                 COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND history_change = COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER;
                 CHECK_FAILURE(args3->get_NavigationHistoryChange(&history_change));
-                 if (history_change != COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER) {
+                if (history_change != COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER)
+                {
                      CHECK_FAILURE(args->put_Cancel(true));
                 }
             }
@@ -66,11 +67,11 @@ void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEve
 // Enums and structs
 [v1_enum]
 typedef enum COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND {
-  /// go back
+  /// Indicates a navigation that is going back to a previous entry in the navigation history. For example, a navigation caused by `CoreWebView2.GoBack` or in script `window.history.go(-1)`.
   COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_BACK,
-  /// go forward
+  /// Indicates a navigation that is going forward to a later entry in the navigation history. For example, a navigation caused by `CoreWebView2.GoForward` or in script `window.history.go(1)`.
   COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_FORWARD,
-  /// other
+  /// Indicates a navigation that is not going back or forward to an existing entry in the navigation history. For example, a navigation caused by `CoreWebView2.Navigate`, or `CoreWebView2.Reload` or in script `window.location.href = 'https://example.com/'`.
   COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER,
 } COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND;
 
@@ -78,7 +79,7 @@ typedef enum COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND {
 [uuid(39A27807-2365-470B-AF28-885502121049), object, pointer_default(unique)]
 interface ICoreWebView2NavigationStartingEventArgs3 : ICoreWebView2NavigationStartingEventArgs2 {
 
-  /// Get the history change kind of the navigation
+  /// Indicates if this navigation is going back or forward to an existing entry in the navigation history.
   [propget] HRESULT NavigationHistoryChange([out, retval] COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND* history_change);
 }
 }
