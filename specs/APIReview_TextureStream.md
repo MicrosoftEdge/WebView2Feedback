@@ -89,10 +89,10 @@ document.querySelector('#sendBack').addEventListener('click',
   e => getStreamFromTheHost(e));
 const transformer = new TransformStream({
   async transform(videoFrame, controller) {
-    // Delay frame 100ms. 
+    // Delay frame 100ms.
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // We can create new video frame and edit them, and pass them back here 
+    // We can create new video frame and edit them, and pass them back here
     // if needed.
     controller.enqueue(videoFrame);
   },
@@ -116,68 +116,91 @@ async function SendBackToHost(stream_id) {
 
 ## Win32 C++
 ```cpp
-UINT32 luid,
-// Get the LUID (Graphic adapter) that the WebView renderer uses.
-coreWebView->get_RenderAdapterLUID(&luid);
-// Create D3D device based on the WebView's LUID.
-ComPtr<D3D11Device> d3d_device = MyCreateD3DDevice(luid);
-// Register unique texture stream that the host can provide.
-ComPtr<ICoreWebView2TextureStream> webviewTextureStream;
-g_webviewStaging3->CreateTextureStream(L"webview2-abcd1234", d3d_device.Get(),  &webviewTextureStream);
-// Register the Origin URL that the target renderer could stream of the registered stream id. The request from not registered origin will fail to stream.
-webviewTextureStream->AddRequestedFilter(L"https://edge-webscratch");
-// Listen to Start request
-EventRegistrationToken start_token;
-webviewTextureStream->add_StartRequested(Callback<ICoreWebView2StagingTextureStreamStartRequestedEventHandler>(
-  [hWnd](ICoreWebView2StagingTextureStream* webview, IUnknown* eventArgs) -> HRESULT {
-    // Capture video stream by using native API, for example, Media Foundation on Windows.
-    StartMediaFoundationCapture(hWnd);
-    return S_OK;
-  }).Get(), &start_token);
-EventRegistrationToken stop_token;
-webviewTextureStream->add_StopRequested(Callback<ICoreWebView2StagingTextureStreamStopRequestedEventHandler>(
-  [hWnd](ICoreWebView2StagingTextureStream* webview, IUnknown* eventArgs) -> HRESULT {
-    StopMediaFoundationCapture();
-    return S_OK;
-  }).Get(), &stop_token);
-EventRegistrationToken texture_token;
-webviewTextureStream->add_TextureError(Callback<ICoreWebView2StagingTextureStreamTextureErrorEventHandler>(
-  [hWnd](ICoreWebView2StagingTextureStream* sender, ICoreWebView2StagingTextureStreamTextureErrorEventArgs* args) {
-    COREWEBVIEW2_TEXTURE_STREAM_ERROR_KIND kind;
-    HRESULT hr = args->get_Kind(&kind);
-    assert(SUCCEEDED(hr));
-    switch (kind)
-    {
-    case COREWEBVIEW2_TEXTURE_STREAM_ERROR_NO_VIDEO_TRACK_STARTED:
-    case COREWEBVIEW2_TEXTURE_STREAM_ERROR_BUFFER_NOT_FOUND:
-    case COREWEBVIEW2_TEXTURE_STREAM_ERROR_BUFFER_IN_USE:
-      // assert(false);
-      break;
-    default:
-      break;
-    }
-    return S_OK;
-  }).Get(), &texture_token);
+HRESULT CreateTextureStream(ICoreWebView2Staging3* coreWebView)
+  UINT32 luid;
 
-webviewTextureStream->AddTextureReceivedRequestedFilter(L"https://edge-webscratch");
+  // Get the LUID (Graphic adapter) that the WebView renderer uses.
+  CHECK_FAILURE(coreWebView->get_RenderAdapterLUID(&luid));
 
-EventRegistrationToken post_token;
-webviewTextureStream->add_TextureReceived(Callback<ICoreWebView2StagingTextureStreamTextureReceivedEventHandler>(
-  [&](ICoreWebView2StagingTextureStream* sender, ICoreWebView2StagingTextureStreamTextureReceivedEventArgs* args) {
-    ULONGLONG timestamp;
-    args->get_Timestamp(&timestamp);
+  // Create D3D device based on the WebView's LUID.
+  ComPtr<D3D11Device> d3d_device = MyCreateD3DDevice(luid);
 
-    HANDLE handle;
-    args->get_Handle(&handle);
-    DrawTextureWithWICBitmap(handle);
-    return S_OK;
-  }).Get(), &post_token);
+  // Register unique texture stream that the host can provide.
+  ComPtr<ICoreWebView2TextureStream> webviewTextureStream;
+  CHECK_FAILURE(g_webviewStaging3->CreateTextureStream(L"webview2-abcd1234",
+      d3d_device.Get(),  &webviewTextureStream));
 
-EventRegistrationToken post_stop_token;
-webviewTextureStream->add_StopTextureReceived(Callback<ICoreWebView2StagingTextureStreamStopTextureReceivedEventHandler>(
-  [&](ICoreWebView2StagingTextureStream* sender, IUnknown* args) {
-    return S_OK;
-  }).Get(), &post_stop_token);
+  // Register the Origin URL that the target renderer could stream of the registered stream id. The request from not registered origin will fail to stream.
+  CHECK_FAILURE(webviewTextureStream->AddRequestedFilter(L"https://edge-webscratch"));
+
+  // Listen to Start request. The host will setup system video streaming and
+  // start sending the texture.
+  EventRegistrationToken start_token;
+  CHECK_FAILURE(webviewTextureStream->add_StartRequested(Callback<ICoreWebView2StagingTextureStreamStartRequestedEventHandler>(
+    [hWnd](ICoreWebView2StagingTextureStream* webview, IUnknown* eventArgs) -> HRESULT {
+      // Capture video stream by using native API, for example, Media Foundation on Windows.
+      StartMediaFoundationCapture(hWnd);
+      return S_OK;
+    }).Get(), &start_token));
+
+  // Listen to Stop request. The host end system provided video stream and
+  // clean any operation resources.
+  EventRegistrationToken stop_token;
+  CHECK_FAILURE(webviewTextureStream->add_StopRequested(Callback<ICoreWebView2StagingTextureStreamStopRequestedEventHandler>(
+    [hWnd](ICoreWebView2StagingTextureStream* webview, IUnknown* eventArgs) -> HRESULT {
+      StopMediaFoundationCapture();
+      return S_OK;
+    }).Get(), &stop_token));
+
+  EventRegistrationToken texture_token;
+  CHECK_FAILURE(webviewTextureStream->add_TextureError(Callback<ICoreWebView2StagingTextureStreamTextureErrorEventHandler>(
+    [hWnd](ICoreWebView2StagingTextureStream* sender, ICoreWebView2StagingTextureStreamTextureErrorEventArgs* args) {
+      COREWEBVIEW2_TEXTURE_STREAM_ERROR_KIND kind;
+      HRESULT hr = args->get_Kind(&kind);
+      assert(SUCCEEDED(hr));
+      switch (kind)
+      {
+      case COREWEBVIEW2_TEXTURE_STREAM_ERROR_NO_VIDEO_TRACK_STARTED:
+      case COREWEBVIEW2_TEXTURE_STREAM_ERROR_BUFFER_NOT_FOUND:
+      case COREWEBVIEW2_TEXTURE_STREAM_ERROR_BUFFER_IN_USE:
+        // assert(false);
+        break;
+      default:
+        break;
+      }
+      return S_OK;
+    }).Get(), &texture_token));
+
+  // Add allowed origin for registerTextureStream call. 'registerTextureStream'
+  // call from the Javascript will fail if the requested origin is not registered
+  // with AddWebTextureRequestedFilter.
+  CHECK_FAILURE(webviewTextureStream->AddWebTextureRequestedFilter(L"https://edge-webscratch"));
+
+  // Registers listener for video streaming from Javascript.
+  EventRegistrationToken post_token;
+  CHECK_FAILURE(webviewTextureStream->add_WebTextureReceived(Callback<ICoreWebView2StagingTextureStreamWebTextureReceivedEventHandler>(
+    [&](ICoreWebView2StagingTextureStream* sender, ICoreWebView2StagingTextureStreamWebTextureReceivedEventArgs* args) {
+      // Javascript send a texture stream.
+      ComPtr<ICoreWebView2StagingWebTexture> texture_received;
+      args->GetWebTexture(&texture_received);
+
+      ULONGLONG timestamp;
+      texture_received->get_Timestamp(&timestamp);
+      HANDLE handle;
+      texture_received->get_Handle(&handle);
+      DrawTextureWithWICBitmap(handle, timestamp);
+
+      return S_OK;
+    }).Get(), &post_token));
+
+  // Register listener of video stream from the Javascript end.
+  EventRegistrationToken stopped_token;
+  CHECK_FAILURE(webviewTextureStream->add_WebTextureStreamStopped(Callback<ICoreWebView2StagingTextureStreamWebTextureStreamStoppedEventHandler>(
+    [&](ICoreWebView2StagingTextureStream* sender, IUnknown* args) {
+
+      return S_OK;
+    }).Get(), &stopped_token));
+}  // CreateTextureStream
 
 HRESULT CallWebView2API(bool createBuffer,
                         UINT32 width,
@@ -356,27 +379,27 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// Updates d3d Device when it is updated by RenderAdapterLUIDChanged
   /// event.
   HRESULT UpdateD3DDevice([in] IUnknown* d3dDevice);
-  /// Event handler for processed texture by Javascript.
-  /// There is no Start event for texture received. Whenever texture are sent
+  /// Event handler for receiving texture by Javascript.
+  /// There is no Start event for web texture. Whenever texture are sent
   /// from the Javascript, the event is triggered.
-  HRESULT add_TextureReceived(
-      [in] ICoreWebView2StagingTextureStreamTextureReceivedEventHandler* eventHandler,
+  HRESULT add_WebTextureReceived(
+      [in] ICoreWebView2StagingTextureStreamWebTextureReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  HRESULT remove_TextureReceived([in] EventRegistrationToken token);
-  /// Event handler for stopping of the processed texture stream.
-  HRESULT add_StopTextureReceived(
-      [in] ICoreWebView2StagingTextureStreamStopTextureReceivedEventHandler* eventHandler,
+  HRESULT remove_WebTextureReceived([in] EventRegistrationToken token);
+
+  /// Event handler for stopping of the receiving texture stream.
+  HRESULT add_WebTextureStreamStopped(
+      [in] ICoreWebView2StagingTextureStreamWebTextureStreamStoppedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  HRESULT remove_StopTextureReceived([in] EventRegistrationToken token);
-  /// Adds an allowed url origin for the given stream id for texture received
+  HRESULT remove_WebTextureStreamStopped([in] EventRegistrationToken token);
+
+  /// Adds an allowed url origin for the given stream id for web texture
   /// operation.  Javascript can send texture stream to the host only when
   /// the origin it runs are allowed by the host.
-  /// The added origin should be registered first by the AddRequestedFilter
-  /// because registerTextureStream works only for the stream from
-  /// the getTextureStream.
-  HRESULT AddTextureReceivedRequestedFilter([in] LPCWSTR origin);
-  /// Remove added origin, which was added by AddTextureReceivedRequestedFilter.
-  HRESULT RemoveTextureReceivedRequestedFilter([in] LPCWSTR origin);
+  HRESULT AddWebTextureRequestedFilter([in] LPCWSTR origin);
+
+  /// Remove added origin, which was added by AddWebTextureRequestedFilter.
+  HRESULT RemoveWebTextureRequestedFilter([in] LPCWSTR origin);
 }
 /// Texture stream buffer that the host writes to so that the Renderer
 /// will render on it.
@@ -443,40 +466,123 @@ interface ICoreWebView2StagingRenderAdapterLUIDChangedEventHandler : IUnknown {
       [in] ICoreWebView2Staging3 * sender,
       [in] IUnknown* args);
 }
-/// This is the callback for texture received.
+/// This is the callback for web texture.
 [uuid(9ea4228c-295a-11ed-a261-0242ac120002), object, pointer_default(unique)]
-interface ICoreWebView2StagingTextureStreamTextureReceivedEventHandler : IUnknown {
+interface ICoreWebView2StagingTextureStreamWebTextureReceivedEventHandler : IUnknown {
   /// Called to provide the implementer with the event args for the
   /// corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2StagingTextureStream* sender,
-      [in] ICoreWebView2StagingTextureStreamTextureReceivedEventArgs* args);
+      [in] ICoreWebView2StagingTextureStreamWebTextureReceivedEventArgs* args);
 }
-/// This is the event args interface for texture received.
+
+/// This is the event args interface for web texture.
 [uuid(a4c2fa3a-295a-11ed-a261-0242ac120002), object, pointer_default(unique)]
-interface ICoreWebView2StagingTextureStreamTextureReceivedEventArgs : IUnknown {
+interface ICoreWebView2StagingTextureStreamWebTextureReceivedEventArgs : IUnknown {
+  // Return ICoreWebView2StagingWebTexture object.
+  // The call does not create new ICoreWebView2StagingWebTexture object, instead
+  // returns the same object.
+
+  // The shared buffer handle will be reused when ICoreWebView2StagingWebTexture
+  // object is released. So, the host should not refer handle or resource of
+  // the ICoreWebView2StagingWebTexture after its release.
+
+  HRESULT GetWebTexture([out, retval] ICoreWebView2StagingWebTexture** value);
+}
+
+/// Texture received stream buffer that the renderer writes to so that the host
+/// will read on it.
+[uuid(b94265ae-4c1e-11ed-bdc3-0242ac120002), object, pointer_default(unique)]
+interface ICoreWebView2StagingWebTexture : IUnknown {
   /// Texture buffer handle. The handle's lifetime is owned by the
   /// ICoreWebView2StagingTextureStream object so the host must not close it.
-
   /// The same handle value will be used for same buffer so the host can use
   /// handle value as a unique buffer key.
+  /// If the host opens its own resources by handle, then it is suggested
+  /// that the host removes those resources when the handle's texture size
+  /// is changed because the browser also removed previously allocated different
+  /// sized buffers when image size is changed.
   [propget] HRESULT Handle([out, retval] HANDLE* handle);
 
-  /// Texture buffer resource. 
+  /// Texture buffer resource.
   /// The same resource value will be used for same buffer so the host can use
-  /// resource value as a unique buffer key. 
+  /// resource value as a unique buffer key.
+  /// ICoreWebView2StagingTextureStream object has a reference of the resource
+  /// so ICoreWebView2StagingWebTexture holds same resource object for
+  /// the same buffer.
   [propget] HRESULT Resource([out, retval] IUnknown** resource);
 
-  /// It is timestamp that the original sent video frame's during SetBuffer.
-  [propget] HRESULT Timestamp([out, retval] ULONGLONG* timestamp);
-
-  /// The host notifies the browser that it is done with current the buffer handle, 
-  /// so the browser can recycle the buffer again.
-  HRESULT FinishUsingBuffer();
+  /// It is timestamp of the web texture. Javascript can set this value
+  /// with any value, but it is suggested to use same value of its original
+  /// video frame that is a value of SetBuffer so that the host is able to
+  /// tell the receiving texture delta.
+  [propget] HRESULT Timestamp([out, retval] ULONGLONG* value);
 }
-/// This is the callback for texture received stop.
+
+/// This is the callback for web texture stop.
 [uuid(77eb4638-2f05-11ed-a261-0242ac120002), object, pointer_default(unique)]
-interface ICoreWebView2StagingTextureStreamStopTextureReceivedEventHandler : IUnknown {
+interface ICoreWebView2StagingTextureStreamWebTextureStreamStoppedEventHandler : IUnknown {
+  /// Called to provide the implementer with the event args for the
+  /// corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2StagingTextureStream* sender,
+      [in] IUnknown* args);
+}/// This is the callback for web texture.
+[uuid(9ea4228c-295a-11ed-a261-0242ac120002), object, pointer_default(unique)]
+interface ICoreWebView2StagingTextureStreamWebTextureReceivedEventHandler : IUnknown {
+  /// Called to provide the implementer with the event args for the
+  /// corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2StagingTextureStream* sender,
+      [in] ICoreWebView2StagingTextureStreamWebTextureReceivedEventArgs* args);
+}
+
+/// This is the event args interface for web texture.
+[uuid(a4c2fa3a-295a-11ed-a261-0242ac120002), object, pointer_default(unique)]
+interface ICoreWebView2StagingTextureStreamWebTextureReceivedEventArgs : IUnknown {
+  // Return ICoreWebView2StagingWebTexture object.
+  // The call does not create new ICoreWebView2StagingWebTexture object, instead
+  // returns the same object.
+
+  // The shared buffer handle will be reused when ICoreWebView2StagingWebTexture
+  // object is released. So, the host should not refer handle or resource of
+  // the ICoreWebView2StagingWebTexture after its release.
+
+  HRESULT GetWebTexture([out, retval] ICoreWebView2StagingWebTexture** value);
+}
+
+/// Texture received stream buffer that the renderer writes to so that the host
+/// will read on it.
+[uuid(b94265ae-4c1e-11ed-bdc3-0242ac120002), object, pointer_default(unique)]
+interface ICoreWebView2StagingWebTexture : IUnknown {
+  /// Texture buffer handle. The handle's lifetime is owned by the
+  /// ICoreWebView2StagingTextureStream object so the host must not close it.
+  /// The same handle value will be used for same buffer so the host can use
+  /// handle value as a unique buffer key.
+  /// If the host opens its own resources by handle, then it is suggested
+  /// that the host removes those resources when the handle's texture size
+  /// is changed because the browser also removed previously allocated different
+  /// sized buffers when image size is changed.
+  [propget] HRESULT Handle([out, retval] HANDLE* handle);
+
+  /// Texture buffer resource.
+  /// The same resource value will be used for same buffer so the host can use
+  /// resource value as a unique buffer key.
+  /// ICoreWebView2StagingTextureStream object has a reference of the resource
+  /// so ICoreWebView2StagingWebTexture holds same resource object for
+  /// the same buffer.
+  [propget] HRESULT Resource([out, retval] IUnknown** resource);
+
+  /// It is timestamp of the web texture. Javascript can set this value
+  /// with any value, but it is suggested to use same value of its original
+  /// video frame that is a value of SetBuffer so that the host is able to
+  /// tell the receiving texture delta.
+  [propget] HRESULT Timestamp([out, retval] ULONGLONG* value);
+}
+
+/// This is the callback for web texture stop.
+[uuid(77eb4638-2f05-11ed-a261-0242ac120002), object, pointer_default(unique)]
+interface ICoreWebView2StagingTextureStreamWebTextureStreamStoppedEventHandler : IUnknown {
   /// Called to provide the implementer with the event args for the
   /// corresponding event.
   HRESULT Invoke(
