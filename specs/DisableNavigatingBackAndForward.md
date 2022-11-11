@@ -1,15 +1,20 @@
 # API spec for disable navigating back/forward
 
 # Background
-This problem was first proposed by a developer on GitHub, who wants to prevent users navigating back or forward using any of the built-in shortcut keys or special mouse buttons.
+This problem was first proposed by a developer on GitHub, who wants to prevent users navigating
+back or forward using any of the built-in shortcut keys or special mouse buttons.
 
-Afterwards, Teams made similar demands. They wanted a mechanism which could support them in controlling the behaviors of `go back` and `go forward` freely, like disabling them.
+Afterwards, Teams made similar demands. They wanted a mechanism which could support them in
+controlling the behaviors of `go back` and `go forward` freely, like disabling them.
 
-@Haichao Zhu has already finished some work on letting application developers handle all input and decide whether to suppress. 
+@Haichao Zhu has already finished some work on letting application developers handle all input and
+decide whether to suppress. 
 
-This should be solvable in a generic way. However, this feature hasn’t been released yet, and it might be better if we could provide a simpler and more direct way. 
+This should be solvable in a generic way. However, this feature hasn’t been released yet, and it might
+be better if we could provide a simpler and more direct way. 
 
-Therefore, our job is to provide a mechanism for developers to disable navigating back and forward without excessive effort.
+Therefore, our job is to provide a mechanism for developers to disable navigating back and forward
+without excessive effort.
 
 
 # Examples
@@ -29,7 +34,8 @@ CHECK_FAILURE(m_webView->add_NavigationStarting(
             wil::com_ptr<ICoreWebView2NavigationStartingEventArgs3> args3;
             if (SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&args3))))
             {
-                COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND history_change = COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER;
+                COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND history_change =
+                    COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER;
                 CHECK_FAILURE(args3->get_NavigationHistoryChange(&history_change));
                 if (history_change != COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER)
                 {
@@ -67,11 +73,15 @@ void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEve
 // Enums and structs
 [v1_enum]
 typedef enum COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND {
-  /// Indicates a navigation that is going back to a previous entry in the navigation history. For example, a navigation caused by `CoreWebView2.GoBack` or in script `window.history.go(-1)`.
+  /// Indicates a navigation that is going back to a previous entry in the navigation history.
+  /// For example, a navigation caused by `CoreWebView2.GoBack` or in script `window.history.go(-1)`.
   COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_BACK,
-  /// Indicates a navigation that is going forward to a later entry in the navigation history. For example, a navigation caused by `CoreWebView2.GoForward` or in script `window.history.go(1)`.
+  /// Indicates a navigation that is going forward to a later entry in the navigation history.
+  /// For example, a navigation caused by `CoreWebView2.GoForward` or in script `window.history.go(1)`.
   COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_FORWARD,
-  /// Indicates a navigation that is not going back or forward to an existing entry in the navigation history. For example, a navigation caused by `CoreWebView2.Navigate`, or `CoreWebView2.Reload` or in script `window.location.href = 'https://example.com/'`.
+  /// Indicates a navigation that is not going back or forward to an existing entry in the navigation
+  /// history. For example, a navigation caused by `CoreWebView2.Navigate`, or `CoreWebView2.Reload`
+  /// or in script `window.location.href = 'https://example.com/'`.
   COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER,
 } COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND;
 
@@ -79,8 +89,10 @@ typedef enum COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND {
 [uuid(39A27807-2365-470B-AF28-885502121049), object, pointer_default(unique)]
 interface ICoreWebView2NavigationStartingEventArgs3 : ICoreWebView2NavigationStartingEventArgs2 {
 
-  /// Indicates if this navigation is going back or forward to an existing entry in the navigation history.
-  [propget] HRESULT NavigationHistoryChange([out, retval] COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND* history_change);
+  /// Indicates if this navigation is going back or forward to an existing entry in the navigation
+  /// history.
+  [propget] HRESULT NavigationHistoryChange(
+      [out, retval] COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND* history_change);
 }
 }
 ```
