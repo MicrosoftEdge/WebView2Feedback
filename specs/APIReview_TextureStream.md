@@ -42,11 +42,13 @@ async function getStreamFromTheHost(e) {
     // MediaStreamTrack.
     const stream = await window.chrome.webview.getTextureStream('webview2-abcd1234');
     // The MediaStream object is returned and it gets video MediaStreamTrack element from it.
-    const video_tracks = stream.getVideoTracks();
-    const videoTrack = video_tracks[0];
+    const videoTracks = stream.getVideoTracks();
+    const videoTrack = videoTracks[0];
     window.videoTrack = videoTrack;
     // Show the video via Video Element.
-    document.getElementById(video_id).srcObject = stream;
+    let videoId = document.createElement('video');
+    videoId.srcObject = stream;
+    body.appendChild(videoId);
   } catch (error) {
     console.log(error);
   }
@@ -68,12 +70,12 @@ function stopStreaming() {
 
 // No video streaming from the host.
 window.videoTrack.addEventListener('mute', () => {
-  console.log('mute state);
+  console.log('mute state');
 });
 
 // Sent to the track when data becomes available again, ending the muted state.
 window.videoTrack.addEventListener('unmut', () => {
-  console.log('unmute state);
+  console.log('unmute state');
 });
 
 ```
@@ -100,15 +102,13 @@ const transformer = new TransformStream({
 
 async function SendBackToHost(stream_id) {
   console.log("stream_id:" + stream_id);
+  const trackGenerator = new MediaStreamTrackGenerator('video');
+  await window.chrome.webview.registerTextureStream(stream_id, trackGenerator);
+
   const mediaStream = await window.chrome.webview.getTextureStream(stream_id);
   const videoStream = mediaStream.getVideoTracks()[0];
 
   const trackProcessor = new MediaStreamTrackProcessor(videoStream);
-  const trackGenerator = new MediaStreamTrackGenerator('video');
-
-  // Test purpose, we send it back what just received.
-  window.chrome.webview.registerTextureStream(stream_id, trackGenerator);
-
   trackProcessor.readable.pipeThrough(transformer).pipeTo(trackGenerator.writable)
 }
 
@@ -131,7 +131,7 @@ HRESULT CreateTextureStream(ICoreWebView2Staging3* coreWebView)
       d3d_device.Get(),  &webviewTextureStream));
 
   // Register the Origin URL that the target renderer could stream of the registered stream id. The request from not registered origin will fail to stream.
-  CHECK_FAILURE(webviewTextureStream->AddRequestedFilter(L"https://edge-webscratch"));
+  CHECK_FAILURE(webviewTextureStream->AddAllowedOrigin(L"https://edge-webscratch"));
 
   // Listen to Start request. The host will setup system video streaming and
   // start sending the texture.
@@ -173,8 +173,8 @@ HRESULT CreateTextureStream(ICoreWebView2Staging3* coreWebView)
 
   // Add allowed origin for registerTextureStream call. 'registerTextureStream'
   // call from the Javascript will fail if the requested origin is not registered
-  // with AddWebTextureRequestedFilter.
-  CHECK_FAILURE(webviewTextureStream->AddWebTextureRequestedFilter(L"https://edge-webscratch"));
+  // with AddWebTextureAllowedOrigin.
+  CHECK_FAILURE(webviewTextureStream->AddWebTextureAllowedOrigin(L"https://edge-webscratch"));
 
   // Registers listener for video streaming from Javascript.
   EventRegistrationToken post_token;
@@ -281,7 +281,6 @@ interface ICoreWebView2Staging3 : IUnknown {
       [in] EventRegistrationToken token);
 }
 /// This is the interface that handles texture streaming.
-/// The most of APIs have to be called on UI thread.
 [uuid(afca8431-633f-4528-abfe-7fc3bedd8962), object, pointer_default(unique)]
 interface ICoreWebView2StagingTextureStream : IUnknown {
   /// Get the stream ID of the object that is used when calling CreateTextureStream.
@@ -294,7 +293,7 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// must be registered first in order for the request to succeed.
   /// The added filter will be persistent until
   /// ICoreWebView2StagingTextureStream is destroyed or
-  /// RemoveRequestedFilter is called.
+  /// RemoveAllowedOrigin is called.
   /// The renderer does not support wildcard so it will compare
   /// literal string input to the requesting frame origin. So, the input string
   /// should have a scheme like https://.
@@ -303,14 +302,15 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// valid origins.
   /// getTextureStream() will fail unless the requesting frame's origin URL is
   /// added to the request filter.
-  HRESULT AddRequestedFilter([in] LPCWSTR origin);
-  /// Remove added origin, which was added by AddRequestedFilter.
-  HRESULT RemoveRequestedFilter([in] LPCWSTR origin);
+  HRESULT AddAllowedOrigin([in] LPCWSTR origin);
+  /// Remove added origin, which was added by AddAllowedOrigin.
+  HRESULT RemoveAllowedOrigin([in] LPCWSTR origin);
   /// Listens for stream requests from the Javascript's getTextureStream call
-  /// for the given stream id. It is called for the first request only, the
-  /// subsequent requests of same stream id will not be called.
-  /// It is expected that the host provides the stream within 10s after
-  /// being requested. The first call to Present() fulfills the stream request.
+  /// for this stream's id. It is called for the first request only, and will
+  /// not be called with subsequent requests of same stream id from any pages
+  /// in the middle of request handling or after it returns success.
+  /// The request is regarded as success only when the host provides the stream,
+  /// Present API call, within 10s after being requested.
   HRESULT add_StartRequested(
       [in] ICoreWebView2StagingTextureStreamStartRequestedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
@@ -396,10 +396,10 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// Adds an allowed url origin for the given stream id for web texture
   /// operation.  Javascript can send texture stream to the host only when
   /// the origin it runs are allowed by the host.
-  HRESULT AddWebTextureRequestedFilter([in] LPCWSTR origin);
+  HRESULT AddWebTextureAllowedOrigin([in] LPCWSTR origin);
 
-  /// Remove added origin, which was added by AddWebTextureRequestedFilter.
-  HRESULT RemoveWebTextureRequestedFilter([in] LPCWSTR origin);
+  /// Remove added origin, which was added by AddWebTextureAllowedOrigin.
+  HRESULT RemoveWebTextureAllowedOrigin([in] LPCWSTR origin);
 }
 /// Texture stream buffer that the host writes to so that the Renderer
 /// will render on it.
