@@ -79,28 +79,29 @@ interface ICoreWebView2StagingControllerOptions : IUnknown {
   /// Use OS specific APIs to determine the OS region to use with this property
   /// if you want to match the OS. For example:
   ///
+  /// Win32 C++:
   /// ```cpp
-  /// int LanguageCodeBufferSize =
-  ///     ::GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SNAME, nullptr, 0);
-  /// std::unique_ptr<char[]> buffer(new char[LanguageCodeBufferSize]);
-  /// WCHAR* w_language_code = new WCHAR[LanguageCodeBufferSize];
-  /// ::GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SNAME, w_language_code,
-  ///                   LanguageCodeBufferSize);
-  /// wcstombs(buffer.get(), w_language_code, LanguageCodeBufferSize);
-  /// delete[] w_language_code;
-  /// return buffer;
-  /// ``` 
+  ///   int LanguageCodeBufferSize =
+  ///       ::GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SNAME, nullptr, 0);
+  ///   std::unique_ptr<char[]> buffer(new char[LanguageCodeBufferSize]);
+  ///   WCHAR* w_language_code = new WCHAR[LanguageCodeBufferSize];
+  ///   ::GetLocaleInfoEx(LOCALE_NAME_USER_DEFAULT, LOCALE_SNAME, w_language_code,
+  ///                     LanguageCodeBufferSize);
+  ///   wcstombs(buffer.get(), w_language_code, LanguageCodeBufferSize);
+  ///   delete[] w_language_code;
+  ///   return buffer;
+  /// ```
   ///
-  /// ```c#
-  ///   var geographicRegion = new Windows.Globalization.GeographicRegion();
-  ///   var regionCode = geographicRegion.CodeTwoLetter;
+  /// .NET and WinRT C#:
+  /// ```cs
+  ///   CultureInfo cultureInfo = Thread.CurrentThread.CurrentCulture;
+  ///   return cultureInfo.Name
   /// ```
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   /// \snippet AppWindow.cpp RegionLocaleSetting
   // MSOWNERS: stevenwei@microsoft.com
   [propget] HRESULT LocaleRegion([out, retval] LPWSTR* locale);
-
   /// Sets the `LocaleRegion` property.
   // MSOWNERS: stevenwei@microsoft.com
   [propput] HRESULT LocaleRegion([in] LPCWSTR locale);
