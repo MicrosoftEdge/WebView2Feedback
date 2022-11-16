@@ -21,79 +21,81 @@ direct message channel communication tunnel to host app native code. Direct mess
 suported in IFrame and you can create dmc between IFrame and host app.
  ```html
 </head>
-  <script>
-    // direct message channel object.
-    let dmc = null;
-    let dmc2 = null;
+<script>
+  // direct message channel object.
+  let dmc = null;
+  let dmc2 = null;
 
-    function getDirectMessageChannelByName(name) {
-        return new Promise((resolve, reject) => {
-            window.chrome.webview.getDirectMessageChannel(name).then(channel => {
-                // Register disconnect event listener on dmc to release object when the channel is disconnected.
-                channel.addEventListener('disconnect', arg => {
-                    if (dmc === channel) {
-                        dmc = null;
-                    } else if (dmc2 ===  channel) {
-                        dmc2 = null;
-                    }
-                });
-                // Register message event listener on dmc to receive messages from host app native
-                // code.
-                channel.addEventListener('message', arg => {
-                    // arg.data is the received string or json data. Parse and process the data in
-                    // web code.
-                    document.getElementById("messages-from-host").value
-                        += "From DMC " + channel.channelName + ": " + JSON.stringify(arg.data) + "\n";;
-                    if ("WindowBounds" in arg.data) {
-                        document.getElementById("window-bounds").value = arg.data.WindowBounds;
-                    }
-                });
-                resolve(channel);
-            }, error => {
-                // The direct message channel request is rejected either by host app native code calling channel
-                // Reject function or with some other errors.
-                reject(error);
-            });
-
+  function getDirectMessageChannelByName(name) {
+    return new Promise((resolve, reject) => {
+      window.chrome.webview.getDirectMessageChannel(name).then(channel => {
+        // Register disconnect event listener on dmc to release object when the channel is
+        // disconnected.
+        channel.addEventListener('disconnect', arg => {
+          if (dmc === channel) {
+            dmc = null;
+          } else if (dmc2 === channel) {
+            dmc2 = null;
+          }
         });
-    }
+        // Register message event listener on dmc to receive messages from host app native
+        // code.
+        channel.addEventListener('message', arg => {
+          // arg.data is the received string or json data. Parse and process the data in
+          // web code.
+          document.getElementById("messages-from-host").value
+            += "From DMC " + channel.channelName + ": " + JSON.stringify(arg.data) + "\n";;
+          if ("WindowBounds" in arg.data) {
+            document.getElementById("window-bounds").value = arg.data.WindowBounds;
+          }
+        });
+        resolve(channel);
+      }, error => {
+        // The direct message channel request is rejected either by host app native code calling
+        // channel Reject function or with some other errors.
+        reject(error);
+      });
 
-    // You can create multiple channels over the same host<=>renderer process pair. Please note that
-    // the channel name is not identifier. You can even create different dmcs with same channel name.
-    getDirectMessageChannelByName("Testing_Direct_Message_Channel").then(channel => {
-        dmc = channel;
     });
+  }
 
-    getDirectMessageChannelByName("Testing_Direct_Message_Channel2").then(channel => {
-        dmc2 = channel;
-    });
+  // You can create multiple channels over the same host<=>renderer process pair. Please note that
+  // the channel name is not identifier. You can even create different dmcs with same channel name.
+  getDirectMessageChannelByName("Testing_Direct_Message_Channel").then(channel => {
+    dmc = channel;
+  });
 
-    // Create IFrame and all dmc APIs work in IFrame as well.
-    createIFrame() {
-        var i = document.createElement("iframe");
-        i.src = "https://appassets.example/ScenarioDirectWebMessage.html";
-        i.scrolling = "auto";
-        i.frameborder = "0";
-        i.height = "90%";
-        i.width = "100%";
-        i.name = "iframe_name";
-        var div = document.getElementById("div_iframe");
-        div.appendChild(i); div.style.display = 'block';
-    };
+  getDirectMessageChannelByName("Testing_Direct_Message_Channel2").then(channel => {
+    dmc2 = channel;
+  });
 
-    // Web code post message to native code to request setting host app title text via the dmc
-    // communication tunnel.
-    function SetTitleText() {
-        dmc.postMessage("SetTitleText TitleFromWeb");
-    }
+  // Create IFrame and all dmc APIs work in IFrame as well.
+  createIFrame() {
+    var i = document.createElement("iframe");
+    i.src = "https://appassets.example/ScenarioDirectWebMessage.html";
+    i.scrolling = "auto";
+    i.frameborder = "0";
+    i.height = "90%";
+    i.width = "100%";
+    i.name = "iframe_name";
+    var div = document.getElementById("div_iframe");
+    div.appendChild(i); div.style.display = 'block';
+  };
 
-    // Web code post message to native code to request getting the host app window bounds via the
-    // dmc2 communication tunnel.
-    function GetWindowBounds() {
-        dmc2.postMessage("GetWindowBounds");
-    }
-  </script>
+  // Web code post message to native code to request setting host app title text via the dmc
+  // communication tunnel.
+  function SetTitleText() {
+    dmc.postMessage("SetTitleText TitleFromWeb");
+  }
+
+  // Web code post message to native code to request getting the host app window bounds via the
+  // dmc2 communication tunnel.
+  function GetWindowBounds() {
+    dmc2.postMessage("GetWindowBounds");
+  }
+</script>
 </head>
+
 <body>
   <textarea id="messages-from-host" rows="10" cols="150" readonly></textarea><br>
 
@@ -126,8 +128,7 @@ ScenarioDirectWebMessage::ScenarioDirectWebMessage(AppWindow* appWindow)
     // Make sure web message is enabled.
     CHECK_FAILURE(settings->put_IsWebMessageEnabled(TRUE));
 
-    wil::com_ptr<ICoreWebView2_16> webView2_16 =
-        m_webView.try_query<ICoreWebView2_16>();
+    wil::com_ptr<ICoreWebView2_16> webView2_16 = m_webView.try_query<ICoreWebView2_16>();
     if (!webView2_16)
     {
         return;
@@ -175,8 +176,7 @@ ScenarioDirectWebMessage::ScenarioDirectWebMessage(AppWindow* appWindow)
                 // Register a handler for the `WebMessageReceived` event on the channel. You
                 // will get the messages posted from web code via the channel in event args.
                 channel->add_WebMessageReceived(
-                    Microsoft::WRL::Callback<
-                        ICoreWebView2DirectWebMessageReceivedEventHandler>(
+                    Microsoft::WRL::Callback<ICoreWebView2DirectWebMessageReceivedEventHandler>(
                         [this](
                             ICoreWebView2DirectMessageChannel* sender,
                             ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
@@ -204,13 +204,15 @@ ScenarioDirectWebMessage::ScenarioDirectWebMessage(AppWindow* appWindow)
 
                             if (message.compare(0, 13, L"SetTitleText ") == 0)
                             {
-                                // Received `SetTitleText` message from web to set the app title.
+                                // Received `SetTitleText` message from web to set the app
+                                // title.
                                 m_appWindow->SetDocumentTitle(message.substr(13).c_str());
                             }
                             else if (message.compare(L"GetWindowBounds") == 0)
                             {
                                 // Received `GetWindowBounds` message from web then post the
-                                // host app window bounds info(json) back to web via the channel.
+                                // host app window bounds info(json) back to web via the
+                                // channel.
                                 RECT bounds = m_appWindow->GetWindowBounds();
                                 std::wstring reply =
                                     L"{\"WindowBounds\":\"Left:" +
@@ -323,20 +325,21 @@ tunnel between host app main process and WebView2 runtime renderer process, you 
 message channel between any child process of host app and renderer process via APIs exposed on channel
 `TakeTransferableBlobAndInvalidate` and `ReConstructDirectMessageChannel`.
 ```cpp
-// On host app main proces, call `channel->TakeTransferableBlobAndInvalidate(handle, &blob)` to get the direct message
-// channel blob data and invalidate its state, then transfer the channel info blob data to child process via
-// the host app main-child process inner communication tunnel.
+// On host app main proces, call `channel->TakeTransferableBlobAndInvalidate(handle, &blob)` to
+// get the direct message channel blob data and invalidate its state, then transfer the channel
+// info blob data to child process via the host app main-child process inner communication
+// tunnel.
 void ScenarioDirectWebMessage::WriteChannelBlobToChildDMCPorcess(
     ICoreWebView2StagingDirectMessageChannel* channel)
 {
     wil::unique_cotaskmem_string blob;
-    // Take the channel info blob data and invalidate the channel state so that it's trasnferable with the handle of
-    // target child process.
+    // Take the channel info blob data and invalidate the channel state so that it's
+    // trasnferable with the handle of target child process.
     CHECK_FAILURE(channel->TakeTransferableBlobAndInvalidate(handle, &blob));
     std::wstring channelInfo = (std::wstring)blob.get();
 
-    // Rely on the host app main-child process inner communication tunnel(e.g., NamedPipe on Windows) to write
-    // the channel info blob data to child process.
+    // Rely on the host app main-child process inner communication tunnel(e.g., NamedPipe on
+    // Windows) to write the channel info blob data to child process.
     DWORD dataWritten;
     HANDLE hPipe = CreateFile(
         TEXT(NAMED_PIPE_DMC), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
@@ -350,57 +353,59 @@ void ScenarioDirectWebMessage::WriteChannelBlobToChildDMCPorcess(
     }
 }
 
-// In child process, you first need to create WebView2 environment.
-HRESULT ChildProcessMessageChannel::ReConstructDirectMessageChannel() {
-  // Create the environment options object.
-  auto environment_options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-  // Set OnlyUsedForDirectMessageChannel property to true to avoid creating controller
-  // and webview via this environment.
-  CHECK_FAILURE(environment_options->put_OnlyUsedForDirectMessageChannel(true));
-  HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
-      L".", L"", environment_options.Get(),
-      Microsoft::WRL::Callback<
-          ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-          this, &MessageChannel::OnCreateEnvironmentCompleted)
-          .Get());
+// In child process, to reconstruct direct message channel, you first need to create
+// WebView2 environment and rely on environment to reconstruct dmc object.
+HRESULT ChildProcessMessageChannel::ReconstructDirectMessageChannel()
+{
+    // Create the environment options object.
+    auto environment_options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+    // Set OnlyUsedForDirectMessageChannel property to true to avoid creating controller
+    // and webview via this environment.
+    CHECK_FAILURE(environment_options->put_OnlyUsedForDirectMessageChannel(true));
+    // Create WebView2 environment with environment options.
+    HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
+        L".", L"", environment_options.Get(),
+        Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            this, &MessageChannel::OnCreateEnvironmentCompleted)
+            .Get());
 
-  return hr;
+    return hr;
 }
 
 // In the environment creation completed callback, call environment's
 // `ReConstructDirectMessageChannel` API with the channel info blob data to
 // reconstruct the direct message channel.
 HRESULT ChildProcessMessageChannel::OnCreateEnvironmentCompleted(
-    HRESULT result,
-    ICoreWebView2Environment* environment) {
-  if (result != S_OK)
-    return result;
+    HRESULT result, ICoreWebView2Environment* environment)
+{
+    if (result != S_OK)
+        return result;
 
-  auto webViewEnvironment11 =
-      ((wil::com_ptr<ICoreWebView2Environment>)environment)
-          .try_query<ICoreWebView2Environment11>();
+    auto webViewEnvironment11 = ((wil::com_ptr<ICoreWebView2Environment>)environment)
+                                    .try_query<ICoreWebView2Environment11>();
 
-  if (webViewEnvironment11) {
-    // Reconstruct the direct message channel object based on the blob data `m_directMessageChannelBlob`.
-    // `m_directMessageChannel` is the reconstructed direct message channel in child process.
-    CHECK_FAILURE(webViewEnvironment11->ReConstructDirectMessageChannel(
-        const_cast<wchar_t*>(m_directMessageChannelBlob),
-        &m_directMessageChannel));
+    if (webViewEnvironment11)
+    {
+        // Reconstruct the direct message channel object based on the blob data
+        // `m_directMessageChannelBlob`. `m_directMessageChannel` is the reconstructed direct
+        // message channel in child process.
+        CHECK_FAILURE(webViewEnvironment11->ReConstructDirectMessageChannel(
+            const_cast<wchar_t*>(m_directMessageChannelBlob), &m_directMessageChannel));
 
-    if (!m_directMessageChannel)
-      return E_INVALIDARG;
+        if (!m_directMessageChannel)
+            return E_INVALIDARG;
 
-    // Start the channel. The message tunnel gets really connected only after calling dmc `Start`
-    // function, otherwise, it is always in pending status.
-    m_directMessageChannel->Start();
+        // Start the channel. The message tunnel gets really connected only after calling dmc
+        // `Start` function, otherwise, it is always in pending status.
+        m_directMessageChannel->Start();
 
-    // Similar API usage as the examples in above main process
-    // m_directMessageChannel->PostWebMessageAsString(helloMessage);
-    // m_directMessageChannel->add_WebMessageReceived(callback)
-    // m_directMessageChannel->add_ChannelClosed(callback);
-  }
+        // Similar API usage as the examples in above main process
+        // m_directMessageChannel->PostWebMessageAsString(helloMessage);
+        // m_directMessageChannel->add_WebMessageReceived(callback)
+        // m_directMessageChannel->add_ChannelClosed(callback);
+    }
 
-  return S_OK;
+    return S_OK;
 }
 ```
 # API Details
