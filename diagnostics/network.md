@@ -1,9 +1,4 @@
 # Network Logs
-https://textslashplain.com/2020/01/17/capture-network-logs-from-edge-and-chrome/ 
-  
-https://textslashplain.com/2020/04/08/analyzing-network-traffic-logs-netlog-json/
-  
-https://dev.chromium.org/for-testers/providing-network-details
+Network logs include the network requests, responses, and details on any errors when loading files. The easiest way to gather network logs for WV2 is to pass the `--log-net-log` command-line parameter to your WV2 app by setting the `WEBVIEW_ADDITIONAL_BROWSER_ARGUMENTS` environment variable to `--log-net-log=C:\MyPath\Log.json` (replacing the path with a location that your app can write to). 
 
-Can also get traces:
-Navigate to `about:tracing`and use with the `Edge developer (navigation)` profile
+If that doesn't work in your scenario, there's more options for gathering network logs [in this post](https://textslashplain.com/2020/01/17/capture-network-logs-from-edge-and-chrome/). Additionally, [Chromium documentation](https://dev.chromium.org/for-testers/providing-network-details) has more details on some of the options.
