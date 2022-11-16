@@ -40,11 +40,13 @@ void WebView_PermissionRequested(object sender, CoreWebView2PermissionRequestedE
         {
             try
             {
-              // Do not persist state so that the PermissionRequested event is always
-              // raised and the app is in control of all permission requests.
-              args.ShouldPersist = true;
+                // Do not persist state so that the PermissionRequested event is always
+                // raised and the app is in control of all permission requests.
+                args.ShouldPersist = false;
             }
-            catch (Exception exception) {}
+            catch (NotImplementedException e) {
+                Debug.WriteLine($"ShouldPersist failed: {e.Message}");
+            }
             (string, CoreWebView2PermissionKind, bool) cachedKey =
                 (args.Uri, args.PermissionKind, args.IsUserInitiated);
             if (_cachedPermissions.ContainsKey(cachedKey))
@@ -112,18 +114,27 @@ HRESULT SettingsComponent::OnPermissionRequested(
 ```c#
 // Gets the nondefault permission collection and updates a custom permission
 // management page.
-async void WebView_PermissionPage_DOMContentLoaded(object sender, CoreWebView2DOMContentLoadedEventArgs arg)
+async void WebView_PermissionManager_DOMContentLoaded(object sender,
+    CoreWebView2DOMContentLoadedEventArgs arg)
 {
-    foreach (var kind in permissionKinds)
+    if (webView.CoreWebView2.Source !=
+        "https://appassets.example/ScenarioPermissionManagement.html")
+        return;
+    // Gets the nondefault permission collection for each supported
+    // permission kind and updates a custom permission management page.
+    for (int i = 0; i < _permissionKinds.Count; i++)
     {
+        var kind = _permissionKinds[i];
         IReadOnlyList<CoreWebView2PermissionSetting> permissionList =
             await WebViewProfile.GetNonDefaultPermissionCollectionAsync(kind);
-        for (int i = 0; i < permissionList.Count; i++)
+        for (int j = 0; j < permissionList.Count; j++)
         {
             var setting = permissionList[i];
-            string reply = "{\"PermissionEntry\": \"" + PermissionKindToString(kind)
-                            + ", " + setting.origin + ", " +
-                            PermissionStateToString(setting.State) + "\"}";
+            string reply = "{\"PermissionSetting\": \"" +
+                            NameOfPermissionKind(kind) + ", " +
+                            setting.PermissionOrigin + ", " +
+                            PermissionStateToString(setting.PermissionState) +
+                            "\"}";
             webView.CoreWebView2.PostWebMessageAsJson(reply);
         }
     }
@@ -131,168 +142,145 @@ async void WebView_PermissionPage_DOMContentLoaded(object sender, CoreWebView2DO
 
 // Called when the user wants to change permission state from the custom
 // permission management page.
-void HandleWebMessage(CoreWebView2WebMessageReceivedEventArgs args)
+void WebView_PermissionManager_WebMessageReceived(object sender,
+    CoreWebView2WebMessageReceivedEventArgs args)
 {
-    try
+    if (args.Source !=
+        "https://appassets.example/ScenarioPermissionManagement.html")
+        return;
+    string message = args.TryGetWebMessageAsString();
+    if (message == "SetPermission")
     {
-        string message = args.TryGetWebMessageAsString();
-        if (args.Source == "https://appassets.example/ScenarioPermissionManagement.html")
+        // Avoid potential reentrancy from running a message loop in the
+        // event handler.
+        System.Threading.SynchronizationContext.Current.Post((_) =>
         {
-            if (message == "SetPermission")
+            var dialog = new PermissionDialog(_permissionKinds, _permissionStates);
+            if (dialog.ShowDialog() == true)
             {
-                // Avoid potential reentrancy from running a message loop in the
-                // event handler.
-                System.Threading.SynchronizationContext.Current.Post((_) =>
+                try
                 {
-                    var dialog = new PermissionDialog();
-                    if (dialog.ShowDialog() == true)
-                    {
-                        webView.CoreWebView2.SetPermissionState(
-                            PermissionKindFromString(dialog.PermissionKind.Text),
-                            dialog.Origin.Text,
-                            PermissionStateFromString(dialog.PermissionState.Text));
-                    }
-                }, null);
-            }
-        }
-    catch (Exception e)
-    {
-        MessageBox.Show($"Unexpected message received: {e.Message}");
+                    WebViewProfile.SetPermissionState(
+                        (CoreWebView2PermissionKind)dialog.PermissionKind.SelectedItem,
+                        dialog.Origin.Text,
+                        (CoreWebView2PermissionState)dialog.PermissionState.SelectedItem);
+                }
+                catch (NotImplementedException e)
+                {
+                    Debug.WriteLine($"SetPermissionState failed: {e.Message}");
+                }
+          }
+        }, null);
     }
 }
-
 ```
+
 ```cpp
-void ScenarioPermissionManagement::ScenarioPermissionManagement()
+ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
+    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
-    wil::com_ptr<ICoreWebView2_2> m_webView2;
+    m_sampleUri = m_appWindow->GetLocalUri(c_samplePath);
+    auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
+    wil::com_ptr<ICoreWebView2Profile> profile;
+    if (!webView2_13)
+        return;
+    CHECK_FAILURE(webView2_13->get_Profile(&profile));
+    m_webViewProfile6 = profile.try_query<ICoreWebView2Profile6>();
+    if (!m_webViewProfile6)
+        return;
     m_webView2 = m_webView.try_query<ICoreWebView2_2>();
-    //! [GetNonDefaultPermissionCollection]
-    // Gets the nondefault permission collection and updates a custom permission
-    // management page.
-    CHECK_FAILURE(m_webView2->add_DOMContentLoaded(
-        Callback<ICoreWebView2DOMContentLoadedEventHandler>(
-            [this](
-                ICoreWebView2* sender, ICoreWebView2DOMContentLoadedEventArgs* args) -> HRESULT
-            {
-                for (COREWEBVIEW2_PERMISSION_KIND kind : permissionKinds)
+    if (m_webView2)
+    {
+        CHECK_FAILURE(m_webView2->add_DOMContentLoaded(
+            Callback<ICoreWebView2DOMContentLoadedEventHandler>(
+                [this](ICoreWebView2* sender, ICoreWebView2DOMContentLoadedEventArgs* args)
+                    -> HRESULT
                 {
-                    m_webViewProfile5->GetNonDefaultPermissionCollection(
-                        kind,
-                        Callback<
-                            ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler>(
-                            [this, sender, kind](
-                                HRESULT code,
-                                ICoreWebView2PermissionCollection* collection) -> HRESULT
-                            {
-                                UINT32 count;
-                                collection->get_Count(&count);
-                                UINT32 i = 0;
-                                while (i < count)
+                    wil::unique_cotaskmem_string source;
+                    CHECK_FAILURE(sender->get_Source(&source));
+                    if (source.get() != m_sampleUri)
+                    {
+                        return S_OK;
+                    }
+                    // Gets the nondefault permission collection for each supported
+                    // permission kind and and updates a custom permission management page.
+                    for (COREWEBVIEW2_PERMISSION_KIND kind : permissionKinds)
+                    {
+                        CHECK_FAILURE(m_webViewProfile6->GetNonDefaultPermissionCollection(
+                            kind,
+                            Callback<
+                                ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler>(
+                                [this, sender, kind](
+                                    HRESULT code, ICoreWebView2PermissionCollection*
+                                                      permissionCollection) -> HRESULT
                                 {
-                                    wil::com_ptr<ICoreWebView2PermissionSetting> setting;
-                                    collection->GetValueAtIndex(i, &setting);
-                                    COREWEBVIEW2_PERMISSION_STATE state;
-                                    setting->get_State(&state);
-                                    wil::unique_cotaskmem_string origin;
-                                    setting->get_Origin(&origin);
-                                    std::wstring state_string = PermissionStateFromString(state);
-                                    std::wstring kind_string = PermissionKindFromString(kind);
-                                    std::wstring reply = L"{\"PermissionSetting\": \"" +
-                                                         kind_string + L", " + origin.get() +
-                                                         L", " + state_string + L"\"}";
-                                    CHECK_FAILURE(sender->PostWebMessageAsJson(reply.c_str()));
-                                    i++;
-                                }
-                                return S_OK;
-                            })
-                            .Get());
-                }
-                return S_OK;
-            })
-            .Get(),
-        &m_DOMContentLoadedToken));
-    //! [GetNonDefaultPermissionCollection]
+                                    UINT32 count;
+                                    permissionCollection->get_Count(&count);
+                                    UINT32 i = 0;
+                                    while (i < count)
+                                    {
+                                        wil::com_ptr<ICoreWebView2PermissionSetting>
+                                            setting;
+                                        CHECK_FAILURE(
+                                            permissionCollection->GetValueAtIndex(i, &setting));
+                                        COREWEBVIEW2_PERMISSION_STATE state;
+                                        CHECK_FAILURE(setting->get_State(&state));
+                                        wil::unique_cotaskmem_string origin;
+                                        CHECK_FAILURE(setting->get_Origin(&origin));
+                                        std::wstring state_string =
+                                            PermissionStateToString(state);
+                                        std::wstring kind_string = PermissionKindToString(kind);
+                                        std::wstring reply = L"{\"PermissionSetting\": \"" +
+                                                             kind_string + L", " +
+                                                             origin.get() + L", " +
+                                                             state_string + L"\"}";
+                                        CHECK_FAILURE(
+                                            sender->PostWebMessageAsJson(reply.c_str()));
+                                        i++;
+                                    }
+                                    return S_OK;
+                                })
+                                .Get()));
+                    }
+                    return S_OK;
+                })
+                .Get(),
+            &m_DOMContentLoadedToken));
+    }
 
     // Called when the user wants to change permission state from the custom
     // permission management page.
-    m_webView->add_WebMessageReceived(
+    CHECK_FAILURE(m_webView->add_WebMessageReceived(
         Microsoft::WRL::Callback<ICoreWebView2WebMessageReceivedEventHandler>(
             [this](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args)
                 -> HRESULT
             {
-
+                wil::unique_cotaskmem_string source;
+                CHECK_FAILURE(args->get_Source(&source));
+                if (source.get() != m_sampleUri)
+                {
+                    return S_OK;
+                }
                 wil::unique_cotaskmem_string message;
                 CHECK_FAILURE(args->TryGetWebMessageAsString(&message));
                 if (wcscmp(message.get(), L"SetPermission") == 0)
                 {
-                    // Avoid potential reentrancy from running a message loop in
-                    // the event handler.
-                    m_appWindow->RunAsync([this] {
-                        ShowSetPermissionDialog();
-                    });
+                    m_appWindow->RunAsync([this] { ShowSetPermissionDialog(); });
                 }
                 return S_OK;
             })
             .Get(),
-        nullptr);
+        &m_webMessageReceivedToken));
 }
 
 void ScenarioPermissionManagement::ShowSetPermissionDialog()
 {
-    DialogBoxParam(
-        g_hInstance, MAKEINTRESOURCE(IDD_SET_PERMISSION), m_appWindow->GetMainWindow(),
-        DlgProcStatic, (LPARAM)m_appWindow);
-}
-
-// When the user selects `OK` in the dialog, call SetPermision with the chosen
-// origin, kind, and state.
-static INT_PTR CALLBACK DlgProcStatic(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    auto self = (ScenarioPermissionManagement*)GetWindowLongPtr(hDlg, GWLP_USERDATA);
-
-    switch (message)
+    PermissionDialog dialog(
+        m_appWindow->GetMainWindow(), permissionKinds, permissionStates);
+    if (dialog.confirmed && m_webViewProfile6)
     {
-    case WM_INITDIALOG:
-    {
-        self = (ScenarioPermissionManagement*)lParam;
-        SetWindowLongPtr(hDlg, GWLP_USERDATA, (LONG_PTR)self);
-        return (INT_PTR)TRUE;
-    }
-    case WM_COMMAND:
-    {
-        if (LOWORD(wParam) == IDOK)
-        {
-            wchar_t origin[MAX_PATH] = {};
-            GetDialogInput(IDC_EDIT_PERMISSION_ORIGIN, origin);
-            wchar_t kind[MAX_PATH] = {};
-            GetDialogInput(IDC_EDIT_PERMISSION_KIND, kind);
-            wchar_t state[MAX_PATH] = {};
-            GetDlgItemText(IDC_EDIT_PERMISSION_STATE, state);
-            self->SetPermissionState(
-                origin, PermissionKindFromString(kind),
-                PermissionStateFromString(state));
-        }
-        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
-        {
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        }
-        break;
-    }
-    case WM_NCDESTROY:
-        SetWindowLongPtr(hDlg, GWLP_USERDATA, NULL);
-        return (INT_PTR)TRUE;
-    }
-    return (INT_PTR)FALSE;
-}
-
-void ScenarioPermissionManagement::SetPermissionState(
-    std::wstring origin, COREWEBVIEW2_PERMISSION_KIND kind, COREWEBVIEW2_PERMISSION_STATE state)
-{
-    if (m_webViewProfile5)
-    {
-        m_webViewProfile5->SetPermissionState(kind, origin.c_str(), state);
+        CHECK_FAILURE(m_webViewProfile6->SetPermissionState(
+            dialog.kind, dialog.origin.c_str(), dialog.state));
     }
 }
 ```
@@ -384,7 +372,7 @@ namespace Microsoft.Web.WebView2.Core
 ```
 /// This is the ICoreWebView2 interface for the permission management APIs.
 [uuid(5bdfc5dd-C07a-41b7-bcf2-94020975f185), object, pointer_default(unique)]
-interface ICoreWebView2Profile5 : ICoreWebView2Profile4 {
+interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
   /// Sets permission state for the given permission kind and origin
   /// asynchronously. The change takes effect immediately and persists
   /// across sessions until it is changed.
@@ -449,7 +437,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // Other members of CoreWebView2Profile not shown.
 
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile5")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile6")]
         {
             // Sets permission state for the given permission kind and origin
             // asynchronously. The change takes effect immediately and persists
@@ -472,7 +460,7 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2PermissionKind PermissionKind { get; };
 
         // The origin of the permission setting.
-        String origin { get; };
+        String Origin { get; };
 
         // The state of the permission setting.
         CoreWebView2PermissionState State { get; };
