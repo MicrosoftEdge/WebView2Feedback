@@ -50,7 +50,7 @@ suported in IFrame and you can create dmc between IFrame and host app.
                 });
                 resolve(channel);
             }, error => {
-                // The direct message channel request is rejected either by host app native code calling channel 
+                // The direct message channel request is rejected either by host app native code calling channel
                 // Reject function or with some other errors.
                 reject(error);
             });
@@ -350,9 +350,26 @@ void ScenarioDirectWebMessage::WriteChannelBlobToChildDMCPorcess(
     }
 }
 
-// In child process, you first need to create WebView2 environment and in the environment creation
-// completed callback, call environment's `ReConstructDirectMessageChannel` API with the channel info
-// blob data to reconstruct the direct message channel.
+// In child process, you first need to create WebView2 environment.
+HRESULT ChildProcessMessageChannel::ReConstructDirectMessageChannel() {
+  // Create the environment options object.
+  auto environment_options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+  // Set OnlyUsedForDirectMessageChannel property to true to avoid creating controller
+  // and webview via this environment.
+  CHECK_FAILURE(environment_options->put_OnlyUsedForDirectMessageChannel(true));
+  HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
+      L".", L"", environment_options.Get(),
+      Microsoft::WRL::Callback<
+          ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+          this, &MessageChannel::OnCreateEnvironmentCompleted)
+          .Get());
+
+  return hr;
+}
+
+// In the environment creation completed callback, call environment's
+// `ReConstructDirectMessageChannel` API with the channel info blob data to
+// reconstruct the direct message channel.
 HRESULT ChildProcessMessageChannel::OnCreateEnvironmentCompleted(
     HRESULT result,
     ICoreWebView2Environment* environment) {
@@ -388,7 +405,8 @@ HRESULT ChildProcessMessageChannel::OnCreateEnvironmentCompleted(
 ```
 # API Details
 ```
-/// This is the ICoreWebView2DirectMessageChannel interface.
+/// This is the ICoreWebView2StagingDirectMessageChannel interface to support diect
+/// message communication tunnel between host app (child) process and renderer process.
 [uuid(D73691D4-BF9C-4536-8768-C0F3B73126D4), object, pointer_default(unique)]
 interface ICoreWebView2StagingDirectMessageChannel : IUnknown {
   /// This is the |channel_name| specified by JS
@@ -566,13 +584,13 @@ interface ICoreWebView2StagingEnvironment3 : IUnknown {
 /// A continuation of the ICoreWebView2EnvironmentOptions interface to specify whether
 /// the environment is only used to reconstruct direct message channel.
 [uuid(FAB20EFB-C716-47AC-8FED-C8A65A8FA334), object, pointer_default(unique)]
-interface ICoreWebView2EnvironmentOptions3 : IUnknown {
+interface ICoreWebView2StagingEnvironmentOptions4 : IUnknown {
   /// Gets the `OnlyUsedForDirectMessageChannel` property.
   /// The property indicates whether the environment is only used to reconstruct direct message
   /// channel. Once set to true, the environment created with this option can only be used to
   /// reconstruct direct message channel and cannot be used to create WebView controller.
-  /// Default to false for most cases, but if you want to call ReConstructDirectMessageChannel
-  /// API in this specific environment object, this property must be set to TRUE typically.
+  /// Default to `FALSE` for most cases, but if you want to call ReConstructDirectMessageChannel
+  /// API in this specific environment object, this property must be set to `TRUE` typically.
   [propget] HRESULT OnlyUsedForDirectMessageChannel([out, retval] BOOL* value);
 
   /// Sets the `OnlyUsedForDirectMessageChannel` property.
