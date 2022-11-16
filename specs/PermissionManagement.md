@@ -120,8 +120,6 @@ async void WebView_PermissionManager_DOMContentLoaded(object sender,
     if (webView.CoreWebView2.Source !=
         "https://appassets.example/ScenarioPermissionManagement.html")
         return;
-    // Gets the nondefault permission collection for each supported
-    // permission kind and updates a custom permission management page.
     for (int i = 0; i < _permissionKinds.Count; i++)
     {
         var kind = _permissionKinds[i];
