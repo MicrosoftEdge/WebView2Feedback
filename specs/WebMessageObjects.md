@@ -88,7 +88,8 @@ webView.CoreWebView2.WebMessageReceived += WebView_WebMessageReceivedHandler;
 void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageReceivedEventArgs args)
 {
     List<string> paths = new List<string>();
-    foreach (var object in args.AdditionalObjects) {
+    foreach (var object in args.AdditionalObjects)
+    {
         if (object is CoreWebView2File) {
             paths.Add((CoreWebView2File)(object).path);
         }
