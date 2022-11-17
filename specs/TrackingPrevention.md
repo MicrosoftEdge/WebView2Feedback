@@ -2,26 +2,26 @@ Tracking Prevention
 ===
 
 # Background
-The WebView2 team has been asked for an API to toggle tracking prevention and also ability to control levels
-of tracking prevention.
+The WebView2 team has been asked for an API to control levels of tracking prevention and also to turn off tracking prevention feature in WebView2.
 
 We are proposing two API's
-IsTrackingPreventionEnabled: This API allows you to enable/disable the tracking prevention feature. By default
-tracking prevention feature is enabled and set to `Balanced` level for WebView2. You can set the
-`CoreWebView2EnvironmentOptions.IsTrackingPreventionEnabled` property to false to disable the tracking prevention
-feature for WebView2 before creating environment that also skips the related code and improves the performance.
 
-TrackingPreventionLevel: This API allows you to control levels of tracking prevention for WebView2 which
-are associated with a profile when the feature is enabled and otherwise TrackingPreventionLevel is
-CoreWebView2TrackingPreventionLevel.Off and can't be changed to other kinds.
+CoreWebView2Profile.PreferredTrackingPreventionLevel: This API allows you to control levels of tracking prevention for WebView2 which
+are associated with a profile and persisted in the user data folder. However, the level is not respected if tracking prevention feature is
+disabled using `CoreWebView2EnvironmentOptions.EnableTrackingPrevention`. That means, if you set the property when the feature is disabled
+it is updated and persisted but it will takes effect only if `CoreWebView2EnvironmentOptions.EnableTrackingPrevention` is true.
 The levels are similar to Edge: `Off`, `Basic`, `Balanced` and `Strict`.
 
 For reference, in the screenshot below, this API sets the levels of tracking prevention as a WebView2 API.
 
 ![Edge Tracking Prevention](images/TrackingPreventionLevels.png)
 
+CoreWebView2EnvironmentOptions.EnableTrackingPrevention: This API allows you to enable/disable the tracking prevention feature.
+Default value is true. When this is true, the level of tracking prevention is controlled by the `CoreWebView2Profile.PreferredTrackingPreventionLevel` property.
+You can set this property to false to disable the tracking prevention feature for WebView2 when creating environment that also skips the related code and improves the performance.
+
 # Examples
-## IsTrackingPreventionEnabled
+## EnableTrackingPrevention
 
 ```c#
 Create WebView Environment with option that disable tracking prevention feature.
@@ -31,30 +31,46 @@ void CreateEnvironmentWithOption()
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     // If we're displaying app content or otherwise are not worried about tracking, we can
     // disable the tracking prevention feature to improve runtime performance.
-    options.IsTrackingPreventionEnabled = false;
+    options.EnableTrackingPrevention = false;
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 ```
 
 ```cpp
-Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions3> options3;
-if (options.As(&options3) == S_OK)
+void AppWindow::InitializeWebView()
 {
-    // If we're displaying app content or otherwise are not worried about tracking, we can
-    // disable the tracking prevention feature to improve runtime performance.
-    CHECK_FAILURE(options3->put_IsTrackingPreventionEnabled(FALSE));
+    auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+    Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions3> options3;
+    if (options.As(&options3) == S_OK)
+    {
+        // If we're displaying app content or otherwise are not worried about tracking, we can
+        // disable the tracking prevention feature to improve runtime performance.
+        CHECK_FAILURE(options3->put_EnableTrackingPrevention(FALSE));
+    }
+    // ... other option properties
+
+    HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
+        subFolder, m_userDataFolder.c_str(), options.Get(),
+        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            this, &AppWindow::OnCreateEnvironmentCompleted)
+            .Get());
 }
 ```
 
-## TrackingPreventionLevel
+## PreferredTrackingPreventionLevel
 Example of code in end user facing UI to change the TrackingPreventionLevel.
 
 ```c#
 
 void SetTrackingPreventionLevel(CoreWebView2TrackingPreventionLevel value)
 {
-    WebViewProfile.TrackingPreventionLevel = value;
-    MessageBox.Show(this, "Tracking prevention level is set successfully", "Tracking Prevention Level");
+    CoreWebView2Profile webViewProfile;
+    if (webView.CoreWebView2 != null)
+    {
+        webViewProfile = webView.CoreWebView2.Profile;
+        WebViewProfile.PreferredTrackingPreventionLevel = value;
+        MessageBox.Show(this, "Tracking prevention level is set successfully", "Tracking Prevention Level");
+    }
 }
 ```
 
@@ -73,7 +89,7 @@ void SettingsComponent::SetTrackingPreventionLevel(
         auto profile5 = profile.try_query<ICoreWebView2Profile5>();
         if (profile5)
         {
-            CHECK_FAILURE(profile5->put_TrackingPreventionLevel(value));
+            CHECK_FAILURE(profile5->put_PreferredTrackingPreventionLevel(value));
             MessageBox(
                 nullptr,
                 L"Tracking prevention level is set successfully",
@@ -88,7 +104,7 @@ void SettingsComponent::SetTrackingPreventionLevel(
 /// Tracking prevention levels.
 [v1_enum] typedef enum COREWEBVIEW2_TRACKING_PREVENTION_LEVEL {
   /// Tracking prevention is turned off.
-  COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF,
+  COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_NONE,
   /// The least restrictive level of tracking prevention. Set to this level to
   /// protect against malicious trackers but allows most other trackers and personalize content and ads.
   ///
@@ -114,10 +130,11 @@ void SettingsComponent::SetTrackingPreventionLevel(
 /// Additional options used to create WebView2 Environment.
 [uuid(12e494a2-c876-11eb-b8bc-0242ac130003), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions3 : IUnknown {
-  /// The `IsTrackingPreventionEnabled` property is used to toggle tracking prevention feature in WebView2.
-  /// This property enables or disables tracking prevention for all the WebView2's created in the same environment.
+  /// The `EnableTrackingPrevention` property is used to enable/disable tracking prevention feature in WebView2.
+  /// This property enable/disable tracking prevention for all the WebView2's created in the same environment.
   /// By default this feature is enabled to block potentially harmful trackers and trackers from sites that
-  /// aren't visited before and set to `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_BALANCED`.
+  /// aren't visited before and set to `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_BALANCED` or whatever value was 
+  /// last changed/persisted on the profile.
   ///
   /// You can set this property to false to disable the tracking prevention feature if the app only renders
   /// content in the WebView2 that is known to be safe. Disabling this feature when creating environment also
@@ -126,46 +143,48 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// You shouldn't disable this property if WebView2 is being used as a "full browser" with arbitrary navigation
   /// and should protect end user privacy.
   ///
-  ///
-  /// There is `TrackingPreventionLevel` property to control levels of tracking prevention of the WebView2's
-  /// associated with a same user profile. However, you can also turn off tracking prevention later using
-  /// `TrackingPreventionLevel` property and `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF` value
+  /// There is `CoreWebView2Profile.PreferredTrackingPreventionLevel` property to control levels of tracking prevention
+  ///  of the WebView2's associated with a same profile. However, you can also disable tracking prevention later using
+  /// `CoreWebView2Profile.PreferredTrackingPreventionLevel` property and `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_NONE` value
   /// but that doesn't improves runtime performance.
-  /// See `TrackingPreventionLevel` for more details.
+  /// See `CoreWebView2Profile.PreferredTrackingPreventionLevel` for more details.
   ///
   /// Tracking prevention protects users from online tracking by restricting
   /// the ability of trackers to access browser-based storage as well as the network.
   /// See [Tracking prevention](microsoft-edge/web-platform/tracking-prevention).
-  [propget] HRESULT IsTrackingPreventionEnabled([out, retval]  BOOL* value);
-  /// Sets the `IsTrackingPreventionEnabled` property.
-  [propput] HRESULT IsTrackingPreventionEnabled([in]  BOOL value);
+  [propget] HRESULT EnableTrackingPrevention([out, retval]  BOOL* value);
+  /// Sets the `EnableTrackingPrevention` property.
+  [propput] HRESULT EnableTrackingPrevention([in]  BOOL value);
 }
 
 /// This is the ICoreWebView2 profile.
 [uuid(ddc4070a-c873-11eb-b8bc-0242ac130003), object, pointer_default(unique)]
 interface ICoreWebView2Profile5: IUnknown {
-  /// The `TrackingPreventionLevel` property sets the level of tracking prevention when `IsTrackingPreventionEnabled`
-  /// is enabled and otherwise level will not be updated and remains as `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF`
-  /// This level would apply to the context of the user profile. That is, all WebView2s sharing the same user profile will be affected.
+  /// The `PreferredTrackingPreventionLevel` property allows you to control levels of tracking prevention for WebView2 which
+  /// are associated with a profile. This level would apply to the context of the profile. That is, all WebView2s sharing the same
+  /// profile will be affected and also the value is persisted in the user data folder.
   ///
   /// See `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL` for descriptions of levels.
   ///
-  /// If tracking prevention feature is enabled when creating the WebView2 environment, you can also turn off
-  /// tracking prevention later using `TrackingPreventionLevel` property and `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF` value
+  /// If tracking prevention feature is enabled when creating the WebView2 environment, you can also disable
+  /// tracking prevention later using this property and `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_NONE` value
   /// but that doesn't improves runtime performance.
   ///
-  /// There is `IsTrackingPreventionEnabled` property to toggle tracking prevention feature for all the WebView2's
-  /// created in the same environment. If enabled, `TrackingPreventionLevel` is set to `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_BALANCED` by default
-  /// for all the WebView2's and profiles created in the same enviroment. If disabled `TrackingPreventionLevel`
-  /// will be `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF` and cannot be changed to other levels.
-  /// See `IsTrackingPreventionEnabled` for more details.
-  [propget] HRESULT TrackingPreventionLevel(
-      [out, retval] COREWEBVIEW2_TRACKING_PREVENTION_LEVEL* value);
-  /// Set the `TrackingPreventionLevel` property.
+  /// There is `CoreWebView2EnvironmentOptions.EnableTrackingPrevention` property to enable/disable tracking prevention feature
+  ///  for all the WebView2's created in the same environment. If enabled, `PreferredTrackingPreventionLevel` is set to
+  /// `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_BALANCED` by default for all the WebView2's and profiles created in the same environment
+  /// or is set to the level whatever value was last changed/persisted to the profile. If disabled `PreferredTrackingPreventionLevel`
+  /// is not respected by WebView2. If `PreferredTrackingPreventionLevel` is set when the feature is disabled, the property value get changed and
+  /// persisted but it will takes effect only if `CoreWebView2EnvironmentOptions.EnableTrackingPrevention` is true.
   ///
-  /// If `IsTrackingPreventionEnabled` is false, this property will not be updated and the current tracking prevention level will remain
-  /// as `COREWEBVIEW2_TRACKING_PREVENTION_LEVEL_OFF`.
-  [propput] HRESULT TrackingPreventionLevel(
+  /// See `CoreWebView2EnvironmentOptions.EnableTrackingPrevention` for more details.
+  [propget] HRESULT PreferredTrackingPreventionLevel(
+      [out, retval] COREWEBVIEW2_TRACKING_PREVENTION_LEVEL* value);
+  /// Set the `PreferredTrackingPreventionLevel` property.
+  ///
+  /// If `CoreWebView2EnvironmentOptions.EnableTrackingPrevention` is false, this property will be changed and persisted to the profile but
+  /// the WebView2 ignores the level silently.
+  [propput] HRESULT PreferredTrackingPreventionLevel(
       [in] COREWEBVIEW2_TRACKING_PREVENTION_LEVEL value);
 }
 ```
@@ -175,7 +194,7 @@ namespace Microsoft.Web.WebView2.Core
 {
     enum CoreWebView2TrackingPreventionLevel
     {
-        Off = 0,
+        None = 0,
         Basic = 1,
         Balanced = 2,
         Strict = 3,
@@ -188,7 +207,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions3")]
         {
             // ICoreWebView2EnvironmentOptions3 members
-            Boolean IsTrackingPreventionEnabled { get; set; };
+            Boolean EnableTrackingPrevention { get; set; };
         }
     }
 
@@ -198,7 +217,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile5")]
         {
             // ICoreWebView2Profile5 members
-            CoreWebView2TrackingPreventionLevel TrackingPreventionLevel { get; set; };
+            CoreWebView2TrackingPreventionLevel PreferredTrackingPreventionLevel { get; set; };
         }
     }
 }
