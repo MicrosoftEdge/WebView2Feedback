@@ -9,6 +9,7 @@
                 <Keyword Value="Power"/>
                 <Keyword Value="CSwitch"/>
                 <Keyword Value="ReadyThread"/>
+                <Keyword Value="SampledProfile"/>
                 <Keyword Value="DPC"/>
                 <Keyword Value="Interrupt"/>
                 <Keyword Value="IdleStates"/>
@@ -25,6 +26,7 @@
             <Stacks>
                 <Stack Value="CSwitch"/>
                 <Stack Value="ReadyThread"/>
+                <Stack Value="SampledProfile"/>
             </Stacks>
         </SystemProvider>
 

@@ -9,7 +9,7 @@ On the device that is hitting the issue:
 1. Share the `dxdiag.txt` file
 
 ## GPU Logs
-1. Navigate your WV2 to `edge://gpu`
+1. Navigate your WV2 to `edge://gpu`. This needs to be done programmatically inside the application, and can't be done via DevTools console or similar means.
 1. Wait for the page to load content under the "Log Messages" header towards the bottom.
 1. Hit "Copy Report to Clipboard" at the top
 1. Paste it into a text file, and share it.
