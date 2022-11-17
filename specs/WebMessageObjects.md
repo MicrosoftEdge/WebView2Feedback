@@ -41,7 +41,7 @@ HTML and JavaScript snippets are part of the page content code running inside We
 ```javascript
 const input = document.getElementById('files');
 input.addEventListener('change', function() {
-    const curFiles = input.files;
+    const currentFiles = input.files;
     chrome.webview.postMessageWithAdditionalObjects("FilesDropped", curFiles);
 });
 ```
