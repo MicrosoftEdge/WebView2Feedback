@@ -1,7 +1,7 @@
 # API spec for disable navigating back/forward
 
 # Background
-This problem was first proposed by a developer on GitHub, who wants to prevent users navigating
+This problem was first identified by a developer on GitHub, who wants to prevent users navigating
 back or forward using any of the built-in shortcut keys or special mouse buttons.
 
 Afterwards, Teams made similar demands. They wanted a mechanism which could support them in
