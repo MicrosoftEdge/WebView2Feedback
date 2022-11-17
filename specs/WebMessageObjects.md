@@ -31,7 +31,8 @@ the passed DOM File object.
 ## Read the File path of a DOM File
 
 Use this API with a DOM File object to be able to get the path of files dropped on WebView2. The
-HTML and JavaScript snippets are part of the page content code running inside WebView2.
+HTML and JavaScript snippets are part of the page content code running inside WebView2 and are
+used by both the C++ and C# sample code below.
 
 ```html
 <!-- File upload location -->
