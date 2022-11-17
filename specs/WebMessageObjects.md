@@ -78,6 +78,8 @@ m_webView->add_WebMessageReceived(
                 }
             }
 
+
+            ProcessFiles(files);
             return S_OK;
         })
         .Get(),
