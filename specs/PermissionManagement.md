@@ -44,8 +44,9 @@ void WebView_PermissionRequested(object sender, CoreWebView2PermissionRequestedE
                 // raised and the app is in control of all permission requests.
                 args.ShouldPersist = false;
             }
-            catch (NotImplementedException e) {
-                Debug.WriteLine($"ShouldPersist failed: {e.Message}");
+            catch (NotImplementedException e)
+            {
+                Debug.WriteLine($"ShouldPersist is not available with this WebView2 Runtime version: {e.Message}");
             }
             (string, CoreWebView2PermissionKind, bool) cachedKey =
                 (args.Uri, args.PermissionKind, args.IsUserInitiated);
@@ -80,10 +81,13 @@ HRESULT SettingsComponent::OnPermissionRequested(
     // raised and the app is in control of all permission requests.
     auto extendedArgs = args.try_query<ICoreWebView2PermissionRequestedEventArgs3>();
     if (extendedArgs)
+    {
         CHECK_FAILURE(extendedArgs->put_ShouldPersist(FALSE));
+    }
 
     // Do the rest asynchronously, to avoid calling dialog in an event handler.
-    m_appWindow->RunAsync([this, deferral, args] {
+    m_appWindow->RunAsync([this, deferral, args]
+    {
         COREWEBVIEW2_PERMISSION_KIND kind = COREWEBVIEW2_PERMISSION_KIND_UNKNOWN_PERMISSION;
         BOOL userInitiated = FALSE;
         wil::unique_cotaskmem_string uri;
@@ -117,9 +121,17 @@ HRESULT SettingsComponent::OnPermissionRequested(
 async void WebView_PermissionManager_DOMContentLoaded(object sender,
     CoreWebView2DOMContentLoadedEventArgs arg)
 {
+    // Permission management APIs are only used on the app's permission
+    // management page.
     if (webView.CoreWebView2.Source !=
         "https://appassets.example/ScenarioPermissionManagement.html")
+    {
         return;
+    }
+    // Gather all the nondefault permissions and post them to the app's
+    // permission management page. The permission management page can present
+    // a list of custom permissions set for this profile and let the end user
+    // modify them.
     for (int i = 0; i < _permissionKinds.Count; i++)
     {
         var kind = _permissionKinds[i];
@@ -138,26 +150,60 @@ async void WebView_PermissionManager_DOMContentLoaded(object sender,
     }
 }
 
+List<CoreWebView2PermissionKind> _permissionKinds = new List<CoreWebView2PermissionKind>
+{
+  CoreWebView2PermissionKind.Microphone,
+  CoreWebView2PermissionKind.Camera,
+  CoreWebView2PermissionKind.Geolocation,
+  CoreWebView2PermissionKind.Notifications,
+  CoreWebView2PermissionKind.OtherSensors,
+  CoreWebView2PermissionKind.ClipboardRead,
+  CoreWebView2PermissionKind.AutomaticDownloads,
+  CoreWebView2PermissionKind.FileEditing,
+  CoreWebView2PermissionKind.Autoplay,
+  CoreWebView2PermissionKind.LocalFonts
+};
+
+List<CoreWebView2PermissionState> _permissionStates = new List<CoreWebView2PermissionState>
+{
+  CoreWebView2PermissionState.Allow,
+  CoreWebView2PermissionState.Deny,
+  CoreWebView2PermissionState.Default
+};
+
 // Called when the user wants to change permission state from the custom
 // permission management page.
 void WebView_PermissionManager_WebMessageReceived(object sender,
     CoreWebView2WebMessageReceivedEventArgs args)
 {
+    // Permission management APIs are only used on the app's permission
+    // management page.
     if (args.Source !=
         "https://appassets.example/ScenarioPermissionManagement.html")
+    {
         return;
+    }
     string message = args.TryGetWebMessageAsString();
+    // The app's permission management page can provide a way for the
+    // end user to change permissions. For example, the page can have a
+    // `Set Permission` button that triggers a dialog, where the user
+    // specifies the desired origin, permission kind, and state.
     if (message == "SetPermission")
     {
         // Avoid potential reentrancy from running a message loop in the
         // event handler.
         System.Threading.SynchronizationContext.Current.Post((_) =>
         {
-            var dialog = new PermissionDialog(_permissionKinds, _permissionStates);
+            var dialog = new SetPermissionDialog(
+                _permissionKinds, _permissionStates);
             if (dialog.ShowDialog() == true)
             {
                 try
                 {
+                    // Example: WebViewProfile.SetPermissionState(
+                    //    CoreWebView2PermissionKind.Geolocation,
+                    //    "https://example.com",
+                    //    CoreWebView2PermissionState.Deny);
                     WebViewProfile.SetPermissionState(
                         (CoreWebView2PermissionKind)dialog.PermissionKind.SelectedItem,
                         dialog.Origin.Text,
@@ -181,11 +227,15 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
     auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
     wil::com_ptr<ICoreWebView2Profile> profile;
     if (!webView2_13)
+    {
         return;
+    }
     CHECK_FAILURE(webView2_13->get_Profile(&profile));
     m_webViewProfile6 = profile.try_query<ICoreWebView2Profile6>();
     if (!m_webViewProfile6)
+    {
         return;
+    }
     m_webView2 = m_webView.try_query<ICoreWebView2_2>();
     if (m_webView2)
     {
@@ -196,12 +246,16 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
                 {
                     wil::unique_cotaskmem_string source;
                     CHECK_FAILURE(sender->get_Source(&source));
+                    // Permission management APIs are only used on the app's
+                    // permission management page.
                     if (source.get() != m_sampleUri)
                     {
                         return S_OK;
                     }
-                    // Gets the nondefault permission collection for each supported
-                    // permission kind and and updates a custom permission management page.
+                    // Gather all the nondefault permissions and post them to the
+                    // app's permission management page. The permission management
+                    // page can present a list of custom permissions set for this
+                    // profile and let the end user modify them.
                     for (COREWEBVIEW2_PERMISSION_KIND kind : permissionKinds)
                     {
                         CHECK_FAILURE(m_webViewProfile6->GetNonDefaultPermissionCollection(
@@ -214,8 +268,7 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
                                 {
                                     UINT32 count;
                                     permissionCollection->get_Count(&count);
-                                    UINT32 i = 0;
-                                    while (i < count)
+                                    for (UINT32 i = 0; i < count; i++)
                                     {
                                         wil::com_ptr<ICoreWebView2PermissionSetting>
                                             setting;
@@ -234,7 +287,6 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
                                                              state_string + L"\"}";
                                         CHECK_FAILURE(
                                             sender->PostWebMessageAsJson(reply.c_str()));
-                                        i++;
                                     }
                                     return S_OK;
                                 })
@@ -255,12 +307,18 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
             {
                 wil::unique_cotaskmem_string source;
                 CHECK_FAILURE(args->get_Source(&source));
+                // Permission management APIs are only used on the app's
+                // permission management page.
                 if (source.get() != m_sampleUri)
                 {
                     return S_OK;
                 }
                 wil::unique_cotaskmem_string message;
                 CHECK_FAILURE(args->TryGetWebMessageAsString(&message));
+                // The app's permission management page can provide a way for the
+                // end user to change permissions. For example, the page can have a
+                // `Set Permission` button that triggers a dialog, where the user
+                // specifies the desired origin, permission kind, and state.
                 if (wcscmp(message.get(), L"SetPermission") == 0)
                 {
                     m_appWindow->RunAsync([this] { ShowSetPermissionDialog(); });
@@ -277,6 +335,10 @@ void ScenarioPermissionManagement::ShowSetPermissionDialog()
         m_appWindow->GetMainWindow(), permissionKinds, permissionStates);
     if (dialog.confirmed && m_webViewProfile6)
     {
+        // Example: m_webViewProfile6->SetPermissionState(
+        //    COREWEBVIEW2_PERMISSION_KIND_GEOLOCATION,
+        //    L"https://example.com",
+        //    COREWEBVIEW2_PERMISSION_STATE_DENY);
         CHECK_FAILURE(m_webViewProfile6->SetPermissionState(
             dialog.kind, dialog.origin.c_str(), dialog.state));
     }
@@ -284,49 +346,35 @@ void ScenarioPermissionManagement::ShowSetPermissionDialog()
 ```
 # API Details
 
-## Extended PermissionKind
 ```
 [v1_enum]
 typedef enum COREWEBVIEW2_PERMISSION_KIND {
 
   // Other permission kinds not shown.
 
-  /// Indicates permission to automatically download multiple files.
+  /// Indicates permission to automatically download multiple files. Permission
+  /// is requested when multiple downloads are triggered at the same time.
   COREWEBVIEW2_PERMISSION_KIND_AUTOMATIC_DOWNLOADS,
 
-  /// Indicates permission to edit files or folders on the device.
+  /// Indicates permission to edit files or folders on the device. Permission
+  /// is requested when developers use the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API)
+  /// to show the file or folder picker to the end user, and then request "readwrite"
+  /// permission for the user's selection.
   COREWEBVIEW2_PERMISSION_KIND_FILE_EDITING,
 
-  /// Indicates permission to play audio and video automatically on sites.
+  /// Indicates permission to play audio and video automatically on sites. This
+  /// permission affects the autoplay attribute and play method of the audio and video
+  /// HTML elements, and the start method of the Web Audio API. See the
+  /// [Autoplay guide for media and Web Audio APIs](https://developer.mozilla.org/en-US/docs/Web/Media/Autoplay_guide)
+  /// for details.
   COREWEBVIEW2_PERMISSION_KIND_AUTOPLAY,
 
-  /// Indicates permission to use fonts on the device.
+  /// Indicates permission to use fonts on the device. Permission is requested when
+  /// developers use the [Local Font Access API](https://wicg.github.io/local-font-access/)
+  /// to query the system fonts available for styling web content.
   COREWEBVIEW2_PERMISSION_KIND_LOCAL_FONTS,
 } COREWEBVIEW2_PERMISSION_KIND;
-```
-```c#
-namespace Microsoft.Web.WebView2.Core
-{
-    enum CoreWebView2PermissionKind
-    {
-        // Other permission kinds not shown.
 
-        // Indicates permission to automatically download multiple files.
-        AutomaticDownloads = 7,
-
-        // Indicates permission to edit files or folders on the device.
-        FileEditing = 8,
-
-        // Indicates permission to play audio and video automatically on sites.
-        Autoplay = 9,
-
-        // Indicates permission to use fonts on the device.
-        LocalFonts = 10,
-    };
-}
-```
-## Extended PermissionRequestedEventArgs: ShouldPersist
-```
 /// This is a continuation of the `ICoreWebView2PermissionRequestedEventArgs`
 /// interface.
 [uuid(08595a19-44f0-41b1-9ae4-5889f5edadcb), object, pointer_default(unique)]
@@ -339,41 +387,19 @@ interface ICoreWebView2PermissionRequestedEventArgs3:
   /// `ShouldPersist` property to `FALSE` to not persist the state beyond the
   /// current request, and to continue to receive `PermissionRequested` events
   /// for this origin and permission kind.
-  [propget] HRESULT ShouldPersist([out, retval] BOOL* shouldPersist);
+  [propget] HRESULT ShouldPersist([out, retval] BOOL* value);
 
   /// Sets the `ShouldPersist` property.
-  [propput] HRESULT ShouldPersist([in] BOOL shouldPersist);
+  [propput] HRESULT ShouldPersist([in] BOOL value);
 }
-```
-```c#
-namespace Microsoft.Web.WebView2.Core
-{
-    runtimeclass CoreWebView2PermissionRequestedEventArgs
-    {
-        // Other members not shown.
 
-        // The permission state set from the `PermissionRequested` event is persisted
-        // across sessions by default and becomes the new default behavior for future
-        // `PermissionRequested` events. Browser heurisitics can affect whether the
-        // event continues to be raised when the state is persisted. Set the
-        // `ShouldPersist` property to `FALSE` to not persist the state beyond the
-        // current request, and to continue to receive `PermissionRequested` events
-        // for this origin and permission kind.
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2PermissionRequestedEventArgs3")]
-        {
-            Boolean ShouldPersist { get; set; };
-        }
-    }
-}
-```
-## SetPermission and GetNonDefaultPermissionCollection
-```
 /// This is the ICoreWebView2 interface for the permission management APIs.
 [uuid(5bdfc5dd-C07a-41b7-bcf2-94020975f185), object, pointer_default(unique)]
 interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
   /// Sets permission state for the given permission kind and origin
-  /// asynchronously. The change takes effect immediately and persists
-  /// across sessions until it is changed.
+  /// asynchronously. The change persists across sessions until it is changed.
+  /// The origin should have a valid scheme and host, otherwise the method fails
+  /// with `E_INVALIDARG`.
   HRESULT SetPermissionState(
         [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
         [in] LPCWSTR origin,
@@ -410,7 +436,7 @@ interface ICoreWebView2PermissionCollection : IUnknown {
                           [out, retval] ICoreWebView2PermissionSetting** permissionSetting);
 
   /// The number of `ICoreWebView2PermissionSetting`s in the collection.
-  [propget] HRESULT Count([out, retval] UINT32* count);
+  [propget] HRESULT Count([out, retval] UINT32* value);
 }
 
 /// Provides a set of properties for a permission setting.
@@ -419,16 +445,67 @@ interface ICoreWebView2PermissionSetting : IUnknown {
   /// The kind of the permission setting. See `COREWEBVIEW2_PERMISSION_KIND` for
   /// more details.
   [propget] HRESULT PermissionKind([out, retval] COREWEBVIEW2_PERMISSION_KIND*
-      permissionKind);
+      value);
 
   /// The origin of the permission setting.
-  [propget] HRESULT Origin([out, retval] LPWSTR* uri);
+  [propget] HRESULT Origin([out, retval] LPWSTR* value);
 
   /// The state of the permission setting.
-  [propget] HRESULT State([out, retval] COREWEBVIEW2_PERMISSION_STATE* state);
+  [propget] HRESULT State([out, retval] COREWEBVIEW2_PERMISSION_STATE* value);
 }
 ```
 ```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    enum CoreWebView2PermissionKind
+    {
+        // Other permission kinds not shown.
+
+        // Indicates permission to automatically download multiple files.
+        // Permission is requested whenever multiple downloads are triggered at
+        // the same time.
+        AutomaticDownloads = 7,
+
+        // Indicates permission to edit files or folders on the device. Permission
+        // is requested when developers use the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) to show
+        // the file or folder picker to the end user, and then request "readwrite"
+        // permission for the user's selection.
+        FileEditing = 8,
+
+        // Indicates permission to play audio and video automatically on sites. This
+        // permission affects the autoplay attribute and play method of the audio and
+        // video HTML elements, and the start method of the Web Audio API. See the
+        // [Autoplay guide for media and Web Audio APIs](https://developer.mozilla.org/en-US/docs/Web/Media/Autoplay_guide)
+        // for details.
+        Autoplay = 9,
+
+        // Indicates permission to use fonts on the device. Permission is requested when
+        // developers use the [Local Font Access API](https://wicg.github.io/local-font-access/)
+        // to query the system fonts available for styling web content.
+        LocalFonts = 10,
+    };
+}
+
+namespace Microsoft.Web.WebView2.Core
+{
+    runtimeclass CoreWebView2PermissionRequestedEventArgs
+    {
+        // Other members not shown.
+
+        // The permission state set from the `PermissionRequested` event is persisted
+        // across sessions by default and becomes the new default behavior for future
+        // `PermissionRequested` events. Browser heurisitics can affect whether the
+        // event continues to be raised when the state is persisted. Set the
+        // `ShouldPersist` property to `FALSE` to not persist the state beyond the
+        // current request, and to continue to receive `PermissionRequested` events
+        // for this origin and permission kind.
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2PermissionRequestedEventArgs3")]
+        {
+            Boolean ShouldPersist { get; set; };
+        }
+    }
+}
+
 namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2Profile
@@ -438,16 +515,17 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile6")]
         {
             // Sets permission state for the given permission kind and origin
-            // asynchronously. The change takes effect immediately and persists
-            // across sessions until it is changed.
-            void SetPermissionState(CoreWebView2PermissionKind PermissionKind,
-                String origin, CoreWebView2PermissionState State);
+            // asynchronously. The change persists across sessions until it is
+            // changed. This method fails if the provided origin does not have
+            // a valid scheme and host.
+            void SetPermissionState(CoreWebView2PermissionKind permissionKind,
+                String origin, CoreWebView2PermissionState state);
 
             // Use this method to get the nondefault permission settings from
             // the current and previous sessions.
             Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2PermissionSetting>>
             GetNonDefaultPermissionCollectionAsync(
-                CoreWebView2PermissionKind PermissionKind);
+                CoreWebView2PermissionKind permissionKind);
         }
     }
 
