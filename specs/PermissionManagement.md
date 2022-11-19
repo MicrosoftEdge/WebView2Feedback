@@ -48,7 +48,7 @@ void WebView_PermissionRequested(object sender, CoreWebView2PermissionRequestedE
             {
                 Debug.WriteLine($"ShouldPersist is not available with this WebView2 Runtime version: {e.Message}");
             }
-            (string, CoreWebView2PermissionKind, bool) cachedKey =
+            var cachedKey =
                 (args.Uri, args.PermissionKind, args.IsUserInitiated);
             if (_cachedPermissions.ContainsKey(cachedKey))
             {
@@ -116,6 +116,27 @@ HRESULT SettingsComponent::OnPermissionRequested(
 ```
 ## SetPermission and GetNonDefaultPermissionCollection
 ```c#
+List<CoreWebView2PermissionKind> _permissionKinds = new List<CoreWebView2PermissionKind>
+{
+  CoreWebView2PermissionKind.Microphone,
+  CoreWebView2PermissionKind.Camera,
+  CoreWebView2PermissionKind.Geolocation,
+  CoreWebView2PermissionKind.Notifications,
+  CoreWebView2PermissionKind.OtherSensors,
+  CoreWebView2PermissionKind.ClipboardRead,
+  CoreWebView2PermissionKind.AutomaticDownloads,
+  CoreWebView2PermissionKind.FileEditing,
+  CoreWebView2PermissionKind.Autoplay,
+  CoreWebView2PermissionKind.LocalFonts
+};
+
+List<CoreWebView2PermissionState> _permissionStates = new List<CoreWebView2PermissionState>
+{
+  CoreWebView2PermissionState.Allow,
+  CoreWebView2PermissionState.Deny,
+  CoreWebView2PermissionState.Default
+};
+
 // Gets the nondefault permission collection and updates a custom permission
 // management page.
 async void WebView_PermissionManager_DOMContentLoaded(object sender,
@@ -149,27 +170,6 @@ async void WebView_PermissionManager_DOMContentLoaded(object sender,
         }
     }
 }
-
-List<CoreWebView2PermissionKind> _permissionKinds = new List<CoreWebView2PermissionKind>
-{
-  CoreWebView2PermissionKind.Microphone,
-  CoreWebView2PermissionKind.Camera,
-  CoreWebView2PermissionKind.Geolocation,
-  CoreWebView2PermissionKind.Notifications,
-  CoreWebView2PermissionKind.OtherSensors,
-  CoreWebView2PermissionKind.ClipboardRead,
-  CoreWebView2PermissionKind.AutomaticDownloads,
-  CoreWebView2PermissionKind.FileEditing,
-  CoreWebView2PermissionKind.Autoplay,
-  CoreWebView2PermissionKind.LocalFonts
-};
-
-List<CoreWebView2PermissionState> _permissionStates = new List<CoreWebView2PermissionState>
-{
-  CoreWebView2PermissionState.Allow,
-  CoreWebView2PermissionState.Deny,
-  CoreWebView2PermissionState.Default
-};
 
 // Called when the user wants to change permission state from the custom
 // permission management page.
@@ -220,6 +220,22 @@ void WebView_PermissionManager_WebMessageReceived(object sender,
 ```
 
 ```cpp
+std::vector<COREWEBVIEW2_PERMISSION_STATE> permissionStates{
+    COREWEBVIEW2_PERMISSION_STATE_ALLOW, COREWEBVIEW2_PERMISSION_STATE_DENY,
+    COREWEBVIEW2_PERMISSION_STATE_DEFAULT};
+
+std::vector<COREWEBVIEW2_PERMISSION_KIND> permissionKinds{
+    COREWEBVIEW2_PERMISSION_KIND_AUTOMATIC_DOWNLOADS,
+    COREWEBVIEW2_PERMISSION_KIND_AUTOPLAY,
+    COREWEBVIEW2_PERMISSION_KIND_CAMERA,
+    COREWEBVIEW2_PERMISSION_KIND_CLIPBOARD_READ,
+    COREWEBVIEW2_PERMISSION_KIND_FILE_EDITING,
+    COREWEBVIEW2_PERMISSION_KIND_GEOLOCATION,
+    COREWEBVIEW2_PERMISSION_KIND_LOCAL_FONTS,
+    COREWEBVIEW2_PERMISSION_KIND_MICROPHONE,
+    COREWEBVIEW2_PERMISSION_KIND_NOTIFICATIONS,
+    COREWEBVIEW2_PERMISSION_KIND_OTHER_SENSORS};
+
 ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
