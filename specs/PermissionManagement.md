@@ -46,7 +46,7 @@ void WebView_PermissionRequested(object sender, CoreWebView2PermissionRequestedE
             }
             catch (NotImplementedException e)
             {
-                Debug.WriteLine($"ShouldPersist is not available with this WebView2 Runtime version: {e.Message}");
+                Debug.WriteLine($"ShouldPersist is not available with this WebView2 Runtime version. Handle `NewBrowserVersionAvailable` to be notified when the Runtime can be updated: {e.Message}");
             }
             var cachedKey =
                 (args.Uri, args.PermissionKind, args.IsUserInitiated);
@@ -414,8 +414,8 @@ interface ICoreWebView2PermissionRequestedEventArgs3:
 interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
   /// Sets permission state for the given permission kind and origin
   /// asynchronously. The change persists across sessions until it is changed.
-  /// The origin should have a valid scheme and host, otherwise the method fails
-  /// with `E_INVALIDARG`.
+  /// The origin should have a valid scheme and host (e.g. "https://www.example.com"),
+  /// otherwise the method fails with `E_INVALIDARG`.
   HRESULT SetPermissionState(
         [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
         [in] LPCWSTR origin,
@@ -532,8 +532,8 @@ namespace Microsoft.Web.WebView2.Core
         {
             // Sets permission state for the given permission kind and origin
             // asynchronously. The change persists across sessions until it is
-            // changed. This method fails if the provided origin does not have
-            // a valid scheme and host.
+            // changed. The origin should have a valid scheme and host
+            // (e.g. "https://www.example.com), otherwise the method fails.
             void SetPermissionState(CoreWebView2PermissionKind permissionKind,
                 String origin, CoreWebView2PermissionState state);
 
