@@ -2,22 +2,14 @@ TextureStream
 ===============================================================================================
 
 # Background
-Many native apps use a native engine for real-time communication scenarios, which include video
-capture, networking and video rendering.  However, often, these apps still use WebView or
-Electron for UI rendering. The separation between real-time video rendering and UI rendering
-prevents apps from rendering real-time video inside the web contents. This forces apps to
-render the real-time video on top of the web contents, which is limiting. Rendering video on
-top constrains the user experience and it may also cause performance problems.
-We can ask the native apps to use web renderer for video handling because web standard already
-provides these features through WebRTC APIs. The end developers, however, prefer to use
-their existing engine such as capturing and composition, meanwhile using WebRTC API for rendering.
+Many native apps use a native engine for real-time communication scenarios, which include video capture, networking and video rendering.  However, often, these apps still use WebView or Electron for UI rendering. The separation between real-time video rendering and UI rendering prevents apps from rendering real-time video inside the web contents. This forces apps to render the real-time video on top of the web contents, which is limiting. Rendering video on top constrains the user experience and it may also cause performance problems. We can ask the native apps to use web renderer for video handling because web standard already provides these features through WebRTC APIs. The end developers, however, prefer to use their existing engine such as capturing and composition, meanwhile using WebRTC API for rendering.
 
 # Description
-The proposed APIs will allow the end developers to stream the captured or composed video frame to
-the WebView renderer where Javascript is able to insert the frame to the page through W3C standard
-API of Video, MediaStream element for displaying it.
-The API will use the shared GPU texture buffer so that it can minimize the overall cost with
-regards to frame copy.
+The proposed APIs will allow the end developers to stream the captured or composed video frame to the WebView renderer where Javascript is able to insert the frame to the page through W3C standard API of Video, MediaStream element for displaying it.
+The API will use the shared GPU texture buffer so that it can minimize the overall cost with regards to frame copy.
+
+The proposed APIs have dependency on the DirectX and its internal attributes such as
+adapter LUID so it supports Win32/C++ and C++/WinRT APIs at this time.
 
 # Examples
 
@@ -184,7 +176,7 @@ HRESULT CreateTextureStream(ICoreWebView2Staging3* coreWebView)
       ComPtr<ICoreWebView2StagingWebTexture> texture_received;
       args->GetWebTexture(&texture_received);
 
-      ULONGLONG timestamp;
+      UINT64 timestamp;
       texture_received->get_Timestamp(&timestamp);
       HANDLE handle;
       texture_received->get_Handle(&handle);
@@ -382,12 +374,12 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// the TextureBuffer id, which is created via CreateBuffer.
   /// SetBuffer API can be called in any thread.
 
-  /// `timestamp` is video capture time with unit of 100-nanosecond units.
+  /// `timestamp` is video capture time with unit of microseconds units.
   /// The value does not have to be exact captured time, but it should be
   /// increasing order, the next Present's TextureBuffer should have later
   /// time.
   HRESULT SetBuffer([in] ICoreWebView2StagingTexture* buffer,
-    [in] ULONGLONG timestamp);
+    [in] UINT64 timestamp);
   /// Render texture that is current set ICoreWebView2StagingTexture.
   HRESULT Present();
   /// Stop streaming of the current stream id.
@@ -420,6 +412,8 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// Remove listener for receiving texture stream.
   HRESULT remove_WebTextureReceived([in] EventRegistrationToken token);
   /// Event handler for stopping of the receiving texture stream.
+  /// It is expected that the host releases any holding handle/resource from
+  /// the WebTexture before an event handler returns.
   HRESULT add_WebTextureStreamStopped(
       [in] ICoreWebView2StagingTextureStreamWebTextureStreamStoppedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
@@ -557,7 +551,7 @@ interface ICoreWebView2StagingWebTexture : IUnknown {
   /// with any value, but it is suggested to use same value of its original
   /// video frame that is a value of SetBuffer so that the host is able to
   /// tell the receiving texture delta.
-  [propget] HRESULT Timestamp([out, retval] ULONGLONG* value);
+  [propget] HRESULT Timestamp([out, retval] UINT64* value);
 }
 
 ```
