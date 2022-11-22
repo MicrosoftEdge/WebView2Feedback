@@ -9,7 +9,7 @@ The proposed APIs will allow the end developers to stream the captured or compos
 The API will use the shared GPU texture buffer so that it can minimize the overall cost with regards to frame copy.
 
 The proposed APIs have dependency on the DirectX and its internal attributes such as
-adapter LUID so it supports Win32/C++ and C++/WinRT APIs at this time.
+adapter LUID so it supports only Win32/C++ APIs at this time.
 
 # Examples
 
@@ -122,8 +122,11 @@ HRESULT CreateTextureStream(ICoreWebView2Staging3* coreWebView)
   CHECK_FAILURE(g_webviewStaging3->CreateTextureStream(L"webview2-abcd1234",
       d3d_device.Get(),  &webviewTextureStream));
 
-  // Register the Origin URI that the target renderer could stream of the registered stream id. The request from not registered origin will fail to stream.
-  CHECK_FAILURE(webviewTextureStream->AddAllowedOrigin(L"https://edge-webscratch"));
+  // Register the Origin URI that the target renderer could stream of the registered
+  // stream id. The request from not registered origin will fail to stream.
+
+  // `true` boolean value will add allowed origin for registerTextureStream as well.
+  CHECK_FAILURE(webviewTextureStream->AddAllowedOrigin(L"https://edge-webscratch"), true);
 
   // Listen to Start request. The host will setup system video streaming and
   // start sending the texture.
@@ -268,7 +271,7 @@ interface ICoreWebView2Staging3 : IUnknown {
   HRESULT add_RenderAdapterLUIDChanged(
       [in] ICoreWebView2StagingRenderAdapterLUIDChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  /// Remove listener for start stream request.
+  /// Remove listener for RenderAdapterLUIDChange event.
   HRESULT remove_RenderAdapterLUIDChanged(
       [in] EventRegistrationToken token);
 }
@@ -300,7 +303,9 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// of E_INVALIDARG.
   /// getTextureStream() will fail unless the requesting frame's origin URI is
   /// added to the allowed origins.
-  HRESULT AddAllowedOrigin([in] LPCWSTR origin);
+  /// If `value` is TRUE, then the origin will also be added to WebTexture's
+  /// allowed origin.
+  HRESULT AddAllowedOrigin([in] LPCWSTR origin, [in] BOOL value);
   /// Remove added origin, which was added by AddAllowedOrigin.
   /// The allowed or disallowed origins will take effect only when Javascript
   /// request a streaming. So, once the streaming started, it does not stop
@@ -318,7 +323,7 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   HRESULT add_StartRequested(
       [in] ICoreWebView2StagingTextureStreamStartRequestedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  /// Remove listener for start stream request.
+  /// Remove listener for StartRequest event.
   HRESULT remove_StartRequested(
       [in] EventRegistrationToken token);
   /// Listen to stop stream request once the stream started.
@@ -335,7 +340,7 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   HRESULT add_StopRequested(
       [in] ICoreWebView2StagingTextureStreamStopRequestedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  /// Remove listener for stop stream request.
+  /// Remove listener for StopRequested event.
   HRESULT remove_StopRequested(
       [in] EventRegistrationToken token);
   /// Creates TextureBuffer that will be referenced by the host and the browser.
@@ -355,8 +360,8 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// Unit for width and height is texture unit (in texels).
   /// 'https://learn.microsoft.com/en-us/windows/win32/api/d3d11ns-d3d11-d3d11_texture2d_desc'
   HRESULT CreateBuffer(
-    [in] UINT32 width,
-    [in] UINT32 height,
+    [in] UINT32 widthInTexels,
+    [in] UINT32 heightInTexels,
     [out, retval] ICoreWebView2StagingTexture** buffer);
   /// Returns reuseable TextureBuffer for video frame rendering.
   /// Once the renderer finishes rendering of TextureBuffer's video frame, which
@@ -364,23 +369,27 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// be reused. The host has to create new TextureBuffer with CreateBuffer
   /// if the API return an error HRESULT_FROM_WIN32(ERROR_NO_MORE_ITEMS).
   HRESULT GetAvailableBuffer([out, retval] ICoreWebView2StagingTexture** buffer);
-  /// Remove TextureBuffer when the host removes the backed 2D texture.
-  /// The host can save the existing resources by deleting 2D textures
-  /// when it changes the frame sizes.
+  /// Removes TextureBuffer when the host removes the backed 2D texture.
+  /// The host can save the resources by deleting 2D textures
+  /// when it changes the frame sizes. The API will send a message
+  /// to the browser where it will remove TextureBuffer.
   HRESULT RemoveBuffer([in] ICoreWebView2StagingTexture* buffer);
-  /// Indicates that the TextureBuffer is ready to present.
-  /// The TextureBuffer must be retrieved from the GetAvailableBuffer.
-  /// The host writes new texture to the local shared 2D texture of
-  /// the TextureBuffer id, which is created via CreateBuffer.
+  /// Sets rendering image/resource through ICoreWebView2StagingTexture.
+  /// The TextureBuffer must be retrieved from the GetAvailableBuffer or
+  /// created via CreateBuffer.
+  /// It is expected that hhe host writes new image/resource to the local
+  /// shared 2D texture of the TextureBuffer (handle/resource).
   /// SetBuffer API can be called in any thread.
 
-  /// `timestamp` is video capture time with unit of microseconds units.
+  /// `timestampInMs` is video capture time with microseconds units.
   /// The value does not have to be exact captured time, but it should be
-  /// increasing order, the next Present's TextureBuffer should have later
-  /// time.
+  /// increasing order because renderer (composition) ignores incoming
+  /// video frame (texture) if its timestampInMs is equal or prior to
+  /// the current compositing video frame.
   HRESULT SetBuffer([in] ICoreWebView2StagingTexture* buffer,
-    [in] UINT64 timestamp);
-  /// Render texture that is current set ICoreWebView2StagingTexture.
+    [in] UINT64 timestampInMs);
+  /// Render ICoreWebView2StagingTexture resource, which is the most recent
+  /// call to SetBuffer.
   HRESULT Present();
   /// Stop streaming of the current stream id.
   /// API calls of Present, CreateBuffer will fail after this
@@ -392,7 +401,7 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   HRESULT add_TextureError(
       [in] ICoreWebView2StagingTextureStreamTextureErrorEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  /// Remove listener for texture error event.
+  /// Remove listener for TextureError event.
   HRESULT remove_TextureError([in] EventRegistrationToken token);
   /// Updates d3d Device when it is updated by RenderAdapterLUIDChanged
   /// event.
@@ -409,7 +418,7 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   HRESULT add_WebTextureReceived(
       [in] ICoreWebView2StagingTextureStreamWebTextureReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  /// Remove listener for receiving texture stream.
+  /// Remove listener for WebTextureReceived event.
   HRESULT remove_WebTextureReceived([in] EventRegistrationToken token);
   /// Event handler for stopping of the receiving texture stream.
   /// It is expected that the host releases any holding handle/resource from
@@ -417,14 +426,8 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   HRESULT add_WebTextureStreamStopped(
       [in] ICoreWebView2StagingTextureStreamWebTextureStreamStoppedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
-  /// Remove listener for receiving texture stream stopped.
+  /// Remove listener for WebTextureStreamStopped event.
   HRESULT remove_WebTextureStreamStopped([in] EventRegistrationToken token);
-  /// Adds an allowed URI origin for the given stream id for web texture
-  /// operation.  Javascript can send texture stream to the host only when
-  /// the origin it runs are allowed by the host.
-  HRESULT AddWebTextureAllowedOrigin([in] LPCWSTR origin);
-  /// Remove added origin, which was added by AddWebTextureAllowedOrigin.
-  HRESULT RemoveWebTextureAllowedOrigin([in] LPCWSTR origin);
 }
 /// TextureBuffer that the host writes to so that the Renderer
 /// will render on it.
