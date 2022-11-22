@@ -413,9 +413,14 @@ interface ICoreWebView2PermissionRequestedEventArgs3:
 [uuid(5bdfc5dd-C07a-41b7-bcf2-94020975f185), object, pointer_default(unique)]
 interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
   /// Sets permission state for the given permission kind and origin
-  /// asynchronously. The change persists across sessions until it is changed.
-  /// The origin should have a valid scheme and host (e.g. "https://www.example.com"),
-  /// otherwise the method fails with `E_INVALIDARG`.
+  /// asynchronously. The change persists across sessions until it is changed by
+  /// another call to `SetPermissionState`, or by setting the `State` property
+  /// in `PermissionRequestedEventArgs`. The origin should have a valid scheme
+  /// and host (e.g. "https://www.example.com"), otherwise the method fails with
+  /// `E_INVALIDARG`. Additional URI parts like path and fragment are ignored.
+  /// For example, "https://wwww.example.com/app1/index.html/" is treated the
+  /// same as "https://wwww.example.com". See the [MDN origin definition](https://developer.mozilla.org/en-US/docs/Glossary/Origin)
+  /// for more details.
   HRESULT SetPermissionState(
         [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
         [in] LPCWSTR origin,
@@ -532,8 +537,14 @@ namespace Microsoft.Web.WebView2.Core
         {
             // Sets permission state for the given permission kind and origin
             // asynchronously. The change persists across sessions until it is
-            // changed. The origin should have a valid scheme and host
-            // (e.g. "https://www.example.com), otherwise the method fails.
+            // changed by another call to `SetPermissionState`, or by setting
+            // the `State` property in `PermissionRequestedEventArgs`. The
+            // origin should have a valid scheme and host (e.g.
+            // "https://www.example.com"), otherwise the method fails with
+            // `E_INVALIDARG`. Additional URI parts like path and fragment are
+            // ignored. For example, "https://wwww.example.com/app1/index.html/"
+            // is treated the same as "https://wwww.example.com". See the
+            // [MDN origin definition](https://developer.mozilla.org/en-US/docs/Glossary/Origin) for more details.
             void SetPermissionState(CoreWebView2PermissionKind permissionKind,
                 String origin, CoreWebView2PermissionState state);
 
