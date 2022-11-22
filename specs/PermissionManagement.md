@@ -149,25 +149,22 @@ async void WebView_PermissionManager_DOMContentLoaded(object sender,
     {
         return;
     }
-    // Gather all the nondefault permissions and post them to the app's
+    // Get all the nondefault permissions and post them to the app's
     // permission management page. The permission management page can present
     // a list of custom permissions set for this profile and let the end user
-    // modify them.
-    for (int i = 0; i < _permissionKinds.Count; i++)
+    // modify them. If you want to build sections separated by permission kind,
+    // use `GetNonDefaultPermissionCollectionForKindAsync` instead.
+    IReadOnlyList<CoreWebView2PermissionSetting> permissionList =
+        await WebViewProfile.GetNonDefaultPermissionCollectionAsync();
+    for (int j = 0; j < permissionList.Count; j++)
     {
-        var kind = _permissionKinds[i];
-        IReadOnlyList<CoreWebView2PermissionSetting> permissionList =
-            await WebViewProfile.GetNonDefaultPermissionCollectionAsync(kind);
-        for (int j = 0; j < permissionList.Count; j++)
-        {
-            var setting = permissionList[i];
-            string reply = "{\"PermissionSetting\": \"" +
-                            NameOfPermissionKind(kind) + ", " +
-                            setting.PermissionOrigin + ", " +
-                            PermissionStateToString(setting.PermissionState) +
-                            "\"}";
-            webView.CoreWebView2.PostWebMessageAsJson(reply);
-        }
+        var setting = permissionList[i];
+        string reply = "{\"PermissionSetting\": \"" +
+                        PermissionKindToString(setting.PermissionKind) + ", " +
+                        setting.Origin + ", " +
+                        PermissionStateToString(setting.State) +
+                        "\"}";
+        webView.CoreWebView2.PostWebMessageAsJson(reply);
     }
 }
 
@@ -268,46 +265,48 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
                     {
                         return S_OK;
                     }
-                    // Gather all the nondefault permissions and post them to the
+                    // Get all the nondefault permissions and post them to the
                     // app's permission management page. The permission management
                     // page can present a list of custom permissions set for this
-                    // profile and let the end user modify them.
-                    for (COREWEBVIEW2_PERMISSION_KIND kind : permissionKinds)
-                    {
-                        CHECK_FAILURE(m_webViewProfile6->GetNonDefaultPermissionCollection(
-                            kind,
-                            Callback<
-                                ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler>(
-                                [this, sender, kind](
-                                    HRESULT code, ICoreWebView2PermissionCollection*
-                                                      permissionCollection) -> HRESULT
+                    // profile and let the end user modify them. If you want to
+                    // build sections separated by permission kind, use
+                    // `GetNonDefaultPermissionCollectionForKind` instead.
+                    CHECK_FAILURE(m_webViewProfile6->GetNonDefaultPermissionCollection(
+                        Callback<
+                            ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler>(
+                            [this, sender](
+                                HRESULT code, ICoreWebView2PermissionCollection*
+                                                  permissionCollection) -> HRESULT
+                            {
+                                UINT32 count;
+                                permissionCollection->get_Count(&count);
+                                for (UINT32 i = 0; i < count; i++)
                                 {
-                                    UINT32 count;
-                                    permissionCollection->get_Count(&count);
-                                    for (UINT32 i = 0; i < count; i++)
-                                    {
-                                        wil::com_ptr<ICoreWebView2PermissionSetting>
-                                            setting;
-                                        CHECK_FAILURE(
-                                            permissionCollection->GetValueAtIndex(i, &setting));
-                                        COREWEBVIEW2_PERMISSION_STATE state;
-                                        CHECK_FAILURE(setting->get_State(&state));
-                                        wil::unique_cotaskmem_string origin;
-                                        CHECK_FAILURE(setting->get_Origin(&origin));
-                                        std::wstring state_string =
-                                            PermissionStateToString(state);
-                                        std::wstring kind_string = PermissionKindToString(kind);
-                                        std::wstring reply = L"{\"PermissionSetting\": \"" +
-                                                             kind_string + L", " +
-                                                             origin.get() + L", " +
-                                                             state_string + L"\"}";
-                                        CHECK_FAILURE(
-                                            sender->PostWebMessageAsJson(reply.c_str()));
-                                    }
-                                    return S_OK;
-                                })
-                                .Get()));
-                    }
+                                    wil::com_ptr<ICoreWebView2PermissionSetting>
+                                        setting;
+                                    CHECK_FAILURE(
+                                        permissionCollection->GetValueAtIndex(i, &setting));
+                                    COREWEBVIEW2_PERMISSION_KIND kind;
+                                    CHECK_FAILURE(
+                                        setting->get_PermissionKind(&kind));
+                                    std::wstring kind_string =
+                                        PermissionKindToString(kind);
+                                    COREWEBVIEW2_PERMISSION_STATE state;
+                                    CHECK_FAILURE(setting->get_State(&state));
+                                    wil::unique_cotaskmem_string origin;
+                                    CHECK_FAILURE(setting->get_Origin(&origin));
+                                    std::wstring state_string =
+                                        PermissionStateToString(state);
+                                    std::wstring reply = L"{\"PermissionSetting\": \"" +
+                                                          kind_string + L", " +
+                                                          origin.get() + L", " +
+                                                          state_string + L"\"}";
+                                    CHECK_FAILURE(
+                                        sender->PostWebMessageAsJson(reply.c_str()));
+                                }
+                                return S_OK;
+                            })
+                            .Get()));
                     return S_OK;
                 })
                 .Get(),
@@ -428,12 +427,19 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
 
   /// Invokes the handler with a collection of nondefault permission settings
   /// for the given permission kind. Use this method to get the permission state
-  /// set in the current and previous sessions.
+  /// set in the current and previous sessions for a particular permission kind.
   ///
   /// \snippet ScenarioPermissionManagement.cpp
-  HRESULT GetNonDefaultPermissionCollection(
+  HRESULT GetNonDefaultPermissionCollectionForKind(
       [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
       [in] ICoreWebView2GetNonDefaultPermissionCollectionCompletedEventHandler*
+          completedHandler);
+
+  /// Invokes the handler with a collection of all nondefault permission settings.
+  /// Use this method to get the permission state set in the current and previous
+  /// sessions.
+  HRESULT GetNonDefaultPermissionCollection(
+      [in] ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler*
           completedHandler);
 }
 
@@ -549,10 +555,14 @@ namespace Microsoft.Web.WebView2.Core
                 String origin, CoreWebView2PermissionState state);
 
             // Use this method to get the nondefault permission settings from
-            // the current and previous sessions.
+            // the current and previous sessions for the given permission kind.
             Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2PermissionSetting>>
-            GetNonDefaultPermissionCollectionAsync(
+            GetNonDefaultPermissionCollectionForKindAsync(
                 CoreWebView2PermissionKind permissionKind);
+
+            // Use this method to get all the nondefault permission settings
+            // from the current and previous sessions.
+           Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2PermissionSetting>> GetNonDefaultPermissionCollectionAsync();
         }
     }
 
