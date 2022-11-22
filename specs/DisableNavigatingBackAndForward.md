@@ -73,14 +73,11 @@ void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEve
 // Enums and structs
 [v1_enum]
 typedef enum COREWEBVIEW2_NAVIGATION_KIND {
-  /// Indicates a navigation that is reloading the current document.
-  /// For example, a navigation caused by `CoreWebView2.Reload()` or in script `window.history.go()`.
+  /// A navigation caused by CoreWebView2.Reload(), location.reload(), the end user using F5 or other UX, or other reload mechanisms to reload the current document without modifying the navigation history.
   COREWEBVIEW2_NAVIGATION_KIND_RELOAD,
-  /// Indicates a navigation that is going back or forward in the navigation history.
-  /// For example, a navigation caused by `CoreWebView2.GoBack()/Forward()` or in script `window.history.go(-1)/go(1)`.
+  /// A navigation back or forward to a different entry in the session navigation history. For example via CoreWebView2.Back(), location.back(), the end user pressing Alt+Left or other UX, or other mechanisms to navigate forward or backward in the current session navigation history.
   COREWEBVIEW2_NAVIGATION_KIND_BACKORFORWARD,
-  /// Indicates a navigation that is navigating to a different document.
-  /// For example, a navigation caused by `CoreWebView2.Navigate()`, or a link click.
+  /// A navigation to a different document. This can be caused by CoreWebView2.Navigate(), window.location.href = '...', or other WebView2 or DOM APIs that navigate to a specific URI.
   COREWEBVIEW2_NAVIGATION_KIND_DIFFERENT,
 } COREWEBVIEW2_NAVIGATION_KIND;
 
@@ -89,7 +86,7 @@ typedef enum COREWEBVIEW2_NAVIGATION_KIND {
 interface ICoreWebView2NavigationStartingEventArgs3 : ICoreWebView2NavigationStartingEventArgs2 {
 
   /// Indicates if this navigation is reload, back/forward or navigating to a different document 
-  [propget] HRESULT NavigationHistoryKind(
+  [propget] HRESULT NavigationKind(
       [out, retval] COREWEBVIEW2_NAVIGATION_KIND* kind);
 }
 }
