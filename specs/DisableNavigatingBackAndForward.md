@@ -34,10 +34,10 @@ CHECK_FAILURE(m_webView->add_NavigationStarting(
             wil::com_ptr<ICoreWebView2NavigationStartingEventArgs3> args3;
             if (SUCCEEDED(args->QueryInterface(IID_PPV_ARGS(&args3))))
             {
-                COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND history_change =
-                    COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER;
-                CHECK_FAILURE(args3->get_NavigationHistoryChange(&history_change));
-                if (history_change != COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER)
+                COREWEBVIEW2_NAVIGATION_KIND kind;
+                CHECK_FAILURE(args3->get_NavigationKind(&kind));
+                // disable navigation if it is back/forward
+                if (kind == COREWEBVIEW2_NAVIGATION_KIND_BACKORFORWARD)
                 {
                      CHECK_FAILURE(args->put_Cancel(true));
                 }
@@ -59,7 +59,7 @@ CHECK_FAILURE(m_webView->add_NavigationStarting(
 // `GoBack` or `GoForward`, it will be canceled.
 void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs e)
 {
-    if (e.NavigationHistoryChange != CoreWebView2NavigationHistoryChangeKind.Other)
+    if (e.NavigationKind == CoreWebView2NavigationKind.BackOrForward)
     {
         e.Cancel = true;
     }
@@ -72,27 +72,25 @@ void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEve
 ```c++
 // Enums and structs
 [v1_enum]
-typedef enum COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND {
-  /// Indicates a navigation that is going back to a previous entry in the navigation history.
-  /// For example, a navigation caused by `CoreWebView2.GoBack` or in script `window.history.go(-1)`.
-  COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_BACK,
-  /// Indicates a navigation that is going forward to a later entry in the navigation history.
-  /// For example, a navigation caused by `CoreWebView2.GoForward` or in script `window.history.go(1)`.
-  COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_FORWARD,
-  /// Indicates a navigation that is not going back or forward to an existing entry in the navigation
-  /// history. For example, a navigation caused by `CoreWebView2.Navigate`, or `CoreWebView2.Reload`
-  /// or in script `window.location.href = 'https://example.com/'`.
-  COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND_OTHER,
-} COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND;
+typedef enum COREWEBVIEW2_NAVIGATION_KIND {
+  /// Indicates a navigation that is reloading the current document.
+  /// For example, a navigation caused by `CoreWebView2.Reload()` or in script `window.history.go()`.
+  COREWEBVIEW2_NAVIGATION_KIND_RELOAD,
+  /// Indicates a navigation that is going back or forward in the navigation history.
+  /// For example, a navigation caused by `CoreWebView2.GoBack()/Forward()` or in script `window.history.go(-1)/go(1)`.
+  COREWEBVIEW2_NAVIGATION_KIND_BACKORFORWARD,
+  /// Indicates a navigation that is navigating to a different document.
+  /// For example, a navigation caused by `CoreWebView2.Navigate()`, or a link click.
+  COREWEBVIEW2_NAVIGATION_KIND_DIFFERENT,
+} COREWEBVIEW2_NAVIGATION_KIND;
 
 /// Extend `NavigationStartingEventArgs` by adding more information.
 [uuid(39A27807-2365-470B-AF28-885502121049), object, pointer_default(unique)]
 interface ICoreWebView2NavigationStartingEventArgs3 : ICoreWebView2NavigationStartingEventArgs2 {
 
-  /// Indicates if this navigation is going back or forward to an existing entry in the navigation
-  /// history.
-  [propget] HRESULT NavigationHistoryChange(
-      [out, retval] COREWEBVIEW2_NAVIGATION_HISTORY_CHANGE_KIND* history_change);
+  /// Indicates if this navigation is reload, back/forward or navigating to a different document 
+  [propget] HRESULT NavigationHistoryKind(
+      [out, retval] COREWEBVIEW2_NAVIGATION_KIND* kind);
 }
 }
 ```
@@ -102,11 +100,11 @@ interface ICoreWebView2NavigationStartingEventArgs3 : ICoreWebView2NavigationSta
 ```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core
 {
-    enum CoreWebView2NavigationHistoryChangeKind
+    enum CoreWebView2NavigationKind
     {
-        Back = 0,
-        Forward = 1,
-        Other = 2,
+        Reload = 0,
+        BackOrForward = 1,
+        Different = 2,
     };
     // ..
     runtimeclass CoreWebView2NavigationStartingEventArgs
@@ -116,7 +114,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2NavigationStartingEventArgs3")]
         {
             // ICoreWebView2NavigationStartingEventArgs3 members
-            CoreWebView2NavigationHistoryChangeKind NavigationHistoryChange { get; };
+            CoreWebView2NavigationKind NavigationKind { get; };
         }
     }
 }
