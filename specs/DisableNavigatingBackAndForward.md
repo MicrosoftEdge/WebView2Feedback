@@ -37,7 +37,7 @@ CHECK_FAILURE(m_webView->add_NavigationStarting(
                 COREWEBVIEW2_NAVIGATION_KIND kind;
                 CHECK_FAILURE(args3->get_NavigationKind(&kind));
                 // disable navigation if it is back/forward
-                if (kind == COREWEBVIEW2_NAVIGATION_KIND_BACKORFORWARD)
+                if (kind == COREWEBVIEW2_NAVIGATION_KIND_BACK_OR_FORWARD)
                 {
                      CHECK_FAILURE(args->put_Cancel(true));
                 }
@@ -73,12 +73,18 @@ void WebView_NavigationStarting(object sender, CoreWebView2NavigationStartingEve
 // Enums and structs
 [v1_enum]
 typedef enum COREWEBVIEW2_NAVIGATION_KIND {
-  /// A navigation caused by CoreWebView2.Reload(), location.reload(), the end user using F5 or other UX, or other reload mechanisms to reload the current document without modifying the navigation history.
+  /// A navigation caused by CoreWebView2.Reload(), location.reload(), the end user 
+  /// using F5 or other UX, or other reload mechanisms to reload the current document 
+  /// without modifying the navigation history.
   COREWEBVIEW2_NAVIGATION_KIND_RELOAD,
-  /// A navigation back or forward to a different entry in the session navigation history. For example via CoreWebView2.Back(), location.back(), the end user pressing Alt+Left or other UX, or other mechanisms to navigate forward or backward in the current session navigation history.
-  COREWEBVIEW2_NAVIGATION_KIND_BACKORFORWARD,
-  /// A navigation to a different document. This can be caused by CoreWebView2.Navigate(), window.location.href = '...', or other WebView2 or DOM APIs that navigate to a specific URI.
-  COREWEBVIEW2_NAVIGATION_KIND_DIFFERENT,
+  /// A navigation back or forward to a different entry in the session navigation history. 
+  /// For example via CoreWebView2.Back(), location.back(), the end user pressing Alt+Left 
+  /// or other UX, or other mechanisms to navigate forward or backward in the current 
+  /// session navigation history.
+  COREWEBVIEW2_NAVIGATION_KIND_BACK_OR_FORWARD,
+  /// A navigation to a different document. This can be caused by CoreWebView2.Navigate(), 
+  /// window.location.href = '...', or other WebView2 or DOM APIs that navigate to a specific URI.
+  COREWEBVIEW2_NAVIGATION_KIND_DIFFERENT_DOCUMENT,
 } COREWEBVIEW2_NAVIGATION_KIND;
 
 /// Extend `NavigationStartingEventArgs` by adding more information.
@@ -101,7 +107,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         Reload = 0,
         BackOrForward = 1,
-        Different = 2,
+        DifferentDocument = 2,
     };
     // ..
     runtimeclass CoreWebView2NavigationStartingEventArgs
