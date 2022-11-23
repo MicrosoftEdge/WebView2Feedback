@@ -107,7 +107,7 @@ void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageRece
 ```c#
 /// Representation of a DOM
 /// (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] object
-/// passed via WebMessage. You can use this object to obtain the path of a 
+/// passed via WebMessage. You can use this object to obtain the path of a
 /// File dropped on WebView2.
 /// \snippet ScenarioDragDrop.cpp DroppedFilePath
 [uuid(f2c19559-6bc1-4583-a757-90021be9afec), object, pointer_default(unique)]
@@ -147,7 +147,7 @@ namespace Microsoft.Web.WebView2.Core
 {
     /// Representation of a DOM
     /// (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] object
-    /// passed via WebMessage. You can use this object to obtain the path of a 
+    /// passed via WebMessage. You can use this object to obtain the path of a
     /// File dropped on WebView2.
     runtimeclass CoreWebView2File
     {
@@ -160,7 +160,7 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2WebMessageReceivedEventArgs
     {
-        ... 
+        ...
         /// Additional received WebMessage objects. To pass additionalObjects via
         /// WebMessage to the app, use the
         /// `chrome.webview.postMessageWithAdditionalObjects' content API.
@@ -213,7 +213,7 @@ interface WebView extends EventTarget {
 ```c#
 /// Representation of a DOM
 /// (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] object
-/// passed via WebMessage. You can use this object to obtain the path of a 
+/// passed via WebMessage. You can use this object to obtain the path of a
 /// File dropped on WebView2 or pass a File to WebView2 content.
 /// \snippet ScenarioDragDrop.cpp DroppedFilePath
 [uuid(f2c19559-6bc1-4583-a757-90021be9afec), object, pointer_default(unique)]
@@ -237,7 +237,8 @@ interface ICoreWebView2Environment12 : ICoreWebView2Environment11 {
 /// with additional objects.
 [uuid(fd4e150b-97d4-4baf-ab35-d9899575e700), object, pointer_default(unique)]
 interface ICoreWebView2_17 : IUnknown {
-  /// Post the specified webMessage to the top level document in this WebView.
+  /// Post the specified webMessage to the top level document in this WebView
+  /// along with any additional objects that can be injected to WebView content.
   /// The main page receives the message by subscribing to the `message` event of the
   /// `window.chrome.webview` of the page document.
   ///
@@ -269,28 +270,52 @@ interface ICoreWebView2_17 : IUnknown {
     [in] ICoreWebView2ObjectCollectionView additionalObjects);
 }
 
-```c#
+```csharp
 namespace Microsoft.Web.WebView2.Core
-{ 
+{
     runtimeclass CoreWebView2Environment
     {
         ...
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_17")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment12")]
         {
+            /// Create a new ICoreWebView2File from a System.IO.File.
+            /// The File object must be for an existing file in disk.
+            /// An invalid file handle will throw InvalidArgumentException.
+            CoreWebView2File CreateCoreWebView2File(System.IO.File file);
+        }
+    }
     runtimeclass CoreWebView2
     {
         ...
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_17")]
         {
-            /// Posts the specified <c>webMessageAsJson</c> to the top level document in this WebView.
+            // Posts the specified <c>webMessageAsJson</c> to the top level document in this WebView
+            // along with any additional objects that can be injected to WebView content.
             // <param name="webMessageAsJson">The web message to be posted to the top level document in
             // this WebView.</param>
+            // <param name="additionalObjects">The list of additional WebMessage objects that can be injected
+            // to WebView content.
+            // Currently the only supported WebMessage object type that is injectable to content is:
+            // - CoreWebView2File
+            // </param>
             // <remarks>
-            // The event args is an instance of <c>MessageEvent</c>. 
-            // The <see cref="CoreWebView2Settings.IsWebMessageEnabled"/> setting must be <c>true</c> or this method will fail with E_INVALIDARG. The event arg's <c>data</c> property of the event arg is the <c>webMessageAsJson</c> string parameter parsed as a JSON string into a JavaScript object. The event arg's <c>source</c> property of the event arg is a reference to the <c>window.chrome.webview</c> object. For information about sending messages from the HTML document in the WebView to the host, navigate to <see cref="CoreWebView2.WebMessageReceived"/>. The message is sent asynchronously. If a navigation occurs before the message is posted to the page, the message is not be sent.
+            // The event args is an instance of <c>MessageEvent</c>.
+            // The <see cref="CoreWebView2Settings.IsWebMessageEnabled"/> setting must be
+            // <c>true</c>or this method will fail with E_INVALIDARG. The event arg's
+            // <c>data</c> property of the event arg is the <c>webMessageAsJson</c> string
+            // parameter parsed as a JSON string into a JavaScript object. The event arg's
+            // <c>source</c> property of the event arg is a reference
+            // to the <c>window.chrome.webview</c> object. The <c>additionalObjects</c> property of
+            // event arg will contain a sequence of WebMessage objects as their DOM types. For
+            // information about sending messages from the HTML document in the WebView to the
+            // host, navigate to <see cref="CoreWebView2.WebMessageReceived"/>. The message is sent
+            // asynchronously. If a navigation occurs before the message is posted to the page,
+            // the message is not be sent.
             // </remarks>
             // <example>
-            // Runs the message event of the <c>window.chrome.webview</c> of the top-level document. JavaScript in that document may subscribe and unsubscribe to the event using the following code:
+            // Runs the message event of the <c>window.chrome.webview</c> of the top-level
+            // document. JavaScript in that document may subscribe and unsubscribe to the event
+            // using the following code:
             // $net$
             // <code>
             // window.chrome.webview.addEventListener('message', handler)
@@ -309,8 +334,7 @@ namespace Microsoft.Web.WebView2.Core
             // <seealso cref="PostWebMessageAsString"/>
             void PostWebMessageAsJsonWithAdditionalObjects(
                 string webMessageAsJson,
-                List<object> AdditionalObjects);
-
+                List<object> additionalObjects);
         }
     }
 }
