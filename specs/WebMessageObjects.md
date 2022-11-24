@@ -98,7 +98,7 @@ void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageRece
     {
         if (object is CoreWebView2File)
         {
-            paths.Add((CoreWebView2File)(object).path);
+            paths.Add(((CoreWebView2File)object).Path);
         }
     }
 }
