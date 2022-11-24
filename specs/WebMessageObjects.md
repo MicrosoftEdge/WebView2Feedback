@@ -100,6 +100,7 @@ void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageRece
         {
             paths.Add(((CoreWebView2File)object).Path);
         }
+        ProcessPaths(paths);
     }
 }
 ```
