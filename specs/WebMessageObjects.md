@@ -23,7 +23,7 @@ Page content in WebView2 can pass objects to the app via the
 that takes in the array of such supported DOM objects or you can also use
 (ExecuteScript)[https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.winforms.webview2.executescriptasync]
 with same API. If an invalid or unsupported object is passed via this API, an exception will be
-thrown to content and the message will fail to post.
+thrown to the caller and the message will fail to post.
 
 On the WebMessageReceived event handler, the app will retrieve the native representation of objects
 via `AdditionalObjects` property and cast the passed objects to their native types. For example, the
@@ -106,6 +106,7 @@ void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageRece
 ```
 
 # API Details
+## SDK API
 ```c#
 /// Representation of a DOM
 /// (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] object
@@ -155,8 +156,8 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2File")]
         {
-            /// The file path, which is DOS path on Windows.
-            string Path { get; };
+            /// The absolute file path.
+            String Path { get; };
         }
     }
 
@@ -172,11 +173,16 @@ namespace Microsoft.Web.WebView2.Core
         /// - `CoreWebView2File`.
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2WebMessageReceivedEventArgs2")]
         {
-            List<object> AdditionalObjects { get; };
+            IVectorView<Object> AdditionalObjects { get; };
         }
     }
 }
 ```
+## JS API for page content
+We named the JS API `chrome.webview.postMessageWithAdditionalObjects`. We considered making it an
+overload of the existing `chrome.webview.postMessage(message)`, but that method is patterned after
+the existing `MessagePort.postMessage(message, transferList)` DOM method and we're worried about
+confusion or future compat mixing up the `additionalObjects` array with the `transferList` array.
 
 ```ts
 interface WebView extends EventTarget {
@@ -228,10 +234,10 @@ interface ICoreWebView2File : IUnknown {
 /// can be passed as a parameter to PostWebMessageWithAdditionalObjects
 [uuid(b571b60f-def2-41d2-a5eb-05d7ccc81981), object, pointer_default(unique)]
 interface ICoreWebView2Environment12 : ICoreWebView2Environment11 {
-  /// Create a new ICoreWebView2File from a file handle. The handle must be for an existing file in disk.
-  /// An invalid file handle will return E_INVALIDARG.
+  /// Create a new ICoreWebView2File from a path. The path must point an existing file in disk.
+  /// An invalid file path will return E_INVALIDARG.
   HRESULT CreateCoreWebView2File(
-      [in] HANDLE fileHandle,
+      [in] LPCWSTR path,
       [out, retval] ICoreWebView2File** file);
 }
 
@@ -249,7 +255,7 @@ interface ICoreWebView2_17 : IUnknown {
   /// window.chrome.webview.removeEventListener('message', handler)
   /// ```
   ///
-  /// The event args is an instance of `MessageEvent`.  The
+  /// The event args is an instance of `WebViewMessageEvent`, which extends`MessageEvent`.  The
   /// `ICoreWebView2Settings::IsWebMessageEnabled` setting must be `TRUE` or
   /// this method fails with `E_INVALIDARG`.  The `data` property of the event
   /// arg is the `webMessage` string parameter parsed as a JSON string into a
@@ -271,8 +277,9 @@ interface ICoreWebView2_17 : IUnknown {
     [in] LPCWSTR webMessageAsJson,
     [in] ICoreWebView2ObjectCollectionView additionalObjects);
 }
+```
 
-```csharp
+```c#
 namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2Environment
@@ -283,9 +290,9 @@ namespace Microsoft.Web.WebView2.Core
             /// Create a new ICoreWebView2File from a System.IO.File.
             /// The File object must be for an existing file in disk.
             /// An invalid file handle will throw InvalidArgumentException.
-            CoreWebView2File CreateCoreWebView2File(System.IO.File file);
+            CoreWebView2File CreateCoreWebView2File(string filePath);
         }
-    }
+    };
     runtimeclass CoreWebView2
     {
         ...
@@ -301,7 +308,8 @@ namespace Microsoft.Web.WebView2.Core
             // - CoreWebView2File
             // </param>
             // <remarks>
-            // The event args is an instance of <c>MessageEvent</c>.
+            // The event args is an instance of <c>WebViewMessageEvent</c>, which extends from
+            // <c>MessageEvent</c>.
             // The <see cref="CoreWebView2Settings.IsWebMessageEnabled"/> setting must be
             // <c>true</c>or this method will fail with E_INVALIDARG. The event arg's
             // <c>data</c> property of the event arg is the <c>webMessageAsJson</c> string
@@ -336,8 +344,24 @@ namespace Microsoft.Web.WebView2.Core
             // <seealso cref="PostWebMessageAsString"/>
             void PostWebMessageAsJsonWithAdditionalObjects(
                 string webMessageAsJson,
-                List<object> additionalObjects);
+                IVectorView<object> additionalObjects);
         }
     }
+}
+```
+
+```ts
+interface WebViewMessageEvent: MessageEvent {
+  /* When a WebMessage is posted via PostWebMessageAsJsonWithAdditionalObjects
+   * this property will contain the DOM objects that are injected to the content.
+   * Currently the following types are supported:
+   * - File
+   */
+  additionalObjects: ArrayLike<any>
+}
+
+interface WebViewEventMap {
+    "message": WebViewMessageEvent;
+    ...
 }
 ```
