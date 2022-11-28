@@ -81,8 +81,7 @@ m_webView->add_WebMessageReceived(
                 }
             }
 
-
-            ProcessFiles(files);
+            ProcessPaths(paths);
             return S_OK;
         })
         .Get(),
@@ -100,8 +99,8 @@ void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageRece
         {
             paths.Add(((CoreWebView2File)object).Path);
         }
-        ProcessPaths(paths);
     }
+    ProcessPaths(paths);
 }
 ```
 
@@ -171,6 +170,7 @@ namespace Microsoft.Web.WebView2.Core
         /// `additionalObjects` parameter will be accessible here.
         /// Currently a WebMessage object can be the following type:
         /// - `CoreWebView2File`.
+        /// Cast the object to the native type to access its specific properties.
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2WebMessageReceivedEventArgs2")]
         {
             IVectorView<Object> AdditionalObjects { get; };
