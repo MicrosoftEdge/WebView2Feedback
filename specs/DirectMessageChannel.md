@@ -461,11 +461,16 @@ interface ICoreWebView2StagingDirectMessageChannel : IUnknown {
   /// reconstruct the `DirectMessageChannel` with given handle of that process.
   /// This will invalidate the current direct message channel object, and prevent
   /// it from being started. This cannot be called on a direct message channel
-  /// that has already been started, and is thus bound to the current thread.
-  /// Reconstructing the DirectMessageChannel can be done by passing this blob
-  /// to `ReConstructDirectMessageChannel' of the WebView environment.
+  /// that has already been started or closed, and is thus bound to the current
+  /// thread. Reconstructing the direct message channel can be done by passing
+  /// this blob to `ReConstructDirectMessageChannel' interface of the WebView
+  /// environment. This method can only be called on the host main process.
+  ///
+  /// The `targetProcessHandle` is the process handle of the target process that
+  /// would take the blob and reconstruct the direct message channel. The target
+  /// process cannot be the current host main process.
   HRESULT TakeTransferableBlobAndInvalidate(
-      [in] HANDLE handle,
+      [in] HANDLE targetProcessHandle,
       [out, retval] LPWSTR* directMessageChannelBlob);
 
   /// Add an event handler for the `WebMessageReceived` event.
@@ -580,7 +585,11 @@ interface ICoreWebView2StagingFrameDirectMessageChannelCreatedEventHandler : IUn
 [uuid(BC308ED0-FCD2-4F79-A0E4-5E7B2F109BB9), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironment3 : IUnknown {
   /// Reconstructs a direct message channel from a blob to allow for single hop IPC
-  /// between host app's child process and a renderer process.
+  /// between host app's child process and a renderer process. This method can only
+  /// be called on the host child process with OnlyUsedForDirectMessageChannel being
+  /// set to YES on EnvironmentOptions when creating WebView environment, and this
+  /// child process handle should be passed into `takeTransferableBlobAndInvalidate`
+  /// before calling this method.
   HRESULT ReConstructDirectMessageChannel(
     [in] LPCWSTR directMessageChannelBlob,
     [out, retval] ICoreWebView2StagingDirectMessageChannel** directMessageChannel);
@@ -589,7 +598,7 @@ interface ICoreWebView2StagingEnvironment3 : IUnknown {
 /// A continuation of the ICoreWebView2EnvironmentOptions interface to specify whether
 /// the environment is only used to reconstruct direct message channel.
 [uuid(FAB20EFB-C716-47AC-8FED-C8A65A8FA334), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironmentOptions4 : IUnknown {
+interface ICoreWebView2StagingEnvironmentOptions5 : IUnknown {
   /// Gets the `OnlyUsedForDirectMessageChannel` property.
   /// The property indicates whether the environment is only used to reconstruct direct message
   /// channel. Once set to true, the environment created with this option can only be used to
