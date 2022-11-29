@@ -116,27 +116,6 @@ HRESULT SettingsComponent::OnPermissionRequested(
 ```
 ## SetPermission and GetNonDefaultPermissionCollection
 ```c#
-List<CoreWebView2PermissionKind> _permissionKinds = new List<CoreWebView2PermissionKind>
-{
-  CoreWebView2PermissionKind.Microphone,
-  CoreWebView2PermissionKind.Camera,
-  CoreWebView2PermissionKind.Geolocation,
-  CoreWebView2PermissionKind.Notifications,
-  CoreWebView2PermissionKind.OtherSensors,
-  CoreWebView2PermissionKind.ClipboardRead,
-  CoreWebView2PermissionKind.AutomaticDownloads,
-  CoreWebView2PermissionKind.FileEditing,
-  CoreWebView2PermissionKind.Autoplay,
-  CoreWebView2PermissionKind.LocalFonts
-};
-
-List<CoreWebView2PermissionState> _permissionStates = new List<CoreWebView2PermissionState>
-{
-  CoreWebView2PermissionState.Allow,
-  CoreWebView2PermissionState.Deny,
-  CoreWebView2PermissionState.Default
-};
-
 // Gets the nondefault permission collection and updates a custom permission
 // management page.
 async void WebView_PermissionManager_DOMContentLoaded(object sender,
@@ -152,8 +131,7 @@ async void WebView_PermissionManager_DOMContentLoaded(object sender,
     // Get all the nondefault permissions and post them to the app's
     // permission management page. The permission management page can present
     // a list of custom permissions set for this profile and let the end user
-    // modify them. If you want to build sections separated by permission kind,
-    // use `GetNonDefaultPermissionCollectionForKindAsync` instead.
+    // modify them.
     IReadOnlyList<CoreWebView2PermissionSetting> permissionList =
         await WebViewProfile.GetNonDefaultPermissionCollectionAsync();
     for (int j = 0; j < permissionList.Count; j++)
@@ -191,8 +169,7 @@ void WebView_PermissionManager_WebMessageReceived(object sender,
         // event handler.
         System.Threading.SynchronizationContext.Current.Post((_) =>
         {
-            var dialog = new SetPermissionDialog(
-                _permissionKinds, _permissionStates);
+            var dialog = new SetPermissionDialog();
             if (dialog.ShowDialog() == true)
             {
                 try
@@ -217,22 +194,6 @@ void WebView_PermissionManager_WebMessageReceived(object sender,
 ```
 
 ```cpp
-std::vector<COREWEBVIEW2_PERMISSION_STATE> permissionStates{
-    COREWEBVIEW2_PERMISSION_STATE_ALLOW, COREWEBVIEW2_PERMISSION_STATE_DENY,
-    COREWEBVIEW2_PERMISSION_STATE_DEFAULT};
-
-std::vector<COREWEBVIEW2_PERMISSION_KIND> permissionKinds{
-    COREWEBVIEW2_PERMISSION_KIND_AUTOMATIC_DOWNLOADS,
-    COREWEBVIEW2_PERMISSION_KIND_AUTOPLAY,
-    COREWEBVIEW2_PERMISSION_KIND_CAMERA,
-    COREWEBVIEW2_PERMISSION_KIND_CLIPBOARD_READ,
-    COREWEBVIEW2_PERMISSION_KIND_FILE_EDITING,
-    COREWEBVIEW2_PERMISSION_KIND_GEOLOCATION,
-    COREWEBVIEW2_PERMISSION_KIND_LOCAL_FONTS,
-    COREWEBVIEW2_PERMISSION_KIND_MICROPHONE,
-    COREWEBVIEW2_PERMISSION_KIND_NOTIFICATIONS,
-    COREWEBVIEW2_PERMISSION_KIND_OTHER_SENSORS};
-
 ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
@@ -268,9 +229,7 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
                     // Get all the nondefault permissions and post them to the
                     // app's permission management page. The permission management
                     // page can present a list of custom permissions set for this
-                    // profile and let the end user modify them. If you want to
-                    // build sections separated by permission kind, use
-                    // `GetNonDefaultPermissionCollectionForKind` instead.
+                    // profile and let the end user modify them.
                     CHECK_FAILURE(m_webViewProfile6->GetNonDefaultPermissionCollection(
                         Callback<
                             ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler>(
@@ -346,8 +305,7 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
 
 void ScenarioPermissionManagement::ShowSetPermissionDialog()
 {
-    PermissionDialog dialog(
-        m_appWindow->GetMainWindow(), permissionKinds, permissionStates);
+    PermissionDialog dialog(m_appWindow->GetMainWindow());
     if (dialog.confirmed && m_webViewProfile6)
     {
         // Example: m_webViewProfile6->SetPermissionState(
@@ -424,16 +382,6 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
         [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
         [in] LPCWSTR origin,
         [in] COREWEBVIEW2_PERMISSION_STATE state);
-
-  /// Invokes the handler with a collection of nondefault permission settings
-  /// for the given permission kind. Use this method to get the permission state
-  /// set in the current and previous sessions for a particular permission kind.
-  ///
-  /// \snippet ScenarioPermissionManagement.cpp
-  HRESULT GetNonDefaultPermissionCollectionForKind(
-      [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
-      [in] ICoreWebView2GetNonDefaultPermissionCollectionCompletedEventHandler*
-          completedHandler);
 
   /// Invokes the handler with a collection of all nondefault permission settings.
   /// Use this method to get the permission state set in the current and previous
@@ -546,23 +494,18 @@ namespace Microsoft.Web.WebView2.Core
             // changed by another call to `SetPermissionState`, or by setting
             // the `State` property in `PermissionRequestedEventArgs`. The
             // origin should have a valid scheme and host (e.g.
-            // "https://www.example.com"), otherwise the method fails with
-            // `E_INVALIDARG`. Additional URI parts like path and fragment are
-            // ignored. For example, "https://wwww.example.com/app1/index.html/"
-            // is treated the same as "https://wwww.example.com". See the
+            // "https://www.example.com"), otherwise the method fails.
+            // Additional URI parts like path and fragment are ignored. For
+            // example, "https://wwww.example.com/app1/index.html/" is treated
+            // the same as "https://wwww.example.com". See the
             // [MDN origin definition](https://developer.mozilla.org/en-US/docs/Glossary/Origin) for more details.
             void SetPermissionState(CoreWebView2PermissionKind permissionKind,
                 String origin, CoreWebView2PermissionState state);
 
-            // Use this method to get the nondefault permission settings from
-            // the current and previous sessions for the given permission kind.
-            Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2PermissionSetting>>
-            GetNonDefaultPermissionCollectionForKindAsync(
-                CoreWebView2PermissionKind permissionKind);
-
             // Use this method to get all the nondefault permission settings
             // from the current and previous sessions.
-           Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2PermissionSetting>> GetNonDefaultPermissionCollectionAsync();
+           Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2PermissionSetting>>
+           GetNonDefaultPermissionCollectionAsync();
         }
     }
 
