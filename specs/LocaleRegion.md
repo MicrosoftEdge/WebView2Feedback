@@ -24,23 +24,16 @@ options->put_LocaleRegion(m_webviewOption.localeRegion.c_str());
 ```
 
 ```c#
-CoreWebView2Environment _webViewEnvironment;
-WebViewCreationOptions _creationOptions;
-public CreateWebView2Controller(IntPtr parentWindow)
+CoreWebView2Environment environment;
+CoreWebView2ControllerOptions CreateCoreWebView2ControllerOptions(CoreWebView2Environment environment)
 {
-    CoreWebView2ControllerOptions controllerOptions = new CoreWebView2ControllerOptions();
-    controllerOptions.LocaleRegion = _creationOptions.localeRegion;
-    CoreWebView2Controller controller = null;
-    if (_creationOptions.entry == WebViewCreateEntry.CREATE_WITH_OPTION)
+    CoreWebView2ControllerOptions ControllerOptions = null;
+    if (LocaleRegion != null)
     {
-        controller = await _webViewEnvironment.CreateCoreWebView2ControllerAsync(parentWindow, options);
+        ControllerOptions = environment.CreateCoreWebView2ControllerOptions();
+        ControllerOptions.LocaleRegion = LocaleRegion;
     }
-    else
-    {
-        controller = await _webViewEnvironment.CreateCoreWebView2ControllerAsync(parentWindow);
-    }
-    // update locale with value
-    SetAppLocale(localeRegion);
+    return ControllerOptions;    
 }
 ```
 
@@ -55,14 +48,15 @@ interface ICoreWebView2StagingControllerOptions : IUnknown {
   /// 639](https://www.iso.org/iso-639-language-codes.html) and `country` is the
   /// 2-letter code from [ISO 3166](https://www.iso.org/standard/72482.html).
   ///
-  /// This property will update the environment creation. This is global and immutable, 
-  /// so changes will not be reflected in the existing webviews. They will need to closed
-  /// and reopened in order to see the changes reflected from using the new creation environment.
+  /// This property sets the region for a CoreWebView2Environment during its creation. 
+  /// Creating a new CoreWebView2Environment object that connects to an already running 
+  /// browser process cannot change the region previously set by an earlier CoreWebView2Environment.  
+  /// The CoreWebView2Environment and all associated webview2 objects will need to closed.
   ///
-  /// Validation is done on the V8 engine to match on the closest locale
-  /// from the passed in locale region value. For example, passing in "en_gb"
-  /// will reflect the "en-GB" locale in V8.
-  /// If V8 cannot find any matching locale on the input value, it will default
+  /// Validation processing is done by ICU to match on the closest locale
+  /// from the passed in locale region value. ICU documentation can be found here
+  /// (https://source.chromium.org/chromium/chromium/src/+/main:third_party/icu/source/common/unicode/locid.h)
+  /// If ICU cannot find any matching locale on the input value, it will default
   /// to the display language as the locale.
   ///
   /// The default value for LocaleRegion will be depend on the WebView2 language
