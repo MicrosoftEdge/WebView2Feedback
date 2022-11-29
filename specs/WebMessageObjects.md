@@ -147,19 +147,6 @@ interface ICoreWebView2WebMessageReceivedEventArgs2 : ICoreWebView2WebMessageRec
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    /// Representation of a DOM
-    /// (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] object
-    /// passed via WebMessage. You can use this object to obtain the path of a
-    /// File dropped on WebView2.
-    runtimeclass CoreWebView2File
-    {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2File")]
-        {
-            /// The absolute file path.
-            String Path { get; };
-        }
-    }
-
     runtimeclass CoreWebView2WebMessageReceivedEventArgs
     {
         ...
@@ -169,7 +156,12 @@ namespace Microsoft.Web.WebView2.Core
         /// Any DOM object type that can be natively representable that has been passed in to
         /// `additionalObjects` parameter will be accessible here.
         /// Currently a WebMessage object can be the following type:
-        /// - `CoreWebView2File`.
+        /// $net$
+        /// - System.IO.FileInfo
+        /// $end$
+        /// $winrt$
+        /// - Windows.Storage.StorageFile
+        /// $end$
         /// Cast the object to the native type to access its specific properties.
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2WebMessageReceivedEventArgs2")]
         {
@@ -197,8 +189,10 @@ interface WebView extends EventTarget {
      * object that can be serialized to JSON.
      * @param additionalObjects A sequence of DOM objects that have native
      * representations in WebView2.
-     * The following type is currently available natively:
-     * - File -> CoreWebView2File
+     * The following DOM types are mapped to native:
+     * DOM      | Win32       | .NET     | WinRT
+     * -------- | ------------|----------| --------
+     * (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] | ICoreWebView2File | (System.IO.FileInfo)[https://learn.microsoft.com/en-us/dotnet/api/system.io.fileinfo] | (Windows.Storage.StorageFile)[https://learn.microsoft.com/en-us/uwp/api/windows.storage.storagefile]
      * If an invalid or unsupported object is passed via this API, an exception
      * will be thrown and the message will fail to post.
      * @example
@@ -282,17 +276,6 @@ interface ICoreWebView2_17 : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2Environment
-    {
-        ...
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment12")]
-        {
-            /// Create a new ICoreWebView2File from a System.IO.File.
-            /// The File object must be for an existing file in disk.
-            /// An invalid file handle will throw InvalidArgumentException.
-            CoreWebView2File CreateCoreWebView2File(string filePath);
-        }
-    };
     runtimeclass CoreWebView2
     {
         ...
@@ -305,7 +288,12 @@ namespace Microsoft.Web.WebView2.Core
             // <param name="additionalObjects">The list of additional WebMessage objects that can be injected
             // to WebView content.
             // Currently the only supported WebMessage object type that is injectable to content is:
-            // - CoreWebView2File
+            // $net$
+            // - System.IO.FileInfo
+            // $end$
+            // $winrt$
+            // - Windows.Storage.StorageFile
+            // $end$
             // </param>
             // <remarks>
             // The event args is an instance of <c>WebViewMessageEvent</c>, which extends from
@@ -343,8 +331,8 @@ namespace Microsoft.Web.WebView2.Core
             // <seealso cref="WebMessageReceived"/>
             // <seealso cref="PostWebMessageAsString"/>
             void PostWebMessageAsJsonWithAdditionalObjects(
-                string webMessageAsJson,
-                IVectorView<object> additionalObjects);
+                String webMessageAsJson,
+                IVectorView<Object> additionalObjects);
         }
     }
 }
