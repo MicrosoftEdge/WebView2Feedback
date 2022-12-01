@@ -44,7 +44,7 @@ interface ICoreWebView2StagingControllerOptions : IUnknown {
   /// The default region for the WebView2.  It applies to JavaScript API
   /// Intl.DateTimeFormat() which affects string formatting like
   /// in the time/date formats. The intended locale value is in the format of
-  /// `language[-country]` where `language` is the 2-letter code from [ISO
+  /// `language-country` or `language_country` where `language` is the 2-letter code from [ISO
   /// 639](https://www.iso.org/iso-639-language-codes.html) and `country` is the
   /// 2-letter code from [ISO 3166](https://www.iso.org/standard/72482.html).
   ///
@@ -52,12 +52,6 @@ interface ICoreWebView2StagingControllerOptions : IUnknown {
   /// Creating a new CoreWebView2Environment object that connects to an already running 
   /// browser process cannot change the region previously set by an earlier CoreWebView2Environment.  
   /// The CoreWebView2Environment and all associated webview2 objects will need to closed.
-  ///
-  /// Validation processing is done by ICU to match on the closest locale
-  /// from the passed in locale region value. ICU documentation can be found here
-  /// (https://source.chromium.org/chromium/chromium/src/+/main:third_party/icu/source/common/unicode/locid.h)
-  /// If ICU cannot find any matching locale on the input value, it will default
-  /// to the display language as the locale.
   ///
   /// The default value for LocaleRegion will be depend on the WebView2 language
   /// and OS region. If the language portions of the WebView2 language and OS Region
