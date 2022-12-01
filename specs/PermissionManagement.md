@@ -174,11 +174,7 @@ void WebView_PermissionManager_WebMessageReceived(object sender,
             {
                 try
                 {
-                    // Example: WebViewProfile.SetPermissionState(
-                    //    CoreWebView2PermissionKind.Geolocation,
-                    //    "https://example.com",
-                    //    CoreWebView2PermissionState.Deny);
-                    WebViewProfile.SetPermissionState(
+                    SetPermissionState(
                         (CoreWebView2PermissionKind)dialog.PermissionKind.SelectedItem,
                         dialog.Origin.Text,
                         (CoreWebView2PermissionState)dialog.PermissionState.SelectedItem);
@@ -190,6 +186,19 @@ void WebView_PermissionManager_WebMessageReceived(object sender,
           }
         }, null);
     }
+}
+
+async void SetPermissionState(CoreWebView2PermissionKind kind, string origin,
+    CoreWebView2PermissionState state)
+{
+    // Example: WebViewProfile.SetPermissionState(
+    //    CoreWebView2PermissionKind.Geolocation,
+    //    "https://example.com",
+    //    CoreWebView2PermissionState.Deny);
+    await WebViewProfile.SetPermissionStateAsync(
+        kind, origin, state);
+    // Reload the permission management page.
+    webView.Reload();
 }
 ```
 
@@ -311,9 +320,18 @@ void ScenarioPermissionManagement::ShowSetPermissionDialog()
         // Example: m_webViewProfile6->SetPermissionState(
         //    COREWEBVIEW2_PERMISSION_KIND_GEOLOCATION,
         //    L"https://example.com",
-        //    COREWEBVIEW2_PERMISSION_STATE_DENY);
+        //    COREWEBVIEW2_PERMISSION_STATE_DENY,
+        //    SetPermissionStateCallback);
         CHECK_FAILURE(m_webViewProfile6->SetPermissionState(
-            dialog.kind, dialog.origin.c_str(), dialog.state));
+            dialog.kind, dialog.origin.c_str(), dialog.state,
+            Callback<ICoreWebView2StagingSetPermissionStateCompletedHandler>(
+            [this](HRESULT error) -> HRESULT
+            {
+                // Reload the permission management page.
+                m_webView->Reload();
+                return S_OK;
+            })
+            .Get()));
     }
 }
 ```
@@ -381,7 +399,8 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
   HRESULT SetPermissionState(
         [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
         [in] LPCWSTR origin,
-        [in] COREWEBVIEW2_PERMISSION_STATE state);
+        [in] COREWEBVIEW2_PERMISSION_STATE state,
+        [in] ICoreWebView2StagingSetPermissionStateCompletedHandler* completedHandler);
 
   /// Invokes the handler with a collection of all nondefault permission settings.
   /// Use this method to get the permission state set in the current and previous
@@ -389,6 +408,14 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
   HRESULT GetNonDefaultPermissionCollection(
       [in] ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler*
           completedHandler);
+}
+
+/// The caller implements this interface to handle the result of
+/// `SetPermissionState`.
+[uuid(83972f3b-0716-4f78-b2ae-cc60d2bb807c), object, pointer_default(unique)]
+interface ICoreWebView2StagingSetPermissionStateCompletedHandler : IUnknown {
+  /// Provide the completion status of the corresponding asynchronous method.
+  HRESULT Invoke([in] HRESULT errorCode);
 }
 
 /// The caller implements this interface to handle the result of
@@ -499,8 +526,10 @@ namespace Microsoft.Web.WebView2.Core
             // example, "https://wwww.example.com/app1/index.html/" is treated
             // the same as "https://wwww.example.com". See the
             // [MDN origin definition](https://developer.mozilla.org/en-US/docs/Glossary/Origin) for more details.
-            void SetPermissionState(CoreWebView2PermissionKind permissionKind,
-                String origin, CoreWebView2PermissionState state);
+            Windows.Foundation.IAsyncAction SetPermissionStateAsync(
+                CoreWebView2PermissionKind PermissionKind,
+                String origin,
+                CoreWebView2PermissionState State);
 
             // Use this method to get all the nondefault permission settings
             // from the current and previous sessions.
