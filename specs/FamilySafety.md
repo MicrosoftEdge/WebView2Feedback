@@ -21,8 +21,8 @@ void CreateEnvrionmentWithOption()
     // by parents.
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     options.IsFamilySafetyEnabled = true;
-    // appassets.example is used as an example app content.
-    options.FamilySafetyAllowedUris.Add("appassets.example");
+    // appassets.example is used as an example app content. All subdomain are added to the allow list
+    options.FamilySafetyAllowedUris.Add("https://appassets.example/*");
     auto environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 ```
@@ -35,8 +35,8 @@ HRESULT InitializeWebView()
     // by parents.
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
     options->put_IsFamilySafetyEnabled(TRUE);
-    // appassets.example is used as an example app content.
-    const WCHAR* allowedUris[1] = {L"appassets.example"};
+    // appassets.example is used as an example app content. All subdomain are added to the allow list
+    const WCHAR* allowedUris[1] = {L"https://appassets.example/*"};
     options->SetFamilySafetyAllowedUris(1, allowedUris);
     HRESULT hr = CreateCoreWebView2EnvironmentWithOptions("", nullptr, options.Get(),
     Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
@@ -68,15 +68,25 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
 
   /// `GetFamilySafetyAllowedUris` and `SetFamilySafetyAllowedUris` allow developers to get and set
   /// the list of URIs that will be allowed by the Family Safety filter even when in Block All mode.
-  /// Uris with the same domain can be added by just adding the domain to the allowed list.
-  /// Individual uri can also be added to the allowed list with the full uri without https and www prefix.
   /// Family Safety provides web filtering control in two modes: Allow-all and Block-all. In 
   /// Allow-all mode, only sites that are blocked by the parents will be blocked. In 
   /// blocked-all mode, only allowed sites that are allowed by the parents are allowed. In this 
   /// scenario, apps using WebView2 will have their content blocked if enabled Family Safety in WebView2.
   /// Please see https://aka.ms/EdgeFamilySafetyContentFiltering for more details.
+  ///
+  /// The `uris` parameter value are list of uris that is a wildcard string matched aganist the 
+  /// navigation uri. This is a glob style wildcard string in which a `*` matches zero or more characters and 
+  /// `?` matches exactly one character.
+  /// These wildcard characters can be escaped using a backslash just before
+  /// the wildcard character in order to represent the literal `*` or `?`.
+  /// 
+  /// | URI Example | Navigation URI | Match | Notes |
+  /// | ---- | ---- | ---- | ---- |
+  /// | `https://example.com/a/b/c` | `https://exmaple.com/a/b/c` | Yes | Matches exact uri |
+  /// | `*` | `https://example.com/a/b/c` | Yes | A single * will match all URIs |
+  /// | `https://example.com/*` | `https://exmaple.com/a/b/c` | Yes | Matches everything in examle.com |
   /// \snippet AppWindow.cpp CoreWebView2FamilySafety
-  HRESULT GetFamilySafetyAllowedUris([out] UINT32* uriCounts, [out] LPWSTR** lists);
+  HRESULT GetFamilySafetyAllowedUris([out] UINT32* uriCounts, [out] LPWSTR** uris);
   HRESULT SetFamilySafetyAllowedUris([in] UINT32 urisCount, [in] LPCWSTR* uris);
 }
 ```
