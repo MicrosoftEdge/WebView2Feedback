@@ -496,7 +496,7 @@ namespace Microsoft.Web.WebView2.Core
 
         // The permission state set from the `PermissionRequested` event is persisted
         // across sessions by default and becomes the new default behavior for future
-        // `PermissionRequested` events. Browser heurisitics can affect whether the
+        // `PermissionRequested` events. Browser heuristics can affect whether the
         // event continues to be raised when the state is persisted. Set the
         // `ShouldPersist` property to `FALSE` to not persist the state beyond the
         // current request, and to continue to receive `PermissionRequested` events
