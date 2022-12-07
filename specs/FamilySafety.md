@@ -84,7 +84,7 @@ interface ICoreWebView2EnvironmentOptions3 : IUnknown {
   /// | ---- | ---- | ---- | ---- |
   /// | `https://example.com/a/b/c` | `https://exmaple.com/a/b/c` | Yes | Matches exact uri |
   /// | `*` | `https://example.com/a/b/c` | Yes | A single * will match all URIs |
-  /// | `https://example.com/*` | `https://exmaple.com/a/b/c` | Yes | Matches everything in examle.com |
+  /// | `https://example.com/*` | `https://exmaple.com/a/b/c` | Yes | Matches everything in example.com |
   /// \snippet AppWindow.cpp CoreWebView2FamilySafety
   HRESULT GetFamilySafetyAllowedUris([out] UINT32* uriCounts, [out] LPWSTR** uris);
   /// Set the family safety allowed URIs. See GetFamilySafetyAllowedUris for more information.
