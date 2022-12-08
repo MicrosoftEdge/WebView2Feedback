@@ -9,13 +9,13 @@ extended `PermissionRequested` event args and new permission APIs you will be ab
 - List all nondefault permissions
 - Control more permission kinds
 
-The new `ShouldPersist` property on the `PermissionRequestedEventArgs` lets you
+The new `SavesInProfile` property on the `PermissionRequestedEventArgs` lets you
 turn off the caching of permission state so that you can intercept all permission
 requests. By default, state set from the `PermissionRequested` event handler and default
-permission UI is cached across sessions and you may stop receiving PermissionRequested
+permission UI is saved across sessions and you may stop receiving PermissionRequested
 events for some permission kinds.
 
-The new APIs, `SetPermission` and `GetNonDefaultPermissionCollection`, provide
+The new APIs, `SetPermission` and `GetNonDefaultPermissionSettings`, provide
 all the information necessary to build a permission management page where a
 user can view and modify existing site permissions. The new permission kinds we will
 support are: local font list, automatic downloads, media autoplay, and file editing.
@@ -26,46 +26,56 @@ and existing [event args](https://learn.microsoft.com/en-us/dotnet/api/microsoft
 
 # Examples
 
-## Extended PermissionRequestedEventArgs: ShouldPersist
+## Extended PermissionRequestedEventArgs: SavesInProfile
+### C# Sample
 ```c#
+IDictionary<(string, CoreWebView2PermissionKind, bool), bool> _cachedPermissions =
+    new Dictionary<(string, CoreWebView2PermissionKind, bool), bool>();
+
 // In this example, the app listens to all requests and caches permission on its own
 // to decide whether to show custom UI to the user.
 void WebView_PermissionRequested(object sender, CoreWebView2PermissionRequestedEventArgs args)
 {
+    // Obtain a deferral for the event so that the CoreWebView2 doesn't examine
+    // the properties set on the event args until after the dialog is closed.
     CoreWebView2Deferral deferral = args.GetDeferral();
 
     System.Threading.SynchronizationContext.Current.Post((_) =>
     {
         using (deferral)
         {
-            try
-            {
-                // Do not persist state so that the PermissionRequested event is always
-                // raised and the app is in control of all permission requests.
-                args.ShouldPersist = false;
-            }
-            catch (NotImplementedException e)
-            {
-                Debug.WriteLine($"ShouldPersist is not available with this WebView2 Runtime version. Handle `NewBrowserVersionAvailable` to be notified when the Runtime can be updated: {e.Message}");
-            }
+            // Do not save state to the profile so that the PermissionRequested
+            // event is always raised and the app is in control of all
+            // permission requests.
+            args.SavesInProfile = false;
+            CoreWebView2PermissionState state = CoreWebView2PermissionState.Default;
             var cachedKey =
                 (args.Uri, args.PermissionKind, args.IsUserInitiated);
             if (_cachedPermissions.ContainsKey(cachedKey))
             {
-                args.State = _cachedPermissions[cachedKey]
+                state = _cachedPermissions[cachedKey]
                     ? CoreWebView2PermissionState.Allow
                     : CoreWebView2PermissionState.Deny;
             }
             else
             {
-                ShowPermissionDialog(args.Uri, args.PermissionKind,
-                  args.IsUserInitiated);
+                var allowed = ShowPermissionDialog(
+                    args.Uri, args.PermissionKind, args.IsUserInitiated);
+                state = allowed ? CoreWebView2PermissionState.Allow
+                                : CoreWebView2PermissionState.Deny;
+                _cachedPermissions[cachedKey] = allowed;
             }
+            args.State = state;
         }
     }, null);
 }
 ```
+
+### C++ Sample
 ```cpp
+std::map<std::tuple<std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>, bool>
+    m_cachedPermissions;
+
 // In this example, the app listens to all requests and caches permission on its own
 // to decide whether to show custom UI to the user.
 HRESULT SettingsComponent::OnPermissionRequested(
@@ -77,44 +87,54 @@ HRESULT SettingsComponent::OnPermissionRequested(
     wil::com_ptr<ICoreWebView2Deferral> deferral;
     CHECK_FAILURE(args->GetDeferral(&deferral));
 
-    // Do not persist state so that the PermissionRequested event is always
-    // raised and the app is in control of all permission requests.
+    // Do not save state to the profile so that the PermissionRequested event is
+    // always raised and the app is in control of all permission requests.
     auto extendedArgs = args.try_query<ICoreWebView2PermissionRequestedEventArgs3>();
     if (extendedArgs)
     {
-        CHECK_FAILURE(extendedArgs->put_ShouldPersist(FALSE));
+        CHECK_FAILURE(extendedArgs->put_SavesInProfile(FALSE));
     }
 
     // Do the rest asynchronously, to avoid calling dialog in an event handler.
-    m_appWindow->RunAsync([this, deferral, args]
+    m_appWindow->RunAsync([this, deferral,
+        args = wil::com_ptr<ICoreWebView2PermissionRequestedEventArgs>(args)]
     {
+        wil::unique_cotaskmem_string uri;
         COREWEBVIEW2_PERMISSION_KIND kind = COREWEBVIEW2_PERMISSION_KIND_UNKNOWN_PERMISSION;
         BOOL userInitiated = FALSE;
-        wil::unique_cotaskmem_string uri;
+        CHECK_FAILURE(args->get_Uri(&uri));
         CHECK_FAILURE(args->get_PermissionKind(&kind));
         CHECK_FAILURE(args->get_IsUserInitiated(&userInitiated));
-        CHECK_FAILURE(args->get_Uri(&uri));
 
+        COREWEBVIEW2_PERMISSION_STATE state = COREWEBVIEW2_PERMISSION_STATE_DEFAULT;
         auto cachedKey = std::make_tuple(std::wstring(uri.get()), kind, userInitiated);
         auto cachedPermission = m_cachedPermissions.find(cachedKey);
         if (cachedPermission != m_cachedPermissions.end())
         {
-            COREWEBVIEW2_PERMISSION_STATE state;
             state =
                 (cachedPermission->second ? COREWEBVIEW2_PERMISSION_STATE_ALLOW
-                                           : COREWEBVIEW2_PERMISSION_STATE_DENY);
-            CHECK_FAILURE(args->put_State(state));
+                                          : COREWEBVIEW2_PERMISSION_STATE_DENY);
         }
         else
         {
-            ShowPermissionDialog(uri, kind, userInitiated);
+            bool allowed = ShowPermissionDialog(uri, kind, userInitiated);
+            state = (allowed ? COREWEBVIEW2_PERMISSION_STATE_ALLOW
+                             : COREWEBVIEW2_PERMISSION_STATE_DENY);
+            m_cachedPermissions[cachedKey] = allowed;
         }
+        CHECK_FAILURE(args->put_State(state));
         CHECK_FAILURE(deferral->Complete());
     });
     return S_OK;
 }
 ```
-## SetPermission and GetNonDefaultPermissionCollection
+## SetPermission and GetNonDefaultPermissionSettings
+SetPermission allows the app to change the permissions granted to the WebView outside
+of a PermissionRequested event.
+
+GetNonDefaultPermissionSettings returns a collection of permissions previously granted
+or denied to the webview.
+### C# Sample
 ```c#
 // Gets the nondefault permission collection and updates a custom permission
 // management page.
@@ -133,10 +153,9 @@ async void WebView_PermissionManager_DOMContentLoaded(object sender,
     // a list of custom permissions set for this profile and let the end user
     // modify them.
     IReadOnlyList<CoreWebView2PermissionSetting> permissionList =
-        await WebViewProfile.GetNonDefaultPermissionCollectionAsync();
-    for (int j = 0; j < permissionList.Count; j++)
+        await webView.CoreWebView2.Profile.GetNonDefaultPermissionSettingsAsync();
+    foreach (CoreWebView2PermissionSetting setting in permissionList)
     {
-        var setting = permissionList[i];
         string reply = "{\"PermissionSetting\": \"" +
                         PermissionKindToString(setting.PermissionKind) + ", " +
                         setting.Origin + ", " +
@@ -172,18 +191,11 @@ void WebView_PermissionManager_WebMessageReceived(object sender,
             var dialog = new SetPermissionDialog();
             if (dialog.ShowDialog() == true)
             {
-                try
-                {
-                    SetPermissionState(
-                        (CoreWebView2PermissionKind)dialog.PermissionKind.SelectedItem,
-                        dialog.Origin.Text,
-                        (CoreWebView2PermissionState)dialog.PermissionState.SelectedItem);
-                }
-                catch (NotImplementedException e)
-                {
-                    Debug.WriteLine($"SetPermissionState failed: {e.Message}");
-                }
-          }
+                SetPermissionState(
+                    (CoreWebView2PermissionKind)dialog.PermissionKind.SelectedItem,
+                    dialog.Origin.Text,
+                    (CoreWebView2PermissionState)dialog.PermissionState.SelectedItem);
+            }
         }, null);
     }
 }
@@ -191,18 +203,21 @@ void WebView_PermissionManager_WebMessageReceived(object sender,
 async void SetPermissionState(CoreWebView2PermissionKind kind, string origin,
     CoreWebView2PermissionState state)
 {
-    // Example: WebViewProfile.SetPermissionState(
+    // Example: webView.CoreWebView2.Profile.SetPermissionState(
     //    CoreWebView2PermissionKind.Geolocation,
     //    "https://example.com",
     //    CoreWebView2PermissionState.Deny);
-    await WebViewProfile.SetPermissionStateAsync(
+    await webView.CoreWebView2.Profile.SetPermissionStateAsync(
         kind, origin, state);
     // Reload the permission management page.
     webView.Reload();
 }
 ```
 
+### C++ Sample
 ```cpp
+std::wstring m_sampleUri;
+
 ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
@@ -239,21 +254,21 @@ ScenarioPermissionManagement::ScenarioPermissionManagement(AppWindow* appWindow)
                     // app's permission management page. The permission management
                     // page can present a list of custom permissions set for this
                     // profile and let the end user modify them.
-                    CHECK_FAILURE(m_webViewProfile6->GetNonDefaultPermissionCollection(
+                    CHECK_FAILURE(m_webViewProfile6->GetNonDefaultPermissionSettings(
                         Callback<
-                            ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler>(
+                            ICoreWebView2GetNonDefaultPermissionSettingsCompletedHandler>(
                             [this, sender](
-                                HRESULT code, ICoreWebView2PermissionCollection*
-                                                  permissionCollection) -> HRESULT
+                                HRESULT code, ICoreWebView2PermissionSettingCollection*
+                                                  permissionSettingCollection) -> HRESULT
                             {
                                 UINT32 count;
-                                permissionCollection->get_Count(&count);
+                                permissionSettingCollection->get_Count(&count);
                                 for (UINT32 i = 0; i < count; i++)
                                 {
                                     wil::com_ptr<ICoreWebView2PermissionSetting>
                                         setting;
                                     CHECK_FAILURE(
-                                        permissionCollection->GetValueAtIndex(i, &setting));
+                                        permissionSettingCollection->GetValueAtIndex(i, &setting));
                                     COREWEBVIEW2_PERMISSION_KIND kind;
                                     CHECK_FAILURE(
                                         setting->get_PermissionKind(&kind));
@@ -344,14 +359,14 @@ typedef enum COREWEBVIEW2_PERMISSION_KIND {
   // Other permission kinds not shown.
 
   /// Indicates permission to automatically download multiple files. Permission
-  /// is requested when multiple downloads are triggered at the same time.
-  COREWEBVIEW2_PERMISSION_KIND_AUTOMATIC_DOWNLOADS,
+  /// is requested when multiple downloads are triggered in quick succession.
+  COREWEBVIEW2_PERMISSION_KIND_MULTIPLE_AUTOMATIC_DOWNLOADS,
 
-  /// Indicates permission to edit files or folders on the device. Permission
+  /// Indicates permission to read and write to files or folders on the device. Permission
   /// is requested when developers use the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API)
   /// to show the file or folder picker to the end user, and then request "readwrite"
   /// permission for the user's selection.
-  COREWEBVIEW2_PERMISSION_KIND_FILE_EDITING,
+  COREWEBVIEW2_PERMISSION_KIND_FILE_READ_WRITE,
 
   /// Indicates permission to play audio and video automatically on sites. This
   /// permission affects the autoplay attribute and play method of the audio and video
@@ -369,19 +384,19 @@ typedef enum COREWEBVIEW2_PERMISSION_KIND {
 /// This is a continuation of the `ICoreWebView2PermissionRequestedEventArgs`
 /// interface.
 [uuid(08595a19-44f0-41b1-9ae4-5889f5edadcb), object, pointer_default(unique)]
-interface ICoreWebView2PermissionRequestedEventArgs3:
-    ICoreWebView2PermissionRequestedEventArgs2 {
-  /// The permission state set from the `PermissionRequested` event is persisted
-  /// across sessions by default and becomes the new default behavior for future
-  /// `PermissionRequested` events. Browser heuristics can affect whether the
-  /// event continues to be raised when the state is persisted. Set the
-  /// `ShouldPersist` property to `FALSE` to not persist the state beyond the
-  /// current request, and to continue to receive `PermissionRequested` events
-  /// for this origin and permission kind.
-  [propget] HRESULT ShouldPersist([out, retval] BOOL* value);
+interface ICoreWebView2StagingPermissionRequestedEventArgs3: IUnknown {
+  /// The permission state set from the `PermissionRequested` event is saved in
+  /// the profile by default; it persists across sessions and becomes the new
+  /// default behavior for future `PermissionRequested` events. Browser
+  /// heuristics can affect whether the event continues to be raised when the
+  /// state is saved in the profile. Set the `SavesInProfile` property to
+  /// `FALSE` to not persist the state beyond the current request, and to
+  /// continue to receive `PermissionRequested`
+  /// events for this origin and permission kind.
+  [propget] HRESULT SavesInProfile([out, retval] BOOL* value);
 
-  /// Sets the `ShouldPersist` property.
-  [propput] HRESULT ShouldPersist([in] BOOL value);
+  /// Sets the `SavesInProfile` property.
+  [propput] HRESULT SavesInProfile([in] BOOL value);
 }
 
 /// This is the ICoreWebView2 interface for the permission management APIs.
@@ -390,12 +405,14 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
   /// Sets permission state for the given permission kind and origin
   /// asynchronously. The change persists across sessions until it is changed by
   /// another call to `SetPermissionState`, or by setting the `State` property
-  /// in `PermissionRequestedEventArgs`. The origin should have a valid scheme
-  /// and host (e.g. "https://www.example.com"), otherwise the method fails with
-  /// `E_INVALIDARG`. Additional URI parts like path and fragment are ignored.
-  /// For example, "https://wwww.example.com/app1/index.html/" is treated the
-  /// same as "https://wwww.example.com". See the [MDN origin definition](https://developer.mozilla.org/en-US/docs/Glossary/Origin)
-  /// for more details.
+  /// in `PermissionRequestedEventArgs`. Setting the state to
+  /// `COREWEBVIEW2_PERMISSION_STATE_DEFAULT` will erase any state saved in the
+  /// profile and restore the default behavior.
+  /// The origin should have a valid scheme and host (e.g. "https://www.example.com"),
+  /// otherwise the method fails with `E_INVALIDARG`. Additional URI parts like
+  /// path and fragment are ignored. For example, "https://wwww.example.com/app1/index.html/"
+  /// is treated the same as "https://wwww.example.com". See the
+  /// [MDN origin definition](https://developer.mozilla.org/en-US/docs/Glossary/Origin) for more details.
   HRESULT SetPermissionState(
         [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
         [in] LPCWSTR origin,
@@ -405,8 +422,8 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
   /// Invokes the handler with a collection of all nondefault permission settings.
   /// Use this method to get the permission state set in the current and previous
   /// sessions.
-  HRESULT GetNonDefaultPermissionCollection(
-      [in] ICoreWebView2GetNonDefaultPermissionCollectionCompletedHandler*
+  HRESULT GetNonDefaultPermissionSettings(
+      [in] ICoreWebView2GetNonDefaultPermissionSettingsCompletedHandler*
           completedHandler);
 }
 
@@ -419,20 +436,20 @@ interface ICoreWebView2StagingSetPermissionStateCompletedHandler : IUnknown {
 }
 
 /// The caller implements this interface to handle the result of
-/// `GetNonDefaultPermissionCollection`.
+/// `GetNonDefaultPermissionSettings`.
 [uuid(64889aec-34d0-47e3-86ed-a4df204f8dcf), object, pointer_default(unique)]
 interface
-ICoreWebView2GetNonDefaultPermissionCollectionCompletedEventHandler : IUnknown {
-  /// Provides the permission collection for the requested permission kind.
+ICoreWebView2GetNonDefaultPermissionSettingsCompletedEventHandler : IUnknown {
+  /// Provides the permission setting collection for the requested permission kind.
   HRESULT Invoke([in] HRESULT errorCode,
-      [in] ICoreWebView2PermissionCollection* permissionCollection);
+      [in] ICoreWebView2PermissionSettingCollection* permissionSettingCollection);
 }
 
 /// Collection of `PermissionSetting`s (origin, kind, and state). Used to list
 /// the nondefault permission settings on the profile that are persisted across
 /// sessions.
 [uuid(d862e9e0-67e7-4a33-ba7d-7db22c82f74d), object, pointer_default(unique)]
-interface ICoreWebView2PermissionCollection : IUnknown {
+interface ICoreWebView2PermissionSettingCollection : IUnknown {
   /// Gets the `ICoreWebView2PermissionSetting` at the specified index.
   HRESULT GetValueAtIndex([in] UINT32 index,
                           [out, retval] ICoreWebView2PermissionSetting** permissionSetting);
@@ -456,6 +473,7 @@ interface ICoreWebView2PermissionSetting : IUnknown {
   [propget] HRESULT State([out, retval] COREWEBVIEW2_PERMISSION_STATE* value);
 }
 ```
+
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
@@ -464,15 +482,15 @@ namespace Microsoft.Web.WebView2.Core
         // Other permission kinds not shown.
 
         // Indicates permission to automatically download multiple files.
-        // Permission is requested whenever multiple downloads are triggered at
-        // the same time.
-        AutomaticDownloads = 7,
+        // Permission is requested whenever multiple downloads are triggered in
+        // quick succession.
+        MultipleAutomaticDownloads = 7,
 
-        // Indicates permission to edit files or folders on the device. Permission
-        // is requested when developers use the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) to show
-        // the file or folder picker to the end user, and then request "readwrite"
-        // permission for the user's selection.
-        FileEditing = 8,
+        // Indicates permission to read and write to files or folders on the device.
+        // Permission is requested when developers use the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API)
+        // to show the file or folder picker to the end user, and then request
+        // "readwrite" permission for the user's selection.
+        FileReadWrite = 8,
 
         // Indicates permission to play audio and video automatically on sites. This
         // permission affects the autoplay attribute and play method of the audio and
@@ -494,16 +512,17 @@ namespace Microsoft.Web.WebView2.Core
     {
         // Other members not shown.
 
-        // The permission state set from the `PermissionRequested` event is persisted
-        // across sessions by default and becomes the new default behavior for future
-        // `PermissionRequested` events. Browser heuristics can affect whether the
-        // event continues to be raised when the state is persisted. Set the
-        // `ShouldPersist` property to `FALSE` to not persist the state beyond the
-        // current request, and to continue to receive `PermissionRequested` events
-        // for this origin and permission kind.
+        // The permission state set from the `PermissionRequested` event is
+        // saved in the profile by default; it persists across sessions and
+        // becomes the new default behavior for future `PermissionRequested` events.
+        // Browser heuristics can affect whether the event continues to be raised
+        // when the state is saved in the profile. Set the `SavesInProfile`
+        // property to `FALSE` to not persist the state beyond the current request,
+        // and to continue to receive `PermissionRequested` events for this origin
+        // and permission kind.
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2PermissionRequestedEventArgs3")]
         {
-            Boolean ShouldPersist { get; set; };
+            Boolean SavesInProfile { get; set; };
         }
     }
 }
@@ -519,8 +538,10 @@ namespace Microsoft.Web.WebView2.Core
             // Sets permission state for the given permission kind and origin
             // asynchronously. The change persists across sessions until it is
             // changed by another call to `SetPermissionState`, or by setting
-            // the `State` property in `PermissionRequestedEventArgs`. The
-            // origin should have a valid scheme and host (e.g.
+            // the `State` property in `PermissionRequestedEventArgs`. Setting
+            // the state to `CoreWebView2PermissionState.Default` will erase any
+            // state saved in the profile and restore the default behavior.
+            // The origin should have a valid scheme and host (e.g.
             // "https://www.example.com"), otherwise the method fails.
             // Additional URI parts like path and fragment are ignored. For
             // example, "https://wwww.example.com/app1/index.html/" is treated
@@ -534,7 +555,7 @@ namespace Microsoft.Web.WebView2.Core
             // Use this method to get all the nondefault permission settings
             // from the current and previous sessions.
            Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2PermissionSetting>>
-           GetNonDefaultPermissionCollectionAsync();
+           GetNonDefaultPermissionSettingsAsync();
         }
     }
 
