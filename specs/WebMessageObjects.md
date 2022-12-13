@@ -1,7 +1,8 @@
 # Background
 This is a proposal for a new API that will provide a framework for native representation of DOM
-objects from page content in WebView2 and its implementation for DOM File objects.. The (specific
-ask from WebView2)[https://github.com/MicrosoftEdge/WebView2Feedback/issues/501] is to be able get
+objects from page content in WebView2 and its implementation for DOM File objects.. The [specific
+ask from WebView2](https://github.com/MicrosoftEdge/WebView2Feedback/issues/501) is to be able get
+
 to the paths for DOM file objects, which is not accessible to page content. We also have asks to
 expose other DOM objects, including iframes, <object> objects, etc. which will be added under this
 WebMessageObjects framework in future.
