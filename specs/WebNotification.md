@@ -330,7 +330,7 @@ interface ICoreWebView2NotificationReceivedEventArgs : IUnknown {
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Uri([out, retval] LPWSTR* uri);
+  [propget] HRESULT Uri([out, retval] LPWSTR* value);
 
   /// The notification that was received. End developers can access the
   /// properties on the Notification object to show their own notification. 
@@ -342,10 +342,10 @@ interface ICoreWebView2NotificationReceivedEventArgs : IUnknown {
   ///
   /// If `Handled` is set to TRUE then WebView will not display the notification
   /// with the default UI, and the host will be responsible for handling the
-  /// notification and let the web content know that the notification has been
+  /// notification and for letting the web content know that the notification has been
   /// displayed, clicked, or closed. If after the event handler or deferral
   /// completes `Handled` is set to FALSE then WebView will display the default
-  /// notification. Note that if `Show` has been called on the `Notification`
+  /// notification UI. Note that if `Show` has been called on the `Notification`
   /// object, WebView will not display the default notification regardless of
   /// the Handled property. The default value is FALSE.
   [propput] HRESULT Handled([in] BOOL value);
@@ -478,7 +478,7 @@ interface ICoreWebView2Notification : IUnknown {
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Title ([out, retval] LPWSTR* title);
+  [propget] HRESULT Title([out, retval] LPWSTR* title);
 
 
   /// The actions available for users to choose from for interacting with the
