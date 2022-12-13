@@ -10,7 +10,17 @@ The `NotificationReceived` events are raised on `CorebWebView2` and
 `CoreWebView2Profile` object respectively for non-persistent and persistent
 notifications respectively.
 
-The `NotificationReceived` event on `CoreWebView2` and `CoreWebView2Profile` let you intercept the web non-persistent and persistent notifications. The host can use the `Notification` property on the `NotificationReceivedEventArgs` to construct an notification matching the look and feel of the host app. The host can also use such information to decide to show or not show a particular notification. The host can `GetDeferral` or set the `Handled` property on the `NotificationReceivedEventArgs` to handle the event at a later time or let WebView2 know if the notification has been handled. By default, if the `NotificationReceived` event is not handled by the host, the web notification will be displayed using the default notification UI provided by WebView2 Runtime.
+The `NotificationReceived` event on `CoreWebView2` and `CoreWebView2Profile` let
+you intercept the web non-persistent and persistent notifications. The host can
+use the `Notification` property on the `NotificationReceivedEventArgs` to
+construct an notification matching the look and feel of the host app. The host
+can also use such information to decide to show or not show a particular
+notification. The host can `GetDeferral` or set the `Handled` property on the
+`NotificationReceivedEventArgs` to handle the event at a later time or let
+WebView2 know if the notification has been handled. By default, if the
+`NotificationReceived` event is not handled by the host, the web notification
+will be displayed using the default notification UI provided by WebView2
+Runtime.
 
 # Examples
 
@@ -251,28 +261,16 @@ void SettingsComponent::ShowNotification(
 ```cpp
 /// Specifies the text direction of the notification.
 [v1_enum]
-typedef enum COREWEBVIEW2_NOTIFICATION_DIRECTION_KINDS {
+typedef enum COREWEBVIEW2_TEXT_DIRECTION_KINDS {
   /// Indicates that the notification text direction adopts the browser's language setting behavior.
-  COREWEBVIEW2_NOTIFICATION_DIRECTION_KINDS_AUTO,
+  COREWEBVIEW2_TEXT_DIRECTION_KINDS_DEFAULT,
 
   /// Indicates that the notification text is left-to-right.
-  COREWEBVIEW2_NOTIFICATION_DIRECTION_KINDS_LTR,
+  COREWEBVIEW2_TEXT_DIRECTION_KINDS_LEFT_TO_RIGHT,
 
   /// Indicates that the notification text is right-to-left.
-  COREWEBVIEW2_NOTIFICATION_DIRECTION_KINDS_RTL,
-} COREWEBVIEW2_NOTIFICATION_DIRECTION_KINDS;
-
-/// This is the notification action for interacting with the notification.
-typedef struct COREWEBVIEW2_NOTIFICATION_ACTION {
-  /// A string identifying a user action to be displayed on the notification.
-  LPWSTR Action;
-
-  /// A string containing action text to be shown to the user.
-  LPWSTR Title;
-
-  /// A string containing the URL of an icon to display with the action.
-  LPWSTR Icon;
-} COREWEBVIEW2_NOTIFICATION_ACTION;
+  COREWEBVIEW2_TEXT_DIRECTION_KINDS_RIGHT_TO_LEFT,
+} COREWEBVIEW2_TEXT_DIRECTION_KINDS;
 
 /// This is the ICoreWebView2Profile3 interface that manages WebView2 Web
 /// Notification functionality.
@@ -334,7 +332,7 @@ interface ICoreWebView2NotificationReceivedEventArgs : IUnknown {
 
   /// The notification that was received. End developers can access the
   /// properties on the Notification object to show their own notification. 
-  [propget] HRESULT Notification([out, retval] ICoreWebView2Notification** notification);
+  [propget] HRESULT Notification([out, retval] ICoreWebView2Notification** value);
   
   /// Sets whether the `NotificationReceived` event is handled by the host after
   /// the event handler completes or if there is a deferral then after the
@@ -367,16 +365,29 @@ interface ICoreWebView2NotificationClosedEventHandler : IUnknown {
       [in] IUnknown* args);
 }
 
+/// This is the notification for interacting with the notification.
+[uuid(07DD3067-2B86-47F6-AB96-D74825C2DA41), object, pointer_default(unique)]
+interface ICoreWebView2NotificationAction : IUnknown {
+  /// A string identifying a user action to be displayed on the notification.
+  [propget] HRESULT Action([out, retval] LPWSTR* value);
+
+  /// A string containing action text to be shown to the user.
+  [propget] HRESULT Title([out, retval] LPWSTR* value);
+
+  /// A string containing the URI of an icon to display with the action.
+  [propget] HRESULT IconUri([out, retval] LPWSTR* value);
+}
+
 /// A collection of notification actions.
 [uuid(89D8907E-18C7-458B-A970-F91F645E4C43), object, pointer_default(unique)]
-interface ICoreWebView2NotificationActionCollection : IUnknown {
+interface ICoreWebView2NotificationActionCollectionView : IUnknown {
   /// The number of notification actions contained in the
-  /// ICoreWebView2NotificationActionCollection.
-  [propget] HRESULT Count([out, retval] UINT* count);
+  /// ICoreWebView2NotificationActionCollectionView.
+  [propget] HRESULT Count([out, retval] UINT* value);
 
   /// Gets the notification action at the given index.
   HRESULT GetValueAtIndex([in] UINT index,
-                          [out, retval] COREWEBVIEW2_NOTIFICATION_ACTION* value);
+                          [out, retval] ICoreWebView2NotificationAction** value);
 }
 
 /// A collection of unsigned long integers.
@@ -384,7 +395,7 @@ interface ICoreWebView2NotificationActionCollection : IUnknown {
 interface ICoreWebView2UnsignedLongCollection : IUnknown {
   /// The number of unsigned long integers contained in the
   /// ICoreWebView2UnsignedLongCollection.
-  [propget] HRESULT Count([out, retval] UINT* count);
+  [propget] HRESULT Count([out, retval] UINT* value);
 
   /// Gets the unsigned long integer at the given index.
   HRESULT GetValueAtIndex([in] UINT index, [out, retval] UINT64* value);
@@ -418,7 +429,7 @@ interface ICoreWebView2Notification : IUnknown {
 
   /// The host may run this to report the persistent notification has been
   /// activated with a given action. The action index corresponds to the index
-  /// in NotificationActionCollection. This returns `E_INVALIDARG` if an invalid
+  /// in NotificationActionCollectionView. This returns `E_INVALIDARG` if an invalid
   /// action index is provided. Use `Click` to activate an non-persistent
   /// notification. This will no-op if `Show` is not run or `Close` has been
   /// run.
@@ -434,17 +445,17 @@ interface ICoreWebView2Notification : IUnknown {
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Body ([out, retval] LPWSTR* body);
+  [propget] HRESULT Body([out, retval] LPWSTR* value);
 
   /// Returns an IDataObject that represents a structured clone of the
   /// notification's data.
   /// Returns `null` if the optional Notification property does not exist.
-  [propget] HRESULT Data ([out, retval] IDataObject** data);
+  [propget] HRESULT Data([out, retval] IDataObject** value);
 
   /// The text direction of the notification as specified in the constructor's
   /// options parameter.
-  /// The default value is `COREWEBVIEW2_NOTIFICATION_DIRECTION_KINDS_AUTO`.
-  [propget] HRESULT Direction ([out, retval] COREWEBVIEW2_NOTIFICATION_DIRECTION_KINDS* value);
+  /// The default value is `COREWEBVIEW2_TEXT_DIRECTION_KINDS_DEFAULT`.
+  [propget] HRESULT Direction([out, retval] COREWEBVIEW2_TEXT_DIRECTION_KINDS* value);
 
   /// The language code of the notification as specified in the constructor's
   /// options parameter. It is in the format of
@@ -455,7 +466,7 @@ interface ICoreWebView2Notification : IUnknown {
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Language ([out, retval] LPWSTR* language);
+  [propget] HRESULT Language([out, retval] LPWSTR* value);
 
   /// The ID of the notification (if any) as specified in the constructor's
   /// options parameter.
@@ -463,67 +474,67 @@ interface ICoreWebView2Notification : IUnknown {
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Tag ([out, retval] LPWSTR* tag);
+  [propget] HRESULT Tag([out, retval] LPWSTR* value);
 
-  /// The URL of the image used as an icon of the notification as specified in
+  /// The URI of the image used as an icon of the notification as specified in
   /// the constructor's options parameter.
   /// Returns `null` if the optional Notification property does not exist.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Icon ([out, retval] LPWSTR* icon);
+  [propget] HRESULT IconUri([out, retval] LPWSTR* value);
 
   /// The title of the notification as specified in the first parameter of the
   /// constructor.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Title([out, retval] LPWSTR* title);
+  [propget] HRESULT Title([out, retval] LPWSTR* value);
 
 
   /// The actions available for users to choose from for interacting with the
   /// notification. Note that actions are only supported for persistent notifications.
-  /// Returns `null` if the optional Notification property does not exist.
-  [propget] HRESULT Actions([out, retval] ICoreWebView2NotificationActionCollection** actions);
+  /// An empty NotificationActionCollectionView is returned if no notification actions.
+  [propget] HRESULT Actions([out, retval] ICoreWebView2NotificationActionCollectionView** value);
 
-  /// The URL of the image used to represent the notification when there is not
+  /// The URI of the image used to represent the notification when there is not
   /// enough space to display the notification itself.
   /// Returns `null` if the optional Notification property does not exist.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Badge([out, retval] LPWSTR* badge);
+  [propget] HRESULT BadgeUri([out, retval] LPWSTR* value);
 
-  /// The URL of an image to be displayed as part of the notification.
+  /// The URI of an image to be displayed as part of the notification.
   /// Returns `null` if the optional Notification property does not exist.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Image([out, retval] LPWSTR* image);
+  [propget] HRESULT ImageUri([out, retval] LPWSTR* value);
 
   /// Specifies whether the user should be notified after a new notification
   /// replaces an old one.
   /// The default value is `FALSE`.
-  [propget] HRESULT Renotify([out, retval] BOOL* renotify);
+  [propget] HRESULT Renotify([out, retval] BOOL* value);
 
   /// A boolean value indicating that a notification should remain active until
   /// the user clicks or dismisses it, rather than closing automatically.
   /// The default value is `FALSE`.
-  [propget] HRESULT RequireInteraction([out, retval] BOOL* requireInteraction);
+  [propget] HRESULT RequireInteraction([out, retval] BOOL* value);
 
   /// Specifies whether the notification should be silent — i.e., no sounds or
   /// vibrations should be issued, regardless of the device settings.
   /// The default value is `FALSE`.
-  [propget] HRESULT Silent([out, retval] BOOL* silent);
+  [propget] HRESULT Silent([out, retval] BOOL* value);
 
   /// Specifies the time at which a notification is created or applicable (past,
   /// present, or future).
   /// Returns `null` if the optional Notification property does not exist.
-  [propget] HRESULT Timestamp([out, retval] double* timestamp);
+  [propget] HRESULT Timestamp([out, retval] double* value);
 
   /// Specifies a vibration pattern for devices with vibration hardware to emit.
   /// Returns `null` if the optional Notification property does not exist.
-  [propget] HRESULT Vibrate([out, retval] ICoreWebView2UnsignedLongCollection** vibrationPattern);
+  [propget] HRESULT Vibrate([out, retval] ICoreWebView2UnsignedLongCollection** value);
 }
 ```
 
@@ -532,20 +543,13 @@ namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2NotificationReceivedEventArgs;
     runtimeclass CoreWebView2Notification;
-    struct CoreWebView2NotificationAction
+    runtimeclass CoreWebView2NotificationAction
     {
-        String Action;
-        String title;
-        String Icon;
-
-    };
-    struct CoreWebView2NotificationAction
-    {
-        String Action;
-        String title;
-        String Icon;
-
-    };
+        // ICoreWebView2NotificationAction members
+        String Action { get; };
+        String Title { get; };
+        String IconUri { get; };
+    }
     runtimeclass CoreWebView2Profile
     {
         ...
@@ -563,9 +567,6 @@ namespace Microsoft.Web.WebView2.Core
         {
             // ICoreWebView2_17 members
             event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2NotificationReceivedEventArgs> NotificationReceived;
-
-
-
         }
         ...
     }
@@ -585,11 +586,11 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2NotificationDirectionKinds Direction { get; };
         String Language { get; };
         String Tag { get; };
-        String Icon { get; };
+        String IconUri { get; };
         String Title { get; };
         IVectorView<CoreWebView2NotificationAction> Actions { get; };
-        String Badge { get; };
-        String Image { get; };
+        String BadgeUri { get; };
+        String ImageUri { get; };
         Boolean Renotify { get; };
         Boolean RequireInteraction { get; };
         Boolean Silent { get; };
