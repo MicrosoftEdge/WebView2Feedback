@@ -1,32 +1,29 @@
 # Background
 This is a proposal for a new API that will provide a framework for native representation of DOM
-objects from page content in WebView2 and its implementation for DOM File objects.. The [specific
+objects from page content in WebView2 and its implementation for DOM File objects. The [specific
 ask from WebView2](https://github.com/MicrosoftEdge/WebView2Feedback/issues/501) is to be able get
-
 to the paths for DOM file objects, which is not accessible to page content. We also have asks to
 expose other DOM objects, including iframes, <object> objects, etc. which will be added under this
 WebMessageObjects framework in future.
 
-Also in future we want to be able to to inject DOM objects into WebView2 content constructed via the
+Also in future we want to be able to inject DOM objects into WebView2 content constructed via the
 app and via the CoreWebView2.PostWebMessage API in the other direction. This API surface needs to be
 compatible with that. (See Appendix)
 
 # Conceptual pages (How To)
 WebMessageObjects are representations of DOM objects that can be passed via the [WebView2 WebMessage
 API](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2webmessagereceivedeventargs).
-
 You can examine supported DOM objects using native reflections of the types.
 
 Currently the only supported DOM object type with this API is:
-- [File](https://developer.mozilla.org/en-US/docs/Web/API/File)
+- [File](https://developer.mozilla.org/docs/Web/API/File)
 
 Page content in WebView2 can pass objects to the app via the
-`chrome.webview.postMessageWithAdditionalObjects(string message, array<object> objects)` content API
+`chrome.webview.postMessageWithAdditionalObjects(string message, ArrayLike<object> objects)` content API
 that takes in the array of such supported DOM objects or you can also use
-[ExecuteScript](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.winforms.webview2.executescriptasync)
-
-with same API. If an invalid or unsupported object is passed via this API, an exception will be
-thrown to the caller and the message will fail to post.
+(ExecuteScript)[https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.winforms.webview2.executescriptasync]
+with same API. `null` or `undefined` objects will be passed as `null`. Otherwise, if an invalid or unsupported object is
+passed via this API, an exception will be thrown to the caller and the message will fail to post.
 
 On the WebMessageReceived event handler, the app will retrieve the native representation of objects
 via `AdditionalObjects` property and cast the passed objects to their native types. For example, the
@@ -54,41 +51,52 @@ input.addEventListener('change', function() {
 ```
 
 ```cpp
-m_webView->add_WebMessageReceived(
+CHECK_FAILURE(m_webView->add_WebMessageReceived(
     Callback<ICoreWebView2WebMessageReceivedEventHandler>(
-        [this](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args)
+        [this](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args) noexcept
         {
-            wil::com_ptr<ICoreWebView2WebMessageReceivedEventArgs2> args2 =
-                wil::com_ptr<ICoreWebView2WebMessageReceivedEventArgs>(args)
-                    .query<ICoreWebView2WebMessageReceivedEventArgs2>();
-            wil::com_ptr<ICoreWebView2WebMessageObjectCollectionView>
-                objectsCollection;
-            args2->get_AdditionalObjects(&objectsCollection);
-            unsigned int length;
-            objectsCollection->get_Count(&length);
-            std::vector<std::wstring> paths;
-
-            for (unsigned int i = 0; i < length; i++)
-            {
-                wil::com_ptr<IUnknown> object;
-                objectsCollection->GetValueAtIndex(i, &object);
-
-                wil::com_ptr<ICoreWebView2File> file =
-                    object.query<ICoreWebView2File>();
-                if (file)
+            wil::unique_cotaskmem_string message;
+            CHECK_FAILURE(args->TryGetWebMessageAsString(&message));
+            if (std::wstring(L"FilesDropped") == message.get())
+            {  
+                wil::com_ptr<ICoreWebView2WebMessageReceivedEventArgs2> args2 =
+                    wil::com_ptr<ICoreWebView2WebMessageReceivedEventArgs>(args)
+                        .query<ICoreWebView2WebMessageReceivedEventArgs2>();
+                if (args2)
                 {
-                    // Add the file to message to be sent back to webview
-                    wil::unique_cotaskmem_string path;
-                    file->get_Path(&path);
-                    paths.push_back(path.get());
-                }
-            }
+                    wil::com_ptr<ICoreWebView2WebMessageObjectCollectionView>
+                        objectsCollection;
+                    CHECK_FAILURE(args2->get_AdditionalObjects(&objectsCollection));
+                    unsigned int length;
+                    CHECK_FAILURE(objectsCollection->get_Count(&length));
+                    std::vector<std::wstring> paths;
 
-            ProcessPaths(paths);
+                    for (unsigned int i = 0; i < length; i++)
+                    {
+                        wil::com_ptr<IUnknown> object;
+                        CHECK_FAILURE(objectsCollection->GetValueAtIndex(i, &object));
+                        // Note that objects can be null.
+                        if (object)
+                        {
+                            wil::com_ptr<ICoreWebView2File> file =
+                                object.query<ICoreWebView2File>();
+                            if (file)
+                            {
+                                // Add the file to message to be sent back to webview
+                                wil::unique_cotaskmem_string path;
+                                CHECK_FAILURE(file->get_Path(&path));
+                                paths.push_back(path.get());
+                            }
+                        }
+                    }
+                    ProcessPaths(paths);
+                }
+
+            }
             return S_OK;
         })
         .Get(),
-    &m_webMessageReceivedToken);
+    &m_webMessageReceivedToken));
 ```
 
 ```c#
@@ -111,7 +119,7 @@ void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageRece
 ## SDK API
 ```c#
 /// Representation of a DOM
-/// (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] object
+/// (File)[https://developer.mozilla.org/docs/Web/API/File] object
 /// passed via WebMessage. You can use this object to obtain the path of a
 /// File dropped on WebView2.
 /// \snippet ScenarioDragDrop.cpp DroppedFilePath
@@ -195,7 +203,7 @@ interface WebView extends EventTarget {
      * The following DOM types are mapped to native:
      * DOM      | Win32       | .NET     | WinRT
      * -------- | ------------|----------| --------
-     * (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] | ICoreWebView2File | (System.IO.FileInfo)[https://learn.microsoft.com/en-us/dotnet/api/system.io.fileinfo] | (Windows.Storage.StorageFile)[https://learn.microsoft.com/en-us/uwp/api/windows.storage.storagefile]
+     * (File)[https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File | (System.IO.FileInfo)[https://learn.microsoft.com/dotnet/api/system.io.fileinfo] | (Windows.Storage.StorageFile)[https://learn.microsoft.com/uwp/api/windows.storage.storagefile]
      * If an invalid or unsupported object is passed via this API, an exception
      * will be thrown and the message will fail to post.
      * @example
@@ -217,7 +225,7 @@ interface WebView extends EventTarget {
 ## Draft API Proposal to post DOM Objects injected to WebView2 Content
 ```c#
 /// Representation of a DOM
-/// (File)[https://developer.mozilla.org/en-US/docs/Web/API/File] object
+/// (File)[https://developer.mozilla.org/docs/Web/API/File] object
 /// passed via WebMessage. You can use this object to obtain the path of a
 /// File dropped on WebView2 or pass a File to WebView2 content.
 /// \snippet ScenarioDragDrop.cpp DroppedFilePath
@@ -270,7 +278,7 @@ interface ICoreWebView2_17 : IUnknown {
   /// with `E_INVALIDARG`.
   ///
   ///
-  [propget] HRESULT PostWebMessageAsJsonWithAdditionalObjects(
+  HRESULT PostWebMessageAsJsonWithAdditionalObjects(
     [in] LPCWSTR webMessageAsJson,
     [in] ICoreWebView2ObjectCollectionView additionalObjects);
 }
