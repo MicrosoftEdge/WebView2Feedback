@@ -22,7 +22,8 @@ Currently the only supported DOM object type with this API is:
 Page content in WebView2 can pass objects to the app via the
 `chrome.webview.postMessageWithAdditionalObjects(string message, array<object> objects)` content API
 that takes in the array of such supported DOM objects or you can also use
-(ExecuteScript)[https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.winforms.webview2.executescriptasync]
+[ExecuteScript](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.winforms.webview2.executescriptasync)
+
 with same API. If an invalid or unsupported object is passed via this API, an exception will be
 thrown to the caller and the message will fail to post.
 
