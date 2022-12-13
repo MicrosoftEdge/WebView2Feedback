@@ -13,7 +13,8 @@ compatible with that. (See Appendix)
 
 # Conceptual pages (How To)
 WebMessageObjects are representations of DOM objects that can be passed via the [WebView2 WebMessage
-API](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2webmessagereceivedeventargs).
+API](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2webmessagereceivedeventargs).
+
 You can examine supported DOM objects using native reflections of the types.
 
 Currently the only supported DOM object type with this API is:
