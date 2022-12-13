@@ -541,8 +541,12 @@ interface ICoreWebView2Notification : IUnknown {
 ```csharp
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2NotificationReceivedEventArgs;
-    runtimeclass CoreWebView2Notification;
+    enum CoreWebView2TextDirectionKinds
+    {
+        Default = 0,
+        LeftToRight = 1,
+        RightToLeft = 2,
+    };
     runtimeclass CoreWebView2NotificationAction
     {
         // ICoreWebView2NotificationAction members
