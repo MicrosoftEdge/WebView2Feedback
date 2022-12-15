@@ -169,21 +169,11 @@ void ScenarioCookieManagement::DeleteAllCookies()
 ### Delete profile
 
 ```cpp
-HRESULT AppWindow::DeleteProfile(ICoreWebView2Controller* controller)
+HRESULT AppWindow::DeleteProfile(ICoreWebView2* webView2)
 {
-    wil::com_ptr<ICoreWebView2> coreWebView2;
-    CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
-    auto webview7 = coreWebView2.try_query<ICoreWebView2_7>();
-    if (webview7)
-    {
-        wil::com_ptr<ICoreWebView2Profile> profile;
-        CHECK_FAILURE(webview7->get_Profile(&profile));
-        auto profile2 = profile.try_query<ICoreWebView2StagingProfile4>();
-        if (profile2)
-        {
-            CHECK_FAILURE(profile2->Delete());
-        }
-    }
+    wil::com_ptr<ICoreWebView2Profile> profile;
+    CHECK_FAILURE(webView2->get_Profile(&profile));
+    CHECK_FAILURE(profile2->Delete());
 }
 ```
 
@@ -253,7 +243,7 @@ public DeleteProfile(CoreWebView2Controller controller)
 {
     // Get the profile object.
     CoreWebView2Profile profile = controller.CoreWebView2.Profile;
-    
+
     // Delete current profile.
     profile.Delete();
 }
@@ -365,14 +355,20 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
 
 [uuid(1c1ae2cc-d5c2-ffe3-d3e7-7857035d23b7), object, pointer_default(unique)]
 interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
-  /// All webviews on this profile will be closed, and the profile will be marked for deletion.
-  /// After the Delete() call completes, The render process of webviews on this profile will
-  /// asynchronously exit with the reason:`COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED`.
-  /// See 'COREWEBVIEW2_PROCESS_FAILED_REASON::COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED'
-  /// for more details. The profile directory on disk will be actually deleted when the browser
-  /// process exits. Webview2 creation will fail with the HRESULT is ERROR_INVALID_STATE(0x8007139FL)
-  /// if you create it with the same name as a profile that is being deleted.
-  HRESULT Delete(); 
+  /// After the API is called, the profile will be marked for deletion. The
+  /// local profile’s directory will be tried to delete at browser process
+  /// exit, if fail to delete, it will recursively try to delete at next
+  /// browser process start until successful.
+  /// The corresponding user's `ProfileDeleted` event handle function will
+  /// be triggered. After the function is triggered, continuing to use the
+  /// profile or its corresponding webviews is an undefined behavior.
+  /// For each WebView of the same profile, the WebView will be auto closed.
+  /// If the user has registered an event handler for ProfileDeleted event,
+  /// the event handle will be invoked before WebView is closed.
+  /// If create a new profile with the same name as the profile that has been
+  /// marked as deleted will be failure with the HRESULT:ERROR_INVALID_STATE
+  /// (0x8007139FL).
+  HRESULT Delete();
 }
 ```
 
