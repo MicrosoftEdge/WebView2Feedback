@@ -101,7 +101,7 @@ typedef enum COREWEBVIEW2_NAVIGATION_KIND {
 
 /// Extend `NavigationStartingEventArgs` by adding more information.
 [uuid(39A27807-2365-470B-AF28-885502121049), object, pointer_default(unique)]
-interface ICoreWebView2ExperimentalNavigationStartingEventArgs2 : IUnknown {
+interface ICoreWebView2NavigationStartingEventArgs3 : ICoreWebView2NavigationStartingEventArgs2 {
   /// Indicates if this navigation is reload, back/forward or navigating to another document 
   [propget] HRESULT NavigationKind(
       [out, retval] COREWEBVIEW2_NAVIGATION_KIND* kind);
