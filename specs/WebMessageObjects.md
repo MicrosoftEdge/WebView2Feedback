@@ -21,7 +21,7 @@ Currently the only supported DOM object type with this API is:
 Page content in WebView2 can pass objects to the app via the
 `chrome.webview.postMessageWithAdditionalObjects(string message, ArrayLike<object> objects)` content API
 that takes in the array of such supported DOM objects or you can also use
-(ExecuteScript)[https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.winforms.webview2.executescriptasync]
+[ExecuteScript](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.winforms.webview2.executescriptasync)
 with same API. `null` or `undefined` objects will be passed as `null`. Otherwise, if an invalid or unsupported object is
 passed via this API, an exception will be thrown to the caller and the message will fail to post.
 
@@ -39,12 +39,16 @@ by both the C++ and C# sample code below.
 
 ```html
 <!-- File upload location -->
-<input type="file" id="files" multiple />
+<input type="file" id="files" />
 ```
 
 ```javascript
 const input = document.getElementById('files');
 input.addEventListener('change', function() {
+    // Note that postMessageWithAdditionalObjects does not accept a single object,
+    // but only accepts an ArrayLike object.
+    // However, input.files is type FileList, which is already an ArrayLike object so
+    // no conversion to array is needed.
     const currentFiles = input.files;
     chrome.webview.postMessageWithAdditionalObjects("FilesDropped", currentFiles);
 });
@@ -104,11 +108,11 @@ webView.CoreWebView2.WebMessageReceived += WebView_WebMessageReceivedHandler;
 void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageReceivedEventArgs args)
 {
     List<string> paths = new List<string>();
-    foreach (var object in args.AdditionalObjects)
+    foreach (var additionalObject in args.AdditionalObjects)
     {
-        if (object is CoreWebView2File)
+        if (additionalObject is CoreWebView2File file)
         {
-            paths.Add(((CoreWebView2File)object).Path);
+            paths.Add(file.Path);
         }
     }
     ProcessPaths(paths);
@@ -119,7 +123,7 @@ void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageRece
 ## SDK API
 ```c#
 /// Representation of a DOM
-/// (File)[https://developer.mozilla.org/docs/Web/API/File] object
+/// [File](https://developer.mozilla.org/docs/Web/API/File) object
 /// passed via WebMessage. You can use this object to obtain the path of a
 /// File dropped on WebView2.
 /// \snippet ScenarioDragDrop.cpp DroppedFilePath
@@ -199,11 +203,11 @@ interface WebView extends EventTarget {
      * @param message The message to send to the WebView2 host. This can be any
      * object that can be serialized to JSON.
      * @param additionalObjects A sequence of DOM objects that have native
-     * representations in WebView2.
+     * representations in WebView2. This parameter needs to be ArrayLike.
      * The following DOM types are mapped to native:
      * DOM      | Win32       | .NET     | WinRT
      * -------- | ------------|----------| --------
-     * (File)[https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File | (System.IO.FileInfo)[https://learn.microsoft.com/dotnet/api/system.io.fileinfo] | (Windows.Storage.StorageFile)[https://learn.microsoft.com/uwp/api/windows.storage.storagefile]
+     * [File](https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File | [System.IO.FileInfo](https://learn.microsoft.com/dotnet/api/system.io.fileinfo) | [Windows.Storage.StorageFile](https://learn.microsoft.com/uwp/api/windows.storage.storagefile)
      * If an invalid or unsupported object is passed via this API, an exception
      * will be thrown and the message will fail to post.
      * @example
@@ -211,6 +215,10 @@ interface WebView extends EventTarget {
      * ```javascript
      * const input = document.getElementById('files');
      * input.addEventListener('change', function() {
+     *    // Note that postMessageWithAdditionalObjects does not accept a single object,
+     *    // but only accepts an ArrayLike object.
+     *    // However, input.files is type FileList, which is already an ArrayLike object so
+     *    // no conversion to array is needed.
      *    const currentFiles = input.files;
      *    chrome.webview.postMessageWithAdditionalObjects("FilesDropped",
      *        currentFiles);
@@ -225,7 +233,7 @@ interface WebView extends EventTarget {
 ## Draft API Proposal to post DOM Objects injected to WebView2 Content
 ```c#
 /// Representation of a DOM
-/// (File)[https://developer.mozilla.org/docs/Web/API/File] object
+/// [File](https://developer.mozilla.org/docs/Web/API/File) object
 /// passed via WebMessage. You can use this object to obtain the path of a
 /// File dropped on WebView2 or pass a File to WebView2 content.
 /// \snippet ScenarioDragDrop.cpp DroppedFilePath
