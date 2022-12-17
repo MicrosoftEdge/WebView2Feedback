@@ -339,7 +339,7 @@ void ScenarioPermissionManagement::ShowSetPermissionDialog()
         //    SetPermissionStateCallback);
         CHECK_FAILURE(m_webViewProfile6->SetPermissionState(
             dialog.kind, dialog.origin.c_str(), dialog.state,
-            Callback<ICoreWebView2StagingSetPermissionStateCompletedHandler>(
+            Callback<ICoreWebView2SetPermissionStateCompletedHandler>(
             [this](HRESULT error) -> HRESULT
             {
                 // Reload the permission management page.
@@ -384,7 +384,7 @@ typedef enum COREWEBVIEW2_PERMISSION_KIND {
 /// This is a continuation of the `ICoreWebView2PermissionRequestedEventArgs`
 /// interface.
 [uuid(08595a19-44f0-41b1-9ae4-5889f5edadcb), object, pointer_default(unique)]
-interface ICoreWebView2StagingPermissionRequestedEventArgs3: IUnknown {
+interface ICoreWebView2PermissionRequestedEventArgs3: IUnknown {
   /// The permission state set from the `PermissionRequested` event is saved in
   /// the profile by default; it persists across sessions and becomes the new
   /// default behavior for future `PermissionRequested` events. Browser
@@ -417,7 +417,7 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
         [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
         [in] LPCWSTR origin,
         [in] COREWEBVIEW2_PERMISSION_STATE state,
-        [in] ICoreWebView2StagingSetPermissionStateCompletedHandler* completedHandler);
+        [in] ICoreWebView2SetPermissionStateCompletedHandler* completedHandler);
 
   /// Invokes the handler with a collection of all nondefault permission settings.
   /// Use this method to get the permission state set in the current and previous
@@ -430,7 +430,7 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
 /// The caller implements this interface to handle the result of
 /// `SetPermissionState`.
 [uuid(83972f3b-0716-4f78-b2ae-cc60d2bb807c), object, pointer_default(unique)]
-interface ICoreWebView2StagingSetPermissionStateCompletedHandler : IUnknown {
+interface ICoreWebView2SetPermissionStateCompletedHandler : IUnknown {
   /// Provide the completion status of the corresponding asynchronous method.
   HRESULT Invoke([in] HRESULT errorCode);
 }
