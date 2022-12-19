@@ -175,6 +175,22 @@ HRESULT AppWindow::DeleteProfile(ICoreWebView2* webView2)
     CHECK_FAILURE(webView2->get_Profile(&profile));
     CHECK_FAILURE(profile2->Delete());
 }
+
+EventRegistrationToken m_profileDeletedEventToken = {};
+void AppWindow::AddProfileDeleted(ICoreWebView2* webView2)
+{
+    CHECK_FAILURE(webView2->add_ProfileDeleted(
+        Microsoft::WRL::Callback<ICoreWebView2StagingProfileDeletedEventHandler>(
+            [this](ICoreWebView2Staging9* sender, IUnknown* args)  {
+                CloseAppWindow();
+                return S_OK;
+            }).Get(), &m_profileDeletedEventToken));
+}
+
+void AppWindow::RemoveProfileDeleted(ICoreWebView2* webView2)
+{
+    CHECK_FAILURE(webView2->remove_ProfileDeleted(m_profileDeletedEventToken));
+}
 ```
 
 ## .NET and WinRT
@@ -246,6 +262,21 @@ public DeleteProfile(CoreWebView2Controller controller)
 
     // Delete current profile.
     profile.Delete();
+}
+
+private void AddProfileDeleted(object sender, object e)
+{
+    webView.CoreWebView2.ProfileDeleted += CoreWebView2_ProfileDeleted;
+}
+
+private void RemoveProfileDeleted(object sender, object e)
+{
+    webView.CoreWebView2.ProfileDeleted -= CoreWebView2_ProfileDeleted;
+}
+
+private void CoreWebView2_ProfileDeleted(object sender, object e)
+{
+    Close();
 }
 ```
 
@@ -353,8 +384,8 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
   [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
 }
 
-[uuid(1c1ae2cc-d5c2-ffe3-d3e7-7857035d23b7), object, pointer_default(unique)]
-interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
+[uuid(2765B8BD-7C57-4B76-B8AA-1EC940FE92CC), object, pointer_default(unique)]
+interface ICoreWebView2StagingProfile4 : IUnknown {
   /// After the API is called, the profile will be marked for deletion. The
   /// local profile’s directory will be tried to delete at browser process
   /// exit, if fail to delete, it will recursively try to delete at next
@@ -369,6 +400,20 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   /// marked as deleted will be failure with the HRESULT:ERROR_INVALID_STATE
   /// (0x8007139FL).
   HRESULT Delete();
+}
+
+[uuid(cc39bea3-f6f8-471b-919f-fa253e2fff03), object, pointer_default(unique)]
+interface ICoreWebView2Staging9 : IUnknown {
+  /// The `ProfileDeleted` event is raised when its corresponding Profile's
+  /// Delete API is called. When this event has been raised, continue to use
+  /// the profile or its corresponding webviews is an undefined behavior.
+  HRESULT add_ProfileDeleted(
+      [in] ICoreWebView2StagingProfileDeletedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Remove an event handler previously added with `add_ProfileDeleted`.
+  HRESULT remove_ProfileDeleted(
+      [in] EventRegistrationToken token);
 }
 ```
 
@@ -410,6 +455,11 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
         CoreWebView2Profile Profile { get; };
+
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Staging9")]
+        {
+            event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> ProfileDeleted;
+        }
     }
     
     runtimeclass CoreWebView2Profile
@@ -422,9 +472,9 @@ namespace Microsoft.Web.WebView2.Core
 
         CoreWebView2CookieManager CookieManager { get; };
         
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile3")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingProfile4")]
         {
-            // ICoreWebView2Profile3 members
+            // ICoreWebView2StagingProfile4 members
             void Delete();
         }
     }
