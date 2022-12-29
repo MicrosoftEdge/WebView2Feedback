@@ -133,7 +133,7 @@ SetPermission allows the app to change the permissions granted to the WebView ou
 of a PermissionRequested event.
 
 GetNonDefaultPermissionSettings returns a collection of permissions previously granted
-or denied to the webview.
+or denied to the WebView.
 ### C# Sample
 ```c#
 // Gets the nondefault permission collection and updates a custom permission
