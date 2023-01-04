@@ -340,15 +340,7 @@ void ScenarioPermissionManagement::ShowSetPermissionDialog()
         //    SetPermissionStateCallback);
         CHECK_FAILURE(m_webViewProfile6->SetPermissionState(
             dialog.kind, dialog.origin.c_str(), dialog.state,
-<<<<<<< HEAD
-<<<<<<< HEAD
             Callback<ICoreWebView2SetPermissionStateCompletedHandler>(
-=======
-            Callback<ICoreWebView2StagingSetPermissionStateCompletedHandler>(
->>>>>>> ff362e2 (Add PermissionManagement.md (#2963))
-=======
-            Callback<ICoreWebView2SetPermissionStateCompletedHandler>(
->>>>>>> e5d6792 (remove staging from names)
             [this](HRESULT error) -> HRESULT
             {
                 // Reload the permission management page.
@@ -399,15 +391,7 @@ typedef enum COREWEBVIEW2_PERMISSION_KIND {
 /// This is a continuation of the `ICoreWebView2PermissionRequestedEventArgs`
 /// interface.
 [uuid(08595a19-44f0-41b1-9ae4-5889f5edadcb), object, pointer_default(unique)]
-<<<<<<< HEAD
-<<<<<<< HEAD
 interface ICoreWebView2PermissionRequestedEventArgs3: IUnknown {
-=======
-interface ICoreWebView2StagingPermissionRequestedEventArgs3: IUnknown {
->>>>>>> ff362e2 (Add PermissionManagement.md (#2963))
-=======
-interface ICoreWebView2PermissionRequestedEventArgs3: IUnknown {
->>>>>>> e5d6792 (remove staging from names)
   /// The permission state set from the `PermissionRequested` event is saved in
   /// the profile by default; it persists across sessions and becomes the new
   /// default behavior for future `PermissionRequested` events. Browser
@@ -440,16 +424,7 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
         [in] COREWEBVIEW2_PERMISSION_KIND permissionKind,
         [in] LPCWSTR origin,
         [in] COREWEBVIEW2_PERMISSION_STATE state,
-<<<<<<< HEAD
-<<<<<<< HEAD
         [in] ICoreWebView2SetPermissionStateCompletedHandler* completedHandler);
-=======
-        [in] ICoreWebView2StagingSetPermissionStateCompletedHandler* completedHandler);
->>>>>>> ff362e2 (Add PermissionManagement.md (#2963))
-=======
-        [in] ICoreWebView2SetPermissionStateCompletedHandler* completedHandler);
->>>>>>> e5d6792 (remove staging from names)
-
   /// Invokes the handler with a collection of all nondefault permission settings.
   /// Use this method to get the permission state set in the current and previous
   /// sessions.
@@ -461,15 +436,7 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
 /// The caller implements this interface to handle the result of
 /// `SetPermissionState`.
 [uuid(83972f3b-0716-4f78-b2ae-cc60d2bb807c), object, pointer_default(unique)]
-<<<<<<< HEAD
-<<<<<<< HEAD
 interface ICoreWebView2SetPermissionStateCompletedHandler : IUnknown {
-=======
-interface ICoreWebView2StagingSetPermissionStateCompletedHandler : IUnknown {
->>>>>>> ff362e2 (Add PermissionManagement.md (#2963))
-=======
-interface ICoreWebView2SetPermissionStateCompletedHandler : IUnknown {
->>>>>>> e5d6792 (remove staging from names)
   /// Provide the completion status of the corresponding asynchronous method.
   HRESULT Invoke([in] HRESULT errorCode);
 }
