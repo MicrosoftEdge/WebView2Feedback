@@ -425,6 +425,7 @@ interface ICoreWebView2Profile6 : ICoreWebView2Profile5 {
         [in] LPCWSTR origin,
         [in] COREWEBVIEW2_PERMISSION_STATE state,
         [in] ICoreWebView2SetPermissionStateCompletedHandler* completedHandler);
+
   /// Invokes the handler with a collection of all nondefault permission settings.
   /// Use this method to get the permission state set in the current and previous
   /// sessions.
@@ -509,7 +510,6 @@ namespace Microsoft.Web.WebView2.Core
         // developers use the [Local Font Access API](https://wicg.github.io/local-font-access/)
         // to query the system fonts available for styling web content.
         LocalFonts = 10,
-
 
         // Indicates permission for a site to use system exlusive messages to access
         // Musical Instrument Digital Interface (MIDI) devices. Permission is requested
