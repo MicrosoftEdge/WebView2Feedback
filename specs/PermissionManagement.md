@@ -392,7 +392,7 @@ typedef enum COREWEBVIEW2_PERMISSION_KIND {
   /// Indicates permission for a site to use system exlusive messages to access
   /// Musical Instrument Digital Interface (MIDI) devices. Permission is requested
   /// when developers use the [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
-  /// to request MIDI access.
+  /// to request system exclusive MIDI access.
   COREWEBVIEW2_PERMISSION_KIND_MIDI_SYSEX,
 } COREWEBVIEW2_PERMISSION_KIND;
 
