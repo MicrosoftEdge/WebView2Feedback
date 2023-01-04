@@ -385,7 +385,7 @@ typedef enum COREWEBVIEW2_PERMISSION_KIND {
   /// Musical Instrument Digital Interface (MIDI) devices. Permission is requested
   /// when developers use the [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
   /// to request system exclusive MIDI access.
-  COREWEBVIEW2_PERMISSION_KIND_MIDI_SYSEX,
+  COREWEBVIEW2_PERMISSION_KIND_MIDI_SYSTEM_EXCLUSIVE_ACCESS,
 } COREWEBVIEW2_PERMISSION_KIND;
 
 /// This is a continuation of the `ICoreWebView2PermissionRequestedEventArgs`
@@ -516,7 +516,7 @@ namespace Microsoft.Web.WebView2.Core
         // Musical Instrument Digital Interface (MIDI) devices. Permission is requested
         // when developers use the [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
         // to request system exclusive MIDI access.
-        MidiSysex = 11,
+        MidiSystemExclusiveAccess = 11,
     };
 }
 
