@@ -176,20 +176,14 @@ HRESULT AppWindow::DeleteProfile(ICoreWebView2* webView2)
     CHECK_FAILURE(profile2->Delete());
 }
 
-EventRegistrationToken m_profileDeletedEventToken = {};
-void AppWindow::AddProfileDeleted(ICoreWebView2* webView2)
+void AppWindow::RegisterEventHandlers()
 {
-    CHECK_FAILURE(webView2->add_ProfileDeleted(
+    CHECK_FAILURE(m_webView->add_ProfileDeleted(
         Microsoft::WRL::Callback<ICoreWebView2StagingProfileDeletedEventHandler>(
             [this](ICoreWebView2Staging9* sender, IUnknown* args)  {
                 CloseAppWindow();
                 return S_OK;
-            }).Get(), &m_profileDeletedEventToken));
-}
-
-void AppWindow::RemoveProfileDeleted(ICoreWebView2* webView2)
-{
-    CHECK_FAILURE(webView2->remove_ProfileDeleted(m_profileDeletedEventToken));
+            }).Get(), nullptr));
 }
 ```
 
@@ -264,14 +258,9 @@ public DeleteProfile(CoreWebView2Controller controller)
     profile.Delete();
 }
 
-private void AddProfileDeleted(object sender, object e)
+void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
     webView.CoreWebView2.ProfileDeleted += CoreWebView2_ProfileDeleted;
-}
-
-private void RemoveProfileDeleted(object sender, object e)
-{
-    webView.CoreWebView2.ProfileDeleted -= CoreWebView2_ProfileDeleted;
 }
 
 private void CoreWebView2_ProfileDeleted(object sender, object e)
