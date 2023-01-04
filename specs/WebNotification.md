@@ -180,8 +180,8 @@ void WebView_NotificationReceived(object sender, CoreWebView2NotificationReceive
     // https://learn.microsoft.com/windows/apps/design/shell/tiles-and-notifications/send-local-toast?tabs=uwp
     // for how to handle toast activation
 
-    notification.Show();
-    notification.Close();
+    notification.ReportShown();
+    notification.ReportClosed();
     args.Handled = true;
 }
 ```
@@ -246,9 +246,9 @@ void SettingsComponent::ShowNotification(
                 L"The page at " + std::wstring(uri.get()) + L" sends you an
                 notification:\n\n";
             message += body.get();
-            notification->Show();
+            notification->ReportShown();
             int response = MessageBox(nullptr, message.c_str(), title.get(), MB_OKCANCEL);
-            (response == IDOK) ? notification->Click() : notification->Close();
+            (response == IDOK) ? notification->ReportClicked() : notification->ReportClosed();
 
             deferral->Complete();
         });
@@ -343,7 +343,7 @@ interface ICoreWebView2NotificationReceivedEventArgs : IUnknown {
   /// notification and for letting the web content know that the notification has been
   /// displayed, clicked, or closed. If after the event handler or deferral
   /// completes `Handled` is set to FALSE then WebView will display the default
-  /// notification UI. Note that if `Show` has been called on the `Notification`
+  /// notification UI. Note that if `ReportShown` has been called on the `Notification`
   /// object, WebView will not display the default notification regardless of
   /// the Handled property. The default value is FALSE.
   [propput] HRESULT Handled([in] BOOL value);
@@ -356,9 +356,9 @@ interface ICoreWebView2NotificationReceivedEventArgs : IUnknown {
   HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 }
 
-/// An event handler for the `Closed` event.
+/// An event handler for the `CloseRequested` event.
 [uuid(6A0B4DE9-8CBE-4211-BAEF-AC037B1A72DE), object, pointer_default(unique)]
-interface ICoreWebView2NotificationClosedEventHandler : IUnknown {
+interface ICoreWebView2NotificationCloseRequestedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2Notification* sender,
@@ -405,39 +405,40 @@ interface ICoreWebView2UnsignedLongCollection : IUnknown {
 /// object](https://developer.mozilla.org/docs/Web/API/Notification).
 [uuid(E3F43572-2930-42EB-BD90-CAC16DE6D942), object, pointer_default(unique)]
 interface ICoreWebView2Notification : IUnknown {
-  /// Add an event handler for the `Closed` event.
-  /// This event is raised when the notification is closed by the web code.
-  HRESULT add_Closed(
-      [in] ICoreWebView2NotificationClosedEventHandler* eventHandler,
+  /// Add an event handler for the `CloseRequested` event.
+  /// This event is raised when the notification is closed by the web code, such as 
+  /// through `notification.close()`.
+  HRESULT add_CloseRequested(
+      [in] ICoreWebView2NotificationCloseRequestedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Remove an event handler previously added with `add_Closed`.
-  HRESULT remove_Closed(
+  /// Remove an event handler previously added with `add_CloseRequested`.
+  HRESULT remove_CloseRequested(
       [in] EventRegistrationToken token);
 
   /// The host may run this to report the notification has been displayed.
   /// The NotificationReceived event is considered handled regardless of the
-  /// Handled property of the NotifificationReceivedEventArgs if the host has
-  /// run Show().
-  HRESULT Show();
+  /// Handled property of the NotificationReceivedEventArgs if the host has
+  /// run ReportShown().
+  HRESULT ReportShown();
 
   /// The host may run this to report the notification has been clicked. Use
-  /// `ClickWithAction` to specify an action to activate a persistent
-  /// notification. This will no-op if `Show` is not run or `Close` has been
+  /// `ReportClickedWithAction` to specify an action to activate a persistent
+  /// notification. This will no-op if `ReportShown` is not run or `ReportClosed` has been
   /// run.
-  HRESULT Click();
+  HRESULT ReportClicked();
 
   /// The host may run this to report the persistent notification has been
   /// activated with a given action. The action index corresponds to the index
   /// in NotificationActionCollectionView. This returns `E_INVALIDARG` if an invalid
-  /// action index is provided. Use `Click` to activate an non-persistent
-  /// notification. This will no-op if `Show` is not run or `Close` has been
+  /// action index is provided. Use `ReportClicked` to activate an non-persistent
+  /// notification. This will no-op if `ReportShown` is not run or `ReportClosed` has been
   /// run.
-  HRESULT ClickWithAction([in] UINT actionIndex);
+  HRESULT ReportClickedWithAction([in] UINT actionIndex);
 
   /// The host may run this to report the notification was dismissed.
-  /// This will no-op if `Show` is not run or `Click` has been run.
-  HRESULT Close();
+  /// This will no-op if `ReportShown` is not run or `ReportClicked` has been run.
+  HRESULT ReportClosed();
 
   /// The body string of the notification as specified in the constructor's
   /// options parameter.
@@ -604,12 +605,12 @@ namespace Microsoft.Web.WebView2.Core
         // CoreWebView2Notification.Data? We use IDataObject for COM/C++.
         // Data { get; };
 
-        event Windows.Foundation.TypedEventHandler<CoreWebView2Notification, Object> Closed;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Notification, Object> CloseRequested;
 
-        void Show();
-        void Click();
-        void Click(UInt32 actionIndex);
-        void Close();
+        void ReportShown();
+        void ReportClicked();
+        void ReportClicked(UInt32 actionIndex);
+        void ReportClosed();
     }
 }
 ```
