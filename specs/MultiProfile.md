@@ -179,8 +179,8 @@ HRESULT AppWindow::DeleteProfile(ICoreWebView2* webView2)
 void AppWindow::RegisterEventHandlers()
 {
     CHECK_FAILURE(m_webView->add_ProfileDeleted(
-        Microsoft::WRL::Callback<ICoreWebView2StagingProfileDeletedEventHandler>(
-            [this](ICoreWebView2Staging9* sender, IUnknown* args)  {
+        Microsoft::WRL::Callback<ICoreWebView2ProfileDeletedEventHandler>(
+            [this](ICoreWebView2_9* sender, IUnknown* args)  {
                 CloseAppWindow();
                 return S_OK;
             }).Get(), nullptr));
@@ -374,7 +374,7 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
 }
 
 [uuid(2765B8BD-7C57-4B76-B8AA-1EC940FE92CC), object, pointer_default(unique)]
-interface ICoreWebView2StagingProfile4 : IUnknown {
+interface ICoreWebView2Profile4 : IUnknown {
   /// After the API is called, the profile will be marked for deletion. The
   /// local profile’s directory will be tried to delete at browser process
   /// exit, if fail to delete, it will recursively try to delete at next
@@ -392,12 +392,12 @@ interface ICoreWebView2StagingProfile4 : IUnknown {
 }
 
 [uuid(cc39bea3-f6f8-471b-919f-fa253e2fff03), object, pointer_default(unique)]
-interface ICoreWebView2Staging9 : IUnknown {
+interface ICoreWebView2_9 : IUnknown {
   /// The `ProfileDeleted` event is raised when its corresponding Profile's
   /// Delete API is called. When this event has been raised, continue to use
   /// the profile or its corresponding webviews is an undefined behavior.
   HRESULT add_ProfileDeleted(
-      [in] ICoreWebView2StagingProfileDeletedEventHandler* eventHandler,
+      [in] ICoreWebView2ProfileDeletedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_ProfileDeleted`.
@@ -445,7 +445,7 @@ namespace Microsoft.Web.WebView2.Core
         // ...
         CoreWebView2Profile Profile { get; };
 
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Staging9")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_9")]
         {
             event Windows.Foundation.TypedEventHandler<CoreWebView2, Object> ProfileDeleted;
         }
@@ -461,9 +461,9 @@ namespace Microsoft.Web.WebView2.Core
 
         CoreWebView2CookieManager CookieManager { get; };
         
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingProfile4")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile4")]
         {
-            // ICoreWebView2StagingProfile4 members
+            // ICoreWebView2Profile4 members
             void Delete();
         }
     }
