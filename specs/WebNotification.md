@@ -279,7 +279,7 @@ interface ICoreWebView2Profile3 : IUnknown {
   /// Add an event handler for the `NotificationReceived` event for persistent
   /// notifications.
   HRESULT add_NotificationReceived(
-      [in] ICoreWebView2PersistentNotificationReceivedEventHandler* eventHandler,
+      [in] ICoreWebView2ProfileNotificationReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_NotificationReceived`.
@@ -312,7 +312,7 @@ interface ICoreWebView2NotificationReceivedEventHandler : IUnknown {
 
 /// An event handler for the `NotificationReceived` event for persistent notifications.
 [uuid(4843DC48-C1EF-4B0F-872E-F7AA6BC80175), object, pointer_default(unique)]
-interface ICoreWebView2PersistentNotificationReceivedEventHandler : IUnknown {
+interface ICoreWebView2ProfileNotificationReceivedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2Profile* sender,
