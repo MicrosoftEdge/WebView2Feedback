@@ -3,12 +3,17 @@ Web Notification APIs
 
 # Background
 
-The WebView2 team is adding support for Web notifications. End developers should
-be able to handle notification permission requests, and further listen to
-`NotificationReceived` events to optionally handle the notifications themselves.
-The `NotificationReceived` events are raised on `CorebWebView2` and
-`CoreWebView2Profile` object respectively for non-persistent and persistent
-notifications respectively.
+The WebView2 team is adding support for web notifications including
+non-persistent notifications and persistent notifications. A non-persistent
+notification is a notification without an associated service worker
+registration. A persistent notification is a notification with an associated
+service worker registration.
+
+You should be able to handle notification permission requests, and
+further listen to `NotificationReceived` events to optionally handle the
+notifications themselves. The `NotificationReceived` events are raised on
+`CorebWebView2` and `CoreWebView2Profile` object respectively for non-persistent
+and persistent notifications respectively.
 
 The `NotificationReceived` event on `CoreWebView2` and `CoreWebView2Profile` let
 you intercept the web non-persistent and persistent notifications. The host can
@@ -330,7 +335,7 @@ interface ICoreWebView2NotificationReceivedEventArgs : IUnknown {
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT Uri([out, retval] LPWSTR* value);
 
-  /// The notification that was received. End developers can access the
+  /// The notification that was received. You can access the
   /// properties on the Notification object to show their own notification. 
   [propget] HRESULT Notification([out, retval] ICoreWebView2Notification** value);
   
@@ -494,8 +499,11 @@ interface ICoreWebView2Notification : IUnknown {
 
 
   /// The actions available for users to choose from for interacting with the
-  /// notification. Note that actions are only supported for persistent notifications.
-  /// An empty NotificationActionCollectionView is returned if no notification actions.
+  /// notification. An empty NotificationActionCollectionView is returned if no
+  /// notification actions are specified. Note that actions are only applicable
+  /// for persistent notifications according to the web standard, and an empty
+  /// NotificationActionCollectionView will always be returned for
+  /// non-persistent notifications.
   [propget] HRESULT Actions([out, retval] ICoreWebView2NotificationActionCollectionView** value);
 
   /// The URI of the image used to represent the notification when there is not
@@ -534,7 +542,12 @@ interface ICoreWebView2Notification : IUnknown {
   [propget] HRESULT Timestamp([out, retval] double* value);
 
   /// Specifies a vibration pattern for devices with vibration hardware to emit.
-  /// Returns `null` if the optional Notification property does not exist.
+  /// The vibration pattern can be represented by an array of integers
+  /// describing a pattern of vibrations and pauses. See [Vibation
+  /// API](https://developer.mozilla.org/docs/Web/API/Vibration_API) for more
+  /// information.
+  /// An empty UnsignedLongCollection is returned if no vibration patterns are
+  /// specified.
   [propget] HRESULT Vibrate([out, retval] ICoreWebView2UnsignedLongCollection** value);
 }
 ```
