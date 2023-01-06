@@ -445,8 +445,7 @@ interface ICoreWebView2Notification : IUnknown {
   /// This will no-op if `ReportShown` is not run or `ReportClicked` has been run.
   HRESULT ReportClosed();
 
-  /// The body string of the notification as specified in the constructor's
-  /// options parameter.
+  /// A string representing the body text of the notification.
   /// The default value is an empty string.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
@@ -458,40 +457,46 @@ interface ICoreWebView2Notification : IUnknown {
   /// Returns `null` if the optional Notification property does not exist.
   [propget] HRESULT Data([out, retval] IDataObject** value);
 
-  /// The text direction of the notification as specified in the constructor's
-  /// options parameter.
+  /// The text direction in which to display the notification.
+  /// This corresponds to
+  /// [Notification.dir](https://developer.mozilla.org/docs/Web/API/Notification/dir)
+  /// DOM API.
   /// The default value is `COREWEBVIEW2_TEXT_DIRECTION_KINDS_DEFAULT`.
   [propget] HRESULT Direction([out, retval] COREWEBVIEW2_TEXT_DIRECTION_KINDS* value);
 
-  /// The language code of the notification as specified in the constructor's
-  /// options parameter. It is in the format of
-  /// `language-country` where `language` is the 2-letter code from [ISO
-  /// 639](https://www.iso.org/iso-639-language-codes.html) and `country` is the
-  /// 2-letter code from [ISO 3166](https://www.iso.org/standard/72482.html).
+  /// The notification's language, as intended to be specified using a string
+  /// representing a language tag according to
+  /// [BCP47](https://datatracker.ietf.org/doc/html/rfc5646). Note that no
+  /// validation is performed on this property and it can be any string the
+  /// notification sender specifies.
+  /// This corresponds to
+  /// [Notification.lang](https://developer.mozilla.org/docs/Web/API/Notification/lang)
+  /// DOM API.
   /// The default value is an empty string.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT Language([out, retval] LPWSTR* value);
 
-  /// The ID of the notification (if any) as specified in the constructor's
-  /// options parameter.
+  /// A string representing an identifying tag for the notification.
+  /// This corresponds to
+  /// [Notification.tag](https://developer.mozilla.org/docs/Web/API/Notification/tag)
+  /// DOM API.
   /// The default value is an empty string.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT Tag([out, retval] LPWSTR* value);
 
-  /// The URI of the image used as an icon of the notification as specified in
-  /// the constructor's options parameter.
-  /// Returns `null` if the optional Notification property does not exist.
+  /// A string containing the URI of an icon to be displayed in the
+  /// notification.
+  /// The default value is an empty string.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT IconUri([out, retval] LPWSTR* value);
 
-  /// The title of the notification as specified in the first parameter of the
-  /// constructor.
+  /// The title of the notification.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
@@ -506,16 +511,18 @@ interface ICoreWebView2Notification : IUnknown {
   /// non-persistent notifications.
   [propget] HRESULT Actions([out, retval] ICoreWebView2NotificationActionCollectionView** value);
 
-  /// The URI of the image used to represent the notification when there is not
-  /// enough space to display the notification itself.
-  /// Returns `null` if the optional Notification property does not exist.
+  /// A string containing the URI of the image used to represent the
+  /// notification when there isn't enough space to display the notification
+  /// itself.
+  /// The default value is an empty string.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT BadgeUri([out, retval] LPWSTR* value);
 
-  /// The URI of an image to be displayed as part of the notification.
-  /// Returns `null` if the optional Notification property does not exist.
+  /// A string containing the URI of an image to be displayed in the
+  /// notification.
+  /// The default value is an empty string.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
@@ -523,29 +530,40 @@ interface ICoreWebView2Notification : IUnknown {
 
   /// Specifies whether the user should be notified after a new notification
   /// replaces an old one.
+  /// This corresponds to
+  /// [Notification.renotify](https://developer.mozilla.org/docs/Web/API/Notification/renotify)
+  /// DOM API.
   /// The default value is `FALSE`.
   [propget] HRESULT Renotify([out, retval] BOOL* value);
 
   /// A boolean value indicating that a notification should remain active until
   /// the user clicks or dismisses it, rather than closing automatically.
+  /// This corresponds to
+  /// [Notification.requireInteraction](https://developer.mozilla.org/docs/Web/API/Notification/requireInteraction)
+  /// DOM API.
   /// The default value is `FALSE`.
   [propget] HRESULT RequireInteraction([out, retval] BOOL* value);
 
   /// Specifies whether the notification should be silent — i.e., no sounds or
   /// vibrations should be issued, regardless of the device settings.
+  /// This corresponds to
+  /// [Notification.silent](https://developer.mozilla.org/docs/Web/API/Notification/silent)
+  /// DOM API.
   /// The default value is `FALSE`.
   [propget] HRESULT Silent([out, retval] BOOL* value);
 
   /// Specifies the time at which a notification is created or applicable (past,
-  /// present, or future).
-  /// Returns `null` if the optional Notification property does not exist.
+  /// present, or future) as the number of milliseconds since the UNIX epoch.
   [propget] HRESULT Timestamp([out, retval] double* value);
 
   /// Specifies a vibration pattern for devices with vibration hardware to emit.
   /// The vibration pattern can be represented by an array of integers
-  /// describing a pattern of vibrations and pauses. See [Vibation
+  /// describing a pattern of vibrations and pauses. See [Vibration
   /// API](https://developer.mozilla.org/docs/Web/API/Vibration_API) for more
   /// information.
+  /// This corresponds to
+  /// [Notification.vibrate](https://developer.mozilla.org/docs/Web/API/Notification/vibrate)
+  /// DOM API.
   /// An empty UnsignedLongCollection is returned if no vibration patterns are
   /// specified.
   [propget] HRESULT Vibrate([out, retval] ICoreWebView2UnsignedLongCollection** value);
