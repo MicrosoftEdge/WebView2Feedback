@@ -178,26 +178,21 @@ HRESULT AppWindow::DeleteProfile(ICoreWebView2* webView2)
 
 void AppWindow::RegisterEventHandlers()
 {
-    CHECK_FAILURE(m_webView->add_Closed(
-        Microsoft::WRL::Callback<ICoreWebView2ClosedEventHandler>(
-            [this](ICoreWebView2_20* sender, ICoreWebView2EventArgs* args)
-            {
-                COREWEBVIEW2_CLOSED_REASON reason;
-                CHECK_FAILURE(args->get_Reason(&reason));
-                if (reason == COREWEBVIEW2_CLOSED_REASON::COREWEBVIEW2_CLOSED_REASON_PROFILE_DELETED)
+    wil::com_ptr<ICoreWebView2Profile> webView2Profile;
+    webView2_13->get_Profile(&webView2Profile);
+    if (webView2Profile)
+    {
+        webView2Profile->add_ProfileDeletionStarted(
+            Microsoft::WRL::Callback<ICoreWebView2ProfileDeletionStartedEventHandler>(
+                [this](ICoreWebView2Profile7* sender, IUnknown* args)
                 {
                     RunAsync( [this]()
                     {
-                        std::wstring message =
-                            L"The webview2 has been closed and the reason is profile "
-                            L"has been marked as deleted.";
-                        MessageBox(
-                            m_mainWindow, message.c_str(), L"webview2 closed", MB_OK);
                         CloseAppWindow();
-                    });
-                }
-                return S_OK;
-            }).Get(), nullptr));
+                    }
+                    return S_OK;
+                }).Get(),nullptr);
+    }
 }
 ```
 
@@ -274,20 +269,15 @@ public DeleteProfile(CoreWebView2Controller controller)
 
 void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
-    webView.CoreWebView2.Closed += CoreWebView2_Closed;
+    WebViewProfile.ProfileDeletionStarted += CoreWebView2_ProfileDeletionStarted;
 }
 
-private void CoreWebView2_Closed(object sender, CoreWebView2ClosedEventArgs e)
+private void CoreWebView2_ProfileDeletionStarted(object sender, object e)
 {
-    if (e.Reason == CoreWebView2ClosedReason.ProfileDeleted)
+    this.Dispatcher.InvokeAsync(() =>
     {
-        this.Dispatcher.InvokeAsync(() =>
-        {
-            String message = "The webview2 has been closed and the reason is profile has been marked as deleted";
-            MessageBox.Show(message);
-            Close();
-        });
-    }
+        Close();
+    });
 }
 ```
 
@@ -299,13 +289,11 @@ private void CoreWebView2_Closed(object sender, CoreWebView2ClosedEventArgs e)
 interface ICoreWebView2ControllerOptions;
 interface ICoreWebView2Environment5;
 interface ICoreWebView2_7;
-interface ICoreWebView2_9;
 interface ICoreWebView2Profile;
 interface ICoreWebView2Profile2;
 interface ICoreWebView2Profile3;
 interface ICoreWebView2Profile4;
-interface ICoreWebView2ClosedEventHandler;
-interface ICoreWebView2ClosedEventArgs;
+interface ICoreWebView2ProfileDeletionStartedEventHandler;
 
 /// This interface is used to manage profile options that created by 'CreateCoreWebView2ControllerOptions'.
 [uuid(C2669A3A-03A9-45E9-97EA-03CD55E5DC03), object, pointer_default(unique)]
@@ -399,60 +387,44 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
   [propget] HRESULT CookieManager([out, retval] ICoreWebView2CookieManager** cookieManager);
 }
 
-[uuid(2765B8BD-7C57-4B76-B8AA-1EC940FE92CC), object, pointer_default(unique)]
-interface ICoreWebView2Profile4 : IUnknown {
-  /// After the API is called, the profile will be marked for deletion. The
-  /// local profile's directory will be tried to delete at browser process
-  /// exit, if fail to delete, it will recursively try to delete at next
-  /// browser process start until successful.
-  /// The corresponding webview2s will be auto closed and its Closed event
-  /// handle function will be triggered with the reason is 
-  /// COREWEBVIEW2_CLOSED_REASON.COREWEBVIEW2_CLOSED_REASON_PROFILE_DELETED.
+/// Interfaces in profile for Delete.
+[uuid(7CB8811D-A9B6-425E-9C57-0B0E599BAC5D), object, pointer_default(unique)]
+interface ICoreWebView2Profile7 : IUnknown {
+  /// After the API is called, the profile will be marked for deletion. If the
+  /// profile has been marked for deletion, this API will return S_OK directly.
+  /// The local profile's directory will be tried to delete at browser
+  /// process exit, if fail to delete, it will recursively try to delete at
+  /// next browser process start until successful.
+  /// When the profile is marked for deletion, the corresponding
+  /// `ProfileDeletionStarted` event handle of each profile with the same name
+  /// in current or different process will be all triggered. See
+  /// `add_ProfileDeletionStarted` for more information.
   /// If create a new profile with the same name as the profile that has been
   /// marked as deleted will be failure with the HRESULT:ERROR_INVALID_STATE
   /// (0x8007139FL).
   HRESULT Delete();
-}
 
-[uuid(cc39bea3-f6f8-471b-919f-fa253e2fff03), object, pointer_default(unique)]
-interface ICoreWebView2_9 : IUnknown {
-  /// Add an event handler for the `Closed` event. `Closed` enent handle runs
-  /// when the webview2 is closed passivly. When this event is raised, the 
-  /// webview2 cannot be used anymore.
-  HRESULT add_Closed(
-      [in] ICoreWebView2ClosedEventHandler* eventHandler,
+  /// The `ProfileDeletionStarted` event will be raised when profile has been
+  /// marked as deleted. When this event has been raised, it is recommended to
+  /// do some clean works and then close the webview2.
+  HRESULT add_ProfileDeletionStarted (
+      [in] ICoreWebView2ProfileDeletionStartedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Remove an event handler previously added with `add_Closed`.
-  HRESULT remove_Closed(
+  /// Remove an event handler previously added with `add_ProfileDeletionStarted`.
+  HRESULT remove_ProfileDeletionStarted (
       [in] EventRegistrationToken token);
 }
 
-/// The reason of webview2 closed.
-[v1_enum]
-typedef enum COREWEBVIEW2_CLOSED_REASON {
-  /// Indicates that the reason of webview2 closed is its corresponding 
-  /// Profile has been or marked as deleted.
-  COREWEBVIEW2_CLOSED_REASON_PROFILE_DELETED,
-} COREWEBVIEW2_CLOSED_REASON;
-
-/// Receives the webview2 `Closed` event.
+/// Receives the profile `ProfileDeletionStarted` event.
 [uuid(970BB7E0-A257-4A76-BE15-5BDEB00B5673), object, pointer_default(unique)]
-interface ICoreWebView2ClosedEventHandler : IUnknown {
-  /// Called to provide the implementer with the event args for the
-  /// corresponding event.
-  HRESULT Invoke([in] ICoreWebView2_20* sender,
-      [in] ICoreWebView2ClosedEventArgs* args);
+interface ICoreWebView2ProfileDeletionStartedEventHandler : IUnknown {
+  /// Called to provide the implementer for the ProfileDeletionStarted event.
+  /// No event args exist and the `args` parameter is set to `null`.
+  HRESULT Invoke(
+      [in] ICoreWebView2Profile7* sender,
+      [in] IUnknown* args);
 }
-
-/// This is the event args interface for webview2 `Closed` event handle.
-[uuid(0e1730c1-03df-4ad2-b847-be4d63adf777), object, pointer_default(unique)]
-interface ICoreWebView2ClosedEventArgs : IUnknown {
-  /// webview2 closed reason.
-  [propget] HRESULT Reason([out, retval]
-      COREWEBVIEW2_CLOSED_REASON* value);
-}
-
 ```
 
 ## .NET and WinRT
@@ -488,28 +460,6 @@ namespace Microsoft.Web.WebView2.Core
             CoreWebView2ControllerWindowReference ParentWindow,
             CoreWebView2ControllerOptions options);
     }
-    
-    runtimeclass CoreWebView2
-    {
-        // ...
-        CoreWebView2Profile Profile { get; };
-
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_9")]
-        {
-            event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2ClosedEventArgs> Closed;
-        }
-    }
-
-    enum CoreWebView2ClosedReason
-    {
-        ProfileDeleted = 0,
-    };
-
-    runtimeclass CoreWebView2ClosedEventArgs
-    {
-        CoreWebView2ClosedReason Reason { get; };
-    }
-    
     runtimeclass CoreWebView2Profile
     {
         String ProfileName { get; };
@@ -520,10 +470,10 @@ namespace Microsoft.Web.WebView2.Core
 
         CoreWebView2CookieManager CookieManager { get; };
         
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile4")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile7")]
         {
-            // ICoreWebView2Profile4 members
             void Delete();
+            event Windows.Foundation.TypedEventHandler<CoreWebView2Profile, Object> ProfileDeletionStarted;
         }
     }
 }
