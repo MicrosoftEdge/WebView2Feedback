@@ -452,10 +452,27 @@ interface ICoreWebView2Notification : IUnknown {
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT Body([out, retval] LPWSTR* value);
 
-  /// Returns an IDataObject that represents a structured clone of the
-  /// notification's data.
-  /// Returns `null` if the optional Notification property does not exist.
-  [propget] HRESULT Data([out, retval] IDataObject** value);
+  /// Returns a JSON string representing the notification data.
+  /// [Notification.data](https://developer.mozilla.org/docs/Web/API/Notification/data)
+  /// DOM API is arbitrary data the notification sender wants associated with
+  /// the notification and can be of any data type.
+  /// The default value is an empty string.
+  ///
+  /// The caller must free the returned string with `CoTaskMemFree`.  See
+  /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
+  [propget] HRESULT DataAsJson([out, retval] LPWSTR* value);
+
+  /// If the notification data is a string
+  /// type, this method returns the value of that string.  If the notification data
+  /// is some other kind of JavaScript type this method fails with `E_INVALIDARG`.
+  /// [Notification.data](https://developer.mozilla.org/docs/Web/API/Notification/data)
+  /// DOM API is arbitrary data the notification sender wants associated with
+  /// the notification and can be of any data type.
+  /// The default value is an empty string.
+  ///
+  /// The caller must free the returned string with `CoTaskMemFree`.  See
+  /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
+  HRESULT TryGetDataAsString([out, retval] LPWSTR* value);
 
   /// The text direction in which to display the notification.
   /// This corresponds to
@@ -632,9 +649,8 @@ namespace Microsoft.Web.WebView2.Core
         Boolean Silent { get; };
         Double Timestamp { get; };
         IVectorView<UInt64> Vibrate { get; };
-        // TODO: What should the proper data type be for 
-        // CoreWebView2Notification.Data? We use IDataObject for COM/C++.
-        // Data { get; };
+        String DataAsJson { get; };
+        String TryGetDataAsString();
 
         event Windows.Foundation.TypedEventHandler<CoreWebView2Notification, Object> CloseRequested;
 
