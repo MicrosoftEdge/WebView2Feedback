@@ -374,12 +374,21 @@ interface ICoreWebView2NotificationCloseRequestedEventHandler : IUnknown {
 [uuid(07DD3067-2B86-47F6-AB96-D74825C2DA41), object, pointer_default(unique)]
 interface ICoreWebView2NotificationAction : IUnknown {
   /// A string identifying a user action to be displayed on the notification.
+  /// This corresponds to the
+  /// [action](https://developer.mozilla.org/docs/Web/API/Notification/actions)
+  /// member of a notification action object.
   [propget] HRESULT Action([out, retval] LPWSTR* value);
 
   /// A string containing action text to be shown to the user.
+  /// This corresponds to the
+  /// [title](https://developer.mozilla.org/docs/Web/API/Notification/actions)
+  /// member of a notification action object.
   [propget] HRESULT Title([out, retval] LPWSTR* value);
 
   /// A string containing the URI of an icon to display with the action.
+  /// This corresponds to the
+  /// [icon](https://developer.mozilla.org/docs/Web/API/Notification/actions)
+  /// member of a notification action object.
   [propget] HRESULT IconUri([out, retval] LPWSTR* value);
 }
 
