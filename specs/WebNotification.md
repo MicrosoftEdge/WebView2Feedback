@@ -346,12 +346,14 @@ interface ICoreWebView2NotificationReceivedEventArgs : IUnknown {
   ///
   /// If `Handled` is set to TRUE then WebView will not display the notification
   /// with the default UI, and the host will be responsible for handling the
-  /// notification and for letting the web content know that the notification has been
-  /// displayed, clicked, or closed. If after the event handler or deferral
-  /// completes `Handled` is set to FALSE then WebView will display the default
-  /// notification UI. Note that if `ReportShown` has been called on the `Notification`
-  /// object, WebView will not display the default notification regardless of
-  /// the Handled property. The default value is FALSE.
+  /// notification and for letting the web content know that the notification
+  /// has been displayed, clicked, or closed. You should set `Handled` to `TRUE`
+  /// before you call `ReportShown`, `ReportClicked`, `ReportClickedWithAction`
+  /// and `ReportClosed`, otherwise they will fail with `E_ABORT`. If after the
+  /// event handler or deferral completes `Handled` is set to FALSE then WebView
+  /// will display the default notification UI. Note that you cannot un-handle
+  /// this event once you have set `Handled` to be `TRUE`. The default value is
+  /// FALSE.
   [propput] HRESULT Handled([in] BOOL value);
 
   /// Gets whether the `NotificationReceived` event is handled by host.
@@ -431,28 +433,44 @@ interface ICoreWebView2Notification : IUnknown {
   HRESULT remove_CloseRequested(
       [in] EventRegistrationToken token);
 
-  /// The host may run this to report the notification has been displayed.
-  /// The NotificationReceived event is considered handled regardless of the
-  /// Handled property of the NotificationReceivedEventArgs if the host has
-  /// run ReportShown().
+  /// The host may run this to report the notification has been displayed and it
+  /// will cause the [show](https://developer.mozilla.org/docs/Web/API/Notification/show_event)
+  /// event to be raised for non-persistent notifications.
+  /// You should only run this if you are handling the `NotificationReceived`
+  /// event. Returns `E_ABORT` if `Handled` is `FALSE` when this is called.
   HRESULT ReportShown();
 
-  /// The host may run this to report the notification has been clicked. Use
-  /// `ReportClickedWithAction` to specify an action to activate a persistent
-  /// notification. This will no-op if `ReportShown` is not run or `ReportClosed` has been
-  /// run.
+  /// The host may run this to report the notification has been clicked, and it
+  /// will cause the
+  /// [click](https://developer.mozilla.org/docs/Web/API/Notification/click_event)
+  /// event to be raised for non-persistent notifications and the
+  /// [notificationclick](https://developer.mozilla.org/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event)
+  /// event for persistent notifications. Use `ReportClickedWithAction` to specify an
+  /// action to activate a persistent notification.
+  /// You should only run this if you are handling the `NotificationReceived`
+  /// event. Returns `E_ABORT` if `Handled` is `FALSE` or `ReportShown` has not
+  /// been run when this is called.
   HRESULT ReportClicked();
 
   /// The host may run this to report the persistent notification has been
-  /// activated with a given action. The action index corresponds to the index
-  /// in NotificationActionCollectionView. This returns `E_INVALIDARG` if an invalid
-  /// action index is provided. Use `ReportClicked` to activate an non-persistent
-  /// notification. This will no-op if `ReportShown` is not run or `ReportClosed` has been
-  /// run.
+  /// activated with a given action, and it will cause the
+  /// [notificationclick](https://developer.mozilla.org/docs/Web/API/ServiceWorkerGlobalScope/notificationclick_event)
+  /// event to be raised. The action index corresponds to the index in
+  /// NotificationActionCollectionView. You should only run this if you are
+  /// handling the `NotificationReceived` event. Returns `E_ABORT` if `Handled`
+  /// is `FALSE` or `ReportShown` has not been run when this is called. Returns
+  /// `E_INVALIDARG` if an invalid action index is provided. Use `ReportClicked`
+  /// to activate an non-persistent notification.
   HRESULT ReportClickedWithAction([in] UINT actionIndex);
 
-  /// The host may run this to report the notification was dismissed.
-  /// This will no-op if `ReportShown` is not run or `ReportClicked` has been run.
+  /// The host may run this to report the notification was dismissed, and it
+  /// will cause the
+  /// [close](https://developer.mozilla.org/docs/Web/API/Notification/close_event)
+  /// event to be raised for non-persistent notifications and the
+  /// [notificationclose](https://developer.mozilla.org/docs/Web/API/ServiceWorkerGlobalScope/notificationclose_event)
+  /// event for persistent notifications. You should only run this if you are
+  /// handling the `NotificationReceived` event. Returns `E_ABORT` if `Handled`
+  /// is `FALSE` or `ReportShown` has not been run when this is called.
   HRESULT ReportClosed();
 
   /// A string representing the body text of the notification.
