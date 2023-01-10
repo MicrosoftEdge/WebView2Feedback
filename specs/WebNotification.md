@@ -329,11 +329,12 @@ interface ICoreWebView2ProfileNotificationReceivedEventHandler : IUnknown {
 /// \snippet SettingsComponent.cpp OnNotificationReceived
 [uuid(5E8983CA-19A0-4140-BF2E-D7B9B707DDCC), object, pointer_default(unique)]
 interface ICoreWebView2NotificationReceivedEventArgs : IUnknown {
-  /// The origin of the web content that sends the notification.
+  /// The origin of the web content that sends the notification, such as
+  /// `https://example.com/` or `https://www.example.com/`.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Uri([out, retval] LPWSTR* value);
+  [propget] HRESULT SenderOrigin([out, retval] LPWSTR* value);
 
   /// The notification that was received. You can access the
   /// properties on the Notification object to show their own notification. 
@@ -552,7 +553,7 @@ interface ICoreWebView2Notification : IUnknown {
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT ImageUri([out, retval] LPWSTR* value);
+  [propget] HRESULT BodyImageUri([out, retval] LPWSTR* value);
 
   /// Specifies whether the user should be notified after a new notification
   /// replaces an old one.
@@ -560,7 +561,7 @@ interface ICoreWebView2Notification : IUnknown {
   /// [Notification.renotify](https://developer.mozilla.org/docs/Web/API/Notification/renotify)
   /// DOM API.
   /// The default value is `FALSE`.
-  [propget] HRESULT Renotify([out, retval] BOOL* value);
+  [propget] HRESULT ShouldRenotify([out, retval] BOOL* value);
 
   /// A boolean value indicating that a notification should remain active until
   /// the user clicks or dismisses it, rather than closing automatically.
@@ -568,7 +569,7 @@ interface ICoreWebView2Notification : IUnknown {
   /// [Notification.requireInteraction](https://developer.mozilla.org/docs/Web/API/Notification/requireInteraction)
   /// DOM API.
   /// The default value is `FALSE`.
-  [propget] HRESULT RequireInteraction([out, retval] BOOL* value);
+  [propget] HRESULT RequiresInteraction([out, retval] BOOL* value);
 
   /// Specifies whether the notification should be silent — i.e., no sounds or
   /// vibrations should be issued, regardless of the device settings.
@@ -576,7 +577,7 @@ interface ICoreWebView2Notification : IUnknown {
   /// [Notification.silent](https://developer.mozilla.org/docs/Web/API/Notification/silent)
   /// DOM API.
   /// The default value is `FALSE`.
-  [propget] HRESULT Silent([out, retval] BOOL* value);
+  [propget] HRESULT IsSilent([out, retval] BOOL* value);
 
   /// Specifies the time at which a notification is created or applicable (past,
   /// present, or future) as the number of milliseconds since the UNIX epoch.
@@ -592,7 +593,7 @@ interface ICoreWebView2Notification : IUnknown {
   /// DOM API.
   /// An empty UnsignedLongCollection is returned if no vibration patterns are
   /// specified.
-  [propget] HRESULT Vibrate([out, retval] ICoreWebView2UnsignedLongCollection** value);
+  [propget] HRESULT VibrationPattern([out, retval] ICoreWebView2UnsignedLongCollection** value);
 }
 ```
 
