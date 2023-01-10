@@ -283,6 +283,10 @@ typedef enum COREWEBVIEW2_TEXT_DIRECTION_KINDS {
 interface ICoreWebView2Profile3 : IUnknown {
   /// Add an event handler for the `NotificationReceived` event for persistent
   /// notifications.
+  ///
+  /// If a deferral is not taken on the event args, the subsequent scripts are
+  /// blocked until the event handler returns. If a deferral is taken, the
+  /// scripts are blocked until the deferral is completed.
   HRESULT add_NotificationReceived(
       [in] ICoreWebView2ProfileNotificationReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
@@ -297,6 +301,10 @@ interface ICoreWebView2Profile3 : IUnknown {
 interface ICoreWebView2_17 : ICoreWebView2_16 {
   /// Add an event handler for the `NotificationReceived` event for
   /// non-persistent notifications.
+  ///
+  /// If a deferral is not taken on the event args, the subsequent scripts are
+  /// blocked until the event handler returns. If a deferral is taken, the
+  /// scripts are blocked until the deferral is completed.
   HRESULT add_NotificationReceived(
       [in] ICoreWebView2NotificationReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
