@@ -265,7 +265,8 @@ interface ICoreWebView2LaunchingExternalProtocolEventArgs: IUnknown {
   [propget] HRESULT IsUserInitiated([out, retval] BOOL* value);
 
   /// `TRUE` when the external protocol request was initiated via a non-main frame that 
-  /// has a different origin then the owning top-level page.
+  /// has a different origin then the owning top-level page. When this property is `TRUE`
+  /// this may indicate a potential security issue and it is advised to block this request.
 
   [propget] HRESULT IsCrossOriginIframe([out, retval] BOOL* value);
 
