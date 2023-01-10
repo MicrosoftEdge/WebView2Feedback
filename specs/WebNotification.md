@@ -438,6 +438,18 @@ interface ICoreWebView2UnsignedLongCollection : IUnknown {
   HRESULT GetValueAtIndex([in] UINT index, [out, retval] UINT64* value);
 }
 
+/// The caller implements this interface to receive the result of reporting a notification clicked.
+[uuid(1013C0D5-5F0C-4BF8-BA52-9D76AFA20E83), object, pointer_default(unique)]
+interface ICoreWebView2NotificationReportClickedCompletedHandler : IUnknown {
+    HRESULT Invoke([in] HRESULT errorCode);
+}
+
+/// The caller implements this interface to receive the result of reporting a notification closed.
+[uuid(D8B63F74-1D78-4B4C-ACA9-7CB63FDFD74C), object, pointer_default(unique)]
+interface ICoreWebView2NotificationReportClosedCompletedHandler : IUnknown {
+    HRESULT Invoke([in] HRESULT errorCode);
+}
+
 /// This is the ICoreWebView2Notification that represents a [HTML Notification
 /// object](https://developer.mozilla.org/docs/Web/API/Notification).
 [uuid(E3F43572-2930-42EB-BD90-CAC16DE6D942), object, pointer_default(unique)]
@@ -470,7 +482,7 @@ interface ICoreWebView2Notification : IUnknown {
   /// You should only run this if you are handling the `NotificationReceived`
   /// event. Returns `E_ABORT` if `Handled` is `FALSE` or `ReportShown` has not
   /// been run when this is called.
-  HRESULT ReportClicked();
+  HRESULT ReportClicked([in] ICoreWebView2NotificationReportClickedCompletedHandler* handler);
 
   /// The host may run this to report the persistent notification has been
   /// activated with a given action, and it will cause the
@@ -481,7 +493,7 @@ interface ICoreWebView2Notification : IUnknown {
   /// is `FALSE` or `ReportShown` has not been run when this is called. Returns
   /// `E_INVALIDARG` if an invalid action index is provided. Use `ReportClicked`
   /// to activate an non-persistent notification.
-  HRESULT ReportClickedWithAction([in] UINT actionIndex);
+  HRESULT ReportClickedWithAction([in] UINT actionIndex, [in] ICoreWebView2NotificationReportClickedCompletedHandler* handler);
 
   /// The host may run this to report the notification was dismissed, and it
   /// will cause the
@@ -491,7 +503,7 @@ interface ICoreWebView2Notification : IUnknown {
   /// event for persistent notifications. You should only run this if you are
   /// handling the `NotificationReceived` event. Returns `E_ABORT` if `Handled`
   /// is `FALSE` or `ReportShown` has not been run when this is called.
-  HRESULT ReportClosed();
+  HRESULT ReportClosed([in] ICoreWebView2NotificationReportClosedCompletedHandler* handler);
 
   /// A string representing the body text of the notification.
   /// The default value is an empty string.
@@ -703,9 +715,9 @@ namespace Microsoft.Web.WebView2.Core
         event Windows.Foundation.TypedEventHandler<CoreWebView2Notification, Object> CloseRequested;
 
         void ReportShown();
-        void ReportClicked();
-        void ReportClicked(UInt32 actionIndex);
-        void ReportClosed();
+        Windows.Foundation.IAsyncAction ReportClickedAsync();
+        Windows.Foundation.IAsyncAction ReportClickedAsync(UInt32 actionIndex);
+        Windows.Foundation.IAsyncAction ReportClosedAsync();
     }
 }
 ```
