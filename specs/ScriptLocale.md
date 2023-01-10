@@ -7,7 +7,7 @@ The locale/region updates the JavaScript region (objects in the ECMA standard) w
 variations in time and date formats. Currently, the locale is by default set to the same value as the 
 display language. 
 
-You can use the `ScriptLocale` API to update the locale value individually from the display
+You can use the `ScriptLocale` property to update the locale value individually from the display
 language.
 
 # Description
@@ -18,12 +18,11 @@ language.
 ControllerOptions CreateAndInitializeCoreWebView2ControllerAndOptions(std::string locale) 
 {
     auto webViewEnvironment10 = m_webViewEnvironment.try_query<ICoreWebView2Environment10>();
-    if (webViewEnvironment10) {
-            wil::com_ptr<ICoreWebView2ControllerOptions> options;
-            CHECK_FAILURE(webViewEnvironment10->CreateCoreWebView2ControllerOptions(&options));
-            options->put_ScriptLocale(locale);
-            return options;
-    }
+    CHECK_FEATURE_RETURN(webViewEnvironment10);
+    wil::com_ptr<ICoreWebView2ControllerOptions> options;
+    CHECK_FAILURE(webViewEnvironment10->CreateCoreWebView2ControllerOptions(&options));
+    options->put_ScriptLocale(locale);
+    return options;
 }
 ```
 
