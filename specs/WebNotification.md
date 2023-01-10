@@ -32,8 +32,11 @@ Runtime.
 ## Handle PermissionRequested event
 
 This can be achieved with the existing `PermissionRequested` events.
-`PermissionRequested` event used to not be raised for `PermissionKind.Notification`.
-Now, `PermissionRequested` events are raised for `PermissionKind.Notification`, and `PermissionState` needs to be set `Allow` explicitly to allow such permission requests. `PermissionState.Default` for `PermissionKind.Notification` is considered denied.
+`PermissionRequested` event used to not be raised for
+`PermissionKind.Notification`. Now, `PermissionRequested` events are raised for
+`PermissionKind.Notification`, and `PermissionState` needs to be set `Allow`
+explicitly to allow such permission requests. `PermissionState.Default` for
+`PermissionKind.Notification` is considered denied.
 
 ### C# Sample
 ```csharp
@@ -66,9 +69,11 @@ void WebView_PermissionRequested(object sender, CoreWebView2PermissionRequestedE
                 {
                     case MessageBoxResult.Yes:
                         args.State = CoreWebView2PermissionState.Allow;
+                        _cachedPermissions[cachedKey] = true;
                         break;
                     case MessageBoxResult.No:
                         args.State = CoreWebView2PermissionState.Deny;
+                        _cachedPermissions[cachedKey] = false;
                         break;
                     case MessageBoxResult.Cancel:
                         args.State = CoreWebView2PermissionState.Default;
@@ -169,11 +174,15 @@ using Microsoft.Toolkit.Uwp.Notifications;
 void WebView_NotificationReceived(object sender, CoreWebView2NotificationReceivedEventArgs args)
 {
     CoreWebView2Deferral deferral = args.GetDeferral();
+    args.Handled = true;
     var notification = args.Notification;
 
     // Show notification with local MessageBox
-    string message = "Received notification from " + args.Uri + " with body " + notification.Body;
-    MessageBox.Show(message);
+    System.Threading.SynchronizationContext.Current.Post((_) =>
+    {
+        string message = "Received notification from " + args.Uri + " with body " + notification.Body;
+        MessageBox.Show(message);
+    }
 
     // Requires Microsoft.Toolkit.Uwp.Notifications NuGet package version 7.0 or greater
     var toastContent = new ToastContentBuilder()
@@ -183,15 +192,25 @@ void WebView_NotificationReceived(object sender, CoreWebView2NotificationReceive
     toastContent.Show();
     // See
     // https://learn.microsoft.com/windows/apps/design/shell/tiles-and-notifications/send-local-toast?tabs=uwp
-    // for how to handle toast activation
+    // for how to handle toast activation.
 
+    // Call ReportShown after showing the toast notification to raise
+    // the DOM notification.show event.
+    // args.Handled has been set to true before we call Report... methods.
     notification.ReportShown();
+
+    // During the toast notification activation handling, we may call
+    // ReportClicked and/or ReportClose accordingly.
     notification.ReportClosed();
-    args.Handled = true;
 }
 ```
 
 ### C++ Sample
+
+`Microsoft.Toolkit.Uwp.Notifications ` package does not work with non-UWP Win32
+app. Hence in the sample code we use native MessageBox and handle notifications
+accordingly.
+
 ```cpp
 ...
 {
@@ -203,16 +222,21 @@ void WebView_NotificationReceived(object sender, CoreWebView2NotificationReceive
                 ICoreWebView2* sender,
                 ICoreWebView2NotificationReceivedEventArgs* args) -> HRESULT
             {
-                // Block notifications from specific URIs and set Handled to
-                // false so the the default notification UI will not be
-                // shown by WebView2 either.
-                wil::unique_cotaskmem_string uri;
-                CHECK_FAILURE(args->get_Uri(&uri);
-                if (ShouldBlockUri(uri.get()))
+                // Setting Handled to TRUE so the the default notification UI will not be
+                // shown by WebView2 as we are handling the notification ourselves.
+                // Block notifications from specific origins and return directly without showing notifications. 
+                CHECK_FAILURE(args->put_Handled(TRUE));
+                wil::unique_cotaskmem_string origin;
+                CHECK_FAILURE(args->get_SenderOrigin(&origin));
+                if (ShouldBlockOrigin(origin.get()))
                 {
-                    CHECK_FAILURE(args->put_Handled(FALSE));
+                    return S_OK;
                 }
-                ShowNotification(args);
+
+                wil::com_ptr<ICoreWebView2Notification> notification;
+                CHECK_FAILURE(args->get_Notification(&notification));
+    
+                ShowNotification(notification);
                 return S_OK;
             })
             .Get(),
@@ -222,40 +246,28 @@ void WebView_NotificationReceived(object sender, CoreWebView2NotificationReceive
 ...
 //! [OnNotificationReceived]
 void SettingsComponent::ShowNotification(
-    ICoreWebView2NotificationReceivedEventArgs* args)
+    ICoreWebView2Notification* notification)
 {
     AppWindow* appWindow = m_appWindow;
 
-    // Obtain a deferral for the event so that the CoreWebView2
-    // does not examine the properties we set on the event args and
-    // after we call the Complete method asynchronously later.
-    wil::com_ptr<ICoreWebView2Deferral> deferral;
-    CHECK_FAILURE(args->GetDeferral(&deferral));
-
-    wil::com_ptr<ICoreWebView2NotificationReceivedEventArgs> eventArgs = args;
-
     appWindow->RunAsync(
-        [this, eventArgs, deferral]
+        [this, notification]
         {
-            wil::com_ptr<ICoreWebView2Notification> notification;
-            CHECK_FAILURE(eventArgs->get_Notification(&notification));
 
-            wil::unique_cotaskmem_string uri;
-            CHECK_FAILURE(eventArgs->get_Uri(&uri));
+            wil::unique_cotaskmem_string origin;
+            CHECK_FAILURE(eventArgs->get_SenderOrigin(&origin));
             wil::unique_cotaskmem_string title;
             CHECK_FAILURE(notification->get_Title(&title));
             wil::unique_cotaskmem_string body;
             CHECK_FAILURE(notification->get_Body(&body));
 
             std::wstring message =
-                L"The page at " + std::wstring(uri.get()) + L" sends you an
+                L"The page from " + std::wstring(origin.get()) + L" sends you an
                 notification:\n\n";
             message += body.get();
             notification->ReportShown();
             int response = MessageBox(nullptr, message.c_str(), title.get(), MB_OKCANCEL);
             (response == IDOK) ? notification->ReportClicked() : notification->ReportClosed();
-
-            deferral->Complete();
         });
 }
 //! [OnNotificationReceived]
