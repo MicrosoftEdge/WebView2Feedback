@@ -249,10 +249,10 @@ typedef enum COREWEBVIEW2_TEXTURE_STREAM_ERROR_KIND {
   COREWEBVIEW2_TEXTURE_STREAM_ERROR_BUFFER_ERROR,
   /// The texture to be presented is already in use for rendering.
   /// Call GetAvailableBuffer to determine an available TextureBuffer to present.
-  /// The developer can technically call SetBuffer multiple times.
-  /// But once they call Present, the TextureBuffer becomes "in use" until
-  /// they call SetBuffer and Present on a different TextureBuffer and wait a bit
-  /// for the original TextureBuffer to stop being used.
+  /// The developer can technically call PresentBuffer multiple times,
+  /// but the first call make input TextureBuffer "in use" until the browser
+  /// renders it and returns the buffer as "recycle" so that it can be a member of
+  /// available buffers.
   COREWEBVIEW2_TEXTURE_STREAM_ERROR_BUFFER_IN_USE,
 } COREWEBVIEW2_TEXTURE_STREAM_ERROR_KIND;
 
@@ -392,18 +392,16 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// created via CreateBuffer.
   /// It is expected that hhe host writes new image/resource to the local
   /// shared 2D texture of the TextureBuffer (handle/resource).
-  /// SetBuffer API can be called in any thread.
 
-  /// `timestampInMs` is video capture time with microseconds units.
+  /// `timestampInMicroseconds` is video capture time with microseconds units.
   /// The value does not have to be exact captured time, but it should be
   /// increasing order because renderer (composition) ignores incoming
-  /// video frame (texture) if its timestampInMs is equal or prior to
-  /// the current compositing video frame.
-  HRESULT SetBuffer([in] ICoreWebView2StagingTexture* buffer,
-    [in] UINT64 timestampInMs);
-  /// Render ICoreWebView2StagingTexture resource, which is the most recent
-  /// call to SetBuffer.
-  HRESULT Present();
+  /// video frame (texture) if its timestampInMicroseconds is equal or prior to
+  /// the current compositing video frame. It also will be exposed to the
+  /// JS with `VideoFrame::timestamp`.
+  /// (https://docs.w3cub.com/dom/videoframe/timestamp.html).
+  HRESULT PresentBuffer([in] ICoreWebView2StagingTexture* buffer,
+    [in] UINT64 timestampInMicroseconds);
   /// Stop streaming of the current stream id.
   /// The Javascript will receive `MediaStreamTrack::ended` event when the API
   /// is called.
@@ -571,9 +569,9 @@ interface ICoreWebView2StagingWebTexture : IUnknown {
 
   /// It is timestamp of the web texture. Javascript can set this value
   /// with any value, but it is suggested to use same value of its original
-  /// video frame that is a value of SetBuffer so that the host is able to
+  /// video frame that is a value of PresentBuffer so that the host is able to
   /// tell the receiving texture delta.
-  [propget] HRESULT Timestamp([out, retval] UINT64* value);
+  [propget] HRESULT Timestamp([out, retval] UINT64* timestampInMicroseconds);
 }
 
 ```
