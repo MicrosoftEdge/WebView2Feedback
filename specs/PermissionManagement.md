@@ -18,8 +18,7 @@ events for some permission kinds.
 The new APIs, `SetPermission` and `GetNonDefaultPermissionSettings`, provide
 all the information necessary to build a permission management page where a
 user can view and modify existing site permissions. The new permission kinds we will
-support are: local font list, automatic downloads, media autoplay, file editing, and
-system exclusive MIDI access.
+support are: local font list, automatic downloads, media autoplay, file editing, and system exclusive MIDI message access.
 
 See already supported [permission kinds](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.1418.22#corewebview2_permission_kind)
 and existing [event args](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2permissionrequestedeventargs?view=webview2-dotnet-1.0.1418.22).
@@ -381,11 +380,11 @@ typedef enum COREWEBVIEW2_PERMISSION_KIND {
   /// to query the system fonts available for styling web content.
   COREWEBVIEW2_PERMISSION_KIND_LOCAL_FONTS,
 
-  /// Indicates permission for a site to use system exclusive messages to access
-  /// Musical Instrument Digital Interface (MIDI) devices. Permission is requested
+  /// Indicates permission to send and receive system exclusive messages to/from MIDI
+  /// (Musical Instrument Digital Interface) devices. Permission is requested
   /// when developers use the [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
-  /// to request system exclusive MIDI access.
-  COREWEBVIEW2_PERMISSION_KIND_MIDI_SYSTEM_EXCLUSIVE_ACCESS,
+  /// to request access to system exclusive MIDI messages.
+  COREWEBVIEW2_PERMISSION_KIND_MIDI_SYSTEM_EXCLUSIVE_MESSAGE_ACCESS,
 } COREWEBVIEW2_PERMISSION_KIND;
 
 /// This is a continuation of the `ICoreWebView2PermissionRequestedEventArgs`
@@ -511,11 +510,11 @@ namespace Microsoft.Web.WebView2.Core
         // to query the system fonts available for styling web content.
         LocalFonts = 10,
 
-        // Indicates permission for a site to use system exclusive messages to access
-        // Musical Instrument Digital Interface (MIDI) devices. Permission is requested
+        // Indicates permission to send and receive system exclusive messages to/from MIDI
+        // (Musical Instrument Digital Interface) devices. Permission is requested
         // when developers use the [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
-        // to request system exclusive MIDI access.
-        MidiSystemExclusiveAccess = 11,
+        // to request access to system exclusive MIDI messages.
+        MidiSystemExclusiveMessageAccess = 11,
     };
 }
 
