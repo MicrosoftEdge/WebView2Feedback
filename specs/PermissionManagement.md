@@ -381,7 +381,7 @@ typedef enum COREWEBVIEW2_PERMISSION_KIND {
   /// to query the system fonts available for styling web content.
   COREWEBVIEW2_PERMISSION_KIND_LOCAL_FONTS,
 
-  /// Indicates permission for a site to use system exlusive messages to access
+  /// Indicates permission for a site to use system exclusive messages to access
   /// Musical Instrument Digital Interface (MIDI) devices. Permission is requested
   /// when developers use the [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
   /// to request system exclusive MIDI access.
@@ -511,7 +511,7 @@ namespace Microsoft.Web.WebView2.Core
         // to query the system fonts available for styling web content.
         LocalFonts = 10,
 
-        // Indicates permission for a site to use system exlusive messages to access
+        // Indicates permission for a site to use system exclusive messages to access
         // Musical Instrument Digital Interface (MIDI) devices. Permission is requested
         // when developers use the [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)
         // to request system exclusive MIDI access.
