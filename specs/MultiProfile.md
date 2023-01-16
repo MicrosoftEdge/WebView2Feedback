@@ -417,8 +417,9 @@ interface ICoreWebView2Profile4 : IUnknown {
 [uuid(cc39bea3-f6f8-471b-919f-fa253e2fff03), object, pointer_default(unique)]
 interface ICoreWebView2_9 : IUnknown {
   /// Add an event handler for the `Closed` event. `Closed` enent handle runs
-  /// when the webview2 is closed passivly. When this event is raised, the 
-  /// webview2 cannot be used anymore.
+  /// when the webview2 is closed due to the reason that described in the
+  /// COREWEBVIEW2_CLOSED_REASON enumeration. When this event is raised, the
+  /// webview2 moves to the Closed state, and cannot be used anymore.
   HRESULT add_Closed(
       [in] ICoreWebView2ClosedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
