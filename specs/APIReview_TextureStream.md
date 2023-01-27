@@ -490,9 +490,7 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
 
   /// Once stopped, calls to CreateTexture, GetAvailableTexture,
   /// PresentTexture, and CloseTexture will fail with
-  /// COREWEBVIEW2_TEXTURE_STREAM_ERROR_NO_VIDEO_TRACK_STARTED.
-  /// See those methods for details.
-
+  /// HRESULT_FROM_WIN32(ERROR_INVALID_STATE).
   /// The `Stop` method is implicitly called when the texture stream object is
   /// destroyed.
   HRESULT Stop();
@@ -510,26 +508,31 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// See the `CreateTextureStream` `d3dDevice` parameter for more details.
   HRESULT SetD3DDevice([in] IUnknown* d3dDevice);
   /// Event handler for receiving texture by Javascript.
-  /// `window.chrome.webview.registerTextureStream` call by Javascript will
-  /// request sending video frame to the host where it will filter requested
-  /// page's origin against allowed origins. If allowed, the Javascript will
-  /// send a video frame (web texture), through MediaStreamTrack insertable APIs,
-  /// MediaStreamTrackGenerator.
-  /// https://www.w3.org/TR/mediacapture-transform/.
-  /// WebTextureReceived event will be called only when it receives
-  /// a web texture. There is no start event for receiving web texture.
+  /// The WebTextureReceived event is raised when script sends a video frame to
+  /// this texture stream. Allowed script will call `chrome.webview.
+  /// registerTextureStream` to register a MediaStream with a specified texture
+  /// stream. Video frames added to that MediaStream will be raised in the
+  /// WebTextureReceived event. See `registerTextureStream` for details.
+  /// Script is allowed to call registerTextureStream if it is from an HTML
+  /// document with an origin allowed via
+  /// `ICoreWebView2TextureStream::AddAllowedOrigin` with the
+  /// `alllowWebTexture` parameter set. See `AddAllowedOrigin` for details.
   HRESULT add_WebTextureReceived(
       [in] ICoreWebView2StagingTextureStreamWebTextureReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
   /// Remove listener for WebTextureReceived event.
   HRESULT remove_WebTextureReceived([in] EventRegistrationToken token);
-  /// Event handler for stopping of the receiving texture stream.
-  /// It is expected that the host releases any holding handle/resource from
-  /// the WebTexture before an event handler returns. The event can be raised
-  /// when the JS calls `window.chrome.webview.unregisterTextureStream`.
-  /// JS can restart sending the stream with `window.chrome.webview.registerTextureStream`
-  /// after stream is stopped. If the stream is started again, `add_WebTextureReceived`
-  /// will be called.
+  /// The WebTextureStreamStopped event is raised when script unregisters its
+  /// MediaStream from this texture stream. Script that has previously called
+  /// `chrome.webview.registerTextureStream`, can call `chrome.webview.
+  /// unregisterTextureStream` which will raise this event and then close
+  /// associated ICoreWebView2WebTexture objects in the browser side. You should
+  /// ensure that you release any references to associated
+  /// ICoreWebView2WebTexture objects and their underlying resources.
+
+  /// Once stopped, script may start again by calling `chrome.webview.
+  /// registerTextureStream` and sending more frames. In this case the
+  /// `ICoreWebView2TextureStream WebTextureReceived` event will be raised again.
   HRESULT add_WebTextureStreamStopped(
       [in] ICoreWebView2StagingTextureStreamWebTextureStreamStoppedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
@@ -540,22 +543,27 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
 /// will render on it.
 [uuid(0836f09c-34bd-47bf-914a-99fb56ae2d07), object, pointer_default(unique)]
 interface ICoreWebView2StagingTexture : IUnknown {
-    /// Returns Windows NT handle to shared memory containing the texture.
-    /// The caller expected to open it with ID3D11Device1::OpenSharedResource1
-    /// and writes the incoming texture to it.
-    [propget] HRESULT Handle([out, retval] HANDLE* value);
-    /// Returns IUnknown type that could be query interface to IDXGIResource.
-    /// The caller can write incoming texture to it.
-    [propget] HRESULT Resource([out, retval] IUnknown** value);
-    /// Sets timestamp of presenting texture.
-    /// `value` is video capture time with microseconds units.
-    /// The value does not have to be exact captured time, but it should be
-    /// increasing order because renderer (composition) ignores incoming
-    /// video frame (texture) if its timestamp is equal or prior to
-    /// the current compositing video frame. It also will be exposed to the
-    /// JS with `VideoFrame::timestamp`.
-    /// (https://docs.w3cub.com/dom/videoframe/timestamp.html).
-    [propput] HRESULT Timestamp([out, retval] UINT64* value);
+  /// A handle to OS shared memory containing the texture. You can open it
+  /// with `ID3D11Device1::OpenSharedResource1` and write your texture data
+  /// to it. Do not close it yourself. The underlying texture will be closed
+  /// by WebView2. Do not change the texture after calling
+  /// `ICoreWebView2TextureStream::PresentTexture` before you can retrieve it
+  /// again with `GetAvailableTexture`, or you the frame may not be
+  /// rendered and the `ICoreWebView2TextureStream ErrorReceived` event will
+  /// be raised.
+  [propget] HRESULT Handle([out, retval] HANDLE* value);
+  /// Returns IUnknown type that could be query interface to IDXGIResource.
+  /// The caller can write incoming texture to it.
+  [propget] HRESULT Resource([out, retval] IUnknown** value);
+  /// Sets timestamp of presenting texture.
+  /// `value` is video capture time with microseconds units.
+  /// The value does not have to be exact captured time, but it should be
+  /// increasing order because renderer (composition) ignores incoming
+  /// video frame (texture) if its timestamp is equal or prior to
+  /// the current compositing video frame. It also will be exposed to the
+  /// JS with `VideoFrame::timestamp`.
+  /// (https://docs.w3cub.com/dom/videoframe/timestamp.html).
+  [propput] HRESULT Timestamp([out, retval] UINT64* value);
 }
 /// This is the callback for new texture stream request.
 [uuid(62d09330-00a9-41bf-a9ae-55aaef8b3c44), object, pointer_default(unique)]
@@ -586,13 +594,15 @@ interface ICoreWebView2StagingTextureStreamErrorReceivedEventHandler : IUnknown 
       [in] ICoreWebView2StagingTextureStream* sender,
       [in] ICoreWebView2StagingTextureStreamErrorReceivedEventArgs* args);
 }
-/// This is the event args interface for texture stream error callback.
+/// The event args for the `ICoreWebViewTextureStream ErrorReceived` event.
 [uuid(0e1730c1-03df-4ad2-b847-be4d63adf700), object, pointer_default(unique)]
 interface ICoreWebView2StagingTextureStreamErrorReceivedEventArgs : IUnknown {
-  /// Error kind.
+  /// The kind of error that has occurred.
   [propget] HRESULT Kind([out, retval]
       COREWEBVIEW2_TEXTURE_STREAM_ERROR_KIND* value);
-  /// texture that the error is associated with.
+  /// The texture with which this error is associated. For the
+  /// `COREWEBVIEW2_TEXTURE_STREAM_ERROR_NO_VIDEO_TRACK_STARTED` error kind,
+  /// this property will be `nullptr`.
   [propget] Texture([out, retval] ICoreWebView2StagingTexture** value);
 }
 [uuid(431721e0-0f18-4d7b-bd4d-e5b1522bb110), object, pointer_default(unique)]
@@ -621,17 +631,10 @@ interface ICoreWebView2StagingTextureStreamWebTextureReceivedEventHandler : IUnk
       [in] ICoreWebView2StagingTextureStreamWebTextureReceivedEventArgs* args);
 }
 
-/// This is the event args interface for web texture.
+/// The event args for the `ICoreWebView2TextureStream WebTextureReceived` event.
 [uuid(a4c2fa3a-295a-11ed-a261-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2StagingTextureStreamWebTextureReceivedEventArgs : IUnknown {
   /// Return ICoreWebView2StagingWebTexture object.
-  /// The call does not create new ICoreWebView2StagingWebTexture object, instead
-  /// returns the same object.
-
-  /// The texture handle will be reused when ICoreWebView2StagingWebTexture
-  /// object is released. So, the host should not refer handle or resource of
-  /// the ICoreWebView2StagingWebTexture after its release.
-
   [propget] WebTexture([out, retval] ICoreWebView2StagingWebTexture** value);
 }
 
