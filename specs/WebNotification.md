@@ -12,7 +12,7 @@ service worker registration.
 You should be able to handle notification permission requests, and
 further listen to `NotificationReceived` events to optionally handle the
 notifications themselves. The `NotificationReceived` events are raised on
-`CorebWebView2` and `CoreWebView2Profile` object respectively for non-persistent
+`CorebWebView2` and `CoreWebView2Profile` object for non-persistent
 and persistent notifications respectively.
 
 The `NotificationReceived` event on `CoreWebView2` and `CoreWebView2Profile` let
@@ -96,6 +96,9 @@ CHECK_FAILURE(m_webView->add_PermissionRequested(
     &m_permissionRequestedToken));
 }
 ...
+std::map<std::tuple<std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>, bool>
+    m_cachedPermissions;
+
 HRESULT SettingsComponent::OnPermissionRequested(
     ICoreWebView2* sender, ICoreWebView2PermissionRequestedEventArgs* args)
 {
@@ -116,12 +119,12 @@ HRESULT SettingsComponent::OnPermissionRequested(
 
         COREWEBVIEW2_PERMISSION_STATE state;
 
-        auto cached_key = std::make_tuple(std::wstring(uri.get()), kind, userInitiated);
-        auto cached_permission = m_cached_permissions.find(cached_key);
-        if (cached_permission != m_cached_permissions.end())
+        auto cachedKey = std::make_tuple(std::wstring(uri.get()), kind, userInitiated);
+        auto cachedPermission = m_cachedPermissions.find(cachedKey);
+        if (cachedPermission != m_cachedPermissions.end())
         {
             state =
-                (cached_permission->second ? COREWEBVIEW2_PERMISSION_STATE_ALLOW
+                (cachedPermission->second ? COREWEBVIEW2_PERMISSION_STATE_ALLOW
                                            : COREWEBVIEW2_PERMISSION_STATE_DENY);
         }
         else
@@ -142,11 +145,11 @@ HRESULT SettingsComponent::OnPermissionRequested(
             switch (response)
             {
             case IDYES:
-                m_cached_permissions[cached_key] = true;
+                m_cachedPermissions[cachedKey] = true;
                 state = COREWEBVIEW2_PERMISSION_STATE_ALLOW;
                 break;
             case IDNO:
-                m_cached_permissions[cached_key] = false;
+                m_cachedPermissions[cachedKey] = false;
                 state = COREWEBVIEW2_PERMISSION_STATE_DENY;
                 break;
             default:
@@ -165,15 +168,28 @@ HRESULT SettingsComponent::OnPermissionRequested(
 
 ## Filter Notifications from a specific doamin and send local toast
 
-Learn more about sending a local toast [Send a local toast notification from a C# app - Windows apps | Microsoft Learn](https://learn.microsoft.com/windows/apps/design/shell/tiles-and-notifications/send-local-toast?tabs=uwp).
+This sample uses custom app UI to display toast notifications. It does so using
+`Microsoft.Toolkit.Uwp.Notifications` nuget package. For an unpackaged C# WinApp
+SDK based app, you can handle the toast notification activation in your app's
+startup code such as in `App.xaml.cs`, and then dispatch it to the WebView2
+notification object. Note that the notification object will be gone along with
+WebView2. If your app is closed when the toast notification is activated, the
+notification object should be gone and you should not try to dispatch the
+activation.
+
+For UWP and desktop packaged apps, you can learn more about via [Send a local
+toast notification from a C# app - Windows apps | Microsoft
+Learn](https://learn.microsoft.com/windows/apps/design/shell/tiles-and-notifications/send-local-toast?tabs=uwp).
 
 ### C# Sample
+
 ```csharp
 using Microsoft.Toolkit.Uwp.Notifications;
 ...
 void WebView_NotificationReceived(object sender, CoreWebView2NotificationReceivedEventArgs args)
 {
-    CoreWebView2Deferral deferral = args.GetDeferral();
+    using (args.GetDeferral())
+    {
     args.Handled = true;
     var notification = args.Notification;
 
@@ -190,24 +206,37 @@ void WebView_NotificationReceived(object sender, CoreWebView2NotificationReceive
         .AddText("Notification sent from " + args.Uri +":\n")
         .AddText(notification.Body);
     toastContent.Show();
-    // See
-    // https://learn.microsoft.com/windows/apps/design/shell/tiles-and-notifications/send-local-toast?tabs=uwp
-    // for how to handle toast activation.
 
     // Call ReportShown after showing the toast notification to raise
     // the DOM notification.show event.
     // args.Handled has been set to true before we call Report... methods.
     notification.ReportShown();
 
+        // Handle toast activation for C# unpackaged app.   
+        // Listen to notification activation
+        ToastNotificationManagerCompat.OnActivated += toastArgs =>
+        {
+            // Obtain the arguments from the notification
+            ToastArguments args = ToastArguments.Parse(toastArgs.Argument);
+        
+            // Obtain any user input (text boxes, menu selections) from the notification
+            ValueSet userInput = toastArgs.UserInput;
+        
+            // Need to dispatch to UI thread if performing UI operations
+            Application.Current.Dispatcher.Invoke(delegate
+            {
     // During the toast notification activation handling, we may call
     // ReportClicked and/or ReportClose accordingly.
     notification.ReportClosed();
+            });
+        }; 
+}
 }
 ```
 
 ### C++ Sample
 
-`Microsoft.Toolkit.Uwp.Notifications ` package does not work with non-UWP Win32
+`Microsoft.Toolkit.Uwp.Notifications` package does not work with non-UWP Win32
 app. Hence in the sample code we use native MessageBox and handle notifications
 accordingly.
 
@@ -296,9 +325,10 @@ interface ICoreWebView2Profile3 : IUnknown {
   /// Add an event handler for the `NotificationReceived` event for persistent
   /// notifications.
   ///
-  /// If a deferral is not taken on the event args, the subsequent scripts are
-  /// blocked until the event handler returns. If a deferral is taken, the
-  /// scripts are blocked until the deferral is completed.
+  /// If a deferral is not taken on the event args, the subsequent scripts after
+  /// the DOM notification creation call (i.e. `Notification()`) are blocked
+  /// until the event handler returns. If a deferral is taken, the scripts are
+  /// blocked until the deferral is completed.
   HRESULT add_NotificationReceived(
       [in] ICoreWebView2ProfileNotificationReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
@@ -314,9 +344,10 @@ interface ICoreWebView2_17 : ICoreWebView2_16 {
   /// Add an event handler for the `NotificationReceived` event for
   /// non-persistent notifications.
   ///
-  /// If a deferral is not taken on the event args, the subsequent scripts are
-  /// blocked until the event handler returns. If a deferral is taken, the
-  /// scripts are blocked until the deferral is completed.
+  /// If a deferral is not taken on the event args, the subsequent scripts after
+  /// the DOM notification creation call (i.e. `Notification()`) are blocked
+  /// until the event handler returns. If a deferral is taken, the scripts are
+  /// blocked until the deferral is completed.
   HRESULT add_NotificationReceived(
       [in] ICoreWebView2NotificationReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
