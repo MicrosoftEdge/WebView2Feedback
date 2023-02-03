@@ -39,6 +39,7 @@ explicitly to allow such permission requests. `PermissionState.Default` for
 `PermissionKind.Notification` is considered denied.
 
 ### C# Sample
+
 ```csharp
 IDictionary<(string, CoreWebView2PermissionKind, bool), bool> _cachedPermissions = 
     new Dictionary<(string, CoreWebView2PermissionKind, bool), bool>();
@@ -86,16 +87,8 @@ void WebView_PermissionRequested(object sender, CoreWebView2PermissionRequestedE
 ```
 
 ### C++ Sample
+
 ```cpp
-...
-{
-CHECK_FAILURE(m_webView->add_PermissionRequested(
-    Callback<ICoreWebView2PermissionRequestedEventHandler>(
-        this, &SettingsComponent::OnPermissionRequested)
-        .Get(),
-    &m_permissionRequestedToken));
-}
-...
 std::map<std::tuple<std::wstring, COREWEBVIEW2_PERMISSION_KIND, BOOL>, bool>
     m_cachedPermissions;
 
