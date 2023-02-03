@@ -178,26 +178,63 @@ HRESULT AppWindow::DeleteProfile(ICoreWebView2* webView2)
 
 void AppWindow::RegisterEventHandlers()
 {
-    CHECK_FAILURE(m_webView->add_Closed(
+    BOOL isWebview2Closed = FALSE;
+    CHECK_FAILURE(webView2->get_IsClosed(&isWebview2Closed));
+    if (!isWebview2Closed) {
+        CHECK_FAILURE(m_webView->add_Closed(
         Microsoft::WRL::Callback<ICoreWebView2ClosedEventHandler>(
             [this](ICoreWebView2_20* sender, ICoreWebView2EventArgs* args)
             {
                 COREWEBVIEW2_CLOSED_REASON reason;
                 CHECK_FAILURE(args->get_Reason(&reason));
-                if (reason == COREWEBVIEW2_CLOSED_REASON::COREWEBVIEW2_CLOSED_REASON_PROFILE_DELETED)
+                std::wstring message;
+                switch (reason)
                 {
-                    RunAsync( [this]()
+                    case COREWEBVIEW2_CLOSED_REASON::COREWEBVIEW2_CLOSED_REASON_SHUTDOWN:
                     {
-                        std::wstring message =
-                            L"The webview2 has been closed and the reason is profile "
-                            L"has been marked as deleted.";
-                        MessageBox(
-                            m_mainWindow, message.c_str(), L"webview2 closed", MB_OK);
-                        CloseAppWindow();
-                    });
+                        message = L"The CoreWebView2 has closed because the corresponding "
+                                  L"CoreWebView2Controller had its Close method called either "
+                                  L"explicitly or implicitly.";
+                        break;
+                    }
+                    case COREWEBVIEW2_CLOSED_REASON::
+                        COREWEBVIEW2_CLOSED_REASON_BROWSER_PROCESS_FAILURE:
+                    {
+                        message = L"The CoreWebView2 has closed because its browser process "
+                                  L"crashed. The Closed event will be raised after the "
+                                  L"ProcessFailed event is raised.";
+                        break;
+                    }
+                    case COREWEBVIEW2_CLOSED_REASON::
+                        COREWEBVIEW2_CLOSED_REASON_BROWSER_PROCESS_EXITED:
+                    {
+                        message = L"The CoreWebView2 has closed because its browser process has "
+                                  L"exited.";
+                        break;
+                    }
+                    case COREWEBVIEW2_CLOSED_REASON::
+                        COREWEBVIEW2_CLOSED_REASON_PARENT_WINDOW_CLOSED:
+                    {
+                        message = L"The CoreWebView2 has closed because its parent window was "
+                                  L"closed.";
+                        break;
+                    }
+                    case COREWEBVIEW2_CLOSED_REASON::COREWEBVIEW2_CLOSED_REASON_PROFILE_DELETED:
+                    {
+                        message = L"The CoreWebView2 has closed because its corresponding "
+                                  L"Profile has been or marked as deleted.";
+                        break;
+                    }
                 }
+                RunAsync([this, message]()
+                {
+                    MessageBox(
+                        m_mainWindow, message.c_str(), L"webview2 closed", MB_OK);
+                    CloseAppWindow();
+                });
                 return S_OK;
             }).Get(), nullptr));
+    }
 }
 ```
 
@@ -274,20 +311,48 @@ public DeleteProfile(CoreWebView2Controller controller)
 
 void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
-    webView.CoreWebView2.Closed += CoreWebView2_Closed;
+    if (!webView.IsClosed) {
+        webView.CoreWebView2.Closed += CoreWebView2_Closed;
+    }
 }
 
 private void CoreWebView2_Closed(object sender, CoreWebView2ClosedEventArgs e)
 {
-    if (e.Reason == CoreWebView2ClosedReason.ProfileDeleted)
+    String message;
+    switch (e.Reason)
     {
-        this.Dispatcher.InvokeAsync(() =>
+        case CoreWebView2ClosedReason.ShutDown:
         {
-            String message = "The webview2 has been closed and the reason is profile has been marked as deleted";
-            MessageBox.Show(message);
-            Close();
-        });
+            message = "The CoreWebView2 has closed because the corresponding CoreWebView2Controller had its Close method called either explicitly or implicitly."
+            break;
+        }
+        case CoreWebView2ClosedReason.BrowserProcessFailure:
+        {
+            message = "The CoreWebView2 has closed because its browser process crashed. The Closed event will be raised after the ProcessFailed event is raised."
+            break;
+        }
+        case CoreWebView2ClosedReason.BrowserProcessExited:
+        {
+            message = "The CoreWebView2 has closed because its browser process has exited."
+            break;
+        }
+        case CoreWebView2ClosedReason.ParentWindowClosed:
+        {
+            message = "The CoreWebView2 has closed because its parent window was closed."
+            break;
+        }
+        case CoreWebView2ClosedReason.ProfileDeleted:
+        {
+            message = "The CoreWebView2 has closed because its corresponding Profile has been or marked as deleted."
+            break;
+        }
     }
+
+    this.Dispatcher.InvokeAsync(() =>
+    {
+        MessageBox.Show(message);
+        Close();
+    });
 }
 ```
 
@@ -427,14 +492,33 @@ interface ICoreWebView2_9 : IUnknown {
   /// Remove an event handler previously added with `add_Closed`.
   HRESULT remove_Closed(
       [in] EventRegistrationToken token);
+
+  /// `TRUE` if WebView2 has moved to the Closed state. Use `add_Closed` API
+  /// to get the specific closed reason. For more information see `add_Closed`.
+  [propget] HRESULT IsClosed([out, retval] BOOL* value);
 }
 
 /// The reason of webview2 closed.
 [v1_enum]
 typedef enum COREWEBVIEW2_CLOSED_REASON {
-  /// Indicates that the reason of webview2 closed is its corresponding 
-  /// Profile has been or marked as deleted.
-  COREWEBVIEW2_CLOSED_REASON_PROFILE_DELETED,
+  /// The CoreWebView2 has closed because the corresponding
+  /// CoreWebView2Controller had its Close method called either explicitly or
+  /// implicitly.
+  COREWEBVIEW2_CLOSED_REASON_SHUTDOWN,
+  
+  /// The CoreWebView2 has closed because its browser process crashed.
+  /// The Closed event will be raised after the ProcessFailed event is raised.
+  COREWEBVIEW2_CLOSED_REASON_BROWSER_PROCESS_FAILURE,
+
+  /// The CoreWebView2 has closed because its browser process has exited.
+  COREWEBVIEW2_CLOSED_REASON_BROWSER_PROCESS_EXITED,
+  
+  /// The CoreWebView2 has closed because its parent window was closed.
+  COREWEBVIEW2_CLOSED_REASON_PARENT_WINDOW_CLOSED,
+
+  /// The CoreWebView2 has closed because its corresponding Profile has been or
+  /// marked as deleted.
+  COREWEBVIEW2_CLOSED_REASON_PROFILE_DELETED
 } COREWEBVIEW2_CLOSED_REASON;
 
 /// Receives the webview2 `Closed` event.
@@ -489,7 +573,12 @@ namespace Microsoft.Web.WebView2.Core
             CoreWebView2ControllerWindowReference ParentWindow,
             CoreWebView2ControllerOptions options);
     }
-    
+
+    runtimeclass WebView2
+    {
+        bool IsClosed { get; };
+    }
+
     runtimeclass CoreWebView2
     {
         // ...
@@ -503,7 +592,11 @@ namespace Microsoft.Web.WebView2.Core
 
     enum CoreWebView2ClosedReason
     {
-        ProfileDeleted = 0,
+        ShutDown,
+        BrowserProcessFailure,
+        BrowserProcessExited,
+        ParentWindowClosed,
+        ProfileDeleted,
     };
 
     runtimeclass CoreWebView2ClosedEventArgs
