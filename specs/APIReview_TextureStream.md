@@ -312,6 +312,8 @@ HRESULT DrawTextureWithWICBitmap(ID3D11Texture2D* 2dTexture, UINT64 timestamp) {
 
 # API Details
 ```
+/// Kinds of errors that can be reported by the
+/// `ICoreWebView2ExperimentalTextureStream ErrorReceived` event.
 [v1_enum]
 typedef enum COREWEBVIEW2_TEXTURE_STREAM_ERROR_KIND {
   /// CreateTexture/PresentTexture and so on should return failed HRESULT if
@@ -353,7 +355,7 @@ interface ICoreWebView2StagingEnvironment : IUnknown {
       [out, retval ] ICoreWebView2StagingTextureStream** value);
   /// Get the graphics adapter LUID of the renderer. The host should use this
   /// LUID adapter when creating D3D device to use with CreateTextureStream().
-  [propget] HRESULT RenderAdapterLUID([out, retval] LUID* value);
+  [propget] HRESULT RenderAdapterLUID([out, retval] UINT64* value);
   /// Listens for change of graphics adapter LUID of the browser.
   /// The host can get the updated LUID by RenderAdapterLUID. It is expected
   /// that the host updates texture's d3d Device with SetD3DDevice,
@@ -479,7 +481,7 @@ interface ICoreWebView2StagingTextureStream : IUnknown {
   /// Do not close or otherwise change the provided `ICoreWebView2Texture` after
   /// calling this method. Doing so may result in the texture not being added to
   /// the texture stream and the `ErrorReceived` event may be raised.
-  HRESULT PresentTexture([in] ICoreWebView2StagingTexture* texture)
+  HRESULT PresentTexture([in] ICoreWebView2StagingTexture* texture);
 
   /// Stops this texture stream from streaming and moves it into the stopped state.
   /// When moving to the stopped state the `ICoreWebView2TextureStream Stopped`
@@ -555,6 +557,8 @@ interface ICoreWebView2StagingTexture : IUnknown {
   /// Returns IUnknown type that could be query interface to IDXGIResource.
   /// The caller can write incoming texture to it.
   [propget] HRESULT Resource([out, retval] IUnknown** value);
+  /// Gets timestamp of presenting texture.
+  [propget] HRESULT Timestamp([out, retval] UINT64* value);
   /// Sets timestamp of presenting texture.
   /// `value` is video capture time with microseconds units.
   /// The value does not have to be exact captured time, but it should be
@@ -563,7 +567,7 @@ interface ICoreWebView2StagingTexture : IUnknown {
   /// the current compositing video frame. It also will be exposed to the
   /// JS with `VideoFrame::timestamp`.
   /// (https://docs.w3cub.com/dom/videoframe/timestamp.html).
-  [propput] HRESULT Timestamp([out, retval] UINT64* value);
+  [propput] HRESULT Timestamp([in] UINT64 value);
 }
 /// This is the callback for new texture stream request.
 [uuid(62d09330-00a9-41bf-a9ae-55aaef8b3c44), object, pointer_default(unique)]
@@ -603,22 +607,15 @@ interface ICoreWebView2StagingTextureStreamErrorReceivedEventArgs : IUnknown {
   /// The texture with which this error is associated. For the
   /// `COREWEBVIEW2_TEXTURE_STREAM_ERROR_NO_VIDEO_TRACK_STARTED` error kind,
   /// this property will be `nullptr`.
-  [propget] Texture([out, retval] ICoreWebView2StagingTexture** value);
+  [propget] HRESULT Texture([out, retval] ICoreWebView2StagingTexture** value);
 }
+/// This is the callback for the browser process's display LUID change.
 [uuid(431721e0-0f18-4d7b-bd4d-e5b1522bb110), object, pointer_default(unique)]
 interface ICoreWebView2StagingRenderAdapterLUIDChangedEventHandler : IUnknown {
   /// Called to provide the implementer with the event args for the
   /// corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2StagingTextureStream* sender,
-      [in] IUnknown* args);
-}
-[uuid(431721e0-0f18-4d7b-bd4d-e5b1522bb110), object, pointer_default(unique)]
-interface ICoreWebView2StagingRenderAdapterLUIDChangedEventHandler : IUnknown {
-  /// Called to provide the implementer with the event args for the
-  /// corresponding event.
-  HRESULT Invoke(
-      [in] ICoreWebView2StagingEnvironment * sender,
       [in] IUnknown* args);
 }
 /// This is the callback for web texture.
@@ -635,7 +632,7 @@ interface ICoreWebView2StagingTextureStreamWebTextureReceivedEventHandler : IUnk
 [uuid(a4c2fa3a-295a-11ed-a261-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2StagingTextureStreamWebTextureReceivedEventArgs : IUnknown {
   /// Return ICoreWebView2StagingWebTexture object.
-  [propget] WebTexture([out, retval] ICoreWebView2StagingWebTexture** value);
+  [propget] HRESULT WebTexture([out, retval] ICoreWebView2StagingWebTexture** value);
 }
 
 /// This is the callback for web texture stop.
