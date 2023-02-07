@@ -30,6 +30,8 @@ is set in [CoreWebView2EnvironmentOptions.AdditionalBrowserArguments](https://le
 used to create CoreWebView2Environment. If not set, no custom storage partition will be
 created and all data will be treated as unpartitioned and stored in the global default
 location for the profile.
+The custom storage partition APIs will remain experiemental when related browser features
+are still experimental.
 
 # Examples
 
@@ -38,11 +40,19 @@ data stored in the custom storage partition.
 
 ## Win32 C++
 ```cpp
-        // Sets custom storage partition identified by the partitionId, which uniquely
-        // identifies an application context.
-        void SetPartitionId(PCWSTR partitionId)
+        
+        void OnWebViewCreated()
         {
+           // ...
+           // other WebView setup like add event handlers, update settings.
+           
+           // Sets custom storage partition identified by the partitionId, which uniquely
+           // identifies an application context.
+           PCWSTR partitionId = L"Partition 1";
            CHECK_FAILURE(m_webview->put_CustomStoragePartitionId(partitionId));
+           
+           // Navigate to start page
+           m_webview->Navigation(startPage);
         }
         
         // Clears all data in custom storage partition identified by the partitionId.
@@ -80,9 +90,18 @@ data stored in the custom storage partition.
 ```c#
         // Sets custom storage partition identified by the partitionId, which uniquely
         // identifies an application context.
-        void SetPartitionId(string partitionId)
+        void CoreWebView_Created()
         {
+           // ...
+           // other WebView setup like add event handlers, update settings.
+           
+           // Sets custom storage partition identified by the partitionId, which uniquely
+           // identifies an application context.
+           string partitionId = "Partition 1";
            m_webview.CustomStoragePartitionId = partitionId;
+           
+           // Navigate to start page
+           m_webview.Navigation(startPage);
         }
         
         // Clears all data in custom storage partition identified by the partitionId.
@@ -119,14 +138,14 @@ interface ICoreWebView2_18 : IUnknown {
   /// `CustomStoragePartitionId` will be reset and the page inside the WebView
   /// will work normally with data treated as unpartitioned.
   /// The `customStoragePartitionId` parameter is case sensitive. The default is
-  /// an empty string.
+  /// an empty string. There is no restriction on the lenght or what characters
+  /// can be used in partition id.
   /// The change of the custom storage partition id will be applied to new 
   /// page or iframe navigations and not impact existing pages and iframes.
   /// To avoid accidentally use new partition id for pending navigations of old page
   /// or iframe, it is recommended to create a new WebView for new partition instead
   /// of changing partition. If you really have to change partition, it is
-  /// recommended to navigate to a blank page or call `Stop()` API to stop all
-  /// navigations and pending resource fetches before setting the new partition
+  /// recommended to navigate to a blank page before setting the new partition
   /// id and navigate to a page for the new partition.
   /// 
   /// As setting custom storage partition id does not change DOM security
