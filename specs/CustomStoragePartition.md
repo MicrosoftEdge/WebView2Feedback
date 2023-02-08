@@ -138,7 +138,7 @@ interface ICoreWebView2_18 : IUnknown {
   /// `CustomStoragePartitionId` will be reset and the page inside the WebView
   /// will work normally with data treated as unpartitioned.
   /// The `customStoragePartitionId` parameter is case sensitive. The default is
-  /// an empty string. There is no restriction on the lenght or what characters
+  /// an empty string. There is no restriction on the length or what characters
   /// can be used in partition id.
   /// The change of the custom storage partition id will be applied to new 
   /// page or iframe navigations and not impact existing pages and iframes.
