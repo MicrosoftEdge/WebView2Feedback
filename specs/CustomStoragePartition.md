@@ -199,7 +199,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile8")]
         {
-            public async Task ClearCustomStoragePartitionDataAsync(string CustomStoragePartitionId);
+            public async Task ClearCustomStoragePartitionDataAsync(string customStoragePartitionId);
         }
     }
 ```
