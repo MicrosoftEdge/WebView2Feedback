@@ -40,6 +40,7 @@ data stored in the custom storage partition.
 
 ## Win32 C++
 ```cpp
+        wil::com_ptr<ICoreWebView2_18> m_webView;
         
         void OnWebViewCreated()
         {
@@ -88,6 +89,8 @@ data stored in the custom storage partition.
 
 ## .NET/WinRT
 ```c#
+        private CoreWebView2 m_webview;
+        
         // Sets custom storage partition identified by the partitionId, which uniquely
         // identifies an application context.
         void CoreWebView_Created()
@@ -117,7 +120,7 @@ data stored in the custom storage partition.
 # API Details
 ## Win32 C++
 ```
-interface ICoreWebView2_18 : IUnknown {
+interface ICoreWebView2_18 : ICoreWebView2_17 {
   /// Gets the `CustomStoragePartitionId` property.
   [propget] HRESULT CustomStoragePartitionId([out, retval] LPWSTR* customStoragePartitionId);
 
@@ -161,7 +164,7 @@ interface ICoreWebView2_18 : IUnknown {
   [propput] HRESULT CustomStoragePartitionId([in] LPCWSTR customStoragePartitionId);
 }
 
-interface ICoreWebView2Profile8 : IUnknown {
+interface ICoreWebView2Profile8 : ICoreWebView2Profile7 {
   /// Clears all DOM storage and cookies in the custom storage partition 
   /// identified by the `customStoragePartitionId`.
   /// As DOM storage and cookies in the custom storage partition is also browsing
