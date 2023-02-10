@@ -171,12 +171,13 @@ void ScenarioCookieManagement::DeleteAllCookies()
 ```cpp
 HRESULT AppWindow::DeleteProfile(ICoreWebView2* webView2)
 {
+    DCHECK(webView2);
     wil::com_ptr<ICoreWebView2Profile> profile;
     CHECK_FAILURE(webView2->get_Profile(&profile));
     CHECK_FAILURE(profile2->Delete());
 }
 
-void AppWindow::RegisterEventHandlers(ICoreWebView2* webView2)
+void AppWindow::RegisterProfileDeletedEventHandlers(ICoreWebView2* webView2)
 {
     wil::com_ptr<ICoreWebView2Profile> profile;
     CHECK_FAILURE(webView2->get_Profile(&profile));
@@ -265,10 +266,10 @@ void DeleteAllCookies()
 ```
 
 ```csharp
-public DeleteProfile(CoreWebView2Controller controller)
+public DeleteProfile(CoreWebView2 coreWebView2)
 {
     // Delete current profile.
-    controller.CoreWebView2.Profile.Delete();
+    CoreWebView2.Profile.Delete();
 }
 
 void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
@@ -396,20 +397,22 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
 [uuid(2765B8BD-7C57-4B76-B8CC-1EC940FF92CC), object, pointer_default(unique)]
 interface ICoreWebView2StagingProfile7 : IUnknown {
   /// After the API is called, the profile will be marked for deletion. The
-  /// local profile's directory will be tried to delete at browser process
-  /// exit, if fail to delete, it will recursively try to delete at next
-  /// browser process start until successful.
-  /// The corresponding webview2s will be auto closed and profile's Deleted
-  /// event will be raised. See `Profile.Deleted` for more information.
-  /// If create a new profile with the same name as the profile that has been
-  /// marked as deleted will be failure with the HRESULT:ERROR_INVALID_STATE
-  /// (0x8007139FL).
+  /// local profile's directory will be deleted at browser process exit. If it
+  /// fails to delete, because something else is holding the files open,
+  /// WebView2 will try to delete again during all future at next browser
+  /// process starts until successful.
+  /// The corresponding CoreWebView2s will be closed and the 
+  /// CoreWebView2Profile.Deleted event will be raised. See
+  /// `CoreWebView2Profile.Deleted` for more information.
+  /// If you try to create a new profile with the same name as an existing
+  /// profile that has been marked as deleted but hasn't yet been deleted,
+  /// profile creation will fail with HRESULT_FROM_WIN32(ERROR_INVALID_STATE).
   HRESULT Delete();
 
-  /// Add an event handler for the `Deleted` event. `Deleted` event handle runs
-  /// when the profile's Delete API is called. When this event is raised, the
-  /// profile and its corresponding webview2 moves to the Closed state, and
-  /// cannot be used anymore.
+  /// Add an event handler for the `Deleted` event. The `Deleted` event is
+  /// raised when the profile is marked for deletion. When this event is
+  /// raised, the CoreWebView2Profile and its corresponding CoreWebView2s are
+  /// closed, and cannot be used anymore.
   HRESULT add_Deleted(
       [in] ICoreWebView2StagingProfileDeletedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
