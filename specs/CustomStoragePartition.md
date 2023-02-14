@@ -53,7 +53,7 @@ data stored in the custom storage partition.
            CHECK_FAILURE(m_webview->put_CustomStoragePartitionId(partitionId));
            
            // Navigate to start page
-           m_webview->Navigation(startPage);
+           m_webview->Navigate(startPage);
         }
         
         // Clears all data in custom storage partition identified by the partitionId.
@@ -104,7 +104,7 @@ data stored in the custom storage partition.
            m_webview.CustomStoragePartitionId = partitionId;
            
            // Navigate to start page
-           m_webview.Navigation(startPage);
+           m_webview.Navigate(startPage);
         }
         
         // Clears all data in custom storage partition identified by the partitionId.
@@ -145,7 +145,7 @@ interface ICoreWebView2_18 : ICoreWebView2_17 {
   /// can be used in partition id.
   /// The change of the custom storage partition id will be applied to new 
   /// page or iframe navigations and not impact existing pages and iframes.
-  /// To avoid accidentally use new partition id for pending navigations of old page
+  /// To avoid accidentally using the new partition id for pending navigations of old page
   /// or iframe, it is recommended to create a new WebView for new partition instead
   /// of changing partition. If you really have to change partition, it is
   /// recommended to navigate to a blank page before setting the new partition
