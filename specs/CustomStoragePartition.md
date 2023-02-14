@@ -17,7 +17,7 @@ a custom storage partition.
 
 When an application sets custom storage partition for a WebView, the sites and iframes
 running inside the WebView will act as if the site were running in a third party iframe
-inside a top level site uniquelly associated with the custom storage partition id and have
+inside a top level site uniquely associated with the custom storage partition id and have
 separate [storage partition](https://developer.chrome.com/docs/privacy-sandbox/storage-partitioning/)
 and [cookie partition](https://developer.chrome.com/docs/privacy-sandbox/chips/).
 
