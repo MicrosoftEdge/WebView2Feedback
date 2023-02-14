@@ -15,7 +15,7 @@ To help managing different application contexts while using the same profile, we
 introducing an API to set custom storage partition and an API to clear all data in
 a custom storage partition.
 
-When an application sets custom storage parition for a WebView, the sites and iframes
+When an application sets custom storage partition for a WebView, the sites and iframes
 running inside the WebView will act as if the site were running in a third party iframe
 inside a top level site uniquelly associated with the custom storage partition id and have
 separate [storage partition](https://developer.chrome.com/docs/privacy-sandbox/storage-partitioning/)
