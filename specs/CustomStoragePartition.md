@@ -6,7 +6,7 @@ For certain WebView host apps, there is a desire to have different contexts for
 different WebViews using the same profile so that when the same websites run in
 these WebViews, they will have different DOM storages and cookie jars. An example
 is different accounts within an application.
-Previosly, the application can use different profiles for different contexts, but
+Previously, the application can use different profiles for different contexts, but
 that has 2 short comings:
 - WebViews from different profiles are not allowed to have opener/opened window relationship.
 - Using profiles means totally different storage for all files like http caches and less performance.
