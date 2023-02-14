@@ -30,7 +30,7 @@ is set in [CoreWebView2EnvironmentOptions.AdditionalBrowserArguments](https://le
 used to create CoreWebView2Environment. If not set, no custom storage partition will be
 created and all data will be treated as unpartitioned and stored in the global default
 location for the profile.
-The custom storage partition APIs will remain experiemental when related browser features
+The custom storage partition APIs will remain experimental when related browser features
 are still experimental.
 
 # Examples
