@@ -12,7 +12,7 @@ that has 2 short comings:
 - Using profiles means totally different storage for all files like http caches and less performance.
 
 To help managing different application contexts while using the same profile, we are
-introducing an API to set custom storage parition and an API to clear all data in
+introducing an API to set custom storage partition and an API to clear all data in
 a custom storage partition.
 
 When an application sets custom storage parition for a WebView, the sites and iframes
