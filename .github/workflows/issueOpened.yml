@@ -1,0 +1,27 @@
+name: get security issue by title and body
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    name: get security issue by title and body
+    steps: 
+    - name: filter issue by keyword and send email
+      id: script
+      uses: ElyssaJyu/GH-Auto-Digest-Bot@main
+      with: 
+        email_password: ${{ secrets.EMAIL_PASSWORD }}
+        email_username: 'autodigectbot@outlook.com'
+    - name: need send to teams
+      if: ${{ steps.script.outputs.need_attention == 'true'}}
+      uses: plantree/github-actions-issue-notify-teams@main
+      with:
+          type: new-issue
+          message: ${{ steps.script.outputs.issue_info}}
+          webhook: ${{ secrets.WEBHOOK }}
+    - name: do not need send
+      if: ${{ steps.script.outputs.need_attention == 'false'}}
+      run: echo '${{ github.event.issue.html_url }}'
