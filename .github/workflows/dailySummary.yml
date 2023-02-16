@@ -1,0 +1,15 @@
+name: get issue summary of yesterday
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 1 * * *'
+  
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    name: get summary
+    steps:
+    - uses: shangminx/Auto-Digest@main
+      with: 
+        webhook: ${{ secrets.WEBHOOK }}
