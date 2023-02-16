@@ -29,7 +29,7 @@ jobs:
       id: pythonscript
       shell: bash
       run: | 
-        output=$(python .github/scripts/dailysummary.py)
+        output=$(python .github/scripts/dailySummary.py)
         echo "::set-output name=dailysummary::$output"
     - name: check python script
       shell: bash
