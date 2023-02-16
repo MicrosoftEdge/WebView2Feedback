@@ -1,0 +1,42 @@
+name: get issue summary of yesterday
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 1 * * *'
+  
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    name: get summary
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies 
+      shell: bash
+      run: | 
+        python -m pip install --upgrade pip 
+        pip install requests
+    - name: Run ls
+      shell: bash
+      run: | 
+        ls -la
+    - name: Run python script
+      id: pythonscript
+      shell: bash
+      run: | 
+        output=$(python .github/scripts/dailysummary.py)
+        echo "::set-output name=dailysummary::$output"
+    - name: check python script
+      shell: bash
+      run: |
+        echo "${{ steps.pythonscript.outputs.dailysummary }}"
+    - uses: plantree/github-actions-issue-notify-teams@main
+      with:
+        type: daily-report
+        message: ${{ steps.pythonscript.outputs.dailysummary }}
+        webhook: ${{ secrets.WEBHOOK }}
