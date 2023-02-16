@@ -1,4 +1,4 @@
-name: get issue summary of yesterday
+name: Get issue summary of yesterday
 
 on:
   workflow_dispatch:
