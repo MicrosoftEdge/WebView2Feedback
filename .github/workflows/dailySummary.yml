@@ -11,5 +11,9 @@ jobs:
     name: get summary
     steps:
     - uses: shangminx/Auto-Digest@main
-      with: 
+      id: getsummary
+    - uses: plantree/github-actions-issue-notify-teams@main
+      with:
+        type: daily-report
+        message: ${{ steps.getsummary.outputs.dailysummary }}
         webhook: ${{ secrets.WEBHOOK }}
