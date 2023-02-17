@@ -14,7 +14,8 @@ jobs:
       uses: ElyssaJyu/GH-Auto-Digest-Bot@main
       with: 
         email_password: ${{ secrets.EMAIL_PASSWORD }}
-        email_username: 'autodigectbot@outlook.com'
+        sender_email:  ${{secrets.SENDER_EMAIL}}
+        recipient_email: ${{secrets.RECIPIENT_EMAIL}}
     - name: need send to teams
       if: ${{ steps.script.outputs.need_attention == 'true'}}
       uses: plantree/github-actions-issue-notify-teams@main
