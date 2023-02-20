@@ -171,35 +171,49 @@ void ScenarioCookieManagement::DeleteAllCookies()
 ```cpp
 HRESULT AppWindow::DeleteProfile(ICoreWebView2* webView2)
 {
-    DCHECK(webView2);
-    wil::com_ptr<ICoreWebView2Profile> profile;
-    CHECK_FAILURE(webView2->get_Profile(&profile));
-    CHECK_FAILURE(profile2->Delete());
+    auto webview13 = wil::try_com_query<ICoreWebView2_13>(webview2);
+    if (webview13)
+    {
+        wil::com_ptr<ICoreWebView2Profile> profile;
+        CHECK_FAILURE(webview13->get_Profile(&profile));
+        CHECK_FAILURE(profile->Delete());
+    }
+
 }
 
 void AppWindow::RegisterProfileDeletedEventHandlers(ICoreWebView2* webView2)
 {
     wil::com_ptr<ICoreWebView2Profile> profile;
     CHECK_FAILURE(webView2->get_Profile(&profile));
-    if (profile)
+    CHECK_FAILURE(profile->add_Deleted(
+        Microsoft::WRL::Callback<ICoreWebView2StagingProfileDeletedEventHandler>(
+            [this](ICoreWebView2Profile* sender, IUnknown* args)
+            {
+                RunAsync(
+                    [this]()
+                    {
+                        std::wstring message = L"The profile has been marked"
+                        "for deletion. Any associated webview2 objects has"
+                        " been closed.";
+                        MessageBox(
+                            m_mainWindow, message.c_str(), L"webview2 closed",
+                            MB_OK);
+                        CloseAppWindow();
+                    });
+                return S_OK;
+            }).Get(), nullptr));
+}
+
+HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(
+    HRESULT result, ICoreWebView2Controller* controller)
+{
+    if (result == HRESULT_FROM_WIN32(ERROR_DELETE_PENDING))
     {
-        CHECK_FAILURE(profile->add_Deleted(
-            Microsoft::WRL::Callback<ICoreWebView2StagingProfileDeletedEventHandler>(
-                [this](ICoreWebView2Profile* sender, IUnknown* args)
-                {
-                    RunAsync(
-                        [this]()
-                        {
-                            std::wstring message = L"The webview2 has been closed and "
-                                                    L"the reason is profile "
-                                                    L"has been marked as deleted.";
-                            MessageBox(
-                                m_mainWindow, message.c_str(), L"webview2 closed",
-                                MB_OK);
-                            CloseAppWindow();
-                        });
-                    return S_OK;
-                }).Get(), nullptr));
+        ShowFailure(
+            result, L"Failed to create webview, because the profile's name has "
+            "been marked as deleted, please use a different profile's name");
+        m_webviewOption.PopupDialog(this);
+        CloseAppWindow();
     }
 }
 ```
@@ -275,17 +289,38 @@ public DeleteProfile(CoreWebView2 coreWebView2)
 void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
     WebViewProfile.Deleted += WebViewProfile_Deleted;
+
+    // ...
+    // ERROR_DELETE_PENDING(0x8007012f)
+    if (e.InitializationException.HResult == -2147024593)
+    {
+        MessageBox.Show($"Failed to create webview, because the profile's name has been marked as deleted, please use a different profile's name.");
+        var dialog = new NewWindowOptionsDialog();
+        dialog.CreationProperties = webView.CreationProperties;
+        if (dialog.ShowDialog() == true)
+        {
+            new MainWindow(dialog.CreationProperties).Show();
+        }
+        Close();
+        return;
+    }
 }
 
 private void WebViewProfile_Deleted(object sender, object e)
 {
     this.Dispatcher.InvokeAsync(() =>
     {
-        String message = "The webview2 has been closed and the reason is profile has been marked as deleted.";
+        String message = "The profile has been marked for deletion. Any associated webview2 objects will be closed.";
         MessageBox.Show(message);
         Close();
     });
 }
+
+void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
+{
+    
+}
+
 ```
 
 # API Details
@@ -399,20 +434,20 @@ interface ICoreWebView2StagingProfile7 : IUnknown {
   /// After the API is called, the profile will be marked for deletion. The
   /// local profile's directory will be deleted at browser process exit. If it
   /// fails to delete, because something else is holding the files open,
-  /// WebView2 will try to delete again during all future at next browser
-  /// process starts until successful.
+  /// WebView2 will try to delete the profile at all future browser process
+  /// starts until successful.
   /// The corresponding CoreWebView2s will be closed and the 
   /// CoreWebView2Profile.Deleted event will be raised. See
   /// `CoreWebView2Profile.Deleted` for more information.
   /// If you try to create a new profile with the same name as an existing
   /// profile that has been marked as deleted but hasn't yet been deleted,
-  /// profile creation will fail with HRESULT_FROM_WIN32(ERROR_INVALID_STATE).
+  /// profile creation will fail with HRESULT_FROM_WIN32(ERROR_DELETE_PENDING).
   HRESULT Delete();
 
   /// Add an event handler for the `Deleted` event. The `Deleted` event is
   /// raised when the profile is marked for deletion. When this event is
-  /// raised, the CoreWebView2Profile and its corresponding CoreWebView2s are
-  /// closed, and cannot be used anymore.
+  /// raised, the CoreWebView2Profile and its corresponding CoreWebView2s have
+  /// been closed, and cannot be used anymore.
   HRESULT add_Deleted(
       [in] ICoreWebView2StagingProfileDeletedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
