@@ -131,77 +131,76 @@ void RegisterLaunchingExternalUriSchemeHandler()
 private WebView2 webView;
 void RegisterLaunchingExternalUriSchemeHandler() 
 {
-    webView.CoreWebView2.LaunchingExternalUriScheme += (sender, args) {
-        {
-            // A deferral may be taken for the event so that the CoreWebView2
-            // doesn't examine the properties we set on the event args until
-            // after we call the Complete method asynchronously later.
-            // This will give the user more time to decide whether to launch
-            // the external URI scheme or not. 
-            // CoreWebView2Deferral deferral = args.GetDeferral();
-            // System.Threading.SynchronizationContext.Current.Post((_) =>
-            // {
-            //     using (deferral)
-            //     {
-                    if (String.Equals(args.Uri, "calculator:///", StringComparison.OrdinalIgnoreCase))
+    webView.CoreWebView2.LaunchingExternalUriScheme += (sender, args) 
+    {
+        // A deferral may be taken for the event so that the CoreWebView2
+        // doesn't examine the properties we set on the event args until
+        // after we call the Complete method asynchronously later.
+        // This will give the user more time to decide whether to launch
+        // the external URI scheme or not. 
+        // CoreWebView2Deferral deferral = args.GetDeferral();
+        // System.Threading.SynchronizationContext.Current.Post((_) =>
+        // {
+        //     using (deferral)
+        //     {
+                if (String.Equals(args.Uri, "calculator:///", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Set the event args to cancel the event and launch the
+                    // calculator app. This will always allow the external URI scheme launch. 
+                    args.Cancel = true;
+                    ProcessStartInfo info = new ProcessStartInfo
                     {
-                        // Set the event args to cancel the event and launch the
-                        // calculator app. This will always allow the external URI scheme launch. 
-                        args.Cancel = true;
-                        ProcessStartInfo info = new ProcessStartInfo
-                        {
-                            FileName = args.Uri,
-                            UseShellExecute = true
-                        };
-                        Process.Start(info);
-                    } 
-                    else if (String.Equals(args.Uri, "malicious:///", StringComparison.OrdinalIgnoreCase)) {
-                        // Always block the request in this case by cancelling the event.
-                        args.Cancel = true;
+                        FileName = args.Uri,
+                        UseShellExecute = true
+                    };
+                    Process.Start(info);
+                } 
+                else if (String.Equals(args.Uri, "malicious:///", StringComparison.OrdinalIgnoreCase)) {
+                    // Always block the request in this case by cancelling the event.
+                    args.Cancel = true;
+                }
+                else if (String.Equals(args.Uri, "contoso:///", StringComparison.OrdinalIgnoreCase))
+                {
+                    // To display a custom dialog we cancel the launch, display
+                    // a custom dialog, and then manually launch the external URI scheme
+                    // depending on the user's selection. 
+                    args.Cancel = true;
+                    string text = "Launching External URI Scheme";
+                    if (args.InitiatingOrigin != "")
+                    {
+                        text += "from ";
+                        text += args.InitiatingOrigin;
                     }
-                    else if (String.Equals(args.Uri, "contoso:///", StringComparison.OrdinalIgnoreCase))
+                    text += " to ";
+                    text += args.Uri;
+                    text += "\n";
+                    text += "Do you want to grant permission?";
+                    string caption = "Launching External URI Scheme request";
+                    MessageBoxButton btnMessageBox = MessageBoxButton.YesNo;
+                    MessageBoxImage icnMessageBox = MessageBoxImage.None;
+                    MessageBoxResult resultbox = MessageBox.Show(text, caption, btnMessageBox, icnMessageBox);
+                    switch (resultbox)
                     {
-                        // To display a custom dialog we cancel the launch, display
-                        // a custom dialog, and then manually launch the external URI scheme
-                        // depending on the user's selection. 
-                        args.Cancel = true;
-                        string text = "Launching External URI Scheme";
-                        if (args.InitiatingOrigin != "")
-                        {
-                            text += "from ";
-                            text += args.InitiatingOrigin;
-                        }
-                        text += " to ";
-                        text += args.Uri;
-                        text += "\n";
-                        text += "Do you want to grant permission?";
-                        string caption = "Launching External URI Scheme request";
-                        MessageBoxButton btnMessageBox = MessageBoxButton.YesNo;
-                        MessageBoxImage icnMessageBox = MessageBoxImage.None;
-                        MessageBoxResult resultbox = MessageBox.Show(text, caption, btnMessageBox, icnMessageBox);
-                        switch (resultbox)
-                        {
-                            case MessageBoxResult.Yes:
-                                ProcessStartInfo info = new ProcessStartInfo
-                                {
-                                    FileName = args.Uri,
-                                    UseShellExecute = true
-                                };
-                                Process.Start(info);
-                                break;
+                        case MessageBoxResult.Yes:
+                            ProcessStartInfo info = new ProcessStartInfo
+                            {
+                                FileName = args.Uri,
+                                UseShellExecute = true
+                            };
+                            Process.Start(info);
+                            break;
 
-                            case MessageBoxResult.No:
-                                break;
-                        }
-
-                    } 
-                    else 
-                    {
-                        // Do not cancel the event, allowing the request to use the default dialog.
+                        case MessageBoxResult.No:
+                            break;
                     }
-            //     }
-            // }, null);
-        }
+
+                } 
+                else 
+                {
+                    // Do not cancel the event, allowing the request to use the default dialog.
+                }
+        //     }
+        // }, null);
     };
 }
 
