@@ -296,7 +296,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
         MessageBox.Show($"Failed to create webview, because the profile's name has been marked as deleted, please use a different profile's name.");
         var dialog = new NewWindowOptionsDialog();
         dialog.CreationProperties = webView.CreationProperties;
-        if (dialog.ShowDialog() == true)
+        if (dialog.ShowDialog())
         {
             new MainWindow(dialog.CreationProperties).Show();
         }
@@ -314,12 +314,6 @@ private void WebViewProfile_Deleted(object sender, object e)
         Close();
     });
 }
-
-void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
-{
-    
-}
-
 ```
 
 # API Details
