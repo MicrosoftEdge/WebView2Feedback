@@ -125,7 +125,7 @@ HRESULT CreateTextureStream(ICoreWebView2StagingEnvironment* environment)
       // Media Foundation on Windows.
       StartMediaFoundationCapture(hWnd);
       return S_OK;
-    }).Get(), &start_token));ffer
+    }).Get(), &start_token));
 
   // Listen to Stop request. The host end system provided video stream and
   // clean any operation resources.
@@ -572,9 +572,9 @@ interface ICoreWebView2StagingTexture : IUnknown {
 /// This is the callback for new texture stream request.
 [uuid(62d09330-00a9-41bf-a9ae-55aaef8b3c44), object, pointer_default(unique)]
 interface ICoreWebView2StagingTextureStreamStartRequestedEventHandler : IUnknown {
-  //// Called to provide the implementer with the event args for the
-  //// corresponding event. There are no event args and the args
-  //// parameter will be null.
+  /// Called to provide the implementer with the event args for the
+  /// corresponding event. There are no event args and the args
+  /// parameter will be null.
   HRESULT Invoke(
       [in] ICoreWebView2StagingTextureStream* sender,
       [in] IUnknown* args);
