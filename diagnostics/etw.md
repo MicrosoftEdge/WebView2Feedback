@@ -7,7 +7,7 @@ ETW traces can get fairly large, so try to keep the amount of extra time spent w
 
 1. Close Edge and any other apps using WV2 to make the trace more clear. Common apps using WV2 may include `widgets.exe`, `msteams.exe`, and Microsoft Office products.
 1. Download [WebView2.wprp](WebView2.wprp) from this repo.
-2. In an elevated command prompt run `wpr -start WebView2.wppr -filemode` (wpr.exe is included in Windows)
+2. In an elevated command prompt run `wpr -start WebView2.wprp -filemode` (wpr.exe is included in Windows)
 3. Reproduce the issue.
 4. In an elevated command prompt run `wpr -stop trace.etl "trace"`.
 
