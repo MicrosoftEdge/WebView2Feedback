@@ -459,7 +459,7 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   /// changing one will change the other. All `CoreWebView2`s with the same
   /// `CoreWebView2Profile` will share the same value for this property, so for the `CoreWebView2`s with the same
   /// profile, their `CoreWebView2Settings.IsPasswordAutosaveEnabled` and 
-  /// `CoreWebView2Profile.IsPasswordAutosaveEnabled` should always keep in sync.
+  /// `CoreWebView2Profile.IsPasswordAutosaveEnabled` will always have the same value.
   [propget] HRESULT IsPasswordAutosaveEnabled([out, retval] BOOL* value);
   /// Set the IsPasswordAutosaveEnabled property.
   [propput] HRESULT IsPasswordAutosaveEnabled([in] BOOL value);
