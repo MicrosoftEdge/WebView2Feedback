@@ -473,7 +473,7 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   /// The default value is `TRUE`.
   /// This property is linked with `CoreWebView2Settings.IsGeneralAutofillEnabled`, so
   /// changing one will change the other. And all WebView2s that created with the same
-  /// `CoreWebView2Profile` will share this property, so for the WebView2s with the same
+  /// `CoreWebView2Profile` will share the same value for this property, so for the `CoreWebView2`s with the same
   /// profile, their `CoreWebView2Settings.IsGeneralAutofillEnabled` and 
   /// `CoreWebView2Profile.IsGeneralAutofillEnabled` will always have the same value.
   [propget] HRESULT IsGeneralAutofillEnabled([out, retval] BOOL* value);
