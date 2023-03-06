@@ -443,7 +443,7 @@ interface ICoreWebView2Profile2 : ICoreWebView2Profile {
 }
 
 [uuid(e2e8dce3-8213-4a32-b3b0-c80a8d154b61), object, pointer_default(unique)]
-interface ICoreWebView2Profile3 : ICoreWebView2Profile {
+interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   /// IsPasswordAutosaveEnabled controls whether autosave for password
   /// information is enabled. The IsPasswordAutosaveEnabled property behaves
   /// independently of the IsGeneralAutofillEnabled property. When IsPasswordAutosaveEnabled is
