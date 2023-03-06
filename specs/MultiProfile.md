@@ -456,7 +456,7 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile {
   /// is saved, and a Save/Update Password prompt is displayed.
   /// The default value is `FALSE`.
   /// This property has the same value as `CoreWebView2Settings.IsPasswordAutosaveEnabled`, and
-  /// changing one will change the other. And all WebView2s that created with the same
+  /// changing one will change the other. All `CoreWebView2`s with the same
   /// `CoreWebView2Profile` will share this property, so for the WebView2s with the same
   /// profile, their `CoreWebView2Settings.IsPasswordAutosaveEnabled` and 
   /// `CoreWebView2Profile.IsPasswordAutosaveEnabled` should always keep in sync.
