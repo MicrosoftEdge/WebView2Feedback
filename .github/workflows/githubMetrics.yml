@@ -1,0 +1,37 @@
+name: Score issues in sync'd Azure DevOps work items
+
+on:
+  # On issue changes and issue comments, the action will update the
+  # corresponding issue.
+  issue_comment:
+    types: [created, edited, deleted]
+  issues:
+    types: [opened, edited, deleted, labeled, unlabeled]
+  # But we also run once daily to update a bunch of random issues.
+  # This way we can hopefully pick up issues that got new reactions
+  # (reactions do not trigger issue changes).
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:       
+    - uses: champnic/Porpoise@main
+      env:
+        GH_PAT: '${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}'
+        GH_OWNER: 'MicrosoftEdge'
+        GH_REPO: 'WebView2Feedback'
+        GH_TRACKED_LABELS: 'tracked'
+        ADO_PAT: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
+        ADO_ORG: 'microsoft'
+        COEFF_VERSION: '0.1.1' # Not going to rev this, but updating NEG_REACTIONS from -1 to 2, and MENTIONS from 5 to 10.
+        COEFF_UNIQUE_USERS: '10'
+        COEFF_POS_REACTIONS: '5'
+        COEFF_NEG_REACTIONS: '2'
+        COEFF_NEUTRAL_REACTIONS: '2'
+        COEFF_POS_COMMENT_REACTIONS: '1'
+        COEFF_NON_MEMBER_COMMENTS: '1'
+        COEFF_MEMBER_COMMENTS: '0'
+        COEFF_MENTIONS: '10'

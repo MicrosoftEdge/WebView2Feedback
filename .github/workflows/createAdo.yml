@@ -2,22 +2,20 @@ name: Sync Issue to Azure DevOps work item
 
 on:
   issues:
-    types: [labeled]
+    types: [labeled, closed, reopened]
 
 jobs:
   alert:
     runs-on: ubuntu-latest
-    name: Testing workflow
+    name: Syncing to Azure DevOps
     steps:       
-    - uses: champnic/github-actions-issue-to-work-item@development
+    - uses: champnic/github-actions-issue-to-work-item@simple-sync
       env:
         github_token: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"  
         ado_token: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
+      with:
+        label: 'tracked'
         ado_organization: 'microsoft'
         ado_project: 'Edge'
-        ado_area_path: 'Edge\Dev Experience\WebView'
+        ado_area_path: 'Edge\Web Experience\WebView2'
         ado_tags: 'WV2_GitHub'
-        ado_tag_on_close: 'WV2_GitHub_Closed'
-        ado_bypassrules: false
-        ado_set_labels: false
-        create_on_tag: 'tracked'
