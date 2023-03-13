@@ -30,15 +30,15 @@ with this profile. The cookie manager got from profile (CoreWebView2.Profile.Coo
 same as that got from CoreWebView2 (CoreWebView2.CookieManager).
 
 Currently, we already have **CoreWebView2Settings** interface to manage password-autosave and
-general-autofill, but it will work not immediately but after the next navigation, and it can only
+general-autofill, but it will take effect not immediately but after the next navigation, and it can only
 apply for current WebView2, which means if we start a new WebView2 using the same profile, all the
 settings are default values and cannot be set from the profile. By adding password-autosave and
 general-autofill management interfaces in profile, we can manage the properties and they will apply
 immediately if we set a new value, and all WebView2s that created with the same profile can share
 the settings, which means if we change password-autosave or general-autofill property in one WebView2,
-the others with the same profile will also work. And these two property is linked with the same
+the others with the same profile will also take effect. And these two property is linked with the same
 properties in ICoreWebView2Settings, so changing one will change the other. Explain it in detail,
-it will work immediately no matter setting the properties in **CoreWebView2Settings** or
+it will take effect immediately no matter setting the properties in **CoreWebView2Settings** or
 **CoreWebView2Profile**, and when the property is changed in one interface, the same property in
 the other interface is changed as well immediately. So for the WebView2s with the same profile,
 their **IsPasswordAutosaveEnabled** or **IsGeneralAutofillEnabled** property
@@ -244,24 +244,26 @@ HRESULT AppWindow::ManagePasswordAutosaveInProfile(ICoreWebView2Controller* cont
     CHECK_FAILURE(m_controller->get_CoreWebView2(&coreWebView2));
     Microsoft::WRL::ComPtr<ICoreWebView2Profile> webView2Profile;
     CHECK_FAILURE(webView2->get_Profile(&webView2Profile));
+    Microsoft::WRL::ComPtr<ICoreWebView2Profile3> webView2Profile3;
+    CHECK_FAILURE(webView2Profile.As(&webView2Profile3));
     
     // Get current value of password-autosave property.
     BOOL enabled;
-    CHECK_FAILURE(webView2Profile->get_IsPasswordAutosaveEnabled(&enabled));
+    CHECK_FAILURE(webView2Profile3->get_IsPasswordAutosaveEnabled(&enabled));
 
     // Set password-autosave property to the opposite value to current value.
     if (enabled)
     {
-        CHECK_FAILURE(webView2Profile->put_IsPasswordAutosaveEnabled(FALSE));
+        CHECK_FAILURE(webView2Profile3->put_IsPasswordAutosaveEnabled(FALSE));
         MessageBox(
-            nullptr, L"Password autosave will be disabled after next navigation in all WebView2 with the same profile.",
+            hWnd, L"Password autosave will be disabled immediately in all WebView2 with the same profile.",
             L"Profile settings change", MB_OK);
     }
     else
     {
-        CHECK_FAILURE(webView2Profile->put_IsPasswordAutosaveEnabled(TRUE));
+        CHECK_FAILURE(webView2Profile3->put_IsPasswordAutosaveEnabled(TRUE));
         MessageBox(
-            nullptr, L"Password autosave will be enabled after next navigation in all WebView2 with the same profile.",
+            hWnd, L"Password autosave will be enabled immediately in all WebView2 with the same profile.",
             L"Profile settings change", MB_OK);
     }
   
@@ -277,24 +279,26 @@ HRESULT AppWindow::ManageGeneralAutofillInProfile(ICoreWebView2Controller* contr
     CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
     Microsoft::WRL::ComPtr<ICoreWebView2Profile> webView2Profile;
     CHECK_FAILURE(webView2->get_Profile(&webView2Profile));
+    Microsoft::WRL::ComPtr<ICoreWebView2Profile3> webView2Profile3;
+    CHECK_FAILURE(webView2Profile.As(&webView2Profile3));
     
     // Get current value of general-autofill property.
     BOOL enabled;
-    CHECK_FAILURE(webView2Profile->get_IsGeneralAutofillsaveEnabled(&enabled));
+    CHECK_FAILURE(webView2Profile3->get_IsGeneralAutofillsaveEnabled(&enabled));
 
     // Set general-autofill property to the opposite value to current value.
     if (enabled)
     {
-        CHECK_FAILURE(webView2Profile->put_IsGeneralAutofillEnabled(FALSE));
+        CHECK_FAILURE(webView2Profile3->put_IsGeneralAutofillEnabled(FALSE));
         MessageBox(
-            nullptr, L"General autofill will be disabled immediately in all WebView2 with the same profile.",
+            hWnd, L"General autofill will be disabled immediately in all WebView2 with the same profile.",
             L"Profile settings change", MB_OK);
     }
     else
     {
-        CHECK_FAILURE(webView2Profile->put_IsGeneralAutofillEnabled(TRUE));
+        CHECK_FAILURE(webView2Profile3->put_IsGeneralAutofillEnabled(TRUE));
         MessageBox(
-            nullptr, L"General autofill will be enabled immediately in all WebView2 with the same profile.",
+            hWnd, L"General autofill will be enabled immediately in all WebView2 with the same profile.",
             L"Profile settings change", MB_OK);
     }
   
