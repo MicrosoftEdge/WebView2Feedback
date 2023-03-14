@@ -36,9 +36,9 @@ settings are default values and cannot be set from the profile. By adding passwo
 general-autofill management interfaces in profile, we can manage the properties and they will apply
 immediately if we set a new value, and all WebView2s that created with the same profile can share
 the settings, which means if we change password-autosave or general-autofill property in one WebView2,
-the others with the same profile will also take effect. And these two property is linked with the same
-properties in ICoreWebView2Settings, so changing one will change the other. Explain it in detail,
-it will take effect immediately no matter setting the properties in **CoreWebView2Settings** or
+the others with the same profile will also take effect. And these two properties are linked with their
+corresponding properties in ICoreWebView2Settings, so changing one will change the other. it will take
+effect immediately no matter setting the properties in **CoreWebView2Settings** or
 **CoreWebView2Profile**, and when the property is changed in one interface, the same property in
 the other interface is changed as well immediately. So for the WebView2s with the same profile,
 their **IsPasswordAutosaveEnabled** or **IsGeneralAutofillEnabled** property
@@ -235,15 +235,15 @@ HRESULT AppWindow::OnCreateCoreWebView2ControllerCompleted(
 ### Manage password-autosave and general-autofill settings in profile
 
 ```cpp
-HRESULT AppWindow::ManagePasswordAutosaveInProfile(ICoreWebView2Controller* controller)
+HRESULT AppWindow::TogglePasswordAutosaveInProfile(ICoreWebView2Controller* controller)
 {
     // ...
 
     // Get the profile object.
     wil::com_ptr<ICoreWebView2> coreWebView2;
-    CHECK_FAILURE(m_controller->get_CoreWebView2(&coreWebView2));
+    CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
     Microsoft::WRL::ComPtr<ICoreWebView2Profile> webView2Profile;
-    CHECK_FAILURE(webView2->get_Profile(&webView2Profile));
+    CHECK_FAILURE(coreWebView2->get_Profile(&webView2Profile));
     Microsoft::WRL::ComPtr<ICoreWebView2Profile3> webView2Profile3;
     CHECK_FAILURE(webView2Profile.As(&webView2Profile3));
     
@@ -270,7 +270,7 @@ HRESULT AppWindow::ManagePasswordAutosaveInProfile(ICoreWebView2Controller* cont
     // ...
 }
 
-HRESULT AppWindow::ManageGeneralAutofillInProfile(ICoreWebView2Controller* controller)
+HRESULT AppWindow::ToggleGeneralAutofillInProfile(ICoreWebView2Controller* controller)
 {
     // ...
 
@@ -278,7 +278,7 @@ HRESULT AppWindow::ManageGeneralAutofillInProfile(ICoreWebView2Controller* contr
     wil::com_ptr<ICoreWebView2> coreWebView2;
     CHECK_FAILURE(controller->get_CoreWebView2(&coreWebView2));
     Microsoft::WRL::ComPtr<ICoreWebView2Profile> webView2Profile;
-    CHECK_FAILURE(webView2->get_Profile(&webView2Profile));
+    CHECK_FAILURE(coreWebView2->get_Profile(&webView2Profile));
     Microsoft::WRL::ComPtr<ICoreWebView2Profile3> webView2Profile3;
     CHECK_FAILURE(webView2Profile.As(&webView2Profile3));
     
@@ -406,7 +406,7 @@ private void WebViewProfile_Deleted(object sender, object e)
 ### Manage password-autosave and general-autofill settings in profile
 
 ```csharp
-public ManagePasswordAutosaveInProfile(CoreWebView2Controller controller)
+public TogglePasswordAutosaveInProfile(CoreWebView2Controller controller)
 {
     // Get the profile object.
     CoreWebView2Profile profile = controller.CoreWebView2.Profile;
@@ -418,7 +418,7 @@ public ManagePasswordAutosaveInProfile(CoreWebView2Controller controller)
     profile.IsPasswordAutosaveEnabled = !enabled;
 }
 
-public ManageGeneralAutofillInProfile(CoreWebView2Controller controller)
+public ToggleGeneralAutofillInProfile(CoreWebView2Controller controller)
 {
     // Get the profile object.
     CoreWebView2Profile profile = controller.CoreWebView2.Profile;
@@ -574,7 +574,6 @@ interface ICoreWebView2StagingProfileDeletedEventHandler: IUnknown {
       [in] ICoreWebView2Profile* sender,
       [in] IUnknown* args);
 }
-```
 
 [uuid(e2e8dce3-8213-4a32-b3b0-c80a8d154b61), object, pointer_default(unique)]
 interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
@@ -613,6 +612,8 @@ interface ICoreWebView2Profile3 : ICoreWebView2Profile2 {
   [propget] HRESULT IsGeneralAutofillEnabled([out, retval] BOOL* value);
   /// Set the IsGeneralAutofillEnabled property.
   [propput] HRESULT IsGeneralAutofillEnabled([in] BOOL value);
+}
+```
 
 ## .NET and WinRT
 
@@ -662,18 +663,12 @@ namespace Microsoft.Web.WebView2.Core
 
         String ProfilePath { get; };
 
-        
         CoreWebView2CookieManager CookieManager { get; };
         
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile7")]
         {
             void Delete();
             event Windows.Foundation.TypedEventHandler<CoreWebView2Profile, Object> Deleted;
-        }
-        
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile2")]
-        {
-            CoreWebView2CookieManager CookieManager { get; };
         }
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile3")]
