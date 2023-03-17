@@ -29,20 +29,20 @@ Users can use this interface to get the cookie manager, which is shared by all W
 with this profile. The cookie manager got from profile (CoreWebView2.Profile.CookieManager) is the
 same as that got from CoreWebView2 (CoreWebView2.CookieManager).
 
-Currently, we already have **CoreWebView2Settings** interface to manage password-autosave and
-general-autofill, but it will take effect not immediately but after the next navigation, and it can only
-apply for current WebView2, which means if we start a new WebView2 using the same profile, all the
-settings are default values and cannot be set from the profile. By adding password-autosave and
-general-autofill management interfaces in profile, we can manage the properties and they will apply
-immediately if we set a new value, and all WebView2s that created with the same profile can share
-the settings, which means if we change password-autosave or general-autofill property in one WebView2,
-the others with the same profile will also take effect. And these two properties are linked with their
-corresponding properties in ICoreWebView2Settings, so changing one will change the other. it will take
-effect immediately no matter setting the properties in **CoreWebView2Settings** or
-**CoreWebView2Profile**, and when the property is changed in one interface, the same property in
-the other interface is changed as well immediately. So for the WebView2s with the same profile,
-their **IsPasswordAutosaveEnabled** or **IsGeneralAutofillEnabled** property
-in **CoreWebView2Settings** and **CoreWebView2Profile** should always keep in sync.
+Currently, we already have **CoreWebView2Settings** interface to manage password-autosave and 
+general-autofill, and these two properties are different from other properties in
+**CoreWebView2Settings** because they will take effect immediately and apply for all WebView2s
+that created from the same profile. By adding password-autosave and general-autofill management
+interfaces in profile, we can manage the properties and they will apply immediately if we set a
+new value, and all WebView2s that created with the same profile can share the settings, which
+means if we change password-autosave or general-autofill property in one WebView2, the others
+with the same profile will also take effect. And these two properties are linked with their
+corresponding properties in ICoreWebView2Settings, so changing one will change the other.
+it will take effect immediately no matter setting the properties in **CoreWebView2Settings** or
+**CoreWebView2Profile**, and when the property is changed in one interface, the same property
+in the other interface is changed as well immediately. So for the WebView2s with the same profile,
+their **IsPasswordAutosaveEnabled** or **IsGeneralAutofillEnabled** property in
+**CoreWebView2Settings** and **CoreWebView2Profile** should always keep in sync.
 
 # Examples
 
