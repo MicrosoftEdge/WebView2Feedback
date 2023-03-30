@@ -161,7 +161,7 @@ typedef enum COREWEBVIEW2_HIT_TEST_RESULT {
     COREWEBVIEW2_HIT_TEST_RESULT_CAPTION = 2,
     /// A hit test region in the WebView2 which does not have the CSS style `app-region: drag` set. This is normal web content that should not be considered part of the app window's title bar. This has the same value as the Win32 HTCLIENT constant.
     COREWEBVIEW2_HIT_TEST_RESULT_CLIENT,
-    /// Out of bounds of the app window
+    /// A hit test region out of bounds of the WebView2.
     COREWEBVIEW2_HIT_TEST_RESULT_NONE = 0
 } COREWEBVIEW2_HIT_TEST_RESULT;
 
