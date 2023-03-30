@@ -157,7 +157,7 @@ else if (m.msg >= WM_MOUSEFIRST && m.msg <= WM_MOUSELAST || m.msg == WM_NCRBUTTO
 /// This enum contains values representing possible regions a given
 /// point lies within
 typedef enum COREWEBVIEW2_HIT_TEST_RESULT {
-    /// For regions in the WV which have the CSS style 'app-region: drag' set
+    /// A hit test region in the WebView2 which has the CSS style `app-region: drag` set. Web content should use this CSS style to identify regions that should be treated like the app window's title bar. This has the same value as the Win32 HTCAPTION constant. 
     COREWEBVIEW2_HIT_TEST_RESULT_CAPTION = 2,
     /// For regions in the WV which don't have the CSS style 'app-region: drag' set
     COREWEBVIEW2_HIT_TEST_RESULT_CLIENT,
