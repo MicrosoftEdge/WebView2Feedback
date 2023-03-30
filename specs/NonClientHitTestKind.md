@@ -159,7 +159,7 @@ else if (m.msg >= WM_MOUSEFIRST && m.msg <= WM_MOUSELAST || m.msg == WM_NCRBUTTO
 typedef enum COREWEBVIEW2_HIT_TEST_RESULT {
     /// A hit test region in the WebView2 which has the CSS style `app-region: drag` set. Web content should use this CSS style to identify regions that should be treated like the app window's title bar. This has the same value as the Win32 HTCAPTION constant. 
     COREWEBVIEW2_HIT_TEST_RESULT_CAPTION = 2,
-    /// For regions in the WV which don't have the CSS style 'app-region: drag' set
+    /// A hit test region in the WebView2 which does not have the CSS style `app-region: drag` set. This is normal web content that should not be considered part of the app window's title bar. This has the same value as the Win32 HTCLIENT constant.
     COREWEBVIEW2_HIT_TEST_RESULT_CLIENT,
     /// Out of bounds of the app window
     COREWEBVIEW2_HIT_TEST_RESULT_NONE = 0
