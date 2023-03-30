@@ -173,7 +173,7 @@ interface ICoreWebView2CompositionController4 : ICoreWebView2CompositionControll
     
     /// The method returns: 
     ///     -COREWEBVIEW2_HIT_TEST_RESULT_CAPTION: when point corresponds to
-    ///         a region (HTML element) within the WV with 
+    ///         a region (HTML element) within the WebView2 with 
     ///         app-region: drag CSS style set
     ///     -COREWEBVIEW2_HIT_TEST_RESULT_CLIENT: when point corresponds to
     ///         a region (HTML element) within the WV without 
