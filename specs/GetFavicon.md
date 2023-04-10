@@ -33,7 +33,7 @@ CHECK_FAILURE(m_webView2->add_FaviconChanged(
                         CHECK_FAILURE(errorCode);
                         Gdiplus::Bitmap iconBitmap(iconStream);
                         wil::unique_hicon icon;
-                        if (iconBitmap.GetHICON(&icon) = Gdiplus::Status::Ok)
+                        if (iconBitmap.GetHICON(&icon) == Gdiplus::Status::Ok)
                         {
                             m_favicon = std::move(icon);
                         }
