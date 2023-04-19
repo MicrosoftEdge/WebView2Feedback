@@ -1,10 +1,10 @@
 
 # Background
-Consumers of the old WebBrowser control that relied on the [Navigate](https://docs.microsoft.com/en-us/previous-versions/aa752133(v=vs.85)) API that allowed them to specify HTTP POST data and extra headers as part of navigation, [requested](https://github.com/MicrosoftEdge/WebViewFeedback/issues/69) same ability in WebView2. 
+Consumers of the old WebBrowser control that relied on the [Navigate](https://learn.microsoft.com/previous-versions/aa752133(v=vs.85)) API that allowed them to specify HTTP POST data and extra headers as part of navigation, [requested](https://github.com/MicrosoftEdge/WebViewFeedback/issues/69) same ability in WebView2. 
 
 # Description
-We propose adding NavigateWithWebResourceRequest to CoreWebView2 as the API that allows a WebView2 to navigate with a specified [CoreWebView2WebResourceRequest](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/dotnet/0-9-628/microsoft-web-webview2-core-corewebview2). This allows the developer to specify extra headers and POST data as part of their request for navigation.
-We also propose adding a CreateWebResourceRequest API to [CoreWebView2Environment](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/dotnet/0-9-515/microsoft-web-webview2-core-corewebview2environment) so that developers can create the WebResourceRequest object they'd like to use with NavigateWithWebResourceRequest.
+We propose adding NavigateWithWebResourceRequest to CoreWebView2 as the API that allows a WebView2 to navigate with a specified [CoreWebView2WebResourceRequest](https://learn.microsoft.com/microsoft-edge/webview2/reference/dotnet/0-9-628/microsoft-web-webview2-core-corewebview2). This allows the developer to specify extra headers and POST data as part of their request for navigation.
+We also propose adding a CreateWebResourceRequest API to [CoreWebView2Environment](https://learn.microsoft.com/microsoft-edge/webview2/reference/dotnet/0-9-515/microsoft-web-webview2-core-corewebview2environment) so that developers can create the WebResourceRequest object they'd like to use with NavigateWithWebResourceRequest.
 
 # Examples
 
@@ -67,7 +67,7 @@ isn't the type's default (for example an int-typed property that doesn't default
 with a "///" comment above the member or type. -->
 
 # API Details
-<!-- The exact API, in MIDL3 format (https://docs.microsoft.com/en-us/uwp/midl-3/) -->
+<!-- The exact API, in MIDL3 format (https://learn.microsoft.com/uwp/midl-3/) -->
 ```idl
 [uuid(7fbad153-fb94-452e-acab-3cbb9ab341ec), object, pointer_default(unique)]
 interface ICoreWebView2_2 : ICoreWebView2 {

@@ -1,7 +1,7 @@
 # Background
-WebView2 provides applications with the [ProcessFailed](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.705.50#add_processfailed) event so they can react accordingly when a process failure occurs. However, this event does not currently provide additional information about the process failure, nor does it cover the cases in which only subframes within the CoreWebView2 are impacted by the failure, or the cases in which a process other than the browser/render process fails.
+WebView2 provides applications with the [ProcessFailed](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.705.50#add_processfailed) event so they can react accordingly when a process failure occurs. However, this event does not currently provide additional information about the process failure, nor does it cover the cases in which only subframes within the CoreWebView2 are impacted by the failure, or the cases in which a process other than the browser/render process fails.
 
-In this document we describe an extended version of the [PROCESS_FAILED_KIND](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.705.50#corewebview2_process_failed_kind) enum, which covers the new scenarios in which the event is raised: frame-only render process failure, and process failures for processes other than the browser/render process. We also include a new version of the [ProcessFailedEventArgs](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2processfailedeventargs?view=webview2-1.0.705.50) that enables the host application to collect additional information about the process failure for their logging and telemetry purposes.
+In this document we describe an extended version of the [PROCESS_FAILED_KIND](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.705.50#corewebview2_process_failed_kind) enum, which covers the new scenarios in which the event is raised: frame-only render process failure, and process failures for processes other than the browser/render process. We also include a new version of the [ProcessFailedEventArgs](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2processfailedeventargs?view=webview2-1.0.705.50) that enables the host application to collect additional information about the process failure for their logging and telemetry purposes.
 
 The updated API is detailed below. We'd appreciate your feedback.
 
@@ -66,6 +66,7 @@ std::wstring ProcessComponent::ProcessFailedReasonToString(
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_CRASHED);
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_LAUNCH_FAILED);
         REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_OUT_OF_MEMORY);
+        REASON_ENTRY(COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED);
 
 #undef REASON_ENTRY
     }
@@ -393,7 +394,7 @@ void WebView_ProcessFailed(object sender, CoreWebView2ProcessFailedEventArgs e)
     bool IsAppContentUri(Uri source)
     {
         // Sample virtual host name for the app's content.
-        // See CoreWebView2.SetVirtualHostNameToFolderMapping: https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.setvirtualhostnametofoldermapping
+        // See CoreWebView2.SetVirtualHostNameToFolderMapping: https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2.setvirtualhostnametofoldermapping
         return source.Host == "appassets.example";
     }
 
@@ -544,6 +545,9 @@ typedef enum COREWEBVIEW2_PROCESS_FAILED_REASON {
 
   /// The process died due to running out of memory.
   COREWEBVIEW2_PROCESS_FAILED_REASON_OUT_OF_MEMORY,
+
+  /// The process exited because its corresponding profile was deleted.
+  COREWEBVIEW2_PROCESS_FAILED_REASON_PROFILE_DELETED,
 } COREWEBVIEW2_PROCESS_FAILED_REASON;
 
 /// A continuation of `ICoreWebView2ProcessFailedEventArgs` interface.
@@ -709,6 +713,8 @@ namespace Microsoft.Web.WebView2.Core
         LaunchFailed,
         /// The process died due to running out of memory.
         OutOfMemory,
+        /// The process exited because its corresponding profile was deleted.
+        ProfiledDeleted,
     };
 
     runtimeclass CoreWebView2ProcessFailedEventArgs

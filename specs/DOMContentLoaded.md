@@ -1,6 +1,6 @@
 # Background
 
-In response to consumers' requests for an event similar to the old [WebView DOMContentLoaded](https://docs.microsoft.com/en-us/microsoft-edge/hosting/webview#mswebviewdomcontentloaded), the WebView2 team has introduced DOMContentLoaded API which indicates that the main DOM elements have finished loading.
+In response to consumers' requests for an event similar to the old [WebView DOMContentLoaded](https://learn.microsoft.com/microsoft-edge/hosting/webview#mswebviewdomcontentloaded), the WebView2 team has introduced DOMContentLoaded API which indicates that the main DOM elements have finished loading.
 In this document we describe the new API. We'd appreciate your feedback.
 
 # Description

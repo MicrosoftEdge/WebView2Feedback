@@ -10,8 +10,8 @@ See [DevToolsProtocol Target domain](https://chromedevtools.github.io/devtools-p
 
 The DevToolsProtocol event messages also have sessionId field to indicate which target the event comes from.
 
-However, the current WebView2 DevToolsProtocol APIs like [CallDevToolsProtocolMethod](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2#calldevtoolsprotocolmethod)
-and [DevToolsProtocolEventReceived](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2devtoolsprotocoleventreceivedeventargs)
+However, the current WebView2 DevToolsProtocol APIs like [CallDevToolsProtocolMethod](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2#calldevtoolsprotocolmethod)
+and [DevToolsProtocolEventReceived](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2devtoolsprotocoleventreceivedeventargs)
 don't support sessionId.
 
 To support interaction with different parts of the page, we allow apps to specify a sessionId when calling DevToolsProtocol methods, as well as passing a sessionId to DevToolsProtocol event handlers, with empty string sessionId representing the default target of the top page.

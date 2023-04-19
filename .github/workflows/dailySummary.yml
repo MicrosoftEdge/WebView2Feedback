@@ -1,0 +1,21 @@
+name: get issue summary of yesterday
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 1 * * *'
+  
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    name: get summary
+    steps:
+    - uses: shangminx/Auto-Digest@main
+      id: getsummary
+      with:
+        daily_or_weekly: 'daily'
+    - uses: plantree/github-actions-issue-notify-teams@main
+      with:
+        type: daily-report
+        message: ${{ steps.getsummary.outputs.dailysummary }}
+        webhook: ${{ secrets.WEBHOOK }}

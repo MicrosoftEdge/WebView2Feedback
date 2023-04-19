@@ -5,7 +5,7 @@ within the iframe are requesting access to priveleged resources. The permission
 request types that we support are: Microphone, Camera, Geolocation,
 Notifications, Other Sensors, and Clipboard Read.
 
-We currently have a [PermissionRequested](https://docs.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs?view=webview2-1.0.1020.30)
+We currently have a [PermissionRequested](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs?view=webview2-1.0.1020.30)
 event on our `CoreWebView2` which is raised for any permission requests
 (either from webview or iframes). However, our customers do not have a way to
 determine whether the request has come from the webview or an iframe and

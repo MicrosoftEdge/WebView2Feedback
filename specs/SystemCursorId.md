@@ -92,7 +92,7 @@ interface ICoreWebView2CompositionController2 : ICoreWebView2CompositionControll
   /// this will return the int value for IDC_IBEAM. The systemCursorId is only
   /// valid if the rendering engine reports a default Windows cursor resource
   /// value. See:
-  /// https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadcursorw
+  /// https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-loadcursorw
   /// Otherwise, if custom CSS cursors are being used, this will return 0.
   /// To actually use systemCursorId in LoadCursor or LoadImage,
   /// MAKEINTRESOURCE must be called on it first.
@@ -123,7 +123,7 @@ namespace Microsoft.Web.WebView2.Core
         //     this will return the int value for IDC_IBEAM. The SystemCursorId is only
         //     valid if the rendering engine reports a default Windows cursor resource
         //     value. See:
-        //     https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-loadcursorw
+        //     https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-loadcursorw
         //     Otherwise, if custom CSS cursors are being used, this will return 0.
         //     To create a Cursor object, create an IntPtr from the returned uint to
         //     pass into the constructor

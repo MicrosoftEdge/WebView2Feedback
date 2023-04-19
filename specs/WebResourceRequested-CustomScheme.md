@@ -331,7 +331,7 @@ interface ICoreWebView2CustomSchemeRegistration : IUnknown {
   // The origins are string pattern matched with `*` (matches 0 or more
   // characters) and `?` (matches 0 or 1 character) wildcards just like
   // the URI matching in the
-  // [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
+  // [AddWebResourceRequestedFilter API](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
   // For example, "http://*.example.com:80".
   // The returned strings and the array itself must be deallocated with
   // CoTaskMemFree.
@@ -455,7 +455,7 @@ namespace Microsoft.Web.WebView2.Core
         // The origins are string pattern matched with `*` (matches 0 or more
         // characters) and `?` (matches 0 or 1 character) wildcards just like
         // the URI matching in the
-        // [AddWebResourceRequestedFilter API](https://docs.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
+        // [AddWebResourceRequestedFilter API](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
         // For example, "http://*.example.com:80".
         IVector<String> AllowedOrigins { get; } = {};
 

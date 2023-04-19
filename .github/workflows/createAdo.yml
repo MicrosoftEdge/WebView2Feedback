@@ -17,5 +17,5 @@ jobs:
         label: 'tracked'
         ado_organization: 'microsoft'
         ado_project: 'Edge'
-        ado_area_path: 'Edge\Dev Experience\WebView'
+        ado_area_path: 'Edge\Web Experience\WebView2'
         ado_tags: 'WV2_GitHub'
