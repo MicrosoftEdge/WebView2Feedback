@@ -102,10 +102,6 @@ interface ICoreWebView2ClearBrowsingDataCompletedHandler;
 /// `ICoreWebView2Profile::ClearBrowsingData` method.
 [v1_enum]
 typedef enum COREWEBVIEW2_BROWSING_DATA_KINDS {
-  /// This enum value is no longer supported as of WebView2 Runtime version A.B.C.D. This enum value will be ignored if passed in to ClearBrowsingData. 
-  /// and don't use it any more.
-  /// Specifies data stored by the AppCache DOM feature.
-  /// COREWEBVIEW2_BROWSING_DATA_KINDS_APP_CACHE = 1 << 0,
 
   /// Specifies file systems data.
   COREWEBVIEW2_BROWSING_DATA_KINDS_FILE_SYSTEMS = 1 << 0,
@@ -254,7 +250,6 @@ namespace Microsoft.Web.WebView2.Core
 {
     [Flags] enum CoreWebView2BrowsingDataKinds
     {
-        /// AppCache = 1,
         FileSystems = 1,
         IndexedDb = 2,
         LocalStorage = 4,
