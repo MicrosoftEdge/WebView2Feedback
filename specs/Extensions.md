@@ -404,7 +404,7 @@ interface ICoreWebView2Profile6 : IUnknown {
     /// Adds the Extension using the extension path for unpacked extensions
     /// from the local device. The extension folder path is the topmost folder of an unpacked browser extension and contains the browser extension manifest file.
     /// specific extension where its manifest file lives.
-    HRESULT AddExtension([in] LPCWSTR extensionPath, [in] ICoreWebView2AddExtensionCompletedHandler* handler);
+    HRESULT AddExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2AddExtensionCompletedHandler* handler);
     /// Gets the Extensions for the Profile.
     HRESULT GetExtensions([in] ICoreWebView2GetExtensionsCompletedHandler* handler);
 }
