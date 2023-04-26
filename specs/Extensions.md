@@ -383,12 +383,13 @@ interface ICoreWebView2Profile6 : IUnknown {
 /// the Extension, and enable or disable it.
 [uuid(BCFC3E36-1BAD-4009-BFFC-A372C469F6BA), object, pointer_default(unique)]
 interface ICoreWebView2BrowserExtension : IUnknown {
-    /// This is the Extension's ID.
+    /// This is the browser extension's ID. This is the same browser extension ID returned by 
+    /// the browser extension API [`chrome.runtime.id`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/id). 
+    /// Please see that documentation for more details on how the ID is generated.
     /// The caller must free the returned string with `CoTaskMemFree`.  See
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
     [propget] HRESULT Id([out, retval] LPWSTR* value); 
-    /// This is the browser extension's name. 
-    /// This value is defined in this browser extension's manifest.json file. 
+    /// This is the browser extension's name. This value is defined in this browser extension's manifest.json file. 
     /// If manifest.json define extension's localized name, this value will be the localized version of the name.
     /// Please see [Manifest.json name](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/name) for more details.
     /// The caller must free the returned string with `CoTaskMemFree`.  See
