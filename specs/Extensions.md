@@ -353,12 +353,12 @@ See [API Details](#api-details) section below for API reference.
 ```IDL
 interface ICoreWebView2Profile6;
 interface ICoreWebView2EnvironmentOptions6;
-interface ICoreWebView2SetBrowserExtensionEnabledCompletedHandler;
-interface ICoreWebView2RemoveBrowserExtensionCompletedHandler;
+interface ICoreWebView2BrowserExtensionSetEnabledCompletedHandler;
+interface ICoreWebView2BrowserExtensionRemoveCompletedHandler;
 interface ICoreWebView2BrowserExtension;
 interface ICoreWebView2BrowserExtensionList;
-interface ICoreWebView2AddBrowserExtensionCompletedHandler;
-interface ICoreWebView2GetBrowserExtensionsCompletedHandler;
+interface ICoreWebView2ProfileAddBrowserExtensionCompletedHandler;
+interface ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler;
 
 /// Additional options used to create WebView2 Environment.
 [uuid(4B1F63E9-F7A5-4EA5-8D84-2B30F2404E82), object, pointer_default(unique)]
@@ -374,9 +374,9 @@ interface ICoreWebView2Profile6 : IUnknown {
     /// from the local device. The extension folder path is the topmost folder of an unpacked browser extension and contains the browser extension manifest file.
     /// specific extension where its manifest file lives.
     /// Installed extension will default `IsEnabled` to true.
-    HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2AddBrowserExtensionCompletedHandler* handler);
+    HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2ProfileAddBrowserExtensionCompletedHandler* handler);
     /// Gets the Extensions for the Profile.
-    HRESULT GetBrowserExtensions([in] ICoreWebView2GetBrowserExtensionsCompletedHandler* handler);
+    HRESULT GetBrowserExtensions([in] ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler* handler);
 }
 
 /// Provides a set of properties for managing an Extension, which includes
@@ -397,12 +397,12 @@ interface ICoreWebView2BrowserExtension : IUnknown {
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
     [propget] HRESULT Name([out, retval] LPWSTR* value);
     /// Removes the browser Extension from the WebView2 Profile while the app is running.
-    HRESULT Remove([in] ICoreWebView2RemoveBrowserExtensionCompletedHandler* handler);
+    HRESULT Remove([in] ICoreWebView2BrowserExtensionRemoveCompletedHandler* handler);
     /// If isEnabled is true then the Extension is enabled and running in WebView instances.
     /// If it is false then the Extension is disabled and not running in WebView instances.
     [propget] HRESULT IsEnabled([out, retval] BOOL* value);
     /// Sets whether the browser Extension is enabled or disabled based on isEnabled.
-    HRESULT SetIsEnabled([in] BOOL isEnabled, [in] ICoreWebView2SetBrowserExtensionEnabledCompletedHandler* handler);
+    HRESULT SetIsEnabled([in] BOOL isEnabled, [in] ICoreWebView2BrowserExtensionSetEnabledCompletedHandler* handler);
 }
 
 /// Provides a set of properties for managing browser Extension Lists. This
@@ -416,26 +416,24 @@ interface ICoreWebView2BrowserExtensionList : IUnknown {
     HRESULT GetValueAtIndex([in] UINT index, [out, retval] ICoreWebView2BrowserExtension** extension);
 }
 
-// Maybe should be named EnvironmentGetExtensionsCompletedHandler.
 /// The caller implements this interface to receive the result of
 /// getting the browser Extensions.
 [uuid(2A05565F-DE9D-46E3-AAF7-B866966828F4), object, pointer_default(unique)]
-interface ICoreWebView2GetBrowserExtensionsCompletedHandler : IUnknown {
+interface ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler : IUnknown {
     HRESULT Invoke([in] HRESULT errorCode, [in] ICoreWebView2BrowserExtensionList* extensionList);
 }
 
-// Maybe should be named EnvironmentAddBrowserExtensionCompletedHandler.
 /// The caller implements this interface to receive the result
 /// of loading an browser Extension.
 [uuid(E81499FE-8BC6-4BA6-BAD7-D21FFA4C3266), object, pointer_default(unique)]
-interface ICoreWebView2AddBrowserExtensionCompletedHandler : IUnknown {
+interface ICoreWebView2ProfileAddBrowserExtensionCompletedHandler : IUnknown {
     HRESULT Invoke([in] HRESULT errorCode, [in] ICoreWebView2BrowserExtension* extension);
 }
 
 /// The caller implements this interface to receive the result of removing
 /// the browser Extension from the Profile.
 [uuid(BD73ED6B-08A3-4A57-9DD0-2903067632B4), object, pointer_default(unique)]
-interface ICoreWebView2RemoveBrowserExtensionCompletedHandler : IUnknown {
+interface ICoreWebView2BrowserExtensionRemoveCompletedHandler : IUnknown {
     HRESULT Invoke([in] HRESULT errorCode);
 }
 
@@ -443,7 +441,7 @@ interface ICoreWebView2RemoveBrowserExtensionCompletedHandler : IUnknown {
 /// browser Extension as enabled or disabled. If enabled, the browser Extension is 
 /// running in WebView instances. If disabled, the browser Extension is not running in WebView instances.
 [uuid(0A5F7098-2265-49C7-BA60-5A511E80805A), object, pointer_default(unique)]
-interface ICoreWebView2SetBrowserExtensionEnabledCompletedHandler : IUnknown {
+interface ICoreWebView2BrowserExtensionSetEnabledCompletedHandler : IUnknown {
     HRESULT Invoke([in] HRESULT errorCode);
 }
 ```
