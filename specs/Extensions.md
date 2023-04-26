@@ -428,7 +428,7 @@ interface ICoreWebView2Extension : IUnknown {
     /// If it is false then the Extension is disabled and not running in WebView instances.
     [propget] HRESULT IsEnabled([out, retval] BOOL* value);
     /// Sets whether the Extension is enabled or disabled based on isEnabled.
-    HRESULT SetEnabled([in] BOOL isEnabled, [in] ICoreWebView2SetEnabledCompletedHandler* handler);
+    HRESULT SetIsEnabled([in] BOOL isEnabled, [in] ICoreWebView2SetEnabledCompletedHandler* handler);
 }
 
 /// Provides a set of properties for managing Extension Lists. This
