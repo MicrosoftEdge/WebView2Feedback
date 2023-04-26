@@ -423,7 +423,7 @@ interface ICoreWebView2Extension : IUnknown {
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
     [propget] HRESULT Name([out, retval] LPWSTR* value);
     /// Removes the Extension from the WebView2 Profile while the app is running.
-    HRESULT Remove([in] ICoreWebView2SRemoveCompletedHandler* handler);
+    HRESULT Remove([in] ICoreWebView2RemoveCompletedHandler* handler);
     /// If isEnabled is true then the Extension is enabled and running in WebView instances.
     /// If it is false then the Extension is disabled and not running in WebView instances.
     [propget] HRESULT IsEnabled([out, retval] BOOL* value);
