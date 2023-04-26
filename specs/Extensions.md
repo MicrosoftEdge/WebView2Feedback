@@ -401,7 +401,7 @@ interface ICoreWebView2EnvironmentOptions6 : IUnknown {
 /// This is the ICoreWebView2 profile.
 [uuid(8B16D238-9508-4C36-B4D4-749EB9AC4AD0), object, pointer_default(unique)]
 interface ICoreWebView2Profile6 : IUnknown {
-    /// Adds the Extension using the extension path for unpacked extensions
+    /// Adds the [browser extension](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions) using the extension path for unpacked extensions
     /// from the local device. The extension folder path is the topmost folder of an unpacked browser extension and contains the browser extension manifest file.
     /// specific extension where its manifest file lives.
     HRESULT AddExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2AddExtensionCompletedHandler* handler);
