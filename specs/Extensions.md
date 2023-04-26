@@ -496,7 +496,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
         Windows.Foundation.IAsyncOperation<CoreWebView2Extension> AddExtensionAsync(String extensionPath);
-        Windows.Foundation.IAsyncOperation<CoreWebView2ExtensionList> GetExtensionsAsync();
+        IAsyncOperation<IVectorView<CoreWebView2Extension> > GetExtensionsAsync();
     }
 
     runtimeclass CoreWebView2ExtensionList
