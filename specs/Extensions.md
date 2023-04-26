@@ -394,7 +394,7 @@ interface ICoreWebView2GetExtensionsCompletedHandler;
 /// Additional options used to create WebView2 Environment.
 [uuid(4B1F63E9-F7A5-4EA5-8D84-2B30F2404E82), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions6 : IUnknown {
-  [propget] HRESULT IsExtensionEnabled([out, retval] BOOL* value);
+  [propget] HRESULT AreExtensionsEnabled([out, retval] BOOL* value);
   [propput] HRESULT IsExtensionEnabled([in] BOOL value);
 }
 
