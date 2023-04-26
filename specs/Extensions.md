@@ -24,15 +24,6 @@ void AppWindow::InitializeWebView()
     // ... other option properties
 
     // ... CreateCoreWebView2EnvironmentWithOptions
-
-    // Add extension from file path
-    AddExtension();
-
-    // Remove an installed extension
-    RemoveOrDisableExtension(true);
-
-    // Enable/disable a installed extension
-    RemoveOrDisableExtension(false);
 }
 
 void ScriptComponent::AddExtension()
@@ -202,29 +193,6 @@ void CreateEnvironmentWithOption()
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     options.AreExtensionsEnabled = true;
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
-}
-
-void ExtensionsCommandExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    if (_isControlInVisualTree)
-    {
-        RemoveControlFromVisualTree(webView);
-    }
-    webView.Dispose();
-    webView = GetReplacementControl(false, true);
-    AttachControlToVisualTree(webView);
-    webView.CoreWebView2InitializationCompleted += (sender, err) =>
-    {
-        if (err.IsSuccess)
-        {
-            new Extensions(webView.CoreWebView2).Show();
-        }
-    };
-}
-
-void ExtensionsCommandCanExecute(object sender, CanExecuteRoutedEventArgs e)
-{
-    e.CanExecute = true;
 }
 
 // Extensions class
@@ -404,6 +372,7 @@ interface ICoreWebView2Profile6 : IUnknown {
     /// Adds the [browser extension](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions) using the extension path for unpacked extensions
     /// from the local device. The extension folder path is the topmost folder of an unpacked browser extension and contains the browser extension manifest file.
     /// specific extension where its manifest file lives.
+    /// Installed extension will default `IsEnabled` to true.
     HRESULT AddExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2AddExtensionCompletedHandler* handler);
     /// Gets the Extensions for the Profile.
     HRESULT GetExtensions([in] ICoreWebView2GetExtensionsCompletedHandler* handler);
@@ -417,8 +386,10 @@ interface ICoreWebView2Extension : IUnknown {
     /// This is the Extension's ID.
     /// The caller must free the returned string with `CoTaskMemFree`.  See
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-    [propget] HRESULT Id([out, retval] LPWSTR* value);
-    /// This is the Extension's name.
+    [propget] HRESULT Id([out, retval] LPWSTR* value); 
+    /// This is the browser extension's name defined in this browser extension's manifest.json file. 
+    /// If manifest.json define extension's localized name, this value will be the localized version of the name.
+    /// Please see [Manifest.json name](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/name) for more details.
     /// The caller must free the returned string with `CoTaskMemFree`.  See
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
     [propget] HRESULT Name([out, retval] LPWSTR* value);
