@@ -309,6 +309,7 @@ void InstallDefaultExtensions()
     {
         if (extensionsList[i].Id == _defaultExtensionId)
         {
+            return;
             // ... Navigate to first page
         }
         else
