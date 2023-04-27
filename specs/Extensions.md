@@ -326,16 +326,15 @@ public partial class Extensions : Window
 
     private async System.Threading.Tasks.Task FillViewAsync()
     {
-        var extensions = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
+        List<CoreWebView2Extension> extensionsList = await m_coreWebView2.Profile.GetExtensionsAsync();
 
         m_listData.Clear();
-        for (uint idx = 0; idx < extensions.Count; ++idx)
+        for (int i = 0; i < extensionsList.Count; ++i)
         {
             ListEntry entry = new ListEntry();
-            var extension = extensions.GetValueAtIndex(idx);
-            entry.Name = extension.Name;
-            entry.Id = extension.Id;
-            entry.Enabled = extension.IsEnabled;
+            entry.Name = extensionsList[i].Name;
+            entry.Id = extensionsList[i].Id;
+            entry.Enabled = extensionsList[i].IsEnabled;
             m_listData.Add(entry);
         }
         ExtensionsList.ItemsSource = m_listData;
@@ -350,16 +349,15 @@ public partial class Extensions : Window
     private async System.Threading.Tasks.Task ExtensionsToggleEnabledAsync(object sender, RoutedEventArgs e)
     {
         ListEntry entry = (ListEntry)ExtensionsList.SelectedItem;
-        var extensions = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
+        List<CoreWebView2Extension> extensionsList = await m_coreWebView2.Profile.GetExtensionsAsync();
         bool found = false;
-        for (uint idx = 0; idx < extensions.Count; ++idx)
+        for (int i = 0; i < extensionsList.Count; ++i)
         {
-            CoreWebView2Extension extension = extensions.GetValueAtIndex(idx);
-            if (extension.Id == entry.Id)
+            if (extensionsList[i].Id == entry.Id)
             {
                 try
                 {
-                    await extension.SetEnabledAsync(extension.IsEnabled ? false : true);
+                    await extensionsList[i].SetEnabledAsync(extensionsList[i].IsEnabled ? false : true);
                 }
                 catch (Exception exception)
                 {
@@ -412,16 +410,15 @@ public partial class Extensions : Window
         ListEntry entry = (ListEntry)ExtensionsList.SelectedItem;
         if (MessageBox.Show("Remove extension " + entry + "?", "Confirm removal", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
         {
-            var extensions = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
+            List<CoreWebView2Extension> extensionsList = await m_coreWebView2.Profile.GetExtensionsAsync();
             bool found = false;
-            for (uint idx = 0; idx < extensions.Count; ++idx)
+            for (int i = 0; i < extensionsList.Count; ++i)
             {
-                CoreWebView2Extension extension = extensions.GetValueAtIndex(idx);
-                if (extension.Id == entry.Id)
+                if (extensionsList[i].Id == entry.Id)
                 {
                     try
                     {
-                        await extension.RemoveAsync();
+                        await extensionsList[i].RemoveAsync();
                     }
                     catch (Exception exception)
                     {
