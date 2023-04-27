@@ -12,9 +12,7 @@ The following code snippet demonstrates how the Extensions related API can be us
 ## Win32 C++
 
 ```cpp
-#include <filesystem>
-using namespace std;
-// namespace fs = std::filesystem;
+static constexpr WCHAR c_samplePath[] = L"extensions/example-devtools-extension";
 
 void AppWindow::InitializeWebView()
 {
@@ -24,6 +22,108 @@ void AppWindow::InitializeWebView()
     // ... other option properties
 
     // ... CreateCoreWebView2EnvironmentWithOptions
+
+    InstallDefaultExtensions();
+    // ... Navigate
+}
+
+void ScenarioExtensionsManagement::InstallDefaultExtensions()
+{
+    auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
+    CHECK_FEATURE_RETURN_EMPTY(webView2_13);
+    wil::com_ptr<ICoreWebView2Profile> webView2Profile;
+    CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
+    auto profile6 = webView2Profile.try_query<ICoreWebView2Profile6>();
+    CHECK_FEATURE_RETURN_EMPTY(profile6);
+
+    std::wstring extension_path_file = m_appWindow->GetLocalUri(c_samplePath, false);
+    // Remove "file:///" from the beginning of extension_path_file
+    std::wstring extension_path = extension_path_file.substr(8);
+
+    profile6->GetBrowserExtensions(
+        Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
+            [this, profile6, extension_path](
+                HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
+            {
+                std::wstring extensionIdString;
+                bool extensionInstalled = false;
+                UINT extensionsCount = 0;
+                extensions->get_Count(&extensionsCount);
+
+                for (UINT index = 0; index < extensionsCount; ++index)
+                {
+                    wil::com_ptr<ICoreWebView2BrowserExtension> extension;
+                    extensions->GetValueAtIndex(index, &extension);
+
+                    wil::unique_cotaskmem_string id;
+                    wil::unique_cotaskmem_string name;
+                    BOOL enabled = false;
+                    std::wstring message;
+
+                    extension->get_IsEnabled(&enabled);
+                    extension->get_Id(&id);
+                    extension->get_Name(&name);
+                    extensionIdString = id.get();
+
+                    if (extensionIdString.compare(m_extensionId) == 0)
+                    {
+                        extensionInstalled = true;
+                        message += L"Extension already installed";
+                        if (enabled)
+                        {
+                            message += L" and enabled.";
+                        }
+                        else
+                        {
+                            message += L" but was disabled.";
+                            extension->SetEnabled(
+                                !enabled,
+                                Callback<ICoreWebView2BrowserExtensionSetEnabledCompletedHandler>(
+                                    [](HRESULT error) -> HRESULT
+                                    {
+                                        if (error != S_OK)
+                                        {
+                                            ShowFailure(error, L"SetEnabled Extension failed");
+                                        }
+                                        return S_OK;
+                                    })
+                                    .Get());
+                            message += L" Extension has now been enabled.";
+                        }
+                        MessageBox(nullptr, message.c_str(), name.get(), MB_OK);
+                        break;
+                    }
+                }
+
+                if (!extensionInstalled)
+                {
+                    CHECK_FAILURE(profile6->AddBrowserExtension(
+                        extension_path.c_str(),
+                        Callback<ICoreWebView2ProfileAddBrowserExtensionCompletedHandler>(
+                            [](HRESULT error,
+                               ICoreWebView2BrowserExtension* extension) -> HRESULT
+                            {
+                                if (error != S_OK)
+                                {
+                                    ShowFailure(error, L"AddExtension failed");
+                                    return S_OK;
+                                }
+
+                                wil::unique_cotaskmem_string name;
+                                extension->get_Name(&name);
+
+                                MessageBox(
+                                    nullptr,
+                                    L"Extension was not installed, has now been installed and "
+                                    L"enabled.",
+                                    name.get(), MB_OK);
+                                return S_OK;
+                            })
+                            .Get()));
+                }
+                return S_OK;
+            })
+            .Get());
 }
 
 void ScriptComponent::AddBrowserExtension()
@@ -51,7 +151,7 @@ void ScriptComponent::AddBrowserExtension()
         *wcsrchr(fileName, L'\\') = L'\0';
         profile6->AddBrowserExtension(
             fileName,
-            Callback<ICoreWebView2AddBrowserExtensionCompletedHandler>(
+            Callback<ICoreWebView2ProfileAddBrowserExtensionCompletedHandler>(
                 [](HRESULT error, ICoreWebViewBrowserExtension* extension) -> HRESULT
                 {
                     if (error != S_OK)
@@ -85,8 +185,8 @@ void ScriptComponent::RemoveOrDisableExtension(const bool remove)
     auto profile6 = webView2Profile.try_query<ICoreWebView2Profile6>();
 
     profile6->GetExtensions(
-        Callback<ICoreWebView2GetBrowserExtensionsCompletedHandler>(
-            [this, webView2Profile6,
+        Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
+            [this, profile6,
              remove](HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
             {
                 std::wstring extensionIdString;
@@ -128,7 +228,7 @@ void ScriptComponent::RemoveOrDisableExtension(const bool remove)
                 {
                     for (UINT index = 0; index < extensionsCount; ++index)
                     {
-                        wil::com_ptr<ICoreWebView2Extension> extension;
+                        wil::com_ptr<ICoreWebView2BrowserExtension> extension;
                         extensions->GetValueAtIndex(index, &extension);
 
                         wil::unique_cotaskmem_string id;
@@ -140,7 +240,7 @@ void ScriptComponent::RemoveOrDisableExtension(const bool remove)
                             if (remove)
                             {
                                 extension->Remove(
-                                    Callback<ICoreWebView2RemoveBrowserExtensionCompletedHandler>(
+                                    Callback<ICoreWebView2BrowserExtensionRemoveCompletedHandler>(
                                         [](HRESULT error) -> HRESULT
                                         {
                                             if (error != S_OK)
@@ -160,7 +260,7 @@ void ScriptComponent::RemoveOrDisableExtension(const bool remove)
 
                                 extension->SetEnabled(
                                     !enabled,
-                                    Callback<ICoreWebView2SetBrowserExtensionEnabledCompletedHandler>(
+                                    Callback<ICoreWebView2BrowserExtensionSetEnabledCompletedHandler>(
                                         [](HRESULT error) -> HRESULT
                                         {
                                             if (error != S_OK)
