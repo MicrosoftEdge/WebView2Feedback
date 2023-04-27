@@ -286,14 +286,36 @@ void ScriptComponent::RemoveOrDisableExtension(const bool remove)
 ## .NET and WinRT
 
 ```c#
-/// Create WebView Environment with option
+string m_defaultExtensionId = "123";
+string m_defaultExtensionFolderPath = "//Mydrive";
 
+/// Create WebView Environment with option
 void CreateEnvironmentWithOption()
 {
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     options.AreBrowserExtensionsEnabled = true;
     CoreWebView2Environment environment = CoreWebView2Environment.CreateAsync(CoreWebView2EnvironmentOptions options: options);
     webview.EnsureCoreWebView2Async(environment);
+
+    InstallDefaultExtensions();
+}
+
+// Install default extension before first navigation
+void InstallDefaultExtensions()
+{
+    List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
+    bool found = false;
+    for (int i = 0; i < extensionsList.Count; ++i)
+    {
+        if (extensionsList[i].Id == _defaultExtensionId)
+        {
+            // ... Navigate to first page
+        }
+        else
+        {
+            CoreWebView2Extension extension = await m_coreWebView2.Profile.AddBrowserExtensionAsync(m_defaultExtensionFolderPath);
+        }
+    }
 }
 
 // Extensions class
@@ -326,7 +348,7 @@ public partial class Extensions : Window
 
     private async System.Threading.Tasks.Task FillViewAsync()
     {
-        List<CoreWebView2Extension> extensionsList = await m_coreWebView2.Profile.GetExtensionsAsync();
+        List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
 
         m_listData.Clear();
         for (int i = 0; i < extensionsList.Count; ++i)
@@ -349,7 +371,7 @@ public partial class Extensions : Window
     private async System.Threading.Tasks.Task ExtensionsToggleEnabledAsync(object sender, RoutedEventArgs e)
     {
         ListEntry entry = (ListEntry)ExtensionsList.SelectedItem;
-        List<CoreWebView2Extension> extensionsList = await m_coreWebView2.Profile.GetExtensionsAsync();
+        List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
         bool found = false;
         for (int i = 0; i < extensionsList.Count; ++i)
         {
@@ -410,7 +432,7 @@ public partial class Extensions : Window
         ListEntry entry = (ListEntry)ExtensionsList.SelectedItem;
         if (MessageBox.Show("Remove extension " + entry + "?", "Confirm removal", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
         {
-            List<CoreWebView2Extension> extensionsList = await m_coreWebView2.Profile.GetExtensionsAsync();
+            List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
             bool found = false;
             for (int i = 0; i < extensionsList.Count; ++i)
             {
