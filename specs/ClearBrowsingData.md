@@ -100,79 +100,82 @@ interface ICoreWebView2ClearBrowsingDataCompletedHandler;
 
 /// Specifies the datatype for the
 /// `ICoreWebView2Profile::ClearBrowsingData` method.
-[v1_enum] 
+[v1_enum]
 typedef enum COREWEBVIEW2_BROWSING_DATA_KINDS {
-  /// Specifies data stored by the AppCache DOM feature.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_APP_CACHE = 1 << 0,
 
   /// Specifies file systems data.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_FILE_SYSTEMS = 1 << 1,
+  COREWEBVIEW2_BROWSING_DATA_KINDS_FILE_SYSTEMS = 1 << 0,
 
   /// Specifies data stored by the IndexedDB DOM feature.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_INDEXED_DB = 1 << 2,
+  COREWEBVIEW2_BROWSING_DATA_KINDS_INDEXED_DB = 1 << 1,
 
   /// Specifies data stored by the localStorage DOM API.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_LOCAL_STORAGE = 1 << 3,
+  COREWEBVIEW2_BROWSING_DATA_KINDS_LOCAL_STORAGE = 1 << 2,
 
   /// Specifies data stored by the Web SQL database DOM API.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_WEB_SQL = 1 << 4,
+  COREWEBVIEW2_BROWSING_DATA_KINDS_WEB_SQL = 1 << 3,
 
-  /// Specifies data stored by the CacheStorge DOM API.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_CACHE_STORAGE = 1 << 5,
+  /// Specifies data stored by the CacheStorage DOM API.
+  COREWEBVIEW2_BROWSING_DATA_KINDS_CACHE_STORAGE = 1 << 4,
 
-  /// Specifies DOM storage data, now and future. This browsing data kind is 
-  /// inclusive of COREWEBVIEW2_BROWSING_DATA_KINDS_APP_CACHE, 
-  /// COREWEBVIEW2_BROWSING_DATA_KINDS_FILE_SYSTEMS,
-  /// COREWEBVIEW2_BROWSING_DATA_KINDS_INDEXED_DB, 
+  /// Specifies DOM storage data, now and future. This browsing data kind is
+  /// inclusive of COREWEBVIEW2_BROWSING_DATA_KINDS_FILE_SYSTEMS,
+  /// COREWEBVIEW2_BROWSING_DATA_KINDS_INDEXED_DB,
   /// COREWEBVIEW2_BROWSING_DATA_KINDS_LOCAL_STORAGE,
-  /// COREWEBVIEW2_BROWSING_DATA_KINDS_WEB_SQL, 
-  /// COREWEBVIEW2_BROWSING_DATA_KINDS_CACHE_STORAGE.
-  /// New DOM storage data types may be added to this data kind in the future. 
-  COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_DOM_STORAGE = 1 << 6,
+  /// COREWEBVIEW2_BROWSING_DATA_KINDS_WEB_SQL,
+  /// COREWEBVIEW2_BROWSING_DATA_KINDS_SERVICE_WORKERS,
+  /// COREWEBVIEW2_BROWSING_DATA_KINDS_CACHE_STORAGE,
+  /// and some other data kinds not listed yet to keep consistent with
+  /// [DOM-accessible storage](https://www.w3.org/TR/clear-site-data/#storage).
+  COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_DOM_STORAGE = 1 << 5,
 
   /// Specifies HTTP cookies data.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_COOKIES = 1 << 7,
+  COREWEBVIEW2_BROWSING_DATA_KINDS_COOKIES = 1 << 6,
 
   /// Specifies all site data, now and future. This browsing data kind
   /// is inclusive of COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_DOM_STORAGE and
   /// COREWEBVIEW2_BROWSING_DATA_KINDS_COOKIES. New site data types
-  /// may be added to this data kind in the future. 
-  COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_SITE = 1 << 8,
+  /// may be added to this data kind in the future.
+  COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_SITE = 1 << 7,
 
-  /// Specifies disk cache. 
-  COREWEBVIEW2_BROWSING_DATA_KINDS_DISK_CACHE = 1 << 9,
+  /// Specifies disk cache.
+  COREWEBVIEW2_BROWSING_DATA_KINDS_DISK_CACHE = 1 << 8,
 
-  /// Specifies download history data. 
-  COREWEBVIEW2_BROWSING_DATA_KINDS_DOWNLOAD_HISTORY = 1 << 10, 
+  /// Specifies download history data.
+  COREWEBVIEW2_BROWSING_DATA_KINDS_DOWNLOAD_HISTORY = 1 << 9,
 
-  /// Specifies general autofill form data. 
-  /// This excludes password information and includes information like: 
-  /// names, street and email addresses, phone numbers, and arbitrary input. 
-  /// This also includes payment data. 
-  COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL = 1 << 11, 
+  /// Specifies general autofill form data.
+  /// This excludes password information and includes information like:
+  /// names, street and email addresses, phone numbers, and arbitrary input.
+  /// This also includes payment data.
+  COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL = 1 << 10,
 
-  /// Specifies password autosave data. 
-  COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE = 1 << 12,
+  /// Specifies password autosave data.
+  COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE = 1 << 11,
 
-  /// Specifies browsing history data. 
-  COREWEBVIEW2_BROWSING_DATA_KINDS_BROWSING_HISTORY = 1 << 13,
+  /// Specifies browsing history data.
+  COREWEBVIEW2_BROWSING_DATA_KINDS_BROWSING_HISTORY = 1 << 12,
 
   /// Specifies settings data.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_SETTINGS = 1 << 14,
+  COREWEBVIEW2_BROWSING_DATA_KINDS_SETTINGS = 1 << 13,
 
   /// Specifies profile data that should be wiped to make it look like a new profile.
   /// This does not delete account-scoped data like passwords but will remove access
   /// to account-scoped data by signing the user out.
   /// Specifies all profile data, now and future. New profile data types may be added
-  /// to this data kind in the future. 
+  /// to this data kind in the future.
   /// This browsing data kind is inclusive of COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_SITE,
-  /// COREWEBVIEW2_BROWSING_DATA_KINDS_DISK_CACHE, 
+  /// COREWEBVIEW2_BROWSING_DATA_KINDS_DISK_CACHE,
   /// COREWEBVIEW2_BROWSING_DATA_KINDS_DOWNLOAD_HISTORY,
-  /// COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL, 
+  /// COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL,
   /// COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE,
-  /// COREWEBVIEW2_BROWSING_DATA_KINDS_BROWSING_HISTORY, and 
+  /// COREWEBVIEW2_BROWSING_DATA_KINDS_BROWSING_HISTORY, and
   /// COREWEBVIEW2_BROWSING_DATA_KINDS_SETTINGS.
-  COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_PROFILE =  1 << 15,
+  COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_PROFILE =  1 << 14,
+
+  /// Specifies service workers registered for an origin, and clear will result in
+  /// termination and deregistration of them.
+  COREWEBVIEW2_BROWSING_DATA_KINDS_SERVICE_WORKERS = 1 << 15,
 } COREWEBVIEW2_BROWSING_DATA_KINDS;
 
 [uuid(DAF8B1F9-276D-410C-B481-58CBADF85C9C), object, pointer_default(unique)]
@@ -187,8 +190,8 @@ interface ICoreWebView2Profile : IUnknown {
   /// Ex: DOM storage is encompassed in site data which is encompassed in the profile data. 
   /// * All Profile
   ///   * All Site Data
-  ///     * All DOM Storage: App Cache, File Systems, Indexed DB, Local Storage, Web SQL, Cache 
-  ///         Storage
+  ///     * All DOM Storage: File Systems, Indexed DB, Local Storage, Web SQL, Service 
+  ///         Workers, Cache Storage, etc
   ///     * Cookies 
   ///   * Disk Cache 
   ///   * Download History
@@ -247,22 +250,22 @@ namespace Microsoft.Web.WebView2.Core
 {
     [Flags] enum CoreWebView2BrowsingDataKinds
     {
-        AppCache = 1,
-        FileSystems = 2,
-        IndexedDb = 4,
-        LocalStorage = 8,
-        WebSql = 16,
-        CacheStorage = 32,
-        AllDomStorage = 64,
-        Cookies = 128,
-        AllSite = 256,
-        DiskCache = 512,
-        DownloadHistory = 1024,
-        GeneralAutofill = 2048,
-        PasswordAutosave = 4096,
-        BrowsingHistory = 8192,
-        Settings = 16384,
-        AllProfile = 32768,
+        FileSystems = 1,
+        IndexedDb = 2,
+        LocalStorage = 4,
+        WebSql = 8,
+        CacheStorage = 16,
+        AllDomStorage = 32,
+        Cookies = 64,
+        AllSite = 128,
+        DiskCache = 256,
+        DownloadHistory = 512,
+        GeneralAutofill = 1024,
+        PasswordAutosave = 2048,
+        BrowsingHistory = 4096,
+        Settings = 8192,
+        AllProfile = 16384,
+        ServiceWorkers = 32768,
     };
 
     public partial class CoreWebView2Profile
