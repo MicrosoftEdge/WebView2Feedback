@@ -9,8 +9,8 @@ developers can use `ICoreWebView2BrowserExtension` to get id, name of this exten
 
 The following code snippet demonstrates how the Extensions related API can be used:
 
-## Win32 C++
-
+## Install extension on first run
+### Win32 C++
 ```cpp
 static constexpr WCHAR c_samplePath[] = L"extensions/example-devtools-extension";
 
@@ -24,6 +24,7 @@ void AppWindow::InitializeWebView()
     // ... CreateCoreWebView2EnvironmentWithOptions
 
     InstallDefaultExtensions();
+    
     // ... Navigate
 }
 
@@ -125,7 +126,47 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
             })
             .Get());
 }
+```
 
+### .NET and WinRT
+```c#
+string m_defaultExtensionId = "123";
+string m_defaultExtensionFolderPath = "//Mydrive";
+
+/// Create WebView Environment with option
+void CreateEnvironmentWithOption()
+{
+    CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
+    options.AreBrowserExtensionsEnabled = true;
+    CoreWebView2Environment environment = CoreWebView2Environment.CreateAsync(CoreWebView2EnvironmentOptions options: options);
+    webview.EnsureCoreWebView2Async(environment);
+
+    InstallDefaultExtensions();
+}
+
+// Install default extension before first navigation
+void InstallDefaultExtensions()
+{
+    List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
+    bool found = false;
+    for (int i = 0; i < extensionsList.Count; ++i)
+    {
+        if (extensionsList[i].Id == _defaultExtensionId)
+        {
+            return;
+            // ... Navigate to first page
+        }
+        else
+        {
+            CoreWebView2Extension extension = await m_coreWebView2.Profile.AddBrowserExtensionAsync(m_defaultExtensionFolderPath);
+        }
+    }
+}
+```
+
+## End user manages extensions
+### Win32 C++
+```cpp
 void ScriptComponent::AddBrowserExtension()
 {
 
@@ -282,43 +323,8 @@ void ScriptComponent::RemoveOrDisableExtension(const bool remove)
             .Get());
 }
 ```
-
-## .NET and WinRT
-
+### .NET and WinRT
 ```c#
-string m_defaultExtensionId = "123";
-string m_defaultExtensionFolderPath = "//Mydrive";
-
-/// Create WebView Environment with option
-void CreateEnvironmentWithOption()
-{
-    CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
-    options.AreBrowserExtensionsEnabled = true;
-    CoreWebView2Environment environment = CoreWebView2Environment.CreateAsync(CoreWebView2EnvironmentOptions options: options);
-    webview.EnsureCoreWebView2Async(environment);
-
-    InstallDefaultExtensions();
-}
-
-// Install default extension before first navigation
-void InstallDefaultExtensions()
-{
-    List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
-    bool found = false;
-    for (int i = 0; i < extensionsList.Count; ++i)
-    {
-        if (extensionsList[i].Id == _defaultExtensionId)
-        {
-            return;
-            // ... Navigate to first page
-        }
-        else
-        {
-            CoreWebView2Extension extension = await m_coreWebView2.Profile.AddBrowserExtensionAsync(m_defaultExtensionFolderPath);
-        }
-    }
-}
-
 // Extensions class
 /// <summary>
 /// Interaction logic for Extensions.xaml
@@ -461,7 +467,6 @@ public partial class Extensions : Window
 }
 
 ```
-
 # API Notes
 
 See [API Details](#api-details) section below for API reference.
