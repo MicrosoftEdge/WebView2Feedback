@@ -527,7 +527,7 @@ interface ICoreWebView2BrowserExtension : IUnknown {
     /// If isEnabled is true then the Extension is enabled and running in WebView instances.
     /// If it is false then the Extension is disabled and not running in WebView instances.
     [propget] HRESULT IsEnabled([out, retval] BOOL* value);
-    /// Sets whether the browser Extension is enabled or disabled based on isEnabled.
+    /// Sets whether this browser extension is enabled or disabled. This change applies immediately to the extension in all HTML documents in all WebView2s associated with this profile.
     HRESULT SetIsEnabled([in] BOOL isEnabled, [in] ICoreWebView2BrowserExtensionSetEnabledCompletedHandler* handler);
 }
 
