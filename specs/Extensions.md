@@ -521,7 +521,7 @@ interface ICoreWebView2BrowserExtension : IUnknown {
     /// The caller must free the returned string with `CoTaskMemFree`.  See
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
     [propget] HRESULT Name([out, retval] LPWSTR* value);
-    /// Removes the browser Extension from the WebView2 Profile while the app is running.
+    /// Removes this browser extension from its WebView2 Profile. The browser extension is removed immediately including from all currently running HTML documents associated with this WebView2 Profile. The removal is persisted and future uses of this profile will not have this extension installed.
     HRESULT Remove([in] ICoreWebView2BrowserExtensionRemoveCompletedHandler* handler);
     /// If isEnabled is true then the Extension is enabled and running in WebView instances.
     /// If it is false then the Extension is disabled and not running in WebView instances.
