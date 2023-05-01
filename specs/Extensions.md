@@ -487,7 +487,7 @@ interface ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler;
 
 /// Additional options used to create WebView2 Environment.
 [uuid(4B1F63E9-F7A5-4EA5-8D84-2B30F2404E82), object, pointer_default(unique)]
-interface ICoreWebView2EnvironmentOptions6 : IUnknown {
+interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
   [propget] HRESULT AreBrowserExtensionsEnabled([out, retval] BOOL* value);
   [propput] HRESULT AreBrowserExtensionsEnabled([in] BOOL value);
 }
