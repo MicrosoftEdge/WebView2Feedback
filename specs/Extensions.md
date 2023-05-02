@@ -488,7 +488,12 @@ interface ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler;
 /// Additional options used to create WebView2 Environment.
 [uuid(4B1F63E9-F7A5-4EA5-8D84-2B30F2404E82), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions6 : IUnknown {
+  /// When `AreBrowserExtensionsEnabled` is set to `TRUE`, new extensions can be added to user profile and used.
+  /// `AreBrowserExtensionsEnabled` is default to be `FALSE`, in this case, new extensions can't be installed, and
+  /// already installed extension won't be avaliable to use in user profile.
+  /// See `ICoreWebView2BrowserExtension` for Extensions API details.
   [propget] HRESULT AreBrowserExtensionsEnabled([out, retval] BOOL* value);
+  /// Sets the `AreBrowserExtensionsEnabled` property.
   [propput] HRESULT AreBrowserExtensionsEnabled([in] BOOL value);
 }
 
@@ -497,10 +502,11 @@ interface ICoreWebView2EnvironmentOptions6 : IUnknown {
 interface ICoreWebView2Profile6 : IUnknown {
     /// Adds the [browser extension](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions) using the extension path for unpacked extensions
     /// from the local device. The extension folder path is the topmost folder of an unpacked browser extension and contains the browser extension manifest file.
-    /// specific extension where its manifest file lives.
     /// Installed extension will default `IsEnabled` to true.
+    /// When `AreBrowserExtensionsEnabled` is `FALSE`, `AddBrowserExtension` will fail and return HRESULT `ERROR_NOT_SUPPORTED`.
     HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2ProfileAddBrowserExtensionCompletedHandler* handler);
     /// Gets the Extensions for the Profile.
+    /// When `AreBrowserExtensionsEnabled` is `FALSE`, `GetBrowserExtensions` won't return any extensions on current user profile.
     HRESULT GetBrowserExtensions([in] ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler* handler);
 }
 
@@ -525,6 +531,7 @@ interface ICoreWebView2BrowserExtension : IUnknown {
     HRESULT Remove([in] ICoreWebView2BrowserExtensionRemoveCompletedHandler* handler);
     /// If isEnabled is true then the Extension is enabled and running in WebView instances.
     /// If it is false then the Extension is disabled and not running in WebView instances.
+    /// When a Extension is first installed, `IsEnable` are default to be `TRUE`.
     [propget] HRESULT IsEnabled([out, retval] BOOL* value);
     /// Sets whether the browser Extension is enabled or disabled based on isEnabled.
     HRESULT SetIsEnabled([in] BOOL isEnabled, [in] ICoreWebView2BrowserExtensionSetEnabledCompletedHandler* handler);
