@@ -487,7 +487,7 @@ interface ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler;
 
 /// Additional options used to create WebView2 Environment.
 [uuid(4B1F63E9-F7A5-4EA5-8D84-2B30F2404E82), object, pointer_default(unique)]
-interface ICoreWebView2EnvironmentOptions6 : IUnknown {
+interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
   /// When `AreBrowserExtensionsEnabled` is set to `TRUE`, new extensions can be added to user profile and used.
   /// `AreBrowserExtensionsEnabled` is default to be `FALSE`, in this case, new extensions can't be installed, and
   /// already installed extension won't be avaliable to use in user profile.
@@ -504,6 +504,7 @@ interface ICoreWebView2Profile6 : IUnknown {
     /// from the local device. The extension folder path is the topmost folder of an unpacked browser extension and contains the browser extension manifest file.
     /// Installed extension will default `IsEnabled` to true.
     /// When `AreBrowserExtensionsEnabled` is `FALSE`, `AddBrowserExtension` will fail and return HRESULT `ERROR_NOT_SUPPORTED`.
+    /// When an extension is added the extension is persisted in the corresponding profile. The extension will still be installed the next time you use this profile.
     HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2ProfileAddBrowserExtensionCompletedHandler* handler);
     /// Gets the Extensions for the Profile.
     /// When `AreBrowserExtensionsEnabled` is `FALSE`, `GetBrowserExtensions` won't return any extensions on current user profile.
@@ -527,13 +528,13 @@ interface ICoreWebView2BrowserExtension : IUnknown {
     /// The caller must free the returned string with `CoTaskMemFree`.  See
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
     [propget] HRESULT Name([out, retval] LPWSTR* value);
-    /// Removes the browser Extension from the WebView2 Profile while the app is running.
+    /// Removes this browser extension from its WebView2 Profile. The browser extension is removed immediately including from all currently running HTML documents associated with this WebView2 Profile. The removal is persisted and future uses of this profile will not have this extension installed.
     HRESULT Remove([in] ICoreWebView2BrowserExtensionRemoveCompletedHandler* handler);
     /// If isEnabled is true then the Extension is enabled and running in WebView instances.
     /// If it is false then the Extension is disabled and not running in WebView instances.
     /// When a Extension is first installed, `IsEnable` are default to be `TRUE`.
     [propget] HRESULT IsEnabled([out, retval] BOOL* value);
-    /// Sets whether the browser Extension is enabled or disabled based on isEnabled.
+    /// Sets whether this browser extension is enabled or disabled. This change applies immediately to the extension in all HTML documents in all WebView2s associated with this profile.
     HRESULT SetIsEnabled([in] BOOL isEnabled, [in] ICoreWebView2BrowserExtensionSetEnabledCompletedHandler* handler);
 }
 
