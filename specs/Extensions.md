@@ -10,6 +10,9 @@ developers can use `ICoreWebView2BrowserExtension` to get id, name of this exten
 The following code snippet demonstrates how the Extensions related API can be used:
 
 ## Install extension on first run
+
+You may have a browser extension that is specific to your application's web content. This snippet shows how you can install your browser extension on your first run.
+
 ### Win32 C++
 ```cpp
 static constexpr WCHAR c_samplePath[] = L"extensions/example-devtools-extension";
