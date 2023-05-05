@@ -72,29 +72,6 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
                     if (extensionIdString.compare(m_extensionId) == 0)
                     {
                         extensionInstalled = true;
-                        message += L"Extension already installed";
-                        if (enabled)
-                        {
-                            message += L" and enabled.";
-                        }
-                        else
-                        {
-                            message += L" but was disabled.";
-                            extension->SetEnabled(
-                                !enabled,
-                                Callback<ICoreWebView2BrowserExtensionSetEnabledCompletedHandler>(
-                                    [](HRESULT error) -> HRESULT
-                                    {
-                                        if (error != S_OK)
-                                        {
-                                            ShowFailure(error, L"SetEnabled Extension failed");
-                                        }
-                                        return S_OK;
-                                    })
-                                    .Get());
-                            message += L" Extension has now been enabled.";
-                        }
-                        MessageBox(nullptr, message.c_str(), name.get(), MB_OK);
                         break;
                     }
                 }
@@ -112,15 +89,6 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
                                     ShowFailure(error, L"AddExtension failed");
                                     return S_OK;
                                 }
-
-                                wil::unique_cotaskmem_string name;
-                                extension->get_Name(&name);
-
-                                MessageBox(
-                                    nullptr,
-                                    L"Extension was not installed, has now been installed and "
-                                    L"enabled.",
-                                    name.get(), MB_OK);
                                 return S_OK;
                             })
                             .Get()));
@@ -168,6 +136,9 @@ void InstallDefaultExtensions()
 ```
 
 ## End user manages extensions
+
+Provide end user the ability to add, remove, enable and disable a browser extension from profile.
+
 ### Win32 C++
 ```cpp
 void ScriptComponent::AddBrowserExtension()
