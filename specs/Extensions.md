@@ -109,7 +109,7 @@ void CreateEnvironmentWithOption()
 {
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     options.AreBrowserExtensionsEnabled = true;
-    CoreWebView2Environment environment = CoreWebView2Environment.CreateAsync(CoreWebView2EnvironmentOptions options: options);
+    CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(CoreWebView2EnvironmentOptions options: options);
     webview.EnsureCoreWebView2Async(environment);
 
     InstallDefaultExtensions();
