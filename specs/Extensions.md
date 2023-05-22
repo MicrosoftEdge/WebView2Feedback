@@ -112,11 +112,11 @@ void CreateEnvironmentWithOption()
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(CoreWebView2EnvironmentOptions options: options);
     webview.EnsureCoreWebView2Async(environment);
 
-    InstallDefaultExtensions();
+    _ = InstallDefaultExtensions();
 }
 
 // Install default extension before first navigation
-void InstallDefaultExtensions()
+private async System.Threading.Tasks.Task InstallDefaultExtensions()
 {
     List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
     bool found = false;
