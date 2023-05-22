@@ -15,7 +15,7 @@ You may have a browser extension that is specific to your application's web cont
 
 ### Win32 C++
 ```cpp
-static constexpr WCHAR c_samplePath[] = L"extensions/example-devtools-extension";
+static constexpr WCHAR m_defaultExtensionFolderPath = L"//Mydrive";
 
 void AppWindow::InitializeWebView()
 {
@@ -40,10 +40,6 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
     auto profile6 = webView2Profile.try_query<ICoreWebView2Profile6>();
     CHECK_FEATURE_RETURN_EMPTY(profile6);
 
-    std::wstring extension_path_file = m_appWindow->GetLocalUri(c_samplePath, false);
-    // Remove "file:///" from the beginning of extension_path_file
-    std::wstring extension_path = extension_path_file.substr(8);
-
     profile6->GetBrowserExtensions(
         Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
             [this, profile6, extension_path](
@@ -60,13 +56,9 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
                     extensions->GetValueAtIndex(index, &extension);
 
                     wil::unique_cotaskmem_string id;
-                    wil::unique_cotaskmem_string name;
-                    BOOL enabled = false;
                     std::wstring message;
 
-                    extension->get_IsEnabled(&enabled);
                     extension->get_Id(&id);
-                    extension->get_Name(&name);
                     extensionIdString = id.get();
 
                     if (extensionIdString.compare(m_extensionId) == 0)
@@ -79,7 +71,7 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
                 if (!extensionInstalled)
                 {
                     CHECK_FAILURE(profile6->AddBrowserExtension(
-                        extension_path.c_str(),
+                        m_defaultExtensionFolderPath.c_str(),
                         Callback<ICoreWebView2ProfileAddBrowserExtensionCompletedHandler>(
                             [](HRESULT error,
                                ICoreWebView2BrowserExtension* extension) -> HRESULT
@@ -119,18 +111,10 @@ void CreateEnvironmentWithOption()
 private async System.Threading.Tasks.Task InstallDefaultExtensions()
 {
     List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
-    bool found = false;
-    for (int i = 0; i < extensionsList.Count; ++i)
+    bool found = extensionsList.Any(extension => extension.Id == m_defaultExtensionId);
+    if (!found)
     {
-        if (extensionsList[i].Id == _defaultExtensionId)
-        {
-            return;
-            // ... Navigate to first page
-        }
-        else
-        {
-            CoreWebView2Extension extension = await m_coreWebView2.Profile.AddBrowserExtensionAsync(m_defaultExtensionFolderPath);
-        }
+        await m_coreWebView2.Profile.AddBrowserExtensionAsync(m_defaultExtensionFolderPath);
     }
 }
 ```
@@ -476,11 +460,13 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
 interface ICoreWebView2Profile6 : IUnknown {
     /// Adds the [browser extension](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions) using the extension path for unpacked extensions
     /// from the local device. The extension folder path is the topmost folder of an unpacked browser extension and contains the browser extension manifest file.
+    /// If the `extensionFolderPath` is an invalid path or doesn't contain the extension manifest.json file, this function will return E_FAIL to callers. 
     /// Installed extension will default `IsEnabled` to true.
     /// When `AreBrowserExtensionsEnabled` is `FALSE`, `AddBrowserExtension` will fail and return HRESULT `ERROR_NOT_SUPPORTED`.
     /// When an extension is added the extension is persisted in the corresponding profile. The extension will still be installed the next time you use this profile.
     HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2ProfileAddBrowserExtensionCompletedHandler* handler);
-    /// Gets the Extensions for the Profile.
+    /// Gets a snapshot of the set of extensions installed at the time `GetBrowserExtensions` is called. If an extension is installed or uninstalled 
+    /// after `GetBrowserExtensions` completes, the list returned by `GetBrowserExtensions` remains the same.
     /// When `AreBrowserExtensionsEnabled` is `FALSE`, `GetBrowserExtensions` won't return any extensions on current user profile.
     HRESULT GetBrowserExtensions([in] ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler* handler);
 }
