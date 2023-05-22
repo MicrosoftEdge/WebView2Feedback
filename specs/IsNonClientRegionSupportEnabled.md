@@ -1,11 +1,11 @@
 # Background
 
-To improve the developer experience for customizing non-client regions, WebView2 is working to support using DOM elements as non-client regions. We currently have limited support for title bar aka draggable regions and are working on building out support for caption control and resize regions. 
+To improve the developer experience for customizing non-client regions, WebView2 is working to support using DOM elements as non-client regions. We currently have limited support for title bar aka draggable regions and are working on building out support for caption controls and resize regions. 
 
-For security and flexibility, we want developers to be able to enable or disable all custom nonclient functionality per WebView. Nonclient functionality will affect that app window’s size and position so it’s important that developers can definitively toggle access.This can be achieved in a limited way using a feature flag, but feature flags are applied per WebView2 environment, thus, an API on the WebView2 to enable/disable nonclient support via a setting is the better solution.
+For security and flexibility, we want developers to be able to enable or disable all custom non-client functionality per WebView. Non-client functionality will affect that app window’s size and position so it’s important that developers can definitively toggle access.This can be achieved in a limited way using a feature flag, but feature flags are applied per WebView2 environment, thus, an API on the WebView2 to enable/disable non-client support via a setting is the better solution.
 
 # Description
-`IsNonClientRegionSupportEnabled` defaults to `FALSE`. Disabling/Enabling `IsNonClientRegionSupportEnabled` takes effect after the next navigation. Currently, draggable regions are the only nonclient experience we have implemented. Eventually, this setting will expand to enable other nonclient functionality, such as resize and caption controls. 
+`IsNonClientRegionSupportEnabled` defaults to `FALSE`. Disabling/Enabling `IsNonClientRegionSupportEnabled` takes effect after the next navigation. Currently, draggable regions is the only non-client experience we have implemented. Eventually, this setting will expand to enable other non-client functionality, such as resize and caption controls. 
 
 When the setting is set to `TRUE`, then the following non-client region support will be enabled:  
 
