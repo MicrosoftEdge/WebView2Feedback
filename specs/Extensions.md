@@ -450,6 +450,8 @@ interface ICoreWebView2Profile6 : IUnknown {
     /// If the `extensionFolderPath` is an invalid path or doesn't contain the extension manifest.json file, this function will return E_FAIL to callers. 
     /// Installed extension will default `IsEnabled` to true.
     /// When `AreBrowserExtensionsEnabled` is `FALSE`, `AddBrowserExtension` will fail and return HRESULT `ERROR_NOT_SUPPORTED`.
+    /// During installation, the content of the extension is not copied to the user data folder. Once the extension is installed, changing the 
+    /// content of the extension will cause the extension to be removed from the installed profile. 
     /// When an extension is added the extension is persisted in the corresponding profile. The extension will still be installed the next time you use this profile.
     HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2ProfileAddBrowserExtensionCompletedHandler* handler);
     /// Gets a snapshot of the set of extensions installed at the time `GetBrowserExtensions` is called. If an extension is installed or uninstalled 
