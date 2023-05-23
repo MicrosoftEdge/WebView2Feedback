@@ -125,7 +125,7 @@ Provide end user the ability to add, remove, enable and disable a browser extens
 
 ### Win32 C++
 ```cpp
-void ScriptComponent::AddBrowserExtension()
+void BrowserExtensionService::AddBrowserExtension()
 {
 
     // Get the profile object.
@@ -155,7 +155,7 @@ void ScriptComponent::AddBrowserExtension()
                 {
                     if (error != S_OK)
                     {
-                        ShowFailure(error, L"AddBrowserExtension failed");
+                        ShowFailure(error, L"Failed to add extension");
                     }
                     wil::unique_cotaskmem_string id;
                     extension->get_Id(&id);
@@ -164,10 +164,11 @@ void ScriptComponent::AddBrowserExtension()
                     extension->get_Name(&name);
 
                     std::wstring extensionInfo;
-                    extensionInfo.append(L"Added ");
-                    extensionInfo.append(id.get());
-                    extensionInfo.append(L" ");
+                    extensionInfo.append(L"Added extension ");
                     extensionInfo.append(name.get());
+                    extensionInfo.append(L" (");
+                    extensionInfo.append(id.get());
+                    extensionInfo.append(L")");
                     MessageBox(nullptr, extensionInfo.c_str(), L"AddBrowserExtension Result", MB_OK);
                     return S_OK;
                 })
@@ -175,7 +176,7 @@ void ScriptComponent::AddBrowserExtension()
     }
 }
 
-void ScriptComponent::RemoveOrDisableExtension(const bool remove)
+void BrowserExtensionService::RemoveExtension()
 {
     // Get the profile object.
     auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
@@ -185,40 +186,57 @@ void ScriptComponent::RemoveOrDisableExtension(const bool remove)
 
     profile6->GetExtensions(
         Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
-            [this, profile6,
-             remove](HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
+            [this](HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
             {
-                std::wstring extensionIdString;
-                UINT extensionsCount = 0;
-                extensions->get_Count(&extensionsCount);
-
-                for (UINT index = 0; index < extensionsCount; ++index)
+                TextInputDialog dialog(
+                    m_appWindow->GetMainWindow(), L"Remove Extension",
+                    L"Extension ID:", extensionIdString.c_str());
+                if (dialog.confirmed)
                 {
-                    wil::com_ptr<ICoreWebView2BrowserExtension> extension;
-                    extensions->GetValueAtIndex(index, &extension);
-
-                    wil::unique_cotaskmem_string id;
-                    wil::unique_cotaskmem_string name;
-                    BOOL enabled = false;
-
-                    extension->get_IsEnabled(&enabled);
-                    extension->get_Id(&id);
-                    extension->get_Name(&name);
-
-                    extensionIdString += id.get();
-                    extensionIdString += L" ";
-                    extensionIdString += name.get();
-                    if (!enabled)
+                    for (UINT index = 0; index < extensionsCount; ++index)
                     {
-                        extensionIdString += L" (disabled)";
+                        wil::com_ptr<ICoreWebView2BrowserExtension> extension;
+                        extensions->GetValueAtIndex(index, &extension);
+
+                        wil::unique_cotaskmem_string id;
+                        wil::unique_cotaskmem_string name;
+
+                        extension->get_Id(&id);
+                        if (_wcsicmp(id.get(), dialog.input.c_str()) == 0)
+                        {
+                            extension->Remove(
+                                Callback<ICoreWebView2BrowserExtensionRemoveCompletedHandler>(
+                                    [](HRESULT error) -> HRESULT
+                                    {
+                                        if (error != S_OK)
+                                        {
+                                            ShowFailure(error, L"Failed to toggle extension enabled.");
+                                        }
+                                        MessageBox(
+                                            nullptr, L"Done", L"Remove Extension", MB_OK);
+                                        return S_OK;
+                                    })
+                                    .Get());
+                        }
                     }
-                    else
-                    {
-                        extensionIdString += L" (enabled)";
-                    }
-                    extensionIdString += L"\n\r\n";
                 }
+                return S_OK;
+            })
+            .Get());
+}
 
+void BrowserExtensionService::ToggleExtensionEnabled()
+{
+    // Get the profile object.
+    auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
+    wil::com_ptr<ICoreWebView2Profile> webView2Profile;
+    CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
+    auto profile6 = webView2Profile.try_query<ICoreWebView2Profile6>();
+
+    profile6->GetExtensions(
+        Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
+            [this](HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
+            {
                 TextInputDialog dialog(
                     m_appWindow->GetMainWindow(),
                     remove ? L"Remove Extension" : L"Disable/Enable Extension",
@@ -236,43 +254,24 @@ void ScriptComponent::RemoveOrDisableExtension(const bool remove)
                         extension->get_Id(&id);
                         if (_wcsicmp(id.get(), dialog.input.c_str()) == 0)
                         {
-                            if (remove)
-                            {
-                                extension->Remove(
-                                    Callback<ICoreWebView2BrowserExtensionRemoveCompletedHandler>(
-                                        [](HRESULT error) -> HRESULT
-                                        {
-                                            if (error != S_OK)
-                                            {
-                                                ShowFailure(error, L"Remove Extension failed");
-                                            }
-                                            MessageBox(
-                                                nullptr, L"Done", L"Remove Extension", MB_OK);
-                                            return S_OK;
-                                        })
-                                        .Get());
-                            }
-                            else
-                            {
-                                BOOL enabled = FALSE;
-                                extension->get_IsEnabled(&enabled);
+                            BOOL enabled = FALSE;
+                            extension->get_IsEnabled(&enabled);
 
-                                extension->SetEnabled(
-                                    !enabled,
-                                    Callback<ICoreWebView2BrowserExtensionSetEnabledCompletedHandler>(
-                                        [](HRESULT error) -> HRESULT
+                            extension->SetEnabled(
+                                !enabled,
+                                Callback<ICoreWebView2BrowserExtensionSetEnabledCompletedHandler>(
+                                    [](HRESULT error) -> HRESULT
+                                    {
+                                        if (error != S_OK)
                                         {
-                                            if (error != S_OK)
-                                            {
-                                                ShowFailure(
-                                                    error, L"SetEnabled Extension failed");
-                                            }
-                                            MessageBox(
-                                                nullptr, L"Done", L"Toggled Extension", MB_OK);
-                                            return S_OK;
-                                        })
-                                        .Get());
-                            }
+                                            ShowFailure(
+                                                error, L"SetEnabled Extension failed");
+                                        }
+                                        MessageBox(
+                                            nullptr, L"Done", L"Toggled Extension", MB_OK);
+                                        return S_OK;
+                                    })
+                                    .Get());
                         }
                     }
                 }
@@ -328,45 +327,12 @@ public partial class Extensions : Window
         ExtensionsList.Items.Refresh();
     }
 
-    private void ExtensionsToggleEnabled(object sender, RoutedEventArgs e)
+    private void AddBrowserExtension(object sender, RoutedEventArgs e)
     {
-        _ = ExtensionsToggleEnabledAsync(sender, e);
+        _ = AddBrowserExtensionAsync(sender, e);
     }
 
-    private async System.Threading.Tasks.Task ExtensionsToggleEnabledAsync(object sender, RoutedEventArgs e)
-    {
-        ListEntry entry = (ListEntry)ExtensionsList.SelectedItem;
-        List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
-        bool found = false;
-        for (int i = 0; i < extensionsList.Count; ++i)
-        {
-            if (extensionsList[i].Id == entry.Id)
-            {
-                try
-                {
-                    await extensionsList[i].SetEnabledAsync(extensionsList[i].IsEnabled ? false : true);
-                }
-                catch (Exception exception)
-                {
-                    MessageBox.Show("Failed to toggle extension enabled: " + exception);
-                }
-                found = true;
-                break;
-            }
-        }
-        if (!found)
-        {
-            MessageBox.Show("Failed to find extension");
-        }
-        await FillViewAsync();
-    }
-
-    private void ExtensionsAdd(object sender, RoutedEventArgs e)
-    {
-        _ = ExtensionsAddAsync(sender, e);
-    }
-
-    private async System.Threading.Tasks.Task ExtensionsAddAsync(object sender, RoutedEventArgs e)
+    private async System.Threading.Tasks.Task AddBrowserExtensionAsync(object sender, RoutedEventArgs e)
     {
         var dialog = new TextInputDialog(
             title: "Add extension",
@@ -387,18 +353,17 @@ public partial class Extensions : Window
         }
     }
 
-    private void ExtensionsRemove(object sender, RoutedEventArgs e)
+    private void RemoveExtension(object sender, RoutedEventArgs e)
     {
-        _ = ExtensionsRemoveAsync(sender, e);
+        _ = RemoveExtensionAsync(sender, e);
     }
 
-    private async System.Threading.Tasks.Task ExtensionsRemoveAsync(object sender, RoutedEventArgs e)
+    private async System.Threading.Tasks.Task RemoveExtensionAsync(object sender, RoutedEventArgs e)
     {
         ListEntry entry = (ListEntry)ExtensionsList.SelectedItem;
         if (MessageBox.Show("Remove extension " + entry + "?", "Confirm removal", MessageBoxButton.OKCancel) == MessageBoxResult.OK)
         {
             List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
-            bool found = false;
             for (int i = 0; i < extensionsList.Count; ++i)
             {
                 if (extensionsList[i].Id == entry.Id)
@@ -411,13 +376,35 @@ public partial class Extensions : Window
                     {
                         MessageBox.Show("Failed to remove extension: " + exception);
                     }
-                    found = true;
                     break;
                 }
             }
-            if (!found)
+        }
+        await FillViewAsync();
+    }
+
+    private void ToggleExtensionEnabled(object sender, RoutedEventArgs e)
+    {
+        _ = ToggleExtensionEnabledAsync(sender, e);
+    }
+
+    private async System.Threading.Tasks.Task ToggleExtensionEnabledAsync(object sender, RoutedEventArgs e)
+    {
+        ListEntry entry = (ListEntry)ExtensionsList.SelectedItem;
+        List<CoreWebView2BrowserExtension> extensionsList = await m_coreWebView2.Profile.GetBrowserExtensionsAsync();
+        for (int i = 0; i < extensionsList.Count; ++i)
+        {
+            if (extensionsList[i].Id == entry.Id)
             {
-                MessageBox.Show("Failed to find extension");
+                try
+                {
+                    await extensionsList[i].SetEnabledAsync(extensionsList[i].IsEnabled ? false : true);
+                }
+                catch (Exception exception)
+                {
+                    MessageBox.Show("Failed to toggle extension enabled: " + exception);
+                }
+                break;
             }
         }
         await FillViewAsync();
