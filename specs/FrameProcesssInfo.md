@@ -374,11 +374,11 @@ interface ICoreWebView2GetProcessInfosWithDetailsCompletedHandler : IUnknown {
 interface ICoreWebView2ProcessInfo2 : ICoreWebView2ProcessInfo {
   /// Gets the collection of the assocated `FrameInfo`s which are actively running
   /// (showing UI elements) in that renderer process. Assocated `FrameInfo`s is 
-  /// empty if there's no frame running in that renderer process. Note that this
-  /// is only available when the process `Kind` is `COREWEBVIEW2_PROCESS_KIND_RENDERER`
-  /// and it's called from `ICoreWebView2GetProcessInfosWithDetailsCompletedHandler`. 
-  /// Else, it returns an empty `FrameInfo` collection.
-  ///
+  /// empty if there's no frame actively running in that renderer process or it's 
+  /// not called from 
+  /// `ICoreWebView2GetProcessInfosWithDetailsCompletedHandler`. 
+  /// Note that if this is call from other process Kind, it also returns an empty 
+  /// `FrameInfo`s as frames run on renderer process. 
   /// \snippet ProcessComponent.cpp AssociatedFrameInfos
   [propget] HRESULT AssociatedFrameInfos(
     [out, retval] ICoreWebView2FrameInfoCollection** frames);
