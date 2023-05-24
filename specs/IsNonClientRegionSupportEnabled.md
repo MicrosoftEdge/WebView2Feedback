@@ -1,13 +1,17 @@
 # Background
 
-To improve the developer experience for customizing non-client regions, WebView2 is working to support using DOM elements as non-client regions. We currently have limited support for title bar aka draggable regions and are working on building out support for caption controls and resize regions. 
+To improve the developer experience for customizing non-client regions, WebView2 is working to support using DOM elements as non-client regions. We currently have limited support for title bar aka 
+draggable regions and are working on building out support for caption controls and resize regions. 
 
-For security and flexibility, we want developers to be able to enable or disable all custom non-client functionality per WebView. Non-client functionality will affect that app window’s size and position so it’s important that developers can definitively toggle access.This can be achieved in a limited way using a feature flag, but feature flags are applied per WebView2 environment, thus, an API on the WebView2 to enable/disable non-client support via a setting is the better solution.
+For security and flexibility, we want developers to be able to enable or disable all custom non-client functionality per WebView. Non-client functionality will affect that app window’s size and position so 
+it’s important that developers can definitively toggle access. This can be achieved in a limited way using a feature flag, but feature flags are applied per WebView2 environment, thus, an API on the 
+WebView2 to enable/disable non-client support via a setting is the better solution.
 
 # Description
-`IsNonClientRegionSupportEnabled` defaults to `FALSE`. Disabling/Enabling `IsNonClientRegionSupportEnabled` takes effect after the next navigation. Currently, draggable regions is the only non-client experience we have implemented. Eventually, this setting will expand to enable other non-client functionality, such as resize and caption controls. 
+`IsNonClientRegionSupportEnabled` defaults to `FALSE`. Disabling/Enabling `IsNonClientRegionSupportEnabled` takes effect after the next navigation. Currently, draggable regions is the only non-client 
+experience we have implemented. Eventually, this setting will expand to enable other non-client functionality, such as resize and caption controls. 
 
-When the setting is set to `TRUE`, then the following non-client region support will be enabled:  
+When the setting is set to `TRUE`, then the following non-client region support for the top level document will be enabled:  
 
 * Web pages will be able to use the `app-region` CSS style. 
 
@@ -45,7 +49,8 @@ void ToggleNonClientRegionSupportEnabled()
 ```
 
 # Remarks
-If the flag is used to enable draggable regions in additional browser arguments, draggable region support will remain enabled even if `IsNonClientRegionSupportEnabled` setting is `FALSE`.
+If the feature flag for enabling the app-region CSS style is used to enable draggable regions in additional browser arguments, draggable region support will remain enabled even if the 
+`IsNonClientRegionSupportEnabled` setting is `FALSE`.
 
 # API Notes
 See [API Details](#api-details) section below for API reference.
@@ -84,4 +89,5 @@ interface ICoreWebView2Settings9 : ICoreWebView2Settings8 {
 ```
 
 # Appendix
-We considered implementing the APIs in the ControllerOptions class, which would establish whether non-client regions would be supported for the life of the webview at creation. To provide greater flexibility of use, we decided to implement it as a setting.
+We considered implementing the APIs in the ControllerOptions class, which would establish whether non-client regions would be supported for the life of the webview at creation. To provide greater 
+flexibility of use, we decided to implement it as a setting.
