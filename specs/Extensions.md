@@ -453,6 +453,15 @@ interface ICoreWebView2Profile6 : IUnknown {
     /// During installation, the content of the extension is not copied to the user data folder. Once the extension is installed, changing the 
     /// content of the extension will cause the extension to be removed from the installed profile. 
     /// When an extension is added the extension is persisted in the corresponding profile. The extension will still be installed the next time you use this profile.
+    /// The following summarizes the possible error values that can be returned from 
+    /// `AddBrowserExtension` and a description of why these errors occur.
+    ///
+    /// Error value                                     | Description
+    /// ----------------------------------------------- | --------------------------
+    /// `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`       | Extension policy rules disabled.
+    /// `HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)`      | Cannot file manfiest.json file or invalid manfiest.json file.
+    /// `E_ACCESSDENIED`                                | Cannot load extension with file or directory name starting with \"_\", reserved for use by the system.
+    /// `E_FAIL`                                        | Extension failed to install with other unknown reasons. 
     HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2ProfileAddBrowserExtensionCompletedHandler* handler);
     /// Gets a snapshot of the set of extensions installed at the time `GetBrowserExtensions` is called. If an extension is installed or uninstalled 
     /// after `GetBrowserExtensions` completes, the list returned by `GetBrowserExtensions` remains the same.
