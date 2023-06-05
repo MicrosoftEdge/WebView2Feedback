@@ -1,15 +1,16 @@
 # Background
 
-To improve the developer experience for customizing non-client regions, WebView2 is working to support using DOM elements as non-client regions. We currently have limited support for title bar aka 
-draggable regions and are working on building out support for caption controls and resize regions. 
+To improve the developer experience for customizing non-client regions, WebView2 is working to support using DOM elements as non-client regions. We currently have 
+limited support for title bar aka draggable regions and are working on building out support for caption controls and resize regions. 
 
-For security and flexibility, we want developers to be able to enable or disable all custom non-client functionality per WebView. Non-client functionality will affect that app window’s size and position so 
-it’s important that developers can definitively toggle access. This can be achieved in a limited way using a feature flag, but feature flags are applied per WebView2 environment, thus, an API on the 
-WebView2 to enable/disable non-client support via a setting is the better solution.
+For security and flexibility, we want developers to be able to enable or disable all custom non-client functionality per WebView. Non-client functionality will affect 
+that app window’s size and position so it’s important that developers can definitively toggle access. This can be achieved in a limited way using a feature flag, but 
+feature flags are applied per WebView2 environment, thus, an API on the WebView2 to enable/disable non-client support via a setting is the better solution.
 
 # Description
-`IsNonClientRegionSupportEnabled` defaults to `FALSE`. Disabling/Enabling `IsNonClientRegionSupportEnabled` takes effect after the next navigation. Currently, draggable regions is the only non-client 
-experience we have implemented. Eventually, this setting will expand to enable other non-client functionality, such as resize and caption controls. 
+`IsNonClientRegionSupportEnabled` defaults to `FALSE`. Disabling/Enabling `IsNonClientRegionSupportEnabled` takes effect after the next navigation. Currently, 
+draggable regions is the only non-client experience we have implemented. Eventually, this setting will expand to enable other non-client functionality, such as resize 
+and caption controls. 
 
 When the setting is set to `TRUE`, then the following non-client region support for the top level document will be enabled:  
 
@@ -22,35 +23,75 @@ When set to `FALSE`, then all non-client region support will be disabled.
 * Web pages will not be able to use the `app-region` CSS style. 
 
 # Examples
-```cpp
-wil::com_ptr<ICoreWebView2> webView;
-void SettingsComponent::ToggleNonClientRegionSupportEnabled()
+```cpp 
+ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWindow)
+    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
-    // Get webView's current settings
-    wil::com_ptr<ICoreWebView2Settings> coreWebView2Settings;
-    CHECK_FAILURE(webView->get_Settings(&coreWebView2Settings));
-    wil::com_ptr<ICoreWebView2Settings9> coreWebView2Settings9;
-    coreWebView2Settings9 = coreWebView2Settings.try_query<ICoreWebView2Settings9>();
-    if (coreWebView2Settings9)
-    {
-        BOOL enabled;
-        CHECK_FAILURE(coreWebView2Settings9->get_IsNonClientRegionSupportEnabled(&enabled));
-        CHECK_FAILURE(coreWebView2Settings9->put_IsNonClientRegionSupportEnabled(!enabled));
-    }
+    
+    CHECK_FAILURE(m_webView->add_NavigationStarting(
+        Callback<ICoreWebView2NavigationStartingEventHandler>(
+            [this](
+                ICoreWebView2* sender,
+                ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT
+            {
+                static const PCWSTR url_compare_example = L"www.microsoft.com";
+                wil::unique_cotaskmem_string uri;
+                CHECK_FAILURE(args->get_Uri(&uri));
+                wil::unique_bstr domain = GetDomainOfUri(uri.get());
+                
+                wil::com_ptr<ICoreWebView2Settings> m_settings;
+                CHECK_FAILURE(m_webView->get_Settings(&m_settings));
+                wil::com_ptr<ICoreWebView2Settings12> coreWebView2Settings12;
+                coreWebView2Settings12 = m_settings.try_query<ICoreWebView2Settings12();
+                CHECK_FEATURE_RETURN(coreWebView2Settings12);
+                
+                BOOL enabled;
+                CHECK_FAILURE(coreWebView2Settings12->get_IsNonClientRegionSupportEnabled(&enabled));
+
+                if (wcscmp(domain.get(), url_compare_example) == 0 && !enabled)
+                {
+                    CHECK_FAILURE(
+                        coreWebView2Settings12->put_IsNonClientRegionSupportEnabled(TRUE));
+                }
+                else if (wcscmp(domain.get(), url_compare_example) != 0 && enabled)
+                {
+                    CHECK_FAILURE(
+                        coreWebView2Settings12->put_IsNonClientRegionSupportEnabled(FALSE));
+                }
+                return S_OK;
+            })
+            .Get(),
+        &m_navigationStartingToken));
 }
 ```
+
 ```c#
-private WebView2 _webView;
-void ToggleNonClientRegionSupportEnabled()
+private WebView2 webView;
+webView.CoreWebView2.NavigationStarting += SetNonClientRegionSupport;
+
+private void SetNonClientRegionSupport(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
 {
-    var coreWebView2Settings = _webView.CoreWebView2.Settings;
-    coreWebView2Settings.IsNonClientRegionSupportEnabled = !coreWebView2Settings.IsNonClientRegionSupportEnabled;
+    var coreWebView2Settings = webView.CoreWebView2.Settings;
+    var urlCompareExample = "www.microsoft.com";
+    var uri = new Uri(args.Uri);
+
+    if (String.Equals(uri.Host, urlCompareExample, StringComparison.OrdinalIgnoreCase) &&
+        !coreWebView2Settings.IsNonClientRegionSupportEnabled)
+    {
+        coreWebView2Settings.IsNonClientRegionSupportEnabled = true;
+    }
+    else if (!String.Equals(uri.Host, urlCompareExample, StringComparison.OrdinalIgnoreCase) && 
+        coreWebView2Settings.IsNonClientRegionSupportEnabled)
+    {
+        coreWebView2Settings.IsNonClientRegionSupportEnabled = false;
+    }
 }
 ```
 
 # Remarks
-If the feature flag for enabling the app-region CSS style is used to enable draggable regions in additional browser arguments, draggable region support will remain enabled even if the 
-`IsNonClientRegionSupportEnabled` setting is `FALSE`.
+If the feature flag is used to enable draggable regions in additional browser arguments, draggable 
+region support will remain enabled even if the `IsNonClientRegionSupportEnabled` setting is `FALSE`. 
+* Note: The feature flag is experimental and should not be used in production.
 
 # API Notes
 See [API Details](#api-details) section below for API reference.
@@ -77,8 +118,6 @@ interface ICoreWebView2Settings9 : ICoreWebView2Settings8 {
   /// dragging of the entire WebView and its host app window, the title bar context menu
   /// upon right click, and the maximizing to fill the window and restoring the window size
   /// upon double click of the html element. 
-  /// Draggable region support will be enabled if either the `IsNonClientRegionSupportEnabled`
-  /// property or the flag is used in additional browser arguments (See put_AdditionalBrowserArguments).
   ///
   /// When set to `FALSE`, then all non-client region support will be disabled. Web
   /// pages will not be able to use the `app-region` CSS style.
@@ -89,5 +128,5 @@ interface ICoreWebView2Settings9 : ICoreWebView2Settings8 {
 ```
 
 # Appendix
-We considered implementing the APIs in the ControllerOptions class, which would establish whether non-client regions would be supported for the life of the webview at creation. To provide greater 
-flexibility of use, we decided to implement it as a setting.
+We considered implementing the APIs in the ControllerOptions class, which would establish whether non-client regions would be supported for the life of the webview at 
+creation. To provide greater flexibility of use, we decided to implement it as a setting.
