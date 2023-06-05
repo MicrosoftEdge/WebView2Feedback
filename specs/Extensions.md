@@ -1,9 +1,12 @@
 # Background
-Developers would like to ensure a browser extension is installed so that they may take advantage of the functionality the extension is providing.
+Developers would like to ensure a browser extension is installed so that they may take advantage 
+of the functionality the extension is providing.
 
 # Description
-Enable extension services in WebView2. Then end developer can `AddBrowserExtension` from folder path, `GetBrowserExtension` to get list of extensions installed. Once an extension is installed,
-developers can use `ICoreWebView2BrowserExtension` to get id, name of this extension. And also remove or enable/disable this extension.
+Enable extension services in WebView2. Then end developer can `AddBrowserExtension` from folder 
+path, `GetBrowserExtension` to get list of extensions installed. Once an extension is installed,
+developers can use `ICoreWebView2BrowserExtension` to get id, name of this extension. And also 
+remove or enable/disable this extension.
 
 # Examples
 
@@ -11,11 +14,13 @@ The following code snippet demonstrates how the Extensions related API can be us
 
 ## Install extension on first run
 
-You may have a browser extension that is specific to your application's web content. This snippet shows how you can install your browser extension on your first run.
+You may have a browser extension that is specific to your application's web content. This snippet 
+shows how you can install your browser extension on your first run.
 
 ### Win32 C++
 ```cpp
-static constexpr WCHAR m_defaultExtensionFolderPath = L"//Mydrive";
+// m_defaultExtensionFolderPath need to match the path of the package you want to install
+std::wstring m_defaultExtensionFolderPath = L"//extensions/example-extension";
 
 void AppWindow::InitializeWebView()
 {
@@ -40,9 +45,9 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
     auto profile6 = webView2Profile.try_query<ICoreWebView2Profile6>();
     CHECK_FEATURE_RETURN_EMPTY(profile6);
 
-    profile6->GetBrowserExtensions(
+    CHECK_FAILURE(profile6->GetBrowserExtensions(
         Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
-            [this, profile6, extension_path](
+            [this, profile6, m_defaultExtensionFolderPath](
                 HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
             {
                 std::wstring extensionIdString;
@@ -56,7 +61,6 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
                     extensions->GetValueAtIndex(index, &extension);
 
                     wil::unique_cotaskmem_string id;
-                    std::wstring message;
 
                     extension->get_Id(&id);
                     extensionIdString = id.get();
@@ -87,14 +91,16 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
                 }
                 return S_OK;
             })
-            .Get());
+            .Get()));
 }
 ```
 
 ### .NET and WinRT
 ```c#
-string m_defaultExtensionId = "123";
-string m_defaultExtensionFolderPath = "//Mydrive";
+// m_defaultExtensionId need to match the package ID you want to install
+string m_defaultExtensionId = "apaahjmopbjicnjjcnionchiganhjpcd";
+// m_defaultExtensionFolderPath need to match the path of the package you want to install
+string m_defaultExtensionFolderPath = "//extensions/example-extension";
 
 /// Create WebView Environment with option
 void CreateEnvironmentWithOption()
