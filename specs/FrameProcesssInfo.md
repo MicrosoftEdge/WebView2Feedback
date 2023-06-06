@@ -3,13 +3,13 @@ Frame Process Info API
 
 # Background
 Management of performance and overhead are some of the top concerns with 
-applications building more complex experiences using WebView2. We’re seeing
+applications building more complex experiences using WebView2. We're seeing
 applications use multiple WebView2s, iframes, fencedframes, or other 
 embedding techniques for different aspects of their user's experience, and
 needing to prioritize or deprioritize the less important experiences depending
 on what the user is doing. This is similar to how the browser needs to 
 understand the impact of each tab in order to ensure that the background tabs 
-don’t cause a major impact on the user’s experience in the foreground tab.
+don't cause a major impact on the user's experience in the foreground tab.
 
 We provide the `GetProcessInfos` API for host applications to understand which
 processes are part of their WebView2s. That API provides enough information for
