@@ -5,7 +5,7 @@ Frame Process Info API
 Management of performance and overhead are some of the top concerns with 
 applications building more complex experiences using WebView2. We’re seeing
 applications use multiple WebView2s, iframes, fencedframes, or other 
-embedding techniques for different aspects of their user’s experience, and
+embedding techniques for different aspects of their user's experience, and
 needing to prioritize or deprioritize the less important experiences depending
 on what the user is doing. This is similar to how the browser needs to 
 understand the impact of each tab in order to ensure that the background tabs 
@@ -14,8 +14,8 @@ don’t cause a major impact on the user’s experience in the foreground tab.
 We provide the `GetProcessInfos` API for host applications to understand which
 processes are part of their WebView2s. That API provides enough information for
 a host application to understand the overall performance impact(memory, CPU 
-usage, etc.) of WebView2 on their application or the user’s device, but it 
-doesn’t provide the granularity needed for the host application to know which 
+usage, etc.) of WebView2 on their application or the user's device, but it 
+doesn't provide the granularity needed for the host application to know which 
 part of WebView2 is consuming those resources.
 
 In this document we describe the updated API. We'd appreciate your feedback.
@@ -36,14 +36,14 @@ renderer process.
 
 * We propose extending `CoreWebView2` and `CoreWebView2Frame` to include 
 the `FrameId` property. This property represents the unique identifier of
-the frame running in this webview or webview frame.
+the frame running in this WebView2 or WebView2Frame.
 
 * We propose extending `CoreWebView2FrameInfo` to include `FrameId` and 
 `ParentFrameInfo` properties. `FrameId` is the same kind of ID as with 
 `FrameID` in `CoreWebView2` and `CoreWebView2Frame`. `ParentFrameInfo` 
-supports to retrive a frame's direct parent, corresponding parent frame 
-in the first level and corresponding main frame. This also can be used 
-to build the architecture of the frame tree with represent by `FrameInfo`. 
+supports to retrive a frame's direct parent, ancestor first level frame 
+and ancestor main frame. This also can be used to build the architecture 
+of the frame tree with represent by `FrameInfo`. 
 
 # Examples
 C++
