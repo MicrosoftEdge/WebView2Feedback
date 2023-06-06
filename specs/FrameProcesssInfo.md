@@ -141,7 +141,7 @@ void ProcessComponent::ShowRendererProcessFrameInfo()
     }
 }
 
-// Get the parent main frameInfo.
+// Get the ancestor main frameInfo.
 // Return itself if it's a main frame.
 wil::com_ptr<ICoreWebView2FrameInfo> ProcessComponent::GetAncestorMainFrameInfo(
     wil::com_ptr<ICoreWebView2FrameInfo> frameInfo)
@@ -157,7 +157,7 @@ wil::com_ptr<ICoreWebView2FrameInfo> ProcessComponent::GetAncestorMainFrameInfo(
     return mainFrameInfo;
 }
 
-// Get the parent first level frameInfo.
+// Get the ancestor first level frameInfo.
 // Return itself if it's a first level frame.
 wil::com_ptr<ICoreWebView2FrameInfo> ProcessComponent::GetAncestorFirstLevelFrameInfo(
     wil::com_ptr<ICoreWebView2FrameInfo> frameInfo)
@@ -233,8 +233,8 @@ void ProcessComponent::AppendFrameInfo(
     result.append(L"\"");
 }
 
-// Append the frameInfo's parent main frame(webview)'s ID and 
-// parent first level frame's ID if it exists.
+// Append the frameInfo's ancestor main frame(webview)'s ID and 
+// ancestor first level frame's ID if it exists.
 void ProcessComponent::AppendAncestorFrameInfo(
     wil::com_ptr<ICoreWebView2FrameInfo> frameInfo, std::wstring& result)
 {
