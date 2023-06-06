@@ -40,7 +40,7 @@ the frame running in this webview or webview frame.
 
 * We propose extending `CoreWebView2FrameInfo` to include `FrameId` and 
 `ParentFrameInfo` properties. `FrameId` is the same kind of ID as with 
-frame ID in `CoreWebView2` and `CoreWebView2Frame`. `ParentFrameInfo` 
+`FrameID` in `CoreWebView2` and `CoreWebView2Frame`. `ParentFrameInfo` 
 supports to retrive a frame's direct parent, corresponding parent frame 
 in the first level and corresponding main frame. This also can be used 
 to build the architecture of the frame tree with represent by `FrameInfo`. 
@@ -265,14 +265,18 @@ void ProcessComponent::AppendAncestorFrameInfo(
 ```
 C#
 ```c#
-string AppendFrameInfo(string id, string name, string kind, string parentId, string source, 
-                               string ancestorMainFrameId, string ancestorFirstLevelFrameId) {
+string AppendFrameInfo(CoreWebView2FrameInfo frameInfo, string kind, string mainFrameId, string firstLevelFrameId) {
+    string id = frameInfo.FrameId.ToString();
+    string name = String.IsNullOrEmpty(frameInfo.Name) ? "none" : frameInfo.Name;
+    string source = String.IsNullOrEmpty(frameInfo.Source) ? "none" : frameInfo.Source;
+    string parentId = frameInfo.ParentFrameInfo == null ? "none" : frameInfo.ParentFrameInfo.FrameId.ToString();
+
     return $"{{frame Id:{id} " +
             $"| frame Name: {name} " +
             $"| frame Kind: {kind} " +
             $"| parent frame Id: {parentId} " +
-            $"| ancestor main frame Id: {ancestorMainFrameId} " +
-            $"| ancestor first level frame Id: {ancestorFirstLevelFrameId} " +
+            $"| ancestor main frame Id: {mainFrameId} " +
+            $"| ancestor first level frame Id: {firstLevelFrameId} " +
             $"| frame Source: \"{source}\"}}\n";
 }
 
@@ -301,45 +305,36 @@ private async void ProcessFrameInfoCmdExecuted(object target, ExecutedRoutedEven
                 IReadOnlyList<CoreWebView2FrameInfo> frameInfoList = processList[i].AssociatedFrameInfos;
                 foreach (CoreWebView2FrameInfo frameInfo in frameInfoList)
                 {
-                    string parentFrameId = "Not Existed";
-                    string ancestorMainFrameId = "Not Existed";
-                    string ancestorFirstLevelFrameId = "Not Existed";
-                    string frameSource = frameInfo.Source;
-                    string frameId = frameInfo.FrameId.ToString();
-                    string frameName = frameInfo.Name;
+                    string ancestorMainFrameId = "none";
+                    string ancestorFirstLevelFrameId = "none";
                     CoreWebView2FrameInfo parentFrameInfo = frameInfo.ParentFrameInfo;
-                    if (parentFrameInfo != null)
-                    {
-                        parentFrameId = parentFrameInfo.FrameId.ToString();
-                    }
-
                     frameInfoCount++;
                     // If the frame has no parent, then it's a main frame.
                     if (parentFrameInfo == null)
                     {
                         ancestorMainFrameId = frameInfo.FrameId.ToString();
-                        frameInfosStr += AppendFrameInfo(frameId, frameName, "main frame", parentFrameId, frameSource, ancestorMainFrameId, ancestorFirstLevelFrameId);
+                        frameInfosStr += AppendFrameInfo(frameInfo, "main frame", ancestorMainFrameId, ancestorFirstLevelFrameId);
                         continue;
                     }
-                    CoreWebView2FrameInfo firstLevelFrameInfo = parentFrameInfo;
-                    parentFrameInfo = parentFrameInfo.ParentFrameInfo;
+
+                    CoreWebView2FrameInfo mainFrameInfo = parentFrameInfo;
+                    CoreWebView2FrameInfo firstLevelFrameInfo = frameInfo;
                     // If the frame's parent has no parent frame, then it's a first level frame.
-                    if (parentFrameInfo == null)
-                    {
-                        ancestorMainFrameId = frameInfo.FrameId.ToString();
-                        ancestorFirstLevelFrameId = frameInfo.ParentFrameInfo.FrameId.ToString();
-                        frameInfosStr += AppendFrameInfo(frameId, frameName, "first level frame frame", parentFrameId, frameSource, ancestorMainFrameId, ancestorFirstLevelFrameId);
+                    if (mainFrameInfo.ParentFrameInfo == null) {
+                        ancestorMainFrameId = mainFrameInfo.FrameId.ToString();
+                        ancestorFirstLevelFrameId = firstLevelFrameInfo.FrameId.ToString();
+                        frameInfosStr += AppendFrameInfo(frameInfo, "first level frame", ancestorMainFrameId, ancestorFirstLevelFrameId);
                         continue;
                     }
                     // For other child frames, we traverse the parent frame until find the ancestor main frame.
-                    while (parentFrameInfo.ParentFrameInfo != null)
-                    {
-                        firstLevelFrameInfo = parentFrameInfo;
-                        parentFrameInfo = parentFrameInfo.ParentFrameInfo;
+                    while (mainFrameInfo.ParentFrameInfo != null) {
+                        firstLevelFrameInfo = mainFrameInfo;
+                        mainFrameInfo = mainFrameInfo.ParentFrameInfo;
                     }
-                    ancestorMainFrameId = parentFrameInfo.FrameId.ToString();
+
+                    ancestorMainFrameId = mainFrameInfo.FrameId.ToString();
                     ancestorFirstLevelFrameId = firstLevelFrameInfo.FrameId.ToString();
-                    frameInfosStr += AppendFrameInfo(frameId, frameName, "other frame", parentFrameId, frameSource, ancestorMainFrameId, ancestorFirstLevelFrameId);
+                    frameInfosStr += AppendFrameInfo(frameInfo, "other frame", ancestorMainFrameId, ancestorFirstLevelFrameId);
                 }
                 // </AssociatedFrameInfos>
                 string rendererProcessInfoStr = $"{frameInfoCount} frame info(s) found in renderer process ID: {processId}\n {frameInfosStr}";
@@ -416,17 +411,20 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
 /// A continuation of the ICoreWebView2FrameInfo interface.
 [uuid(a7a7e150-e2ca-11ed-b5ea-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2FrameInfo2 : ICoreWebView2FrameInfo {
-  /// The parent `FrameInfo`. This property is `null` for the top most document in the 
-  /// WebView2 which has no parent frame. This is only available when it's called from 
-  /// `ICoreWebView2GetProcessInfosWithDetailsCompletedHandler`. Else, it returns `null`.
-  /// Note that this parent frame info could be out of date as it's a snapshot. 
+  /// The parent `FrameInfo`. `ParentFrameInfo` will only be populated when obtained
+  /// via calling `CoreWebView2ProcessInfo.AssociatedFrameInfos`. 
+  /// `CoreWebView2FrameInfo` objects obtained via `CoreWebView2.ProcessFailed` will
+  /// always have a `null` `ParentFrameInfo`. This property is also `null` for the  
+  /// top most document in the WebView2 which has no parent frame.
+  /// Note that this `ParentFrameInfo` could be out of date as it's a snapshot.   
   [propget] HRESULT ParentFrameInfo([out, retval] ICoreWebView2FrameInfo** frameInfo);
   /// The unique identifier of the frame associated with the current `FrameInfo`.
-  /// It's the same kind of ID as with the frame ID in `ICoreWebView2` and
-  /// `ICoreWebView2Frame`. This is only available when it's called from 
-  /// `ICoreWebView2GetProcessInfosWithDetailsCompletedHandler`. Else, it returns 
-  /// an invalid frame ID `0`. 
-  /// Note that this frame ID could be out of date as it's a snapshot. 
+  /// It's the same kind of ID as with the `FrameId` in `ICoreWebView2` and via 
+  /// `ICoreWebView2Frame`. `FrameId` will only be populated when obtained
+  /// calling `CoreWebView2ProcessInfo.AssociatedFrameInfos`. 
+  /// `CoreWebView2FrameInfo` objects obtained via `CoreWebView2.ProcessFailed` will
+  /// always have an invalid frame Id 0.
+  /// Note that this `FrameId` could be out of date as it's a snapshot. 
   [propget] HRESULT FrameId([out, retval] UINT32* id);
 }
 
@@ -441,8 +439,8 @@ interface ICoreWebView2Frame5: ICoreWebView2Frame4 {
 [uuid(ad712504-a66d-11ed-afa1-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2_18 : ICoreWebView2_17 {
   /// The unique identifier of the current frame.
-  /// Note that frame Id is not valid if `ICoreWebView` has not started 
-  /// a navigation. It returns an error code `E_FAIL`.   
+  /// Note that `FrameId` is not valid if `ICoreWebView` has not done 
+  /// any navigation. It returns an invalid frame Id 0.  
   [propget] HRESULT FrameId([out, retval] UINT32* id);
 }
 ```
