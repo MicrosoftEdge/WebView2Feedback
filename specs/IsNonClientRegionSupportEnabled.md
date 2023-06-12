@@ -96,9 +96,9 @@ private void SetNonClientRegionSupport(CoreWebView2 sender, CoreWebView2Navigati
 ```
 
 # Remarks
-If the feature flag (`msWebView2EnableDraggableRegions`) is used to enable draggable regions in 
-additional browser arguments, draggable region support will remain enabled even if the 
-`IsNonClientRegionSupportEnabled` setting is `FALSE`. 
+If the feature flag (`msWebView2EnableDraggableRegions`) is used to enable the CSS style `app-region`'s
+values `drag` and `no-drag`, draggable region support will remain enabled 
+even if the `IsNonClientRegionSupportEnabled` setting is `FALSE`. 
 * Note: The feature flag is experimental and should not be used in production.
 
 # API Notes
