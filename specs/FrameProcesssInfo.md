@@ -38,12 +38,12 @@ renderer process.
 the `FrameId` property. This property represents the unique identifier of
 the frame running in this WebView2 or WebView2Frame.
 
-* We propose extending `CoreWebView2FrameInfo` to include `FrameId` and 
-`ParentFrameInfo` properties. `FrameId` is the same kind of ID as with 
-`FrameID` in `CoreWebView2` and `CoreWebView2Frame`. `ParentFrameInfo` 
-supports to retrive a frame's direct parent, ancestor first level frame 
-and ancestor main frame. This also can be used to build the architecture 
-of the frame tree with represent by `FrameInfo`. 
+* We propose extending `CoreWebView2FrameInfo` to include `FrameId`, 
+`FrameKind` and  `ParentFrameInfo` properties. `FrameId` is the same 
+kind of ID as with `FrameID` in `CoreWebView2` and `CoreWebView2Frame`. 
+`ParentFrameInfo` supports to retrive a frame's direct parent, ancestor 
+first level frame and ancestor main frame. This also can be used to 
+build the architecture of the frame tree with represent by `FrameInfo`. 
 
 # Examples
 C++
@@ -56,6 +56,7 @@ wil::com_ptr<ICoreWebView2FrameInfo> GetAncestorFirstLevelFrameInfo(
     wil::com_ptr<ICoreWebView2FrameInfo> frameInfo);
 wil::com_ptr<ICoreWebView2FrameInfo> GetAncestorMainFrameInfo(
     wil::com_ptr<ICoreWebView2FrameInfo> frameInfo);
+std::wstring FrameKindToString(COREWEBVIEW2_FRAME_KIND kind);
 
 // Display renderer process info with details which includes the list of 
 // associated frame infos for the renderer process. Also shows the process 
@@ -195,27 +196,32 @@ void ProcessComponent::AppendFrameInfo(
     frameInfo2->get_FrameId(&frameId);
     result.append(L" | frame Id:" + std::to_wstring(frameId));
 
-    // Check if a frame is a main frame.
     BOOL isMainFrameOrFirstLevelframeInfo = false;
     wil::com_ptr<ICoreWebView2FrameInfo> mainFrameInfo = 
         GetAncestorMainFrameInfo(frameInfo);
     wil::com_ptr<ICoreWebView2FrameInfo> firstLevelFrameInfo =
         GetAncestorFirstLevelFrameInfo(frameInfo);
+    // Check if a frame is a main frame.
     if (mainFrameInfo == frameInfo)
     {
-        result.append(L" | frame kind: main frame");
+        result.append(L" | frame type: main frame");
         isMainFrameOrFirstLevelframeInfo = true;
     }
     // Check if a frame is a first level frame.
     if (firstLevelFrameInfo == frameInfo)
     {
-        result.append(L" | frame kind: first level frame");
+        result.append(L" | frame type: first level frame");
         isMainFrameOrFirstLevelframeInfo = true;
     }
     if (!isMainFrameOrFirstLevelframeInfo)
     {
-        result.append(L" | frame kind: other child frame");
+        result.append(L" | frame type: other child frame");
     }
+    
+    COREWEBVIEW2_FRAME_KIND frameKind = COREWEBVIEW2_FRAME_KIND_OTHER;
+    frameInfo2->get_FrameKind(&frameKind);
+    result.append(L"\n | frame kind:" + FrameKindToString(frameKind));
+
     // Append the frame's direct parent frame's ID if it exists.
     wil::com_ptr<ICoreWebView2FrameInfo> parentFrameInfo;
     CHECK_FAILURE(frameInfo2->get_ParentFrameInfo(&parentFrameInfo));
@@ -223,7 +229,7 @@ void ProcessComponent::AppendFrameInfo(
     {
         CHECK_FAILURE(parentFrameInfo->QueryInterface(IID_PPV_ARGS(&frameInfo2)));
         CHECK_FAILURE(frameInfo2->get_FrameId(&frameId));
-        result.append(L" \n | parent frame Id:" + std::to_wstring(frameId));
+        result.append(L" | parent frame Id:" + std::to_wstring(frameId));
     }
 
     wil::unique_cotaskmem_string sourceRaw;
@@ -262,10 +268,26 @@ void ProcessComponent::AppendAncestorFrameInfo(
     }
     result.append(L"},\n");
 }
+
+// Get a string for the frame kind enum value.
+std::wstring ProcessComponent::FrameKindToString(const COREWEBVIEW2_FRAME_KIND kind)
+{
+    switch (kind)
+    {                                                                
+    case kindValue:   
+        return L#kindValue;
+
+        KIND_ENTRY(COREWEBVIEW2_FRAME_KIND_MAIN_FRAME);
+        KIND_ENTRY(COREWEBVIEW2_FRAME_KIND_IFRAME);
+        KIND_ENTRY(COREWEBVIEW2_FRAME_KIND_OTHER);
+    }
+
+    return std::to_wstring(static_cast<uint32_t>(kind));
+}
 ```
 C#
 ```c#
-string AppendFrameInfo(CoreWebView2FrameInfo frameInfo, string kind, string mainFrameId, string firstLevelFrameId) {
+string AppendFrameInfo(CoreWebView2FrameInfo frameInfo, string type, string mainFrameId, string firstLevelFrameId) {
     string id = frameInfo.FrameId.ToString();
     string name = String.IsNullOrEmpty(frameInfo.Name) ? "none" : frameInfo.Name;
     string source = String.IsNullOrEmpty(frameInfo.Source) ? "none" : frameInfo.Source;
@@ -273,10 +295,11 @@ string AppendFrameInfo(CoreWebView2FrameInfo frameInfo, string kind, string main
 
     return $"{{frame Id:{id} " +
             $"| frame Name: {name} " +
-            $"| frame Kind: {kind} " +
+            $"| frame type: {kind} " +
             $"| parent frame Id: {parentId} " +
             $"| ancestor main frame Id: {mainFrameId} " +
             $"| ancestor first level frame Id: {firstLevelFrameId} " +
+            $"| frame Kind: {frameInfo.FrameKind} " +
             $"| frame Source: \"{source}\"}}\n";
 }
 
@@ -334,7 +357,7 @@ private async void ProcessFrameInfoCmdExecuted(object target, ExecutedRoutedEven
 
                     ancestorMainFrameId = mainFrameInfo.FrameId.ToString();
                     ancestorFirstLevelFrameId = firstLevelFrameInfo.FrameId.ToString();
-                    frameInfosStr += AppendFrameInfo(frameInfo, "other frame", ancestorMainFrameId, ancestorFirstLevelFrameId);
+                    frameInfosStr += AppendFrameInfo(frameInfo, "other child frame", ancestorMainFrameId, ancestorFirstLevelFrameId);
                 }
                 // </AssociatedFrameInfos>
                 string rendererProcessInfoStr = $"{frameInfoCount} frame info(s) found in renderer process ID: {processId}\n {frameInfosStr}";
@@ -368,6 +391,17 @@ interface ICoreWebView2Environment14;
 interface ICoreWebView2ProcessInfo2;
 interface ICoreWebView2GetProcessInfosWithDetailsCompletedHandler;
 
+// Indicates the frame type used in the `ICoreWebView2FrameInfo2` interface.
+[v1_enum]
+typedef enum COREWEBVIEW2_FRAME_KIND {
+  /// Indicates that the frame is a primary main frame(webview).
+  COREWEBVIEW2_FRAME_KIND_MAIN_FRAME,
+  /// Indicates that the frame is an iframe.
+  COREWEBVIEW2_FRAME_KIND_IFRAME,
+  /// Indicates that the frame is another type of frame.
+  COREWEBVIEW2_FRAME_KIND_OTHER,
+} COREWEBVIEW2_FRAME_KIND;
+
 /// Receives the result of the `GetProcessInfosWithDetails` method.
 /// The result is written to the collection of `ProcessInfo`s provided
 /// in the `GetProcessInfosWithDetails` method call.
@@ -386,7 +420,7 @@ interface ICoreWebView2ProcessInfo2 : ICoreWebView2ProcessInfo {
   /// `CoreWebView2ProcessInfo` corresponds to a renderer process.
   /// `CoreWebView2ProcessInfo` objects obtained via `CoreWebView2.GetProcessInfos`
   /// or for non-renderer processes will always have an empty `AssociatedFrameInfos`. 
-  /// The `AssociatedFrameInfos` may also be be empty for renderer processes that 
+  /// The `AssociatedFrameInfos` may also be empty for renderer processes that 
   /// have no active frames.
   ///
   /// \snippet ProcessComponent.cpp AssociatedFrameInfos
@@ -398,7 +432,7 @@ interface ICoreWebView2ProcessInfo2 : ICoreWebView2ProcessInfo {
 [uuid(9d4d8624-e2ca-11ed-b5ea-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// Gets a snapshot collection of `ProcessInfo`s corresponding to all currently
-  /// running processes associated with this `ICoreWebView2Environment` except 
+  /// running processes associated with this `CoreWebView2Environment` except 
   /// for crashpad process. This provide the same list of `ProcessInfo`s as 
   /// what's provided in `GetProcessInfos`. Plus, this provide a list of associated
   /// `FrameInfo`s which are actively running (showing UI elements) in the renderer
@@ -419,13 +453,15 @@ interface ICoreWebView2FrameInfo2 : ICoreWebView2FrameInfo {
   /// Note that this `ParentFrameInfo` could be out of date as it's a snapshot.   
   [propget] HRESULT ParentFrameInfo([out, retval] ICoreWebView2FrameInfo** frameInfo);
   /// The unique identifier of the frame associated with the current `FrameInfo`.
-  /// It's the same kind of ID as with the `FrameId` in `ICoreWebView2` and via 
-  /// `ICoreWebView2Frame`. `FrameId` will only be populated when obtained
+  /// It's the same kind of ID as with the `FrameId` in `CoreWebView2` and via 
+  /// `CoreWebView2Frame`. `FrameId` will only be populated when obtained
   /// calling `CoreWebView2ProcessInfo.AssociatedFrameInfos`. 
   /// `CoreWebView2FrameInfo` objects obtained via `CoreWebView2.ProcessFailed` will
   /// always have an invalid frame Id 0.
   /// Note that this `FrameId` could be out of date as it's a snapshot. 
   [propget] HRESULT FrameId([out, retval] UINT32* id);
+  /// The frame kind of the frame.
+  [propget] HRESULT FrameKind([out, retval] COREWEBVIEW2_FRAME_KIND* kind);
 }
 
 /// A continuation of the ICoreWebView2Frame4 interface.
@@ -439,8 +475,9 @@ interface ICoreWebView2Frame5: ICoreWebView2Frame4 {
 [uuid(ad712504-a66d-11ed-afa1-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2_18 : ICoreWebView2_17 {
   /// The unique identifier of the current frame.
-  /// Note that `FrameId` is not valid if `ICoreWebView` has not done 
-  /// any navigation. It returns an invalid frame Id 0.  
+  /// Note that `FrameId` may not valid if `CoreWebView` has not done
+  /// any navigation. It's safe to get this value during or after the first
+  /// `DOMContentLoaded` event. Else, it could return an invalid frame Id 0.
   [propget] HRESULT FrameId([out, retval] UINT32* id);
 }
 ```
@@ -462,6 +499,8 @@ namespace Microsoft.Web.WebView2.Core
       [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2FrameInfo2")]
       {
           CoreWebView2FrameInfo ParentFrameInfo { get; };
+          UInt32 FrameId { get; };
+          CoreWebView2FrameKind FrameKind { get; };
       }
   }
 
