@@ -12,10 +12,21 @@ assignees: ''
 <!-- Include callstacks and error messages is possible -->
 
 **Version**
+
 SDK: <!-- e.g. 0.9.579-prerelease -->
+
 Runtime: <!-- Browser channel and version, e.g. Canary 86.0.612.0 -->
+
 Framework: <!-- WPF, WinForms, Win32, etc. -->
+
 OS: <!-- Win10, Win7, version info if available -->
+
+**Regression**
+
+Was this working before but has regressed? <!-- yes/no -->
+
+If yes, what version did this last work on? <!-- SDK or Runtime version that works -->
+<!-- You can add the "regression" label to this issue -->
 
 **Repro Steps**
 <!-- Minimal steps needed to reproduce the bug -->
