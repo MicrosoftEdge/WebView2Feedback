@@ -48,7 +48,7 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
     CHECK_FAILURE(profile6->GetBrowserExtensions(
         Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
             [this, profile6](
-                HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
+                HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT noexcept
             {
                 std::wstring extensionIdString;
                 bool extensionInstalled = false;
