@@ -4,7 +4,7 @@ of the functionality the extension is providing.
 
 # Description
 Enable extension services in WebView2. Then end developer can `AddBrowserExtension` from folder 
-path, `GetBrowserExtension` to get list of extensions installed. Once an extension is installed,
+path, `GetBrowserExtensions` to get list of extensions installed. Once an extension is installed,
 developers can use `ICoreWebView2BrowserExtension` to get id, name of this extension. And also 
 remove or enable/disable this extension.
 
