@@ -30,6 +30,9 @@ When set to `FALSE`, then all non-client region support will be disabled.
 * Web pages will not be able to use the `app-region` CSS style. 
 
 # Examples
+This example enables non-client region support for all pages on www.microsoft.com. 
+Pages on other origins will not be trusted to use this feature. 
+
 ```cpp 
 ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
@@ -41,7 +44,7 @@ ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWin
                 ICoreWebView2* sender,
                 ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT
             {
-                static const PCWSTR url_compare_example = L"www.microsoft.com";
+                static const PCWSTR allowedHostName = L"www.microsoft.com";
                 wil::unique_cotaskmem_string uri;
                 CHECK_FAILURE(args->get_Uri(&uri));
                 wil::unique_bstr domain = GetDomainOfUri(uri.get());
@@ -55,12 +58,12 @@ ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWin
                 BOOL enabled;
                 CHECK_FAILURE(coreWebView2Settings12->get_IsNonClientRegionSupportEnabled(&enabled));
 
-                if (wcscmp(domain.get(), url_compare_example) == 0 && !enabled)
+                if (wcscmp(domain.get(), allowedHostName) == 0 && !enabled)
                 {
                     CHECK_FAILURE(
                         coreWebView2Settings12->put_IsNonClientRegionSupportEnabled(TRUE));
                 }
-                else if (wcscmp(domain.get(), url_compare_example) != 0 && enabled)
+                else if (wcscmp(domain.get(), allowedHostName) != 0 && enabled)
                 {
                     CHECK_FAILURE(
                         coreWebView2Settings12->put_IsNonClientRegionSupportEnabled(FALSE));
@@ -73,8 +76,11 @@ ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWin
 ```
 
 ```c#
-private WebView2 webView;
-webView.CoreWebView2.NavigationStarting += SetNonClientRegionSupport;
+public MainWindow() 
+    {
+        InitializeComponent();
+        webView.NavigationStarting += SetNonClientRegionSupport;
+    }
 
 private void SetNonClientRegionSupport(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
 {
@@ -94,6 +100,23 @@ private void SetNonClientRegionSupport(CoreWebView2 sender, CoreWebView2Navigati
     }
 }
 ```
+## Declaring Non-client App Regions
+Non-client regions are HTML elements that are marked with the css style `app-region`.
+* Draggable regions can be declared through the values `drag` or `no-drag`. 
+    * `app-region: drag` will support [draggable region functionality](#description) for the html element.
+    * `app-region: no-drag` will change cursor to I-bar, with text highlighting enabled. 
+    Elements with this style will not support draggable region functionality.
+```html
+<!DOCTYPE html>
+<body>
+    <div style="app-region:drag">Drag Region</h1>
+    </div>
+    <div>
+        <h1 style="app-region:no-drag">No-drag Region</h1>
+    </div>
+</body>
+<html>
+```
 
 # Remarks
 If the feature flag (`msWebView2EnableDraggableRegions`) is used to enable draggable regions in 
@@ -104,16 +127,14 @@ additional browser arguments, draggable region support will remain enabled even 
 # API Notes
 See [API Details](#api-details) section below for API reference.
 
-## Declaring Non-client App Regions
-Non-client regions are HTML elements that are marked with the css style `app-region`.
-* Draggable regions can be declared through the values `drag` or `no-drag`.  
+
 
 # API Details
 ```cpp
 /// This is the ICoreWebView2Settings Staging interface.
 [uuid(436CA5E2-2D50-43C7-9735-E760F299439E), object, pointer_default(unique)]
 interface ICoreWebView2Settings12 : ICoreWebView2Settings11 {
-  /// `IsNonClientRegionSupportEnabled` property enables web pages to use the 
+  /// The `IsNonClientRegionSupportEnabled` property enables web pages to use the 
   /// `app-region` CSS style. Disabling/Enabling the `IsNonClientRegionSupportEnabled`
   /// takes effect after the next navigation. Defaults to `FALSE`.
   /// 
@@ -132,6 +153,18 @@ interface ICoreWebView2Settings12 : ICoreWebView2Settings11 {
   [propget] HRESULT IsNonClientRegionSupportEnabled([out, retval] BOOL* enabled);
   /// Set the IsNonClientRegionSupportEnabled property
   [propput] HRESULT IsNonClientRegionSupportEnabled([in] BOOL enabled);
+}
+
+```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    runtimeclass CoreWebView2Settings
+    {
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Settings12")]
+        {
+            Boolean IsNonClientRegionSupportEnabled { get; set; };
+        }
+    }
 }
 ```
 
