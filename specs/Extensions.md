@@ -465,7 +465,7 @@ interface ICoreWebView2Profile6 : IUnknown {
     /// Error value                                     | Description
     /// ----------------------------------------------- | --------------------------
     /// `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`       | Extensions are disabled due to policy rules.
-    /// `HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)`      | Cannot find `manfiest.json` file or it is not a valid extension manfiest.
+    /// `HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)`      | Cannot find `manifest.json` file or it is not a valid extension manifest.
     /// `E_ACCESSDENIED`                                | Cannot load extension with file or directory name starting with \"_\", reserved for use by the system.
     /// `E_FAIL`                                        | Extension failed to install with other unknown reasons. 
     HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2ProfileAddBrowserExtensionCompletedHandler* handler);
