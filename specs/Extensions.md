@@ -441,7 +441,7 @@ interface ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler;
 interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
   /// When `AreBrowserExtensionsEnabled` is set to `TRUE`, new extensions can be added to user profile and used.
   /// `AreBrowserExtensionsEnabled` is default to be `FALSE`, in this case, new extensions can't be installed, and
-  /// already installed extension won't be avaliable to use in user profile.
+  /// already installed extension won't be available to use in user profile.
   /// See `ICoreWebView2BrowserExtension` for Extensions API details.
   [propget] HRESULT AreBrowserExtensionsEnabled([out, retval] BOOL* value);
   /// Sets the `AreBrowserExtensionsEnabled` property.
