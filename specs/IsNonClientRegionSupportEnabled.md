@@ -33,6 +33,7 @@ When set to `FALSE`, then all non-client region support will be disabled.
 This example enables non-client region support for all pages on www.microsoft.com. 
 Pages on other origins will not be trusted to use this feature. 
 
+## Win32 C++
 ```cpp 
 ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
@@ -75,6 +76,7 @@ ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWin
 }
 ```
 
+## .NET and WinRT
 ```c#
 public MainWindow() 
     {
@@ -100,6 +102,7 @@ private void SetNonClientRegionSupport(CoreWebView2 sender, CoreWebView2Navigati
     }
 }
 ```
+
 ## Declaring Non-client App Regions
 Non-client regions are HTML elements that are marked with the css style `app-region`.
 * Draggable regions can be declared through the values `drag` or `no-drag`. 
@@ -130,8 +133,8 @@ See [API Details](#api-details) section below for API reference.
 
 
 # API Details
+## Win32 C++
 ```cpp
-/// This is the ICoreWebView2Settings Staging interface.
 [uuid(436CA5E2-2D50-43C7-9735-E760F299439E), object, pointer_default(unique)]
 interface ICoreWebView2Settings12 : ICoreWebView2Settings11 {
   /// The `IsNonClientRegionSupportEnabled` property enables web pages to use the 
@@ -154,7 +157,9 @@ interface ICoreWebView2Settings12 : ICoreWebView2Settings11 {
   /// Set the IsNonClientRegionSupportEnabled property
   [propput] HRESULT IsNonClientRegionSupportEnabled([in] BOOL enabled);
 }
+```
 
+## .NET and WinRT
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
