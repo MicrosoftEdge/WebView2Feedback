@@ -508,6 +508,9 @@ interface ICoreWebView2Profile6 : IUnknown {
     /// extension to be removed from the installed profile. 
     /// When an extension is added the extension is persisted in the corresponding profile. The 
     /// extension will still be installed the next time you use this profile.
+    /// When an extension is installed from a folder path, adding the same extension from the same
+    /// folder path means reinstalleing this extension. When two extensions with the same Id are 
+    /// installed, only the later installed extension will be kept.
     /// 
     /// The following summarizes the possible error values that can be returned from 
     /// `AddBrowserExtension` and a description of why these errors occur.
