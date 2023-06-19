@@ -20,7 +20,7 @@ shows how you can install your browser extension on your first run.
 ### Win32 C++
 ```cpp
 // m_defaultExtensionFolderPath need to match the path of the package you want to install
-std::wstring m_defaultExtensionFolderPath = L"//extensions/example-extension";
+std::wstring m_defaultExtensionFolderPath = L"C:/MyProject/extensions/example-extension";
 
 void AppWindow::InitializeWebView()
 {
@@ -31,12 +31,15 @@ void AppWindow::InitializeWebView()
 
     // ... CreateCoreWebView2EnvironmentWithOptions
 
-    InstallDefaultExtensions();
-    
-    // ... Navigate
+    bool installed = InstallDefaultExtensions();
+
+    if (installed)
+    {
+        // ... Show app content
+    }
 }
 
-void ScenarioExtensionsManagement::InstallDefaultExtensions()
+bool void ScenarioExtensionsManagement::InstallDefaultExtensions()
 {
     auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
     CHECK_FEATURE_RETURN_EMPTY(webView2_13);
@@ -50,19 +53,28 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
             [this, profile6](
                 HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT noexcept
             {
+                if (error != S_OK)
+                {
+                    UINT extensionsCount = 0;
+                    CHECK_FAILURE(extensions->get_Count(&extensionsCount));
+                    assert(extensionsCount == 0);
+                    
+                    ShowFailure(error, L"GetBrowserExtensions failed");
+                    return S_OK;
+                }
                 std::wstring extensionIdString;
                 bool extensionInstalled = false;
                 UINT extensionsCount = 0;
-                extensions->get_Count(&extensionsCount);
+                CHECK_FAILURE(extensions->get_Count(&extensionsCount));
 
                 for (UINT index = 0; index < extensionsCount; ++index)
                 {
                     wil::com_ptr<ICoreWebView2BrowserExtension> extension;
-                    extensions->GetValueAtIndex(index, &extension);
+                    CHECK_FAILURE(extensions->GetValueAtIndex(index, &extension));
 
                     wil::unique_cotaskmem_string id;
 
-                    extension->get_Id(&id);
+                    CHECK_FAILURE(extension->get_Id(&id));
                     extensionIdString = id.get();
 
                     if (extensionIdString.compare(m_extensionId) == 0)
@@ -92,6 +104,7 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
                 return S_OK;
             })
             .Get()));
+    return extensionInstalled;
 }
 ```
 
@@ -100,10 +113,10 @@ void ScenarioExtensionsManagement::InstallDefaultExtensions()
 // m_defaultExtensionId need to match the package ID you want to install
 string m_defaultExtensionId = "apaahjmopbjicnjjcnionchiganhjpcd";
 // m_defaultExtensionFolderPath need to match the path of the package you want to install
-string m_defaultExtensionFolderPath = "//extensions/example-extension";
+string m_defaultExtensionFolderPath = "C:/MyProject/extensions/example-extension";
 
 /// Create WebView Environment with option
-void CreateEnvironmentWithOption()
+async void CreateEnvironmentWithOption()
 {
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
     options.AreBrowserExtensionsEnabled = true;
@@ -131,6 +144,12 @@ Provide end user the ability to add, remove, enable and disable a browser extens
 
 ### Win32 C++
 ```cpp
+void AsyncMessageBox(std::wstring message, std::wstring title)
+{
+    RunAsync([this, message = std::move(message), title = std::move(title)]
+             { MessageBox(nullptr, message.c_str(), title.c_str(), MB_OK); });
+}
+
 void BrowserExtensionService::AddBrowserExtension()
 {
 
@@ -154,7 +173,7 @@ void BrowserExtensionService::AddBrowserExtension()
     {
         // Remove the filename part of the path.
         *wcsrchr(fileName, L'\\') = L'\0';
-        profile6->AddBrowserExtension(
+        CHECK_FAILURE(profile6->AddBrowserExtension(
             fileName,
             Callback<ICoreWebView2ProfileAddBrowserExtensionCompletedHandler>(
                 [](HRESULT error, ICoreWebViewBrowserExtension* extension) -> HRESULT
@@ -162,12 +181,13 @@ void BrowserExtensionService::AddBrowserExtension()
                     if (error != S_OK)
                     {
                         ShowFailure(error, L"Failed to add extension");
+                        return S_OK;
                     }
                     wil::unique_cotaskmem_string id;
-                    extension->get_Id(&id);
+                    CHECK_FAILURE(extension->get_Id(&id));
 
                     wil::unique_cotaskmem_string name;
-                    extension->get_Name(&name);
+                    CHECK_FAILURE(extension->get_Name(&name));
 
                     std::wstring extensionInfo;
                     extensionInfo.append(L"Added extension ");
@@ -175,10 +195,10 @@ void BrowserExtensionService::AddBrowserExtension()
                     extensionInfo.append(L" (");
                     extensionInfo.append(id.get());
                     extensionInfo.append(L")");
-                    MessageBox(nullptr, extensionInfo.c_str(), L"AddBrowserExtension Result", MB_OK);
+                    AsyncMessageBox(std::move(extensionInfo.str()), L"AddBrowserExtension Result");
                     return S_OK;
                 })
-                .Get());
+                .Get()));
     }
 }
 
@@ -190,45 +210,56 @@ void BrowserExtensionService::RemoveExtension()
     CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
     auto profile6 = webView2Profile.try_query<ICoreWebView2Profile6>();
 
-    profile6->GetExtensions(
+    CHECK_FAILURE(profile6->GetExtensions(
         Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
             [this](HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
             {
-                TextInputDialog dialog(
-                    m_appWindow->GetMainWindow(), L"Remove Extension",
-                    L"Extension ID:", extensionIdString.c_str());
-                if (dialog.confirmed)
-                {
-                    for (UINT index = 0; index < extensionsCount; ++index)
+                AppWindow* appWindow = m_appWindow;
+                wil::com_ptr<ICoreWebView2StagingExtensionList> extensionList = extensions;
+                appWindow->RunAsync(
+                    [appWindow, extensionIdString, extensionList]
                     {
-                        wil::com_ptr<ICoreWebView2BrowserExtension> extension;
-                        extensions->GetValueAtIndex(index, &extension);
-
-                        wil::unique_cotaskmem_string id;
-                        wil::unique_cotaskmem_string name;
-
-                        extension->get_Id(&id);
-                        if (_wcsicmp(id.get(), dialog.input.c_str()) == 0)
+                        TextInputDialog dialog(
+                            m_appWindow->GetMainWindow(), L"Remove Extension",
+                            L"Extension ID:", extensionIdString.c_str());
+                        UINT extensionsCount = 0;
+                        CHECK_FAILURE(extensions->get_Count(&extensionsCount));
+                        
+                        if (dialog.confirmed)
                         {
-                            extension->Remove(
-                                Callback<ICoreWebView2BrowserExtensionRemoveCompletedHandler>(
-                                    [](HRESULT error) -> HRESULT
-                                    {
-                                        if (error != S_OK)
-                                        {
-                                            ShowFailure(error, L"Failed to toggle extension enabled.");
-                                        }
-                                        MessageBox(
-                                            nullptr, L"Done", L"Remove Extension", MB_OK);
-                                        return S_OK;
-                                    })
-                                    .Get());
+                            for (UINT index = 0; index < extensionsCount; ++index)
+                            {
+                                wil::com_ptr<ICoreWebView2BrowserExtension> extension;
+                                CHECK_FAILURE(extensions->GetValueAtIndex(index, &extension));
+
+                                wil::unique_cotaskmem_string id;
+                                wil::unique_cotaskmem_string name;
+
+                                CHECK_FAILURE(extension->get_Id(&id));
+                                if (_wcsicmp(id.get(), dialog.input.c_str()) == 0)
+                                {
+                                    // If there are multiple apps or threads using the same profile,
+                                    // these instance need to coordinate themselves to avoid double deleting.
+                                    CHECK_FAILURE(extension->Remove(
+                                        Callback<ICoreWebView2BrowserExtensionRemoveCompletedHandler>(
+                                            [](HRESULT error) -> HRESULT
+                                            {
+                                                if (error != S_OK)
+                                                {
+                                                    ShowFailure(error, L"Failed to remove extension from profile.");
+                                                    return S_OK;
+                                                }
+                                                AsyncMessageBox(L"Done", L"Remove Extension");
+                                                return S_OK;
+                                            })
+                                            .Get()));
+                                }
+                            }
                         }
-                    }
-                }
+                });
                 return S_OK;
             })
-            .Get());
+            .Get()));
 }
 
 void BrowserExtensionService::ToggleExtensionEnabled()
@@ -239,51 +270,59 @@ void BrowserExtensionService::ToggleExtensionEnabled()
     CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
     auto profile6 = webView2Profile.try_query<ICoreWebView2Profile6>();
 
-    profile6->GetExtensions(
+    CHECK_FAILURE(profile6->GetExtensions(
         Callback<ICoreWebView2ProfileGetBrowserExtensionCompletedHandler>(
             [this](HRESULT error, ICoreWebView2BrowserExtensionList* extensions) -> HRESULT
             {
-                TextInputDialog dialog(
-                    m_appWindow->GetMainWindow(),
-                    remove ? L"Remove Extension" : L"Disable/Enable Extension",
-                    L"Extension ID:", extensionIdString.c_str());
-                if (dialog.confirmed)
-                {
-                    for (UINT index = 0; index < extensionsCount; ++index)
+                AppWindow* appWindow = m_appWindow;
+                wil::com_ptr<ICoreWebView2StagingExtensionList> extensionList = extensions;
+                appWindow->RunAsync(
+                    [appWindow, extensionIdString, extensionList]
                     {
-                        wil::com_ptr<ICoreWebView2BrowserExtension> extension;
-                        extensions->GetValueAtIndex(index, &extension);
-
-                        wil::unique_cotaskmem_string id;
-                        wil::unique_cotaskmem_string name;
-
-                        extension->get_Id(&id);
-                        if (_wcsicmp(id.get(), dialog.input.c_str()) == 0)
+                        TextInputDialog dialog(
+                            m_appWindow->GetMainWindow(), L"Disable/Enable Extension",
+                            L"Extension ID:", extensionIdString.c_str());
+                        UINT extensionsCount = 0;
+                        CHECK_FAILURE(extensionList->get_Count(&extensionsCount));
+                        
+                        if (dialog.confirmed)
                         {
-                            BOOL enabled = FALSE;
-                            extension->get_IsEnabled(&enabled);
+                            for (UINT index = 0; index < extensionsCount; ++index)
+                            {
+                                wil::com_ptr<ICoreWebView2BrowserExtension> extension;
+                                CHECK_FAILURE(extensions->GetValueAtIndex(index, &extension));
 
-                            extension->SetEnabled(
-                                !enabled,
-                                Callback<ICoreWebView2BrowserExtensionSetEnabledCompletedHandler>(
-                                    [](HRESULT error) -> HRESULT
-                                    {
-                                        if (error != S_OK)
-                                        {
-                                            ShowFailure(
-                                                error, L"SetEnabled Extension failed");
-                                        }
-                                        MessageBox(
-                                            nullptr, L"Done", L"Toggled Extension", MB_OK);
-                                        return S_OK;
-                                    })
-                                    .Get());
+                                wil::unique_cotaskmem_string id;
+                                wil::unique_cotaskmem_string name;
+
+                                CHECK_FAILURE(extension->get_Id(&id));
+                                if (_wcsicmp(id.get(), dialog.input.c_str()) == 0)
+                                {
+                                    BOOL enabled = FALSE;
+                                    CHECK_FAILURE(extension->get_IsEnabled(&enabled));
+
+                                    CHECK_FAILURE(extension->Enable(
+                                        !enabled,
+                                        Callback<ICoreWebView2BrowserExtensionEnabledCompletedHandler>(
+                                            [](HRESULT error) -> HRESULT
+                                            {
+                                                if (error != S_OK)
+                                                {
+                                                    ShowFailure(
+                                                        error, L"Enable Extension failed");
+                                                    return S_OK;
+                                                }
+                                                AsyncMessageBox(L"Done", L"Toggled Extension");
+                                                return S_OK;
+                                            })
+                                            .Get()));
+                                }
+                            }
                         }
-                    }
-                }
+                    });
                 return S_OK;
             })
-            .Get());
+            .Get()));
 }
 ```
 ### .NET and WinRT
@@ -404,7 +443,7 @@ public partial class Extensions : Window
             {
                 try
                 {
-                    await extensionsList[i].SetEnabledAsync(extensionsList[i].IsEnabled ? false : true);
+                    await extensionsList[i].EnableAsync(extensionsList[i].IsEnabled ? false : true);
                 }
                 catch (Exception exception)
                 {
@@ -429,7 +468,7 @@ See [API Details](#api-details) section below for API reference.
 ```IDL
 interface ICoreWebView2Profile6;
 interface ICoreWebView2EnvironmentOptions6;
-interface ICoreWebView2BrowserExtensionSetEnabledCompletedHandler;
+interface ICoreWebView2BrowserExtensionEnabledCompletedHandler;
 interface ICoreWebView2BrowserExtensionRemoveCompletedHandler;
 interface ICoreWebView2BrowserExtension;
 interface ICoreWebView2BrowserExtensionList;
@@ -439,9 +478,12 @@ interface ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler;
 /// Additional options used to create WebView2 Environment.
 [uuid(4B1F63E9-F7A5-4EA5-8D84-2B30F2404E82), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
-  /// When `AreBrowserExtensionsEnabled` is set to `TRUE`, new extensions can be added to user profile and used.
-  /// `AreBrowserExtensionsEnabled` is default to be `FALSE`, in this case, new extensions can't be installed, and
-  /// already installed extension won't be available to use in user profile.
+  /// When `AreBrowserExtensionsEnabled` is set to `TRUE`, new extensions can be added to user 
+  /// profile and used. `AreBrowserExtensionsEnabled` is default to be `FALSE`, in this case,
+  /// new extensions can't be installed, and already installed extension won't be 
+  /// available to use in user profile.
+  /// If connecting to an already running environment with a different value for `AreBrowserExtensionsEnabled`
+  /// property, it will fail with `HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
   /// See `ICoreWebView2BrowserExtension` for Extensions API details.
   [propget] HRESULT AreBrowserExtensionsEnabled([out, retval] BOOL* value);
   /// Sets the `AreBrowserExtensionsEnabled` property.
@@ -451,27 +493,37 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
 /// This is the ICoreWebView2 profile.
 [uuid(8B16D238-9508-4C36-B4D4-749EB9AC4AD0), object, pointer_default(unique)]
 interface ICoreWebView2Profile6 : IUnknown {
-    /// Adds the [browser extension](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions) using the extension path for unpacked extensions
-    /// from the local device. The extension folder path is the topmost folder of an unpacked browser extension and contains the browser extension manifest file.
-    /// If the `extensionFolderPath` is an invalid path or doesn't contain the extension manifest.json file, this function will return E_FAIL to callers. 
+    /// Adds the [browser extension](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions) 
+    /// using the extension path for unpacked extensions from the local device. Extension is 
+    /// running right after installation.
+    /// The extension folder path is the topmost folder of an unpacked browser extension and 
+    /// contains the browser extension manifest file.
+    /// If the `extensionFolderPath` is an invalid path or doesn't contain the extension manifest.json
+    /// file, this function will return `ERROR_FILE_NOT_FOUND` to callers. 
     /// Installed extension will default `IsEnabled` to true.
-    /// When `AreBrowserExtensionsEnabled` is `FALSE`, `AddBrowserExtension` will fail and return HRESULT `ERROR_NOT_SUPPORTED`.
-    /// During installation, the content of the extension is not copied to the user data folder. Once the extension is installed, changing the 
-    /// content of the extension will cause the extension to be removed from the installed profile. 
-    /// When an extension is added the extension is persisted in the corresponding profile. The extension will still be installed the next time you use this profile.
+    /// When `AreBrowserExtensionsEnabled` is `FALSE`, `AddBrowserExtension` will fail and return 
+    /// HRESULT `ERROR_NOT_SUPPORTED`.
+    /// During installation, the content of the extension is not copied to the user data folder. 
+    /// Once the extension is installed, changing the content of the extension will cause the 
+    /// extension to be removed from the installed profile. 
+    /// When an extension is added the extension is persisted in the corresponding profile. The 
+    /// extension will still be installed the next time you use this profile.
+    /// 
     /// The following summarizes the possible error values that can be returned from 
     /// `AddBrowserExtension` and a description of why these errors occur.
     ///
     /// Error value                                     | Description
     /// ----------------------------------------------- | --------------------------
-    /// `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`       | Extensions are disabled due to policy rules.
+    /// `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`       | Extensions are disabled.
     /// `HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)`      | Cannot find `manifest.json` file or it is not a valid extension manifest.
     /// `E_ACCESSDENIED`                                | Cannot load extension with file or directory name starting with \"_\", reserved for use by the system.
     /// `E_FAIL`                                        | Extension failed to install with other unknown reasons. 
     HRESULT AddBrowserExtension([in] LPCWSTR extensionFolderPath, [in] ICoreWebView2ProfileAddBrowserExtensionCompletedHandler* handler);
-    /// Gets a snapshot of the set of extensions installed at the time `GetBrowserExtensions` is called. If an extension is installed or uninstalled 
-    /// after `GetBrowserExtensions` completes, the list returned by `GetBrowserExtensions` remains the same.
-    /// When `AreBrowserExtensionsEnabled` is `FALSE`, `GetBrowserExtensions` won't return any extensions on current user profile.
+    /// Gets a snapshot of the set of extensions installed at the time `GetBrowserExtensions` is 
+    /// called. If an extension is installed or uninstalled after `GetBrowserExtensions` completes, 
+    /// the list returned by `GetBrowserExtensions` remains the same.
+    /// When `AreBrowserExtensionsEnabled` is `FALSE`, `GetBrowserExtensions` won't return any 
+    /// extensions on current user profile.
     HRESULT GetBrowserExtensions([in] ICoreWebView2ProfileGetBrowserExtensionsCompletedHandler* handler);
 }
 
@@ -483,32 +535,39 @@ interface ICoreWebView2BrowserExtension : IUnknown {
     /// This is the browser extension's ID. This is the same browser extension ID returned by 
     /// the browser extension API [`chrome.runtime.id`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/runtime/id). 
     /// Please see that documentation for more details on how the ID is generated.
+    /// After an extension is removed, calling `Id` will return the id of the extension that is removed.
     /// The caller must free the returned string with `CoTaskMemFree`.  See
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
     [propget] HRESULT Id([out, retval] LPWSTR* value); 
-    /// This is the browser extension's name. This value is defined in this browser extension's manifest.json file. 
-    /// If manifest.json define extension's localized name, this value will be the localized version of the name.
-    /// Please see [Manifest.json name](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/name) for more details.
+    /// This is the browser extension's name. This value is defined in this browser extension's 
+    /// manifest.json file. If manifest.json define extension's localized name, this value will 
+    /// be the localized version of the name.
+    /// Please see [Manifest.json name](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/name) 
+    /// for more details.
+    /// After an extension is removed, calling `Name` will return the name of the extension that is removed.
     /// The caller must free the returned string with `CoTaskMemFree`.  See
     /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
     [propget] HRESULT Name([out, retval] LPWSTR* value);
-    /// Removes this browser extension from its WebView2 Profile. The browser extension is removed immediately including from all 
-    /// currently running HTML documents associated with this WebView2 Profile. The removal is persisted and future uses of this profile 
-    /// will not have this extension installed. After an extension is removed, calling `Remove` again will cause an exception.
+    /// Removes this browser extension from its WebView2 Profile. The browser extension is removed 
+    /// immediately including from all currently running HTML documents associated with this 
+    /// WebView2 Profile. The removal is persisted and future uses of this profile will not have this 
+    /// extension installed. After an extension is removed, calling `Remove` again will cause an exception.
     HRESULT Remove([in] ICoreWebView2BrowserExtensionRemoveCompletedHandler* handler);
-    /// If isEnabled is true then the Extension is enabled and running in WebView instances.
+    /// If `isEnabled` is true then the Extension is enabled and running in WebView instances.
     /// If it is false then the Extension is disabled and not running in WebView instances.
     /// When a Extension is first installed, `IsEnable` are default to be `TRUE`.
+    /// `isEnabled` is persisted per profile.
+    /// After an extension is removed, calling `isEnabled` will return the value at the time it was removed.
     [propget] HRESULT IsEnabled([out, retval] BOOL* value);
     /// Sets whether this browser extension is enabled or disabled. This change applies immediately 
     /// to the extension in all HTML documents in all WebView2s associated with this profile.
-    /// After an extension is removed, calling `SetIsEnabled` will not change the value of `IsEnabled`.
-    HRESULT SetIsEnabled([in] BOOL isEnabled, [in] ICoreWebView2BrowserExtensionSetEnabledCompletedHandler* handler);
+    /// After an extension is removed, calling `Enable` will not change the value of `IsEnabled`.
+    HRESULT Enable([in] BOOL isEnabled, [in] ICoreWebView2BrowserExtensionEnabledCompletedHandler* handler);
 }
 
-/// Provides a set of properties for managing browser Extension Lists. This
-/// includes the number of browser Extensions in the list, and the ability
-/// to get an browser Extension from the list at a particular index.
+/// Provides a set of properties for managing browser Extension Lists from user profile. This
+/// includes the number of browser Extensions in the list, and the ability to get an browser 
+/// Extension from the list at a particular index.
 [uuid(59251055-F2F1-448F-A096-F996FB9ACBE2), object, pointer_default(unique)]
 interface ICoreWebView2BrowserExtensionList : IUnknown {
     /// The number of browser Extensions in the list.
@@ -542,7 +601,7 @@ interface ICoreWebView2BrowserExtensionRemoveCompletedHandler : IUnknown {
 /// browser Extension as enabled or disabled. If enabled, the browser Extension is 
 /// running in WebView instances. If disabled, the browser Extension is not running in WebView instances.
 [uuid(0A5F7098-2265-49C7-BA60-5A511E80805A), object, pointer_default(unique)]
-interface ICoreWebView2BrowserExtensionSetEnabledCompletedHandler : IUnknown {
+interface ICoreWebView2BrowserExtensionEnabledCompletedHandler : IUnknown {
     HRESULT Invoke([in] HRESULT errorCode);
 }
 ```
@@ -577,7 +636,7 @@ namespace Microsoft.Web.WebView2.Core
         String Name { get; };
         Boolean IsEnabled { get; };
         Windows.Foundation.IAsyncAction RemoveAsync();
-        Windows.Foundation.IAsyncAction SetEnabledAsync(Boolean IsEnabled);
+        Windows.Foundation.IAsyncAction EnableAsync(Boolean isEnabled);
     }
 
     // ...
