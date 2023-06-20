@@ -33,6 +33,7 @@ When set to `FALSE`, then all non-client region support will be disabled.
 This example enables non-client region support for all pages on www.microsoft.com. 
 Pages on other origins will not be trusted to use this feature. 
 
+## Win32 C++
 ```cpp 
 ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
@@ -74,8 +75,10 @@ ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWin
         &m_navigationStartingToken));
 }
 ```
-
+## .NET C#
 ```c#
+// WebView2 control is defined in the xaml
+// <wv2:WebView2 x:Name="webView" Source="https://www.microsoft.com/"/>
 public MainWindow() 
     {
         InitializeComponent();
@@ -109,11 +112,8 @@ Non-client regions are HTML elements that are marked with the css style `app-reg
 ```html
 <!DOCTYPE html>
 <body>
-    <div style="app-region:drag">Drag Region</h1>
-    </div>
-    <div>
-        <h1 style="app-region:no-drag">No-drag Region</h1>
-    </div>
+    <div style="app-region:drag">Drag Region</div>
+    <div style="app-region:no-drag">No-drag Region</div>
 </body>
 <html>
 ```
@@ -126,8 +126,6 @@ even if the `IsNonClientRegionSupportEnabled` setting is `FALSE`.
 
 # API Notes
 See [API Details](#api-details) section below for API reference.
-
-
 
 # API Details
 ```cpp
