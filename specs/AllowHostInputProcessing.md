@@ -1,13 +1,19 @@
 # Background
 WebView2 .NET developers often encounter issues where certain default events are not raised in the WebView2 .NET control. 
+
 This issue occurs because user inputs are directly delivered to the browser, and the host application does not receive the corresponding messages. 
+
 This causes some default event handling API of .NET control not to work, such as PreProcessMessage and ProcessCmdKey in WinForms.
+
 It also prevents some keys from reaching Key Event realated APIs such as OnKeyDown and ToolStripMenuItem.
+
 In order to solve this type of issue, we provide an api which allows user inputs pass through the browser to the host app.
 
 # Description
 `AllowHostInputProcessing` allows user input messages to pass through the browser window to be received by an app process window.
+
 The messages can be received by Win32 API ::GetMessage() or ::PeekMessage(). This provides the host app a chance to handle the message before dispatching to the WebView2 HWND.
+
 If the host app does not handle input, it is forwarded to the browser process on the user's behalf. This API does not introduce any requirement for the developer to forward all input as is the case with visual hosting. This API should not be used with visual hosting, and has no effect when using  CreateCoreWebView2CompositionControllerWithOptions to create the controller.
 
 # Examples
