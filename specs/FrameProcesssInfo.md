@@ -36,7 +36,7 @@ renderer process.
 
 * We propose extending `CoreWebView2` and `CoreWebView2Frame` to include 
 the `FrameId` property. This property represents the unique identifier of
-the frame running in this WebView2 or WebView2Frame.
+the frame running in this `CoreWebView2` or `CoreWebView2Frame`.
 
 * We propose extending `CoreWebView2FrameInfo` to include `FrameId`, 
 `FrameKind` and  `ParentFrameInfo` properties. `FrameId` is the same 
@@ -295,7 +295,7 @@ string AppendFrameInfo(CoreWebView2FrameInfo frameInfo, string type, string main
 
     return $"{{frame Id:{id} " +
             $"| frame Name: {name} " +
-            $"| frame type: {kind} " +
+            $"| frame type: {type} " +
             $"| parent frame Id: {parentId} " +
             $"| ancestor main frame Id: {mainFrameId} " +
             $"| ancestor first level frame Id: {firstLevelFrameId} " +
@@ -394,12 +394,12 @@ interface ICoreWebView2GetProcessInfosWithDetailsCompletedHandler;
 // Indicates the frame type used in the `ICoreWebView2FrameInfo2` interface.
 [v1_enum]
 typedef enum COREWEBVIEW2_FRAME_KIND {
+  /// Indicates that the frame is type of frame we don't differentiate.
+  COREWEBVIEW2_FRAME_KIND_OTHER,
   /// Indicates that the frame is a primary main frame(webview).
   COREWEBVIEW2_FRAME_KIND_MAIN_FRAME,
   /// Indicates that the frame is an iframe.
   COREWEBVIEW2_FRAME_KIND_IFRAME,
-  /// Indicates that the frame is another type of frame.
-  COREWEBVIEW2_FRAME_KIND_OTHER,
 } COREWEBVIEW2_FRAME_KIND;
 
 /// Receives the result of the `GetProcessInfosWithDetails` method.
@@ -486,6 +486,13 @@ C#
 ```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core 
 {
+  enum CoreWebView2FrameKind
+  {
+    Other = 0,
+    MainFrame = 1,
+    Iframe = 2,
+  };
+
   runtimeclass CoreWebView2ProcessInfo
   {
       [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ProcessInfo2")]
