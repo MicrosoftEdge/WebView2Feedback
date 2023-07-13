@@ -51,22 +51,14 @@ HRESULT AppWindow::CreateControllerWithInputPassthrough()
 ### .NET, WinRT
 ```c#
 CoreWebView2Environment _webViewEnvironment;
-WebViewCreationOptions _creationOptions;
 public CreateWebView2Controller(IntPtr parentWindow)
 {
     CoreWebView2ControllerOptions controllerOptions = new CoreWebView2ControllerOptions();
-    controllerOptions.AllowHostInputProcessing = _creationOptions.AllowHostInputProcessing;
+    controllerOptions.AllowHostInputProcessing = true;
 
     CoreWebView2Controller controller = null;
 
-    if (_creationOptions.entry == WebViewCreateEntry.CREATE_WITH_OPTION)
-    {
-        controller = await _webViewEnvironment.CreateCoreWebView2ControllerAsync(parentWindow, options);
-    }
-    else
-    {
-        controller = await _webViewEnvironment.CreateCoreWebView2ControllerAsync(parentWindow);
-    }
+    controller = await _webViewEnvironment.CreateCoreWebView2ControllerAsync(parentWindow, controllerOptions);
 
     //...
 }
