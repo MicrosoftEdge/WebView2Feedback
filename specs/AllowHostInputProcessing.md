@@ -80,7 +80,8 @@ interface ICoreWebView2StagingControllerOptions;
 interface ICoreWebView2StagingControllerOptions : IUnknown {
   /// `AllowHostInputProcessing` property is to enable/disable input passing through
   /// the app before being delivered to the WebView2. This property is only applicable
-  /// to windowed hosting.
+  /// to controllers created with `CoreWebView2Environment.CreateCoreWebView2ControllerAsync` and not
+  /// composition controllers created with `CoreWebView2Environment.CreateCoreWebView2CompositionControllerAsync`.
   /// By default the value is `FALSE`.
   [propget] HRESULT AllowHostInputProcessing([out, retval] BOOL* value);
   /// Sets the `AllowHostInputProcessing` property.
