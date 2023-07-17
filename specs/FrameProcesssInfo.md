@@ -41,9 +41,8 @@ the frame running in this `CoreWebView2` or `CoreWebView2Frame`.
 * We propose extending `CoreWebView2FrameInfo` to include `FrameId`, 
 `FrameKind` and `ParentFrameInfo` properties. `FrameId` is the same 
 kind of ID as with `FrameID` in `CoreWebView2` and `CoreWebView2Frame`. 
-`ParentFrameInfo` supports to retrive a frame's direct parent, ancestor 
-first level frame and ancestor main frame. This also can be used to 
-build the architecture of the frame tree with represent by `FrameInfo`. 
+`ParentFrameInfo` supports to retrive a frame's direct parent. This 
+also can be used to build the frame tree represented by `FrameInfo`s.
 
 # Examples
 C++
@@ -310,7 +309,7 @@ private async void ProcessFrameInfoCmdExecuted(object target, ExecutedRoutedEven
 {
     try
     {
-        // <GetProcessInfosWithDetailsAsync>
+        // <GetProcessInfosWithDetails>
         IReadOnlyList<CoreWebView2ProcessInfo> processList = await webView.CoreWebView2.Environment.GetProcessInfosWithDetailsAsync();
         int processListCount = processList.Count;
         string rendererProcessInfosStr = $"{processListCount} process(es) found in total\n\n";
@@ -369,7 +368,7 @@ private async void ProcessFrameInfoCmdExecuted(object target, ExecutedRoutedEven
                 otherProcessInfosStr += $"Process ID: {processId} | Process Kind: {kind}\n";
             }
         }
-        // </GetProcessInfosWithDetailsAsync>
+        // </GetProcessInfosWithDetails>
         string message = $"{rendererProcessCount} renderer process(es) found, {rendererProcessInfosStr + otherProcessInfosStr}";
         MessageBox.Show(this, message, "Process Info with Associated Frames");
     }
@@ -433,10 +432,10 @@ interface ICoreWebView2ProcessInfo2 : ICoreWebView2ProcessInfo {
 interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// Gets a snapshot collection of `ProcessInfo`s corresponding to all currently
   /// running processes associated with this `CoreWebView2Environment` except 
-  /// for crashpad process. This provide the same list of `ProcessInfo`s as 
-  /// what's provided in `GetProcessInfos`. Plus, this provide a list of associated
-  /// `FrameInfo`s which are actively running (showing UI elements) in the renderer
-  /// process. Check `AssociatedFrameInfos` for acquiring this detail information.
+  /// for crashpad process. This provides the same list of `ProcessInfo`s as 
+  /// what's provided in `GetProcessInfos`, but additionally provides a list of 
+  /// associated `FrameInfo`s which are actively running (showing UI elements) 
+  /// in the renderer process. See `AssociatedFrameInfos` for more information.
   /// 
   /// \snippet ProcessComponent.cpp GetProcessInfosWithDetails
   HRESULT GetProcessInfosWithDetails([in] ICoreWebView2GetProcessInfosWithDetailsCompletedHandler* handler);
@@ -445,8 +444,9 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
 /// A continuation of the ICoreWebView2FrameInfo interface.
 [uuid(a7a7e150-e2ca-11ed-b5ea-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2FrameInfo2 : ICoreWebView2FrameInfo {
-  /// The parent `FrameInfo`. `ParentFrameInfo` will only be populated when obtained
-  /// via calling `CoreWebView2ProcessInfo.AssociatedFrameInfos`. 
+  /// This frame's parent frame's `FrameInfo`. `ParentFrameInfo` will only be
+  /// populated when obtained via calling 
+  /// `CoreWebView2ProcessInfo.AssociatedFrameInfos`. 
   /// `CoreWebView2FrameInfo` objects obtained via `CoreWebView2.ProcessFailed` will
   /// always have a `null` `ParentFrameInfo`. This property is also `null` for the  
   /// top most document in the WebView2 which has no parent frame.
@@ -467,17 +467,19 @@ interface ICoreWebView2FrameInfo2 : ICoreWebView2FrameInfo {
 /// A continuation of the ICoreWebView2Frame4 interface.
 [uuid(04baa798-a0e9-11ed-a8fc-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2Frame5: ICoreWebView2Frame4 {
-  /// The unique identifier of the current frame.
+  /// The unique identifier of the current frame. It's the same kind of ID as with 
+  /// the `FrameId` in `CoreWebView2` and via `CoreWebView2FrameInfo`.
   [propget] HRESULT FrameId([out, retval] UINT32* id);
 }
 
 /// A continuation of the ICoreWebView2_17 interface.
 [uuid(ad712504-a66d-11ed-afa1-0242ac120002), object, pointer_default(unique)]
 interface ICoreWebView2_18 : ICoreWebView2_17 {
-  /// The unique identifier of the current frame.
-  /// Note that `FrameId` may not valid if `CoreWebView` has not done
+  /// The unique identifier of the current frame. It's the same kind of ID as with 
+  /// the `FrameId` in `CoreWebView2Frame` and via `CoreWebView2FrameInfo`.
+  /// Note that `FrameId` may not be valid if `CoreWebView` has not done
   /// any navigation. It's safe to get this value during or after the first
-  /// `DOMContentLoaded` event. Else, it could return an invalid frame Id 0.
+  /// `DOMContentLoaded` event. Otherwise, it could return the invalid frame Id 0.
   [propget] HRESULT FrameId([out, retval] UINT32* id);
 }
 ```
