@@ -41,7 +41,7 @@ the frame running in this `CoreWebView2` or `CoreWebView2Frame`.
 * We propose extending `CoreWebView2FrameInfo` to include `FrameId`, 
 `FrameKind` and `ParentFrameInfo` properties. `FrameId` is the same 
 kind of ID as with `FrameID` in `CoreWebView2` and `CoreWebView2Frame`. 
-`ParentFrameInfo` supports to retrive a frame's direct parent. This 
+`ParentFrameInfo` supports to retrieve a frame's direct parent. This 
 also can be used to build the frame tree represented by `FrameInfo`s.
 
 # Examples
