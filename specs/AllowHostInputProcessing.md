@@ -67,9 +67,9 @@ public CreateWebView2Controller(IntPtr parentWindow)
 # API Details
 ## Win32 C++
 ```IDL
-interface ICoreWebView2StagingControllerOptions;
+interface ICoreWebView2ControllerOptions3;
 
-interface ICoreWebView2StagingControllerOptions : IUnknown {
+interface ICoreWebView2ControllerOptions3 : IUnknown {
   /// `AllowHostInputProcessing` property is to enable/disable input passing through
   /// the app before being delivered to the WebView2. This property is only applicable
   /// to controllers created with `CoreWebView2Environment.CreateCoreWebView2ControllerAsync` and not
