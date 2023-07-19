@@ -6,7 +6,7 @@ body:
 - type: markdown
   attributes:
     value: 
-      Thanks for taking the time to fill out this bug report. It will greatly assist us in accurately identifying the issue. Here is a [good sample report](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3648)
+      Thanks for taking the time to fill out this bug report. Here is [an example](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3648) of a good bug report that will help us in accurately identifying the issue.
 - id: what-happened
   type: textarea
   attributes:
