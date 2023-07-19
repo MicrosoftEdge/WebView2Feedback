@@ -18,7 +18,7 @@ We propose introducing the `ScreenCaptureRequested` event. This event will be ra
 the WebView2 and/or iframe corresponding to the CoreWebView2Frame or any of its descendant iframes 
 requests permission to use the Screen Capture API before the UI is shown. 
 
-To maintain backwards compatibility, by default we plan to raise
+For convenience of the end developer, by default we plan to raise
 `ScreenCaptureRequested` on both `CoreWebView2Frame` and `CoreWebView2`. The
 `CoreWebView2Frame` event handlers will be invoked first,
 before the `CoreWebView2` event handlers. If `Handled` is set true as part of
@@ -101,6 +101,14 @@ if (webview4)
                                     }
 
                                     // Let CoreWebView2 handler know the event is already handled
+
+                                    // In the case of an iframe requesting permission to use Screen Capture, the default 
+                                    // behavior is to first raise the ScreenCaptureRequested event off of the 
+                                    // CoreWebView2Frame and invoke it's handlers, and then raise the event off the 
+                                    // CoreWebView2 and invoke it's handlers. However, If we set Handled to true on the
+                                    // CoreWebView2Frame event handler, then we will not raise the
+                                    // ScreenCaptureRequested event off the CoreWebView2.
+
                                     CHECK_FAILURE(args->put_Handled(true));
                                     return S_OK;
                             })
@@ -314,15 +322,16 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2
     {
         // ...
-        event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2ScreenCaptureRequestedEventArgs> ScreenCaptureRequested;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2, 
+            CoreWebView2ScreenCaptureRequestedEventArgs> ScreenCaptureRequested;
     };
 
     runtimeclass CoreWebView2Frame
     {
         // ...
         // ICoreWebView2Frame3 members
-        [doc_string("ScreenCaptureRequested is raised when content in an iframe or any of its descendant iframes requests permission to use screen capture.\nIf a deferral is not taken on the event args, the subsequent scripts are blocked until the event handler returns. If a deferral is taken, the scripts are blocked until the deferral is completed.")]
-        event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, CoreWebView2ScreenCaptureRequestedEventArgs> ScreenCaptureRequested;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, 
+            CoreWebView2ScreenCaptureRequestedEventArgs> ScreenCaptureRequested;
     }
 
 }
