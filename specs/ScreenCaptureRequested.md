@@ -1,11 +1,11 @@
 # Background
 
-JavaScript's Screen Capture API `GetDisplayMedia` allows developers to get a video stream of a 
-user's tabs, windows, or desktop. This API is available in WebView2, but the current default UI 
-has some problems that we need to fix to make sure that hybrid apps using WebView2 have a more 
-seamless web/native experience. This includes removing the tab column in the UI, replacing 
-default strings and icons that do not match in WV2, and potentially having the ability to 
-customize the UI itself. 
+The HTML DOM's Screen Capture API `navigator.mediaDevices.getDisplayMedia` allows developers to 
+get a video stream of a user's tabs, windows, or desktop. This API is available in WebView2, 
+but the current default UI has some problems that we need to fix to make sure that hybrid apps 
+using WebView2 have a more seamless web/native experience. This includes removing the tab column 
+in the UI, replacing default strings and icons that do not match in WV2, and potentially having 
+the ability to customize the UI itself. 
 
 These apps also expect that the screen capture dialog has an event before the UI is shown to give 
 the host app an opportunity to block or allow UI from showing at all.
@@ -234,7 +234,7 @@ interface ICoreWebView2ScreenCaptureRequestedEventArgs : IUnknown {
   /// The associated frame information that requests the screen capture  
   /// permission. This can be used to grab the frame source, name, frameId,  
   /// and parent frame information. 
-  [propget] HRESULT FrameInfo([out, retval] ICoreWebView2FrameInfo**  
+  [propget] HRESULT OriginalSourceFrameInfo([out, retval] ICoreWebView2FrameInfo**  
      frameInfo); 
   /// By default, both the `ScreenCaptureRequested` event handlers on the 
   /// `CoreWebView2Frame` and the `CoreWebView2` will be invoked, with the 
@@ -312,7 +312,7 @@ namespace Microsoft.Web.WebView2.Core
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ScreenCaptureRequestedEventArgs")]
         {
-            CoreWebView2FrameInfo FrameInfo { get; };
+            CoreWebView2FrameInfo OriginalSourceFrameInfo { get; };
             Boolean Cancel { get; set; };
             Boolean Handled { get; set; };
         }
