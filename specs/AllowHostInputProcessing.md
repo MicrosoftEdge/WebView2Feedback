@@ -10,7 +10,7 @@ It also prevents some keys from reaching Key Event realated APIs such as OnKeyDo
 In order to solve this type of issue, we provide an api which allows user inputs pass through the browser to the host app.
 
 # Description
-`DeliverInputMessagesToHostMessageQueue` allows user input messages to pass through the browser window to be received by an app process window.
+`AllowHostInputProcessing` allows user input messages(keyboard, mouse, touch, and pen) to pass through the browser window to be received by an app process window.
 
 The messages can be received by Win32 API ::GetMessage() or ::PeekMessage(). This provides the host app a chance to handle the message before dispatching to the WebView2 HWND.
 
@@ -35,7 +35,7 @@ HRESULT AppWindow::CreateControllerWithInputPassthrough()
     wil::com_ptr<ICoreWebView2ControllerOptions3> webView2ControllerOptions3;
     if (SUCCEEDED(options->QueryInterface(IID_PPV_ARGS(&webView2ControllerOptions3))))
     {
-        CHECK_FAILURE(webView2ControllerOptions3->put_DeliverInputMessagesToHostMessageQueue(TRUE));
+        CHECK_FAILURE(webView2ControllerOptions3->put_AllowHostInputProcessing(TRUE));
     }
 
     CHECK_FAILURE(webViewEnvironment10->CreateCoreWebView2ControllerWithOptions(
@@ -53,8 +53,8 @@ HRESULT AppWindow::CreateControllerWithInputPassthrough()
 CoreWebView2Environment _webViewEnvironment;
 public CreateWebView2Controller(IntPtr parentWindow)
 {
-    CoreWebView2ControllerOptions controllerOptions = new CoreWebView2ControllerOptions();
-    controllerOptions.DeliverInputMessagesToHostMessageQueue = true;
+    CoreWebView2ControllerOptions controllerOptions = _webViewEnvironment.CreateCoreWebView2ControllerOptions();
+    controllerOptions.AllowHostInputProcessing = true;
 
     CoreWebView2Controller controller = null;
 
@@ -70,15 +70,15 @@ public CreateWebView2Controller(IntPtr parentWindow)
 interface ICoreWebView2ControllerOptions3;
 
 interface ICoreWebView2ControllerOptions3 : IUnknown {
-  /// `DeliverInputMessagesToHostMessageQueue` property is to enable/disable input passing through
+  /// `AllowHostInputProcessing` property is to enable/disable input passing through
   /// the app before being delivered to the WebView2. This property is only applicable
   /// to controllers created with `CoreWebView2Environment.CreateCoreWebView2ControllerAsync` and not
   /// composition controllers created with `CoreWebView2Environment.CreateCoreWebView2CompositionControllerAsync`.
   /// By default the value is `FALSE`.
-  [propget] HRESULT DeliverInputMessagesToHostMessageQueue([out, retval] BOOL* value);
-  /// Sets the `DeliverInputMessagesToHostMessageQueue` property.
+  [propget] HRESULT AllowHostInputProcessing([out, retval] BOOL* value);
+  /// Sets the `AllowHostInputProcessing` property.
   /// Setting this property has no effect when using visual hosting.
-  [propput] HRESULT DeliverInputMessagesToHostMessageQueue([in] BOOL value);
+  [propput] HRESULT AllowHostInputProcessing([in] BOOL value);
 }
 ```
 
@@ -95,7 +95,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
 
-        Boolean DeliverInputMessagesToHostMessageQueue { get; set; };
+        Boolean AllowHostInputProcessing { get; set; };
     }
 }
 ```
