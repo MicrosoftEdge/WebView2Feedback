@@ -16,6 +16,8 @@ The messages can be received by Win32 API ::GetMessage() or ::PeekMessage(). Thi
 
 If the host app does not handle input, it is forwarded to the browser process on the user's behalf. This API does not introduce any requirement for the developer to forward all input as is the case with visual hosting. This API should not be used with visual hosting, and has no effect when using  CreateCoreWebView2CompositionControllerWithOptions to create the controller.
 
+Setting `AllowHostInputProcessing` to 'TRUE' makes 'AcceleratorKeyPressed' and OnKeyDown(only for WinForms) event asynchronous.
+
 # Examples
 ## Win32 C++
 ```cpp
