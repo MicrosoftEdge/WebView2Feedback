@@ -417,7 +417,11 @@ interface ICoreWebView2FrameInfo2 : ICoreWebView2FrameInfo {
   /// always have an invalid frame Id 0.
   /// Note that this `FrameId` could be out of date as it's a snapshot. 
   [propget] HRESULT FrameId([out, retval] UINT32* id);
-  /// The frame kind of the frame.
+  /// The frame kind of the frame. `FrameKind` will only be populated when
+  /// obtained calling `CoreWebView2ProcessInfo.AssociatedFrameInfos`.
+  /// `CoreWebView2FrameInfo` objects obtained via `CoreWebView2.ProcessFailed`
+  /// will always have the default value `COREWEBVIEW2_FRAME_KIND_OTHER`.
+  /// Note that this `FrameKind` could be out of date as it's a snapshot.
   [propget] HRESULT FrameKind([out, retval] COREWEBVIEW2_FRAME_KIND* kind);
 }
 
