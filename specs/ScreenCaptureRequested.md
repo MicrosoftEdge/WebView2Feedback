@@ -14,60 +14,69 @@ In this document we describe the updated API. We'd appreciate your feedback.
 
 # Description
 
-We propose introducing the `ScreenCaptureRequested` event. This event will be raised whenever 
+We propose introducing the `ScreenCaptureStarting` event. This event will be raised whenever 
 the WebView2 and/or iframe corresponding to the CoreWebView2Frame or any of its descendant iframes 
 requests permission to use the Screen Capture API before the UI is shown. 
 
 For convenience of the end developer, by default we plan to raise
-`ScreenCaptureRequested` on both `CoreWebView2Frame` and `CoreWebView2`. The
+`ScreenCaptureStarting` on both `CoreWebView2Frame` and `CoreWebView2`. The
 `CoreWebView2Frame` event handlers will be invoked first,
 before the `CoreWebView2` event handlers. If `Handled` is set true as part of
-the `CoreWebView2Frame` event handlers, then the `ScreenCaptureRequested` event
+the `CoreWebView2Frame` event handlers, then the `ScreenCaptureStarting` event
 will not be raised on the `CoreWebView2`, and its event handlers will not be
-invoked.
+invoked. 
+
+If `Handled` is not set as true as part of the `CoreWebView2Frame` event 
+handlers, the same event args with modifications bubble up to the next 
+event handler on the `CoreWebView2`. In this case, the `Handled` property 
+will do nothing.
 
 In the case of a nested iframe requesting permission, we will raise the event
 off of the top level iframe.
 
 # Examples
-## C++: Registering Screen Requested Handler on CoreWebView2
+## C++: Registering Screen Started Handler on CoreWebView2
 ``` cpp
-wil::com_ptr<ICoreWebView2> m_webviewEventSource;
-EventRegistrationToken m_screenCaptureRequestedToken = {};
+wil::com_ptr<ICoreWebView2> m_webview;
+EventRegistrationToken m_ScreenCaptureStartingToken = {};
+auto webview2_20 = m_webView.try_query<ICoreWebView2_20>();
+if (webview2_20) {
+    webview2_20->add_ScreenCaptureStarting(
+        Callback<ICoreWebView2ScreenCaptureStartingEventHandler>(
+            [this](ICoreWebView2* sender, ICoreWebView2ScreenCaptureStartingEventArgs* args)
+              -> HRESULT 
+                { 
+                    // Get Frame Info
+                    wil::com_ptr<ICoreWebView2FrameInfo> frameInfo;
+                    CHECK_FAILURE(args->get_OriginalSourceFrameInfo(&frameInfo));
 
-m_webviewEventSource->add_ScreenCaptureRequested(
-    Callback<ICoreWebView2ScreenCaptureRequestedEventHandler>(
-        [this](ICoreWebView2* sender, ICoreWebView2ScreenCaptureRequestedEventArgs* args)
-          -> HRESULT 
-            { 
-                // Get Frame Info
-                wil::com_ptr<ICoreWebView2FrameInfo> frameInfo;
-                CHECK_FAILURE(args->get_FrameInfo(&frameInfo));
+                    // Frame Source
+                    wil::unique_cotaskmem_string frameSource;
+                    CHECK_FAILURE(frameInfo->get_Source(&frameSource));
 
-                // Frame Source
-                wil::unique_cotaskmem_string frameSource;
-                CHECK_FAILURE(frameInfo->get_Source(&frameSource));
+                    // If the host app wants to cancel the request for a specific source
+                    static const PCWSTR url_to_cancel = L"developer.microsoft.com";
+                    wil::unique_bstr domain = GetDomainOfUri(frameSource.get());
+                    const wchar_t *domains = domain.get();
+                    if (wcscmp(url_to_cancel, domains) == 0) {
+                        CHECK_FAILURE(args->put_Cancel(TRUE));
+                    } 
 
-                // If the host app wants to cancel the request for a specific source
-                if (frameSource = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/") 
-                {
-                    CHECK_FAILURE(args->put_Cancel(TRUE));
-                }
-
-                return S_OK;
-            })
-            .Get(),
-  &m_screenCaptureRequestedToken);
+                    return S_OK;
+                })
+                .Get(),
+      &m_ScreenCaptureStartingToken);
+}
 
 ```
-## C++: Registering Screen Requested Handler on CoreWebView2Frame
+## C++: Registering Screen Started Handler on CoreWebView2Frame
 ``` cpp
 wil::com_ptr<ICoreWebView2> m_webview;
 auto webview4 = m_webview.try_query<ICoreWebView2_4>();
 if (webview4) 
 {
     EventRegistrationToken m_frameCreatedToken = {};
-    EventRegistrationToken m_screenCaptureRequestedToken = {};
+    EventRegistrationToken m_ScreenCaptureStartingToken = {};
 
     CHECK_FAILURE(webview4->add_FrameCreated(
         Callback<ICoreWebView2FrameCreatedEventHandler>(
@@ -80,40 +89,42 @@ if (webview4)
                 auto webviewFrame3 = webviewFrame.try_query<ICoreWebView2Frame3>();
                 if (webviewFrame3)
                 {
-                    CHECK_FAILURE(webviewFrame3->add_ScreenCaptureRequested(
-                        Callback<ICoreWebView3FrameScreenCaptureRequestedEventHandler>(
+                    CHECK_FAILURE(webviewFrame3->add_ScreenCaptureStarting(
+                        Callback<ICoreWebView3FrameScreenCaptureStartingEventHandler>(
                             [this](ICoreWebView3Frame* sender,
-                               ICoreWebView2ScreenCaptureRequestedEventArgs* args) -> HRESULT
+                               ICoreWebView2ScreenCaptureStartingEventArgs* args) -> HRESULT
                             {
 
                                     // Get Frame Info
                                     wil::com_ptr<ICoreWebView2FrameInfo> frameInfo;
-                                    CHECK_FAILURE(args->get_FrameInfo(&frameInfo));
+                                    CHECK_FAILURE(args->get_OriginalSourceFrameInfo(&frameInfo));
 
                                     // Frame Source
                                     wil::unique_cotaskmem_string frameSource;
                                     CHECK_FAILURE(frameInfo->get_Source(&frameSource));
 
                                     // If the host app wants to cancel the request for a specific source
-                                    if (frameSource = "https://developer.microsoft.com/en-us/microsoft-edge/webview2/") 
-                                    {
+                                    static const PCWSTR url_to_cancel = L"developer.microsoft.com";
+                                    wil::unique_bstr domain = GetDomainOfUri(frameSource.get());
+                                    const wchar_t *domains = domain.get();
+                                    if (wcscmp(url_to_cancel, domains) == 0) {
                                         CHECK_FAILURE(args->put_Cancel(TRUE));
-                                    }
+                                    } 
 
                                     // Let CoreWebView2 handler know the event is already handled
 
                                     // In the case of an iframe requesting permission to use Screen Capture, the default 
-                                    // behavior is to first raise the ScreenCaptureRequested event off of the 
+                                    // behavior is to first raise the ScreenCaptureStarting event off of the 
                                     // CoreWebView2Frame and invoke it's handlers, and then raise the event off the 
                                     // CoreWebView2 and invoke it's handlers. However, If we set Handled to true on the
                                     // CoreWebView2Frame event handler, then we will not raise the
-                                    // ScreenCaptureRequested event off the CoreWebView2.
+                                    // ScreenCaptureStarting event off the CoreWebView2.
 
                                     CHECK_FAILURE(args->put_Handled(true));
                                     return S_OK;
                             })
                             .Get(),
-                        &m_screenCaptureRequestedToken));
+                        &m_ScreenCaptureStartingToken));
                 }
                 return S_OK;
         }).Get(),
@@ -121,21 +132,21 @@ if (webview4)
 }
 ```
 
-## C#: Registering Screen Capture Requested Handler
+## C#: Registering Screen Capture Started Handler
 ```c#
 private WebView2 webView;
-webView.CoreWebView2.ScreenCaptureRequested += (sender, screenCaptureArgs) =>
+webView.CoreWebView2.ScreenCaptureStarting += (sender, screenCaptureArgs) =>
 {   
     // Get Frame Info
-    wil::com_ptr<ICoreWebView2FrameInfo> frameInfo;
-    frameInfo = screenCaptureArgs.frameInfo
+    CoreWebView2FrameInfo frameInfo;
+    frameInfo = screenCaptureArgs.OriginalSourceFrameInfo
 
     // Frame Source
     string frameSource;
     frameSource = frameInfo.Source;
 
     // If the host app wants to cancel the request from a specific frame
-    if (frameSource == "https://developer.microsoft.com/en-us/microsoft-edge/webview2/")
+    if (new Uri(frameSource).Host == "developer.microsoft.com")
     {
         screenCaptureArgs.Cancel = true;
     }
@@ -143,27 +154,27 @@ webView.CoreWebView2.ScreenCaptureRequested += (sender, screenCaptureArgs) =>
 ```
 
 
-## C#: Registering IFrame Screen Capture Requested Handler
+## C#: Registering IFrame Screen Capture Started Handler
 ```c#
 private WebView2 webView;
 
-m_webview.CoreWebView2.FrameCreated += (sender, frameCreatedArgs) =>
+webView.CoreWebView2.FrameCreated += (sender, frameCreatedArgs) =>
 {
-    // Checking for runtime support of CoreWebView2Frame.ScreenCaptureRequested
+    // Checking for runtime support of CoreWebView2Frame.ScreenCaptureStarting
     try
     {
-        frameCreatedArgs.Frame.ScreenCaptureRequested += (frameSender, screenCaptureArgs) =>
+        frameCreatedArgs.Frame.ScreenCaptureStarting += (frameSender, screenCaptureArgs) =>
         {
             // Get Frame Info
-            wil::com_ptr<ICoreWebView2FrameInfo> frameInfo;
-            frameInfo = screenCaptureArgs.frameInfo
+            CoreWebView2FrameInfo frameInfo;
+            frameInfo = screenCaptureArgs.OriginalSourceFrameInfo
 
             // Frame Source
             string frameSource;
             frameSource = frameInfo.Source;
 
             // If the host app wants to cancel the request from a specific source
-            if (frameSource == "https://developer.microsoft.com/en-us/microsoft-edge/webview2/")
+            if (new Uri(frameSource).Host == "developer.microsoft.com")
             {
                 screenCaptureArgs.Cancel = true;
             }
@@ -171,15 +182,15 @@ m_webview.CoreWebView2.FrameCreated += (sender, frameCreatedArgs) =>
             // Let CoreWebView2 handler know the event is already handled
 
             // In the case of an iframe requesting permission to use Screen Capture, the default 
-            // behavior is to first raise the ScreenCaptureRequested event off of the 
+            // behavior is to first raise the ScreenCaptureStarting event off of the 
             // CoreWebView2Frame and invoke it's handlers, and then raise the event off the 
             // CoreWebView2 and invoke it's handlers. However, If we set Handled to true on the
             // CoreWebView2Frame event handler, then we will not raise the
-            // ScreenCaptureRequested event off the CoreWebView2.
+            // ScreenCaptureStarting event off the CoreWebView2.
             // 
             // NotImplementedException could be thrown if underlying runtime did not
             // implement Handled. However, we only run this code after checking if
-            // CoreWebView2Frame.ScreenCaptureRequested exists, and both exist together,
+            // CoreWebView2Frame.ScreenCaptureStarting exists, and both exist together,
             // so it would not be a problem.
             args.Handled = true;
         };
@@ -196,52 +207,53 @@ m_webview.CoreWebView2.FrameCreated += (sender, frameCreatedArgs) =>
 ## C++
 ```
 interface ICoreWebView2_20;
-interface ICoreWebView2ScreenCaptureRequestedEventArgs;
-interface ICoreWebView2ScreenCaptureRequestedEventHandler;
+interface ICoreWebView2ScreenCaptureStartingEventArgs;
+interface ICoreWebView2ScreenCaptureStartingEventHandler;
 
 interface ICoreWebView2Frame3;
-interface ICoreWebView2FrameScreenCaptureRequestedEventHandler;
-interface ICoreWebView2FrameScreenCaptureRequestedEventArgs;
+interface ICoreWebView2FrameScreenCaptureStartingEventHandler;
+interface ICoreWebView2FrameScreenCaptureStartingEventArgs;
 
-/// This interface is an extension of `ICoreWebView2` that supports the ScreenCaptureRequested event. 
+/// This interface is an extension of `ICoreWebView2` that supports the ScreenCaptureStarting event. 
 // MSOWNERS: stevenwei@microsoft.com 
 [uuid(accc0e97-fa2d-4a8d-ad61-cc9ae57a1825), object, pointer_default(unique)] 
 interface ICoreWebView2_20 : IUnknown { 
-  /// Add an event handler for the `ScreenCaptureRequested` event. 
-  /// `ScreenCaptureRequested` event is raised when the Screen Capture API is requested by the user using getDisplayMedia(). 
-  HRESULT add_ScreenCaptureRequested( 
-      [in] ICoreWebView2ScreenCaptureRequestedEventHandler* eventHandler, 
+  /// Add an event handler for the `ScreenCaptureStarting` event. 
+  /// `ScreenCaptureStarting` event is raised when the Screen Capture API is requested by the user using getDisplayMedia(). 
+  HRESULT add_ScreenCaptureStarting( 
+      [in] ICoreWebView2ScreenCaptureStartingEventHandler* eventHandler, 
       [out] EventRegistrationToken* token); 
-  /// Remove an event handler previously added with `add_ScreenCaptureRequested`. 
+  /// Remove an event handler previously added with `add_ScreenCaptureStarting`. 
   // MSOWNERS: stevenwei@microsoft.com 
-  HRESULT remove_ScreenCaptureRequested( 
+  HRESULT remove_ScreenCaptureStarting( 
       [in] EventRegistrationToken token); 
 }   
-/// Receives `ScreenCaptureRequested` events. 
+/// Receives `ScreenCaptureStarting` events. 
 // MSOWNERS: stevenwei@microsoft.com 
 [uuid(9b5bbea1-4a58-4567-8b42-8781d3986cb4), object, pointer_default(unique)] 
-interface ICoreWebView2ScreenCaptureRequestedEventHandler : IUnknown { 
+interface ICoreWebView2ScreenCaptureStartingEventHandler : IUnknown { 
   /// Called to provide the event args when a screen capture is requested on 
   /// a WebView element. 
   HRESULT Invoke( 
       [in] ICoreWebView2* sender, 
-      [in] ICoreWebView2ScreenCaptureRequestedEventArgs* args); 
+      [in] ICoreWebView2ScreenCaptureStartingEventArgs* args); 
 } 
-/// Event args for the `ScreenCaptureRequested` event. 
+/// Event args for the `ScreenCaptureStarting` event. 
 // MSOWNERS: stevenwei@microsoft.com 
 [uuid(a1d309ee-c03f-11eb-8529-0242ac130003), object, pointer_default(unique)] 
-interface ICoreWebView2ScreenCaptureRequestedEventArgs : IUnknown { 
+interface ICoreWebView2ScreenCaptureStartingEventArgs : IUnknown { 
   /// The associated frame information that requests the screen capture  
   /// permission. This can be used to grab the frame source, name, frameId,  
   /// and parent frame information. 
   [propget] HRESULT OriginalSourceFrameInfo([out, retval] ICoreWebView2FrameInfo**  
      frameInfo); 
-  /// By default, both the `ScreenCaptureRequested` event handlers on the 
+  /// By default, both the `ScreenCaptureStarting` event handlers on the 
   /// `CoreWebView2Frame` and the `CoreWebView2` will be invoked, with the 
   /// `CoreWebView2Frame` event handlers invoked first. The host may 
   /// set this flag to `TRUE` within the `CoreWebView2Frame` event handlers 
   /// to prevent the remaining `CoreWebView2` event handlers from being  
-  /// invoked. 
+  /// invoked. If the flag is set to `FALSE` within the `CoreWebView2Frame` 
+  /// event handlers, downstream handlers can update the `Cancel` property.
   /// 
   /// If a deferral is taken on the event args, then you must synchronously 
   /// set `Handled` to TRUE prior to taking your deferral to prevent the 
@@ -262,43 +274,43 @@ interface ICoreWebView2ScreenCaptureRequestedEventArgs : IUnknown {
   /// Returns an `ICoreWebView2Deferral` object.    
   HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral); 
 } 
-/// This is an extension of the ICoreWebView2Frame interface that supports ScreenCaptureRequested 
+/// This is an extension of the ICoreWebView2Frame interface that supports ScreenCaptureStarting 
 // MSOWNERS: stevenwei@microsoft.com 
 [uuid(12885cda-9caa-4793-9c38-f15827dbab1f), object, pointer_default(unique)] 
 interface ICoreWebView2Frame3 : IUnknown { 
-  /// Add an event handler for the `ScreenCaptureRequested` event. 
-  /// `ScreenCaptureRequested is raised when content in an iframe or any of its 
+  /// Add an event handler for the `ScreenCaptureStarting` event. 
+  /// `ScreenCaptureStarting is raised when content in an iframe or any of its 
   /// descendant iframes requests permission to use the Screen Capture  
   /// API from getDisplayMedia() 
   /// 
-  /// This relates to the `ScreenCaptureRequested` event on the  
+  /// This relates to the `ScreenCaptureStarting` event on the  
   /// CoreWebView2`. 
   /// Both these events will be raised in the case of an iframe requesting 
   /// permission. The `CoreWebView2Frame`'s event handlers will be invoked 
   /// before the event handlers on the `CoreWebView2`. If the `Handled`  
-  /// property of the `ScreenCaptureRequestedEventArgs` is set to TRUE  
+  /// property of the `ScreenCaptureStartingEventArgs` is set to TRUE  
   /// within the`CoreWebView2Frame` event handler, then the event will not  
   /// be raised on the `CoreWebView2`, and its event handlers will not be   
   /// invoked. 
   /// 
-  HRESULT add_ScreenCaptureRequested( 
-      [in] ICoreWebView2FrameScreenCaptureRequestedEventHandler* handler, 
+  HRESULT add_ScreenCaptureStarting( 
+      [in] ICoreWebView2FrameScreenCaptureStartingEventHandler* handler, 
       [out] EventRegistrationToken* token); 
   
   /// Remove an event handler previously added with  
-  /// `add_ScreenCaptureRequested` 
-  HRESULT remove_ScreenCaptureRequested( 
+  /// `add_ScreenCaptureStarting` 
+  HRESULT remove_ScreenCaptureStarting( 
       [in] EventRegistrationToken token); 
 } 
  
-/// Receives `ScreenCaptureRequested` events for iframes. 
+/// Receives `ScreenCaptureStarting` events for iframes. 
 // MSOWNERS: stevenwei@microsoft.com 
 [uuid(c07ac75c-2105-4bb8-9c57-21b6ed8fb381), object, pointer_default(unique)] 
-interface ICoreWebView2FrameScreenCaptureRequestedEventHandler : IUnknown { 
+interface ICoreWebView2FrameScreenCaptureStartingEventHandler : IUnknown { 
   /// Provides the event args for the corresponding event. 
   HRESULT Invoke( 
       [in] ICoreWebView2Frame* sender, 
-      [in] ICoreWebView2ScreenCaptureRequestedEventArgs * args); 
+      [in] ICoreWebView2ScreenCaptureStartingEventArgs * args); 
 } 
 
 ```
@@ -307,10 +319,10 @@ interface ICoreWebView2FrameScreenCaptureRequestedEventHandler : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2ScreenCaptureRequestedEventArgs
+    runtimeclass CoreWebView2ScreenCaptureStartingEventArgs
     {
 
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ScreenCaptureRequestedEventArgs")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ScreenCaptureStartingEventArgs")]
         {
             CoreWebView2FrameInfo OriginalSourceFrameInfo { get; };
             Boolean Cancel { get; set; };
@@ -323,7 +335,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
         event Windows.Foundation.TypedEventHandler<CoreWebView2, 
-            CoreWebView2ScreenCaptureRequestedEventArgs> ScreenCaptureRequested;
+            CoreWebView2ScreenCaptureStartingEventArgs> ScreenCaptureStarting;
     };
 
     runtimeclass CoreWebView2Frame
@@ -331,7 +343,7 @@ namespace Microsoft.Web.WebView2.Core
         // ...
         // ICoreWebView2Frame3 members
         event Windows.Foundation.TypedEventHandler<CoreWebView2Frame, 
-            CoreWebView2ScreenCaptureRequestedEventArgs> ScreenCaptureRequested;
+            CoreWebView2ScreenCaptureStartingEventArgs> ScreenCaptureStarting;
     }
 
 }
