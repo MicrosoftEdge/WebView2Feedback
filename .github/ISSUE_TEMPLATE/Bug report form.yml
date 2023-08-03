@@ -1,12 +1,12 @@
-name: Bug Report new form
-title: '[Bug]: '
-description: File a bug report
+name: Report a problem/bug
+title: '[Problem/Bug]: '
+description: File a report for something not working.
 labels: ["bug"]
 body:
 - type: markdown
   attributes:
     value: 
-      Thanks for taking the time to fill out this bug report. Here is [an example](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3648) of a good bug report that will help us in accurately identifying the issue.
+      Thanks for taking the time to fill out this report. Here is [an example](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3648) of a good bug report that will help us in accurately identifying the issue.
 - id: what-happened
   type: textarea
   attributes:
