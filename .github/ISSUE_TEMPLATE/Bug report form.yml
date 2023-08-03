@@ -105,7 +105,7 @@ body:
     label: Repro steps and sample app
     placeholder: Please let us know how to reproduce this bug. A sample app would be very helpful. 
   validations:
-    required: false
+    required: true
 - id: regression
   type: dropdown
   attributes:
