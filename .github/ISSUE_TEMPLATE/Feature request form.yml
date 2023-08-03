@@ -1,0 +1,82 @@
+name: Feature Request
+description: Share your idea for a new feature/API enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: 
+        Thanks for taking the time to fill out this feature request. Here is a [good sample report](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3683)
+
+  - type: textarea
+    id: feature-need
+    attributes:
+      label: Describe the feature/enhancement you need
+      description: Please describe what you want to happen, or what problem you are seeing without this feature. 
+      placeholder: I need to do xyz when ... but I'm having trouble achieving this because... 
+    validations:
+      required: true
+
+  - type: input
+    id: app-background
+    attributes:
+      label: App background
+      description: If possible, it would be great for us to have a better understanding of what your app do. If it's been shared in another issue opened by you, you can skip this question.
+      placeholder: e.g. our app handles form submission and printing in hospital kiosks
+    validations:
+      required: false
+
+  - type: textarea
+    id: usecases
+    attributes:
+      label: The scenario/use case where you would use this feature
+      description: If possible, please shed some light on the scenario/use cases you are trying to accomplish.
+      placeholder: For example, our user need to print out a report based on a pre-defined template. We need to set the print options in a dialog box with values defined in the template. 
+    validations:
+      required: false
+
+  - type: dropdown
+    id: importance
+    attributes:
+      label: Importance
+      description: May you help us understand the importance of this ask to you?
+      options:
+        - ----Please select----
+        - Critical. My app's basic functions wouldn't work without it.
+        - Impactful. My app's user experience would be significantly compromised without it.
+        - Nice to have. There're other ways to tackle this, but having official API support would be beneficial.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: timeline
+    attributes:
+      label: Timeline
+      description: Any pending timeline for your app that depend on this particular ask?
+      options:
+        - ----Please select----
+        - Urgent - Within the next 6 months
+        - Pressing - Within 1 year
+        - Moderate - Within the next 1-2 years
+        - To be determined
+        - Not time-sensitive
+    validations:
+      required: true
+  - type: textarea
+    id: suggested-implementation
+    attributes:
+      label: Suggested implementation
+      description: If you have solution ideas you'd like to suggest, please describe here. 
+      placeholder: I'd like to suggest...
+    validations:
+      required: false
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: If available, you can introduce the workaround you considered here.
+      placeholder: e.g. I've considered using... but it's not ideal because...
+    validations:
+      required: false
+
+
