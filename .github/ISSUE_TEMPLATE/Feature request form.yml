@@ -17,12 +17,12 @@ body:
     validations:
       required: true
 
-  - type: input
+  - type: textarea
     id: app-background
     attributes:
-      label: App background
-      description: If possible, it would be great for us to have a better understanding of what your app do. If it's been shared in another issue opened by you, you can skip this question.
-      placeholder: e.g. our app handles form submission and printing in hospital kiosks
+      label: About your app and what you are using WebView2 for
+      description: If possible, it would be great for us to have a better understanding of what your app do, and what you're using WebView2 in your app for. If it's been shared in another issue opened by you, you can skip this question.
+      placeholder: e.g. our app use WebView2 to handle form submission and printing in hospital kiosks.
     validations:
       required: false
 
