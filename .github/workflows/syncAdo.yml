@@ -19,3 +19,4 @@ jobs:
         ado_project: 'Edge'
         ado_area_path: 'Edge\Web Experience\WebView2'
         ado_tags: 'WV2_GitHub'
+        ado_gh_closed_tag: 'WV2_GitHub_Closed'
