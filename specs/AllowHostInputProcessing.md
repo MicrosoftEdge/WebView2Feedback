@@ -21,7 +21,19 @@ Setting `AllowHostInputProcessing` to `TRUE` makes `AcceleratorKeyPressed`(all p
 # Examples
 ## Win32 C++
 ```cpp
-HRESULT AppWindow::CreateControllerWithInputPassthrough()
+// We assume WebView2 is hosted in a MFC application. CMFCApplicationApp is a CWinApp.
+// This function can not be triggered by default when focus is in WebView.
+// It can be triggered by setting 'AllowHostInputProcessing' to true.
+BOOL CMFCApplicationApp::PreTranslateMessage(MSG* pMsg) {
+    if (pMsg->message == WM_KEYDOWN || pMsg->message == WM_KEYUP ||
+        pMsg->message == WM_SYSKEYDOWN || pMsg->message == WM_SYSKEYUP && webview_has_focus_)
+        // Prehandle the message. The message will not be sent to WebView if return TRUE.
+        return HandleMsgBeforeWebView(pMsg);
+    return FALSE;
+}
+
+// Create a ControllerOptions and set 'AllowHostInputProcessing' to TRUE.
+HRESULT CreateControllerWithInputPassthrough()
 {
       //! [CreateControllerWithOptions]
     auto webViewEnvironment10 = m_webViewEnvironment.try_query<ICoreWebView2Environment10>();
@@ -52,6 +64,21 @@ HRESULT AppWindow::CreateControllerWithInputPassthrough()
 
 ### .NET, WinRT
 ```c#
+
+partial class BrowserForm
+{
+    // This function can not be triggered by default when focus is in WebView.
+    // It can be triggered by setting 'AllowHostInputProcessing' to true.
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        //DoSomething();
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    // ...
+    private Microsoft.Web.WebView2.WinForms.WebView2 webView2Control;
+}
+
 CoreWebView2Environment _webViewEnvironment;
 public CreateWebView2Controller(IntPtr parentWindow)
 {
