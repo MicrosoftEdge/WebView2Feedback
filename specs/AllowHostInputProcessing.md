@@ -35,7 +35,7 @@ BOOL CMFCApplicationApp::PreTranslateMessage(MSG* pMsg) {
 // Create a ControllerOptions and set 'AllowHostInputProcessing' to TRUE.
 HRESULT CreateControllerWithInputPassthrough()
 {
-      //! [CreateControllerWithOptions]
+    //! [CreateControllerWithOptions]
     auto webViewEnvironment10 = m_webViewEnvironment.try_query<ICoreWebView2Environment10>();
     if (!webViewEnvironment10)
     {
