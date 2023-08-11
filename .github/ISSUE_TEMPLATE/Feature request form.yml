@@ -18,22 +18,13 @@ body:
       required: true
 
   - type: textarea
-    id: app-background
-    attributes:
-      label: About your app and what you are using WebView2 for
-      description: If possible, it would be great for us to have a better understanding of what your app do, and what you're using WebView2 in your app for. If it's been shared in another issue opened by you, you can skip this question.
-      placeholder: e.g. our app use WebView2 to handle form submission and printing in hospital kiosks.
-    validations:
-      required: false
-
-  - type: textarea
     id: usecases
     attributes:
       label: The scenario/use case where you would use this feature
       description: If possible, please shed some light on the scenario/use cases you are trying to accomplish.
       placeholder: For example, our user need to print out a report based on a pre-defined template. We need to set the print options in a dialog box with values defined in the template. 
     validations:
-      required: false
+      required: true
 
   - type: dropdown
     id: importance
@@ -47,21 +38,11 @@ body:
         - Nice to have. There're other ways to tackle this, but having official API support would be beneficial.
     validations:
       required: true
-
-  - type: dropdown
-    id: timeline
+  - type: markdown
     attributes:
-      label: Timeline
-      description: Any pending timeline for your app that depend on this particular ask?
-      options:
-        - ----Please select----
-        - Urgent - Within the next 6 months
-        - Pressing - Within 1 year
-        - Moderate - Within the next 1-2 years
-        - To be determined
-        - Not time-sensitive
-    validations:
-      required: true
+      value: |
+      #### Helpful additional info
+
   - type: textarea
     id: suggested-implementation
     attributes:
@@ -71,12 +52,20 @@ body:
     validations:
       required: false
   - type: textarea
-    id: workaround
+    id: app-background
     attributes:
-      label: Workaround
-      description: Please describe any workaround you have considered, if any.
-      placeholder: e.g. I've considered using... but it's not ideal because...
+      label: What does your app do, and whether there's pending timeline for the request
+      description: If you haven't shared before, it would be helpful to understand what your app does, how WebView2 is used, and if there's any pending timeline.
+      placeholder: e.g. our app use WebView2 to handle form submission and printing in hospital kiosks. We need to release in this December.
     validations:
       required: false
 
+  - type: markdown
+    attributes:
+      value: |
+        #### If you'd like to reply +1 for this request
+        We welcome other developers who saw the original post to indicate they also want this feature. Please reply with these info to help us prioritize:
+        - your use cases/scenario as it may differ from the original post
+        - Importance to you
+        - If possible, more context such as what does your app do and timeline.
 
