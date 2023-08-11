@@ -5,7 +5,7 @@ labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
-      value: 
+      value: |
         Thanks for taking the time to fill out this feature request. Here is a [good sample report](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3683)
 
   - type: textarea
