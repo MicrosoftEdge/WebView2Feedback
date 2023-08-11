@@ -41,7 +41,7 @@ body:
   - type: markdown
     attributes:
       value: |
-      #### Helpful additional info
+        #### Helpful additional info
 
   - type: textarea
     id: suggested-implementation
