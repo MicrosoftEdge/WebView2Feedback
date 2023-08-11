@@ -39,7 +39,7 @@ body:
     id: importance
     attributes:
       label: Importance
-      description: May you help us understand the importance of this ask to you?
+      description: How important is this request to you?
       options:
         - ----Please select----
         - Critical. My app's basic functions wouldn't work without it.
@@ -74,7 +74,7 @@ body:
     id: workaround
     attributes:
       label: Workaround
-      description: If available, you can introduce the workaround you considered here.
+      description: Please describe any workaround you have considered, if any.
       placeholder: e.g. I've considered using... but it's not ideal because...
     validations:
       required: false

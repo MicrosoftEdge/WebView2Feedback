@@ -1,6 +1,6 @@
 name: Report a problem/bug
 title: '[Problem/Bug]: '
-description: File a report for something not working.
+description: Report a problem if something's not working.
 labels: ["bug"]
 body:
 - type: markdown
@@ -64,7 +64,7 @@ body:
     description: What framework are you using?
     label: Framework
     options:
-    - Please select
+    - ----Please select----
     - WPF
     - Win32
     - Winforms
