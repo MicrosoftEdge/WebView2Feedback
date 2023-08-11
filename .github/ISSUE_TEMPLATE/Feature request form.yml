@@ -41,7 +41,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        #### Helpful additional info
+        ## ---Helpful additional info---
 
   - type: textarea
     id: suggested-implementation
@@ -63,7 +63,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        #### If you'd like to reply +1 for this request
+        ## ---How to add a '+1' reply for this request---
         We welcome other developers who saw the original post to indicate they also want this feature. Please reply with these info to help us prioritize:
         - your use cases/scenario as it may differ from the original post
         - Importance to you
