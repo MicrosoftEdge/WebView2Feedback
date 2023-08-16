@@ -5,7 +5,7 @@ Source Frame Info for New Window Requested
 Currently there is no way to determine the source frame of a new window request. This information
 can be useful when deciding how to open the content. For example, you may want to open requests
 that originate in a 3rd party frame in the default browser instead of in a new WebView. The
-WebView2 team is extending `NewWindowRequestedEventArgs` with a `OriginalSourceFrameInfo` property
+WebView2 team is extending `NewWindowRequestedEventArgs` with an `OriginalSourceFrameInfo` property
 to make this easier. Here we described the updated API.
 
 # Examples
