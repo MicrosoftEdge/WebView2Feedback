@@ -90,6 +90,15 @@ void AppWindow::OnCreateEnvironmentCompleted(
 ```
 # API Details
 ```
+/// The WebView2 Runtime channel. Use `RuntimeChannelPreferenceSet` and
+/// `ShouldReverseChannelSearchOrder` on `ICoreWebView2EnvironmentOptions` to
+/// control which channel the WebView2 loader searches for.
+/// |Channel|Primary purpose|How often updated with new features|
+/// |:---:|---|:---:|
+/// |Stable (WebView2 Runtime)|Broad Deployment|~4 weeks|
+/// |Beta|Flighting with inner rings, automated testing|~4 weeks|
+/// |Dev|Automated testing, selfhosting to test new APIs and features|Weekly|
+/// |Canary|Automated testing, selfhosting to test new APIs and features|Daily|
 typedef enum COREWEBVIEW2_RUNTIME_CHANNEL {
   /// The stable WebView2 Runtime that is released every 4 weeks.
   COREWEBVIEW2_RUNTIME_CHANNEL_STABLE,
@@ -114,7 +123,8 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
 
   /// Sets the `RuntimeChannelPreferenceSet`, which is a mask of one or more
   /// `COREWEBVIEW2_RUNTIME_CHANNEL`s. OR operation(s) can be applied to multiple
-  /// `COREWEBVIEW2_RUNTIME_CHANNEL`s to create a mask. By default, the WebView2 loader
+  /// `COREWEBVIEW2_RUNTIME_CHANNEL`s to create a mask. The default value is a
+  /// a mask of all the channels. By default, the WebView2 loader
   /// searches for channels from most to least stable, using the first channel
   /// found on the device. When a `RuntimeChannelPreferenceSet` is provided, the
   /// WebView2 loader will only search for the channels specified in the set.
@@ -174,6 +184,15 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
+    // The WebView2 Runtime channel. Use `RuntimeChannelPreferenceSet` and
+    // `ShouldReverseChannelSearchOrder` on `ICoreWebView2EnvironmentOptions` to
+    // control which channel the WebView2 loader searches for.
+    // |Channel|Primary purpose|How often updated with new features|
+    // |:---:|---|:---:|
+    // |Stable (WebView2 Runtime)|Broad Deployment|~4 weeks|
+    // |Beta|Flighting with inner rings, automated testing|~4 weeks|
+    // |Dev|Automated testing, selfhosting to test new APIs and features|Weekly|
+    // |Canary|Automated testing, selfhosting to test new APIs and features|Daily|
     [Flags] enum CoreWebView2RuntimeChannel
     {
         // The stable WebView2 Runtime that is released every 4 weeks.
@@ -194,10 +213,11 @@ namespace Microsoft.Web.WebView2.Core
         {
             // Sets the `RuntimeChannelPreferenceSet`, which is a mask of one or more
             // `CoreWebView2RuntimeChannel`s. OR operation(s) can be applied to multiple
-            // `CoreWebView2RuntimeChannel`s to create a mask. By default, the
-            // WebView2 loader searches for channels from most to least stable, using the first
-            // channel found on the device. When a `RuntimeChannelPreferenceSet` is provided, the
-            // WebView2 loader will only search for the channels specified in the set.
+            // `CoreWebView2RuntimeChannel`s to create a mask. . The default value is a
+            // a mask of all the channels. By default, the WebView2 loader searches for
+            // channels from most to least stable, using the first channel found on the
+            // device. When a `RuntimeChannelPreferenceSet` is provided, the WebView2
+            // loader will only search for the channels specified in the set.
             // Set `ReverseChannelSearchOrder` to `true` to reverse the search order so
             // that the loader searches for least stable build first. See
             // `CoreWebView2RuntimeChannel` for descriptions of each channel. Environment creation
