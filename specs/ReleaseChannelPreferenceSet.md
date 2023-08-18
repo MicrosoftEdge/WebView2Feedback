@@ -42,11 +42,8 @@ CoreWebView2EnvironmentOptions prior to creating the WebView2 environment.
 ```c#
 CoreWebView2Environment _webViewEnvironment;
 async System.Threading.Tasks.Task CreateEnvironmentAsync() {
-    List<CoreWebView2RuntimeChannel> channels = new List<CoreWebView2RuntimeChannel>
-    {
-        CoreWebView2RuntimeChannel.Beta
-        CoreWebView2RuntimeChannel.Stable,
-    };
+    CoreWebView2RuntimeChannel channels = (CoreWebView2RuntimeChannel)
+        (CoreWebView2RuntimeChannel.Beta | CoreWebView2RuntimeChannel.Stable);
     CoreWebView2EnvironmentOptions customOptions = new CoreWebView2EnvironmentOptions
     {
         ShouldReverseChannelSearchOrder = true,
@@ -67,13 +64,10 @@ void AppWindow::InitializeWebViewEnvironment()
 {
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
     CHECK_FAILURE(options->put_ShouldReverseChannelSearchOrder(TRUE));
-    std::vector<COREWEBVIEW2_RUNTIME_CHANNEL> channels =
-    {
-        COREWEBVIEW2_RUNTIME_CHANNEL_BETA,
-        COREWEBVIEW2_RUNTIME_CHANNEL_STABLE
-    };
-    CHECK_FAILURE(options->SetRuntimeChannelPreferenceSet(
-        channels.size(), channels.data()));
+    COREWEBVIEW2_RUNTIME_CHANNEL channels =
+        COREWEBVIEW2_RUNTIME_CHANNEL_BETA, |
+        COREWEBVIEW2_RUNTIME_CHANNEL_STABLE;
+    CHECK_FAILURE(options->SetRuntimeChannelPreferenceSet(channels));
     // If the loader is unable to find a valid installation from the runtime
     // channel preference set, environment creation will fail with
     // HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND).
@@ -107,21 +101,20 @@ typedef enum COREWEBVIEW2_RUNTIME_CHANNEL {
   /// The Canary Runtime channel that is released daily.
   COREWEBVIEW2_RUNTIME_CHANNEL_CANARY,
 } COREWEBVIEW2_RUNTIME_CHANNEL;
+cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(COREWEBVIEW2_RUNTIME_CHANNEL)")
 
 /// Additional options used to create the WebView2 Environment that support
 /// specifying the `RuntimeChannelPreferenceSet`.
 [uuid(47ac856e-a726-4e04-b36b-f58dafb39e38), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
 
-  /// Gets the `RuntimeChannelPreferenceSet`. The memory pointed to by *channels
-  /// is owned by the `ICoreWebView2EnvironmentOptions` object and there is no
-  /// need to release it. The memory also cannot be used after the
-  /// `ICoreWebView2EnvironmentOptions` object is released.
+  /// Gets the `RuntimeChannelPreferenceSet`.
   HRESULT GetRuntimeChannelPreferenceSet(
-      [out] UINT32* count,
-      [out] COREWEBVIEW2_RUNTIME_CHANNEL** channels);
+      [out] COREWEBVIEW2_RUNTIME_CHANNEL* channels);
 
-  /// Sets the `RuntimeChannelPreferenceSet`. By default, the WebView2 loader
+  /// Sets the `RuntimeChannelPreferenceSet`, which is a mask of one or more
+  /// `COREWEBVIEW2_RUNTIME_CHANNEL`s. OR operation(s) can be applied to multiple
+  /// `COREWEBVIEW2_RUNTIME_CHANNEL`s to create a mask. By default, the WebView2 loader
   /// searches for channels from most to least stable, using the first channel
   /// found on the device. When a `RuntimeChannelPreferenceSet` is provided, the
   /// WebView2 loader will only search for the channels specified in the set.
@@ -137,10 +130,10 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
   /// Examples:
   /// |   RuntimeChannelPreferenceSet   |   Default Channel Search Order   |   Reverse Channel Search Order   |
   /// | --- | --- | --- |
-  /// |{COREWEBVIEW2_RUNTIME_CHANNEL_BETA, COREWEBVIEW2_RUNTIME_CHANNEL_STABLE}| WebView2 Runtime -> Beta | Beta -> WebView2 Runtime|
-  /// |{COREWEBVIEW2_RUNTIME_CHANNEL_CANARY, COREWEBVIEW2_RUNTIME_CHANNEL_DEV, COREWEBVIEW2_RUNTIME_CHANNEL_BETA, COREWEBVIEW2_RUNTIME_CHANNEL_STABLE}| WebView2 Runtime -> Beta -> Dev -> Canary | Canary -> Dev -> Beta -> WebView2 Runtime |
-  /// |{COREWEBVIEW2_RUNTIME_CHANNEL_CANARY}| Canary | Canary |
-  /// |{COREWEBVIEW2_RUNTIME_CHANNEL_BETA, COREWEBVIEW2_RUNTIME_CHANNEL_CANARY, COREWEBVIEW2_RUNTIME_CHANNEL_STABLE} | WebView2 Runtime -> Beta -> Canary | Canary -> Beta -> WebView2 Runtime |
+  /// |COREWEBVIEW2_RUNTIME_CHANNEL_BETA \| COREWEBVIEW2_RUNTIME_CHANNEL_STABLE| WebView2 Runtime -> Beta | Beta -> WebView2 Runtime|
+  /// |COREWEBVIEW2_RUNTIME_CHANNEL_CANARY \| COREWEBVIEW2_RUNTIME_CHANNEL_DEV \| COREWEBVIEW2_RUNTIME_CHANNEL_BETA \| COREWEBVIEW2_RUNTIME_CHANNEL_STABLE| WebView2 Runtime -> Beta -> Dev -> Canary | Canary -> Dev -> Beta -> WebView2 Runtime |
+  /// |COREWEBVIEW2_RUNTIME_CHANNEL_CANARY| Canary | Canary |
+  /// |COREWEBVIEW2_RUNTIME_CHANNEL_BETA \| COREWEBVIEW2_RUNTIME_CHANNEL_CANARY \| COREWEBVIEW2_RUNTIME_CHANNEL_STABLE | WebView2 Runtime -> Beta -> Canary | Canary -> Beta -> WebView2 Runtime |
   ///
   /// If both a `BrowserExecutableFolder` and a `RuntimeChannelPreferenceSet` are
   /// provided, the `BrowserExecutableFolder` takes precedence. The
@@ -157,8 +150,7 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
   /// Use `GetAvailableBrowserVersionString` to verify which channel is used when
   /// this override is set.
   HRESULT SetRuntimeChannelPreferenceSet(
-      [in] UINT32 count,
-      [in] COREWEBVIEW2_RUNTIME_CHANNEL* channels);
+      [in] COREWEBVIEW2_RUNTIME_CHANNEL channels);
 
   /// The `ShouldReverseChannelSearchOrder` property is `FALSE` by default and
   /// the WebView2 loader searches for a Runtime channel on the machine from
@@ -182,16 +174,16 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    enum CoreWebView2RuntimeChannel
+    [Flags] enum CoreWebView2RuntimeChannel
     {
         // The stable WebView2 Runtime that is released every 4 weeks.
-        Stable = 0,
+        Stable = 1,
         // The Beta Runtime channel that is released every 4 weeks, a week before the stable release.
-        Beta = 1,
+        Beta = 2,
         // The Dev Runtime channel that is released weekly.
-        Dev = 2,
+        Dev = 4,
         // The Canary Runtime channel that is released daily.
-        Canary = 3,
+        Canary = 8,
     };
 
     runtimeclass CoreWebView2EnvironmentOptions
@@ -200,11 +192,13 @@ namespace Microsoft.Web.WebView2.Core
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions6")]
         {
-            // List of Runtime channels that the WebView2 loader searches for. By default, the
+            // Sets the `RuntimeChannelPreferenceSet`, which is a mask of one or more
+            // `CoreWebView2RuntimeChannel`s. OR operation(s) can be applied to multiple
+            // `CoreWebView2RuntimeChannel`s to create a mask. By default, the
             // WebView2 loader searches for channels from most to least stable, using the first
             // channel found on the device. When a `RuntimeChannelPreferenceSet` is provided, the
             // WebView2 loader will only search for the channels specified in the set.
-            // Set `ReverseChannelSearchOrder` to `TRUE` to reverse the search order so
+            // Set `ReverseChannelSearchOrder` to `true` to reverse the search order so
             // that the loader searches for least stable build first. See
             // `CoreWebView2RuntimeChannel` for descriptions of each channel. Environment creation
             // fails if the loader is unable to find any channel from the
@@ -215,10 +209,10 @@ namespace Microsoft.Web.WebView2.Core
             // Examples:
             // |   RuntimeChannelPreferenceSet   |   Default Channel Search Order   |   Reverse Channel Search Order   |
             // | --- | --- | --- |
-            // |{COREWEBVIEW2_RUNTIME_CHANNEL_BETA, COREWEBVIEW2_RUNTIME_CHANNEL_STABLE}| WebView2 Runtime -> Beta | Beta -> WebView2 Runtime|
-            // |{COREWEBVIEW2_RUNTIME_CHANNEL_CANARY, COREWEBVIEW2_RUNTIME_CHANNEL_DEV, COREWEBVIEW2_RUNTIME_CHANNEL_BETA, COREWEBVIEW2_RUNTIME_CHANNEL_STABLE}| WebView2 Runtime -> Beta -> Dev -> Canary | Canary -> Dev -> Beta -> WebView2 Runtime |
-            // |{COREWEBVIEW2_RUNTIME_CHANNEL_CANARY}| Canary | Canary |
-            // |{COREWEBVIEW2_RUNTIME_CHANNEL_BETA, COREWEBVIEW2_RUNTIME_CHANNEL_CANARY, COREWEBVIEW2_RUNTIME_CHANNEL_STABLE} | WebView2 Runtime -> Beta -> Canary | Canary -> Beta -> WebView2 Runtime |
+            // |CoreWebView2RuntimeChannel.Beta \| CoreWebView2RuntimeChannel.Stable| WebView2 Runtime -> Beta | Beta -> WebView2 Runtime|
+            // |CoreWebView2RuntimeChannel.Canary \| CoreWebView2RuntimeChannel.Dev \| CoreWebView2RuntimeChannel.Beta \| CoreWebView2RuntimeChannel.Stable | WebView2 Runtime -> Beta -> Dev -> Canary | Canary -> Dev -> Beta -> WebView2 Runtime |
+            // |CoreWebView2RuntimeChannel.Canary| Canary | Canary |
+            // |CoreWebView2RuntimeChannel.Beta \| CoreWebView2RuntimeChannel.Canary \| CoreWebView2RuntimeChannel.Stable | WebView2 Runtime -> Beta -> Canary | Canary -> Beta -> WebView2 Runtime |
             //
             // If both a `BrowserExecutableFolder` and a `RuntimeChannelPreferenceSet` are
             // provided, the `BrowserExecutableFolder` takes precedence. The
@@ -232,7 +226,7 @@ namespace Microsoft.Web.WebView2.Core
             // The loader attempts to interpret each integer and treats any invalid entry as
             // Stable channel. Use `CoreWebView2Environment.GetAvailableBrowserVersionString`
             // to verify which channel is used when this override is set.
-            IVector<CoreWebView2RuntimeChannel> RuntimeChannelPreferenceSet { get; set; };
+            CoreWebView2RuntimeChannel RuntimeChannelPreferenceSet { get; set; };
 
             // The `ShouldReverseChannelSearchOrder` property is `false` by default and
             // the WebView2 loader searches for a Runtime channel on the machine from
