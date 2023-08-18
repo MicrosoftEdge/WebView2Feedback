@@ -65,7 +65,7 @@ void AppWindow::InitializeWebViewEnvironment()
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
     CHECK_FAILURE(options->put_ShouldReverseChannelSearchOrder(TRUE));
     COREWEBVIEW2_RUNTIME_CHANNEL channels =
-        COREWEBVIEW2_RUNTIME_CHANNEL_BETA, |
+        COREWEBVIEW2_RUNTIME_CHANNEL_BETA |
         COREWEBVIEW2_RUNTIME_CHANNEL_STABLE;
     CHECK_FAILURE(options->SetRuntimeChannelPreferenceSet(channels));
     // If the loader is unable to find a valid installation from the runtime
