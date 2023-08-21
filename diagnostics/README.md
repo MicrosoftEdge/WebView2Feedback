@@ -6,3 +6,4 @@ This folder contains directions for gathering various detailed diagnostics/logs 
 - [Installer Logs](install.md): Installer logs include information about any errors that WV2's installer/updater hit when trying to install or update the WV2 runtime.
 - [GPU Info](gpu.md): GPU logs include details on the user's GPU and any potential graphics or rendering issues.
 - [Network Logs](network.md): Network logs include the network requests, responses, and details on any errors when loading files.
+- [Code Integrity](code_integrity.md): how to root cause STATUS_INVALID_IMAGE_HASH errors.
