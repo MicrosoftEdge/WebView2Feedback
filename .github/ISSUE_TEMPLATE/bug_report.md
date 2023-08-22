@@ -12,10 +12,10 @@ assignees: ''
 <!-- Include callstacks and error messages is possible -->
 
 **Version**
-SDK: <!-- e.g. 0.9.579-prerelease -->
-Runtime: <!-- Browser channel and version, e.g. Canary 86.0.612.0 -->
-Framework: <!-- WPF, WinForms, Win32, etc. -->
-OS: <!-- Win10, Win7, version info if available -->
+SDK: <!-- e.g. 0.9.579-prerelease (Check your project's Nuget config for version) -->
+Runtime: <!-- WebView2 Runtime channel and version, e.g. Canary 86.0.612.0 (Check command line of child msedgewebview2.exe processes for version, or "Add/Remove Programs" and search for "WebView2 Runtime" for version) -->
+Framework: <!-- WPF, WinForms, Win32, WinUI2, WinUI3/WinAppSDK, etc. -->
+OS: <!-- Win11, Win10, or Xbox/Hololens; version info if available -->
 
 **Regression**
 Was this working before but has regressed? <!-- yes/no -->
