@@ -77,7 +77,7 @@ body:
 - id: os
   type: dropdown
   attributes:
-    description: What operating system are you using?
+    description: What operating system are you seeing this issue with?
     label: Operating System
     multiple: true
     options:
