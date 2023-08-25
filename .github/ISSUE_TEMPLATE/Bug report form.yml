@@ -53,7 +53,7 @@ body:
 - id: sdk-version
   type: input
   attributes:
-    description: Please enter the SDK version you are using. (e.g. 1.0.1905-prerelease)
+    description: Please enter the SDK version you are using. (e.g. 1.0.1905-prerelease. You can get this value from the Nuget settings for your project.)
     label: SDK Version
   validations:
     required: true
