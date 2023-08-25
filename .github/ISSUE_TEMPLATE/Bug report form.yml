@@ -36,7 +36,7 @@ body:
      multiple: true
      options:
        - Stable release 
-       - Prerelease (Canary/Dev/Beta)      
+       - Prerelease (Edge Canary/Dev/Beta)      
   validations:
       required: true
 - type: markdown
