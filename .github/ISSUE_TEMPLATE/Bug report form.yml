@@ -61,7 +61,7 @@ body:
 - id: framework
   type: dropdown
   attributes:
-    description: What framework are you using?
+    description: What UI framework are you using?
     label: Framework
     options:
     - ----Please select----
