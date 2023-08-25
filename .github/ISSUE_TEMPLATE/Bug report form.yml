@@ -68,7 +68,7 @@ body:
     - WPF
     - Win32
     - Winforms
-    - UWP/WinUI2
+    - WinUI2/UWP
     - WinUI3
     - Unity Plugin
     - Other
