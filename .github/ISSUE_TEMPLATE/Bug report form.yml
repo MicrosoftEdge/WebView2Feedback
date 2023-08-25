@@ -35,7 +35,7 @@ body:
      description: Are you seeing this issue in stable release or prerelease of WebView2 runtime?
      multiple: true
      options:
-       - Stable release 
+       - Stable release (WebView2 Runtime)
        - Prerelease (Edge Canary/Dev/Beta)      
   validations:
       required: true
