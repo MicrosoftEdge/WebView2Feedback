@@ -94,7 +94,7 @@ body:
 - id: os-version
   type: input
   attributes:
-    description: Please enter the OS version you are using. (e.g., 22H2, 21H1, etc.)
+    description: Please enter the OS version you are seeing this issue with. (Version can be found in System Information. e.g., 10.0.22621)
     label: OS Version
   validations:
     required: false
