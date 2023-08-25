@@ -19,7 +19,7 @@ body:
   type: dropdown
   attributes:
      label: Importance
-     description: May you help us understand the level of importance of this ask to you?
+     description: How important is this bug to your app?
      multiple: false
      options:
        - ----Please select----
