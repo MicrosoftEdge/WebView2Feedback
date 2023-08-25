@@ -114,7 +114,7 @@ body:
     options:
     - No, this never worked
     - Regression in newer Runtime
-    - Regression in SDK
+    - Regression in newer SDK
     - Don't know
   validations:
     required: true
