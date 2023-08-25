@@ -69,7 +69,7 @@ body:
     - Win32
     - Winforms
     - WinUI2/UWP
-    - WinUI3
+    - WinUI3/WinAppSDK
     - Unity Plugin
     - Other
   validations:
