@@ -113,8 +113,8 @@ body:
     label: Regression
     options:
     - No, this never worked
-    - Regression in Runtime
-    - Regression in SDK
+    - Regression in newer Runtime
+    - Regression in newer SDK
     - Don't know
   validations:
     required: true
