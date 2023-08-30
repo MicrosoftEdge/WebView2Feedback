@@ -42,19 +42,20 @@ CoreWebView2EnvironmentOptions prior to creating the WebView2 environment.
 ```c#
 CoreWebView2Environment _webViewEnvironment;
 async System.Threading.Tasks.Task CreateEnvironmentAsync() {
-    CoreWebView2RuntimeChannel channels = (CoreWebView2RuntimeChannel)
-        (CoreWebView2RuntimeChannel.Beta | CoreWebView2RuntimeChannel.Stable);
+    CoreWebView2RuntimeChannel channels =
+        CoreWebView2RuntimeChannel.Beta | CoreWebView2RuntimeChannel.Stable;
     CoreWebView2EnvironmentOptions customOptions = new CoreWebView2EnvironmentOptions
-    {
-        ShouldReverseChannelSearchOrder = true,
-        RuntimeChannelPreferenceSet = channels
-    };
+    (
+        shouldReverseChannelSearchOrder: true,
+        runtimeChannelPreferenceSet: channels
+    );
     // Use GetAvailableCoreWebView2BrowserVersionStringWithOptions to check which
     // channel is used with the custom options. If Beta channel was not found,
     // install it on the device.
     string version =
-        CoreWebView2Environment.GetAvailableCoreWebView2BrowserVersionStringWithOptions(
-            nullptr, customOptions);
+        CoreWebView2Environment.GetAvailableBrowserVersionStringWithOptions(
+            browserExecutableFolder: null,
+            environmentOptions: customOptions);
     if (!IsBetaChannel(version))
     {
         InstallChannel(CoreWebView2RuntimeChannel.Beta);
@@ -83,7 +84,7 @@ void AppWindow::InitializeWebViewEnvironment()
     // install it on the device.
     wil::unique_cotaskmem_string version;
     HRESULT hr = GetAvailableCoreWebView2BrowserVersionStringWithOptions(
-        nullptr, options, &version);
+        nullptr, options.Get(), &version);
     if (!IsBetaChannel(version.get()))
     {
         InstallChannel(COREWEBVIEW2_RUNTIME_CHANNEL_BETA);
@@ -133,7 +134,7 @@ typedef enum COREWEBVIEW2_RUNTIME_CHANNEL {
 cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(COREWEBVIEW2_RUNTIME_CHANNEL)")
 
 /// Additional options used to create the WebView2 Environment that support
-/// specifying the `RuntimeChannelPreferenceSet`.
+/// specifying the `RuntimeChannelPreferenceSet` and `ReverseChannelSearchOrder`.
 [uuid(47ac856e-a726-4e04-b36b-f58dafb39e38), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
 
@@ -154,8 +155,9 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
   /// `CreateCoreWebView2EnvironmentWithOptions` fails with
   /// `HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)` if the loader is unable to find
   /// any channel from the `RuntimeChannelPreferenceSet` installed on the device.
-  /// Use `BrowserVersionString` on `ICoreWebView2Environment` to verify which channel
-  /// is used when this option is set.
+  /// Use `GetAvailableCoreWebView2BrowserVersionStringWithOptions` on
+  /// `ICoreWebView2Environment` to verify which channel is used when this option
+  /// is set.
   ///
   /// Examples:
   /// |   RuntimeChannelPreferenceSet   |   Default Channel Search Order   |   Reverse Channel Search Order   |
@@ -177,8 +179,6 @@ interface ICoreWebView2EnvironmentOptions6 : ICoreWebView2EnvironmentOptions5 {
   /// indicated by `ShouldReverseChannelSearchOrder`. The loader attempts to
   /// interpret each integer and treats any invalid entry as Stable channel. See
   /// `CreateCoreWebView2EnvironmentWithOptions` for more details on overrides.
-  /// Use `GetAvailableBrowserVersionString` to verify which channel is used when
-  /// this override is set.
   HRESULT SetRuntimeChannelPreferenceSet(
       [in] COREWEBVIEW2_RUNTIME_CHANNEL channels);
 
@@ -222,7 +222,7 @@ STDAPI GetAvailableCoreWebView2BrowserVersionStringWithOptions(
 namespace Microsoft.Web.WebView2.Core
 {
     // The WebView2 Runtime channel. Use `RuntimeChannelPreferenceSet` and
-    // `ShouldReverseChannelSearchOrder` on `ICoreWebView2EnvironmentOptions` to
+    // `ShouldReverseChannelSearchOrder` on `CoreWebView2EnvironmentOptions` to
     // control which channel the WebView2 loader searches for.
     // |Channel|Primary purpose|How often updated with new features|
     // |:---:|---|:---:|
@@ -260,7 +260,7 @@ namespace Microsoft.Web.WebView2.Core
             // `CoreWebView2RuntimeChannel` for descriptions of each channel. Environment creation
             // fails if the loader is unable to find any channel from the
             // `RuntimeChannelPreferenceSet` installed on the device. Use
-            // `CoreWebView2Environment.BrowserVersionString` to verify which channel
+            // `CoreWebView2Environment.GetAvailableBrowserVersionStringWithOptions` to verify which channel
             // is used.
             //
             // Examples:
@@ -281,8 +281,7 @@ namespace Microsoft.Web.WebView2.Core
             // indicates that the loader should only search for Dev channel and the WebView2
             // Runtime, using the order indicated by `ShouldReverseChannelSearchOrder`.
             // The loader attempts to interpret each integer and treats any invalid entry as
-            // Stable channel. Use `CoreWebView2Environment.GetAvailableBrowserVersionString`
-            // to verify which channel is used when this override is set.
+            // Stable channel.
             CoreWebView2RuntimeChannel RuntimeChannelPreferenceSet { get; set; };
 
             // The `ShouldReverseChannelSearchOrder` property is `false` by default and
@@ -311,14 +310,15 @@ namespace Microsoft.Web.WebView2.Core
 
             // Get the browser version info including channel name if it is not the
             // WebView2 Runtime.  Channel names are Beta, Dev, and Canary.
-            // If an override exists for `browserExecutableFolder`, `runtimeChannelPreferenceSet`,
-            // or `reverseChannelSearchOrder`, the override is used.  `browserExecutableFolder`
+            // If an override exists for `BrowserExecutableFolder`, `RuntimeChannelPreferenceSet`,
+            // or `ReverseChannelSearchOrder`, the override is used.  `BrowserExecutableFolder`
             // takes precedence over the other options. See `CreateCoreWebView2EnvironmentWithOptions`
             // for more details on overrides. If an override is not specified, then the
             // parameters passed to `GetAvailableCoreWebView2BrowserVersionStringWithOptions`
             // are used. The method fails if the loader is unable to find an installed WebView2
             // Runtime or non-stable Microsoft Edge installation.
-            static String GetAvailableBrowserVersionStringWithOptions(String browserExecutableFolder, CoreWebView2EnvironmentOptions options);
+            static String GetAvailableBrowserVersionStringWithOptions(
+                String browserExecutableFolder, CoreWebView2EnvironmentOptions options);
         }
     }
 }
