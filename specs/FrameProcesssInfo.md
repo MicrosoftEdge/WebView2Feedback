@@ -68,7 +68,7 @@ void ProcessComponent::ShowProcessExtendedInfo()
     if (environment14)
     {
         //! [GetProcessExtendedInfos]
-        CHECK_FAILURE(environment14->GetProcessInfosWithDetails(
+        CHECK_FAILURE(environment14->GetProcessExtendedInfos(
             Callback<ICoreWebView2GetProcessExtendedInfosCompletedHandler>(
                 [this](HRESULT error, ICoreWebView2ProcessExtendedInfoCollection* processCollection)
                     -> HRESULT
@@ -408,11 +408,11 @@ typedef enum COREWEBVIEW2_FRAME_KIND {
   COREWEBVIEW2_FRAME_KIND_OBJECT,
 } COREWEBVIEW2_FRAME_KIND;
 
-/// Receives the result of the `GetProcessInfosWithDetails` method.
+/// Receives the result of the `GetProcessExtendedInfos` method.
 /// The result is written to the collection of `ProcessInfo`s provided
-/// in the `GetProcessInfosWithDetails` method call.
+/// in the `GetProcessExtendedInfos` method call.
 [uuid(8e7d154c-e2ca-11ed-b5ea-0242ac120002), object, pointer_default(unique)]
-interface ICoreWebView2GetProcessInfosWithDetailsCompletedHandler : IUnknown {
+interface ICoreWebView2ProcessExtendedInfoCompletedHandler : IUnknown {
   /// Provides the process extended info list for the `GetProcessExtendedInfos`.
   HRESULT Invoke([in] HRESULT errorCode, [in] ICoreWebView2ProcessExtendedInfoCollection* value);
 }
@@ -459,8 +459,8 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// associated `FrameInfo`s which are actively running (showing UI elements) 
   /// in the renderer process. See `AssociatedFrameInfos` for more information.
   /// 
-  /// \snippet ProcessComponent.cpp GetProcessInfosWithDetails
-  HRESULT GetProcessInfosWithDetails([in] ICoreWebView2GetProcessExtendedInfosCompletedHandler* handler);
+  /// \snippet ProcessComponent.cpp GetProcessExtendedInfos
+  HRESULT GetProcessExtendedInfos([in] ICoreWebView2GetProcessExtendedInfosCompletedHandler* handler);
 }
 
 /// A continuation of the ICoreWebView2FrameInfo interface.
