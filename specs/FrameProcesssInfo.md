@@ -28,13 +28,13 @@ all currently running processes associated with this
 `ICoreWebView2Environment` except for crashpad process. This 
 provide the same list of `ProcessInfo`s as what's provided in 
 `GetProcessInfos`. Plus, this also provide the list of associated 
-`FrameInfo`s actively running (showing UI elements) in the 
-renderer process.
+`FrameInfo`s actively running (showing or hiding UI elements) in  
+the renderer process.
 
 * We propose to add the new interface `CoreWebView2ProcessExtendedInfo` 
 which has `AssociatedFrameInfo` and `ProcessInfo` properties. We use 
 the `AssociatedFrameInfo` API to provide a list of `FrameInfo`s actively 
-running (showing UI elements) in the asscociated renderer process. 
+running (showing or hiding UI elements) in the asscociated renderer process. 
 We use `ProcessInfo` to provide corresponding process information. 
 
 * We propose extending `CoreWebView2` and `CoreWebView2Frame` to include 
@@ -438,7 +438,7 @@ interface ICoreWebView2ProcessExtendedInfo : IUnknown {
     [out, retval] ICoreWebView2ProcessInfo** processInfo);
 
   /// The collection of associated `FrameInfo`s which are actively running
-  /// (showing UI elements) in this renderer process. `AssociatedFrameInfos`
+  /// (showing or hiding UI elements) in this renderer process. `AssociatedFrameInfos`
   /// will only be populated when this `CoreWebView2ProcessExtendedInfo`
   /// corresponds to a renderer process. Non-renderer processes will always
   /// have an empty `AssociatedFrameInfos`. The `AssociatedFrameInfos` may
@@ -456,8 +456,9 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// running processes associated with this `CoreWebView2Environment` except 
   /// for crashpad process. This provides the same list of `ProcessInfo`s as 
   /// what's provided in `GetProcessInfos`, but additionally provides a list of 
-  /// associated `FrameInfo`s which are actively running (showing UI elements) 
-  /// in the renderer process. See `AssociatedFrameInfos` for more information.
+  /// associated `FrameInfo`s which are actively running (showing or hiding 
+  /// UI elements) in the renderer process. See `AssociatedFrameInfos` for 
+  /// more information.
   /// 
   /// \snippet ProcessComponent.cpp GetProcessExtendedInfos
   HRESULT GetProcessExtendedInfos([in] ICoreWebView2GetProcessExtendedInfosCompletedHandler* handler);
@@ -481,6 +482,10 @@ interface ICoreWebView2FrameInfo2 : ICoreWebView2FrameInfo {
   /// `CoreWebView2FrameInfo` objects obtained via `CoreWebView2.ProcessFailed` will
   /// always have an invalid frame Id 0.
   /// Note that this `FrameId` could be out of date as it's a snapshot. 
+  /// If there's WebView2 created or destroyed or `FrameCreated/FrameDestroyed`events
+  /// after the call `CoreWebView2ExperimentalEnvironment.GetProcessExtendedInfos` 
+  /// starts, you may want to call `GetProcessExtendedInfos` again to get the updated 
+  /// `FrameInfo`s.
   [propget] HRESULT FrameId([out, retval] UINT32* id);
   /// The frame kind of the frame. `FrameKind` will only be populated when
   /// obtained calling `CoreWebView2ProcessExtendedInfo.AssociatedFrameInfos`.
