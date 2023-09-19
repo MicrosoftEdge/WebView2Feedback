@@ -3,15 +3,27 @@ Programmatic Save As API
 
 # Background
 
-The context menu has the "Save as" item to manually save the html page, image, pdf, or other content through a save as dialog. We provide more flexiable ways to do the save as programmatically in WebView2. You can bring up the default save as dialog easily. And you will be able to block default dialog, save the content silently, by providing the path and save as type programmatically or even build your own save as UI.
+The context menu has the "Save as" item to manually save the html page, image,
+pdf, or other content through a save as dialog. We provide more flexiable ways 
+to do the save as programmatically in WebView2. You can bring up the default 
+save as dialog easily. And you will be able to block default dialog, save the 
+content silently, by providing the path and save as type programmatically or 
+even build your own save as UI.
 
 In this document we describe the API. We'd appreciate your feedback.
 
 # Description
 
-We propose the `SaveContentAs` method WebView2, which allows you to trigger the save as programmatically. By using this method alone, the system default will popup.
+We propose the `SaveContentAs` method WebView2, which allows you to trigger 
+the save as programmatically. By using this method alone, the system default 
+will popup.
 
-Additionally, we propose the `SaveAsRequestedEvent`. You can register this event to block the default dialog and use the `SaveAsRequestedEventArgs` instead, to set your perferred save as path, save as type, and depulicate file replacement rule. In your clinet app, you can design your own UI to input these parameters. For html page, we support 3 save as types: HTML_ONLY, SINGLE_FILE and COMPLETE. For non-html page, the type is been set as DEFAULT, which will save the content as it is. This API also provides default values for all parameters, if you don't want to input anything.
+Additionally, we propose the `SaveAsRequested` event. You can register this 
+event to block the default dialog and use the `SaveAsRequestedEventArgs` 
+instead, to set your preferred save as path, save as type, and duplicate file replacement rule. In your client app, you can design your own UI to input 
+these parameters. For HTML documents, we support 3 save as types: HTML_ONLY, SINGLE_FILE and COMPLETE. Non-HTML documents, must use DEFAULT, which will 
+save the content as it is. This API has default values for all parameters, 
+to perform the common save as operation.
 
 # Examples
 ## Win32 C++
@@ -49,9 +61,9 @@ bool ScenarioSaveAs::ToggleSilent()
                         SaveAsDialog dialog(m_appWindow->GetMainWindow(), contentSaveTypes);
                         if (dialog.confirmed)
                         {
-                            // Set the ResultFilePath, SaveAsType, AllowReplace for the event
-                            // args from this customized dialog inputs, optional. If nothing
-                            // needs to input, the event args will provide default values.
+                            // Setting the ResultFilePath, SaveAsType, AllowReplace for the event
+                            // args from this customized dialog inputs is optional.
+                            // The event args has default values based on the document to save.
                             CHECK_FAILURE(
                                 args->put_ResultFilePath((LPCWSTR)dialog.path.c_str()));
                             CHECK_FAILURE(args->put_SaveAsType(dialog.selectedType));
@@ -144,15 +156,15 @@ bool ScenarioSaveAs::ProgrammaticSaveAs()
 [v1_enum] typedef enum COREWEBVIEW2_SAVE_CONTENT_AS_RESULTS {
   /// Programmatically open a system default save as dialog
   COREWEBVIEW2_SAVE_AS_OPEN_SYSTEM_DIALOG,
-  /// Save as downloading not start as given an invalid path
+  /// Could not perform Save As because the destination file path is an invalid path.
   COREWEBVIEW2_SAVE_AS_INVALID_PATH,
-  /// Save as downloading not start as given a duplicate filename and
-  /// replace file not allowed
+  /// Could not perform Save As because the destination file path already exists and 
+  /// replacing files was not allowed by the AllowReplace property.
   COREWEBVIEW2_SAVE_AS_FILE_ALREADY_EXISTS,
   /// Save as downloading not start as the `SAVE_AS_TYPE` selection not
   /// supported because of the content MIME type or system limits
   COREWEBVIEW2_SAVE_AS_TYPE_NOT_SUPPORTED,
-  /// Cancel the save as request
+  /// Did not perform Save As because the client side decided to cancel.
   COREWEBVIEW2_SAVE_AS_CANCELLED,
   /// Save as request complete, the downloading started
   COREWEBVIEW2_SAVE_AS_STARTED
@@ -224,8 +236,8 @@ interface ICoreWebView2StagingSaveAsRequestedEventArgs : IUnknown {
   /// Get the `ConfrimToSave` for save as
   [propget] HRESULT ConfirmToSave ([out, retval] BOOL* confirmToSave);
 
-  /// Returns an `ICoreWebView2Deferral` object. Use this operation to complete
-  /// the SaveAsRequestedEvent.
+  /// Returns an `ICoreWebView2Deferral` object. This will defer showing the 
+  /// default Save As dialog and performing the Save As operation.
   HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 
   /// `ResultFilePath` is absolute full path of the location. It includes the
@@ -238,10 +250,11 @@ interface ICoreWebView2StagingSaveAsRequestedEventArgs : IUnknown {
   /// Get the `ResultFilePath` for save as
   [propget] HRESULT ResultFilePath ([out, retval] LPWSTR* resultFilePath);
 
-  /// `AllowReplace` gives the user an option to control when the file name
-  /// duplicates with an existing file. TRUE allows the old file be replaced.
-  /// FALSE denies when the file name duplicates, the download won’t start,
-  /// will return COREWEBVIEW2_SAVE_AS_FILE_ALREADY_EXISTS.
+  /// `AllowReplace` allows you to control what happens when a file already 
+  /// exists in the file path to which the Save As operation is saving.
+  /// Setting this TRUE allows existing files to be replaced.
+  /// Settings this FALSE will not replace existing files and  will return
+  /// COREWEBVIEW2_SAVE_AS_FILE_ALREADY_EXISTS.
   ///
   /// Set if allowed to replace the old file if duplicate happens in the save as job
   [propput] HRESULT AllowReplace ([in] BOOL allowReplace);
@@ -249,8 +262,10 @@ interface ICoreWebView2StagingSaveAsRequestedEventArgs : IUnknown {
   /// Get the duplicates replace rule for save as
   [propget] HRESULT AllowReplace ([out, retval] BOOL* allowReplace);
 
-  /// `SaveAsType` is required, see the enum COREWEBVIEW2_SAVE_AS_TYPE, if the type
-  /// doesn’t match, return COREWEBVIEW2_SAVE_AS_TYPE_NOT_SUPPORT
+  /// How to save documents with different types. See the enum 
+  /// COREWEBVIEW2_SAVE_AS_TYPE for a description of the different options.  
+  /// If the type isn't allowed for the current document, 
+  /// COREWEBVIEW2_SAVE_AS_TYPE_NOT_SUPPORT will be returned from SaveContentAs.
   ///
   /// Set the content save as type for save as job
   [propput] HRESULT SaveAsType ([in] COREWEBVIEW2_SAVE_AS_TYPE type);
