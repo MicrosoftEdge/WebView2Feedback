@@ -101,7 +101,7 @@ body:
   attributes:
     description: What are the steps needed to reproduce the bug? Describe the expected behavior against the actual behavior.
     label: Repro steps
-    validations:
+  validations:
     required: true
 - id: regression
   type: dropdown
