@@ -45,13 +45,13 @@ body:
 - id: runtime-version
   type: input
   attributes:
-    description: Which runtime version are you using? 
+    description: Which runtime version are you using? Instructions [here](https://github.com/MicrosoftEdge/WebView2Feedback/blob/victorhuangwq/updatetemplate/diagnostics/version.md)
     label: Runtime Version
     placeholder: (eg. 114.0.1823.79)
 - id: sdk-version
   type: input
   attributes:
-    description: Which SDK version are you using? (You can get this value from the Nuget settings for your project.)
+    description: Which SDK version are you using?  Instructions [here](https://github.com/MicrosoftEdge/WebView2Feedback/blob/victorhuangwq/updatetemplate/diagnostics/version.md)
     label: SDK Version
     placeholder: (eg. 1.0.1905-prerelease)
 
