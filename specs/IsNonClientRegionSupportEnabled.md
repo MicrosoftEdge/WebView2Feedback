@@ -31,7 +31,7 @@ When set to `FALSE`, then all non-client region support will be disabled.
 
 # Examples
 This example enables non-client region support for all pages on www.microsoft.com. 
-Pages on other origins will not be trusted to use this feature. 
+Pages on other origins will not have non-client region support enabled. 
 
 ## Win32 C++
 ```cpp 
@@ -56,19 +56,9 @@ ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWin
                 coreWebView2Settings12 = m_settings.try_query<ICoreWebView2Settings12();
                 CHECK_FEATURE_RETURN(coreWebView2Settings12);
                 
-                BOOL enabled;
-                CHECK_FAILURE(coreWebView2Settings12->get_IsNonClientRegionSupportEnabled(&enabled));
-
-                if (wcscmp(domain.get(), allowedHostName) == 0 && !enabled)
-                {
-                    CHECK_FAILURE(
-                        coreWebView2Settings12->put_IsNonClientRegionSupportEnabled(TRUE));
-                }
-                else if (wcscmp(domain.get(), allowedHostName) != 0 && enabled)
-                {
-                    CHECK_FAILURE(
-                        coreWebView2Settings12->put_IsNonClientRegionSupportEnabled(FALSE));
-                }
+                bool trusted = _wcsicmp(domain.get(), allowedHostName) == 0;
+                CHECK_FAILURE(coreWebView2Settings12->put_IsNonClientRegionSupportEnabled(trusted));
+                
                 return S_OK;
             })
             .Get(),
