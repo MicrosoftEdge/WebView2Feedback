@@ -41,7 +41,7 @@ body:
 - type: markdown
   attributes:
     value: |
-          **Tip:** it's recommended to test your web content in the WebView2 control against [Microsoft Edge Insider (preview) Channels (Beta, Dev, or Canary)](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ). For more information please check out [testing app for forward-compatibility](Test your app for forward-compatibility).
+          **Tip:** it's recommended to test your web content in the WebView2 control against [Microsoft Edge Insider (preview) Channels (Beta, Dev, or Canary)](https://www.microsoft.com/en-us/edge/download/insider?form=MA13FJ). For more information please check out [testing app for forward-compatibility](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#test-your-app-for-forward-compatibility).
 - id: runtime-version
   type: input
   attributes:
