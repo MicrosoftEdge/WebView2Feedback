@@ -6,13 +6,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this feature request. Here is a [good sample report](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3683)
+        Thanks for taking the time to fill out this feature request. Here is an example of a [good feature request](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3683)
 
   - type: textarea
     id: feature-need
     attributes:
       label: Describe the feature/enhancement you need
-      description: Please describe what you want to happen, or what problem you are seeing without this feature. 
+      description: Describe what you want to happen, or what problem you are seeing without this feature. 
       placeholder: I need to do xyz when ... but I'm having trouble achieving this because... 
     validations:
       required: true
@@ -21,16 +21,14 @@ body:
     id: usecases
     attributes:
       label: The scenario/use case where you would use this feature
-      description: If possible, please shed some light on the scenario/use cases you are trying to accomplish.
-      placeholder: For example, our user need to print out a report based on a pre-defined template. We need to set the print options in a dialog box with values defined in the template. 
+      placeholder: e.g. our user needs to print out a report based on a pre-defined template. We need to set the print options in a dialog box with values defined in the template. 
     validations:
       required: true
 
   - type: dropdown
     id: importance
     attributes:
-      label: Importance
-      description: How important is this request to you?
+      label: How important is this request to you?
       options:
         - ----Please select----
         - Critical. My app's basic functions wouldn't work without it.
@@ -65,7 +63,7 @@ body:
       value: |
         ## ---How to add a '+1' reply for this request---
         We welcome other developers who saw the original post to indicate they also want this feature. Please reply with these info to help us prioritize:
-        - your use cases/scenario as it may differ from the original post
-        - Importance to you
-        - If possible, more context such as what does your app do and timeline.
+        - Your use cases/scenario as it may differ from the original post
+        - How important is this request to you?
+        - Additionally, any context such as what does your app do, and any pending timeline
 
