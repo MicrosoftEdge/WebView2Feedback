@@ -10,9 +10,8 @@ body:
 - id: what-happened
   type: textarea
   attributes:
-    description: Also tell us what do you expect to happen
+    description: Describe the issue you encountered. Callstacks and error messages are helpful.
     label: What happened?
-    placeholder: Describe the issue you encountered. Callstacks and error messages are helpful.
   validations:
     required: true
 - id: importance
