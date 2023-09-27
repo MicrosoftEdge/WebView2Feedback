@@ -18,7 +18,7 @@ non-client support via a setting is the better solution.
 regions is the only non-client experience we have implemented. Eventually, this setting will 
 expand to enable other non-client functionality, such as resize and caption controls. 
 
-When the setting is set to `TRUE`, then the following non-client region support for the top 
+When the setting is set to `TRUE`, then the following non-client region support for only the top 
 level document will be enabled:  
 * Web pages will be able to use the `app-region` CSS style. 
 * Draggable Regions declared with the CSS style `app-region: drag` will support title bar 
