@@ -92,8 +92,9 @@ body:
 - id: os-version
   type: input
   attributes:
-    description: Which OS version are you seeing this issue with? (Version can be found in System Information. e.g., 10.0.22621)
+    description: Version can be found in System > About or System Information
     label: OS Version
+    placeholder: (e.g. 22621.2283 or 10.0.22621)
   validations:
     required: false
 - id: repro-steps
