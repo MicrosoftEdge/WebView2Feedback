@@ -2,7 +2,7 @@
 
 To improve the developer experience for customizing non-client regions, WebView2 is 
 working to support using DOM elements as non-client regions. We currently have limited 
-support for title bar aka draggable regions and are working on building out support 
+support for custom title bars aka draggable regions and are working on building out support 
 for caption controls and resize regions. 
 
 For security and flexibility, we want developers to be able to enable or disable all 
