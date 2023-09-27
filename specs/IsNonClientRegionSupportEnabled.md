@@ -135,7 +135,7 @@ See [API Details](#api-details) section below for API reference.
 [uuid(436CA5E2-2D50-43C7-9735-E760F299439E), object, pointer_default(unique)]
 interface ICoreWebView2Settings12 : ICoreWebView2Settings11 {
   /// The `IsNonClientRegionSupportEnabled` property enables web pages to use the 
-  /// `app-region` CSS style. Disabling/Enabling the `IsNonClientRegionSupportEnabled`
+  /// `app-region` CSS style. Changing the `IsNonClientRegionSupportEnabled` property
   /// takes effect after the next navigation. Defaults to `FALSE`.
   /// 
   /// When this property is `TRUE`, then all the following non-client region support 
