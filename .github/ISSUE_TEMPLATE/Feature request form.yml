@@ -33,7 +33,7 @@ body:
         - ----Please select----
         - Critical. My app's basic functions wouldn't work without it.
         - Impactful. My app's user experience would be significantly compromised without it.
-        - Nice to have. There're other ways to tackle this, but having official API support would be beneficial.
+        - Nice to have. There are other ways to tackle this, but having official API support would be beneficial.
     validations:
       required: true
   - type: markdown
