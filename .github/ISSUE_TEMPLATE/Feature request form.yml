@@ -52,7 +52,7 @@ body:
   - type: textarea
     id: app-background
     attributes:
-      label: What does your app do, and whether there's pending timeline for the request
+      label: What does your app do? Is there a pending deadline for this request?
       description: If you haven't shared before, it would be helpful to understand what your app does, how WebView2 is used, and if there's any pending timeline.
       placeholder: e.g. our app use WebView2 to handle form submission and printing in hospital kiosks. We need to release in this December.
     validations:
