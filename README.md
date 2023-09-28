@@ -14,14 +14,16 @@ This is a place for all developers of the [Microsoft Edge WebView2](https://aka.
 
 ### 🐞 How to report a bug
 
-1. Search for existing issues to avoid duplicates. If you find a duplicate, give it a 👍 reaction, and add a comment with additional details that may help us investigate.
-1. If the issue is not already reported, [open a new issue](https://github.com/MicrosoftEdge/WebView2Feedback/issues/new/choose).
+1. [Search for existing open bugs](https://github.com/MicrosoftEdge/WebView2Feedback/issues?q=is%3Aissue+is%3Aopen+label%3Abug) to avoid duplicates.
+    1. If you find that your bug is already reported, give it a 👍 reaction, and add a comment with additional details that may help us investigate.
+    1. If the issue is not already reported, [open a new issue](https://github.com/MicrosoftEdge/WebView2Feedback/issues/new/choose).
 1. Tracked issues will be labeled with the `tracked` label. If you see this label, we are aware of the issue and tracking it on our internal backlog.
 
 ### 💡 How to request a feature
 
-1. Search for existing issues to avoid duplicates. If you find a duplicate, give it a 👍 reaction, and provide additional context into how you would use the feature.
-1. If the feature is not already requested, [open a new issue](https://github.com/MicrosoftEdge/WebView2Feedback/issues/new/choose).
+1. [Search for existing feature request](https://github.com/MicrosoftEdge/WebView2Feedback/issues?q=is%3Aissue+is%3Aopen+label%3A%22feature+request%22) to avoid duplicates.
+    1. If you find a similar feature request, give it a 👍 reaction, and provide additional context into how you would use the feature.
+    2. If the feature is not already requested, [open a new issue](https://github.com/MicrosoftEdge/WebView2Feedback/issues/new/choose).
 1. Tracked issues will be labeled with the `tracked` label. If you see this label, we are aware of the issue and tracking it on our internal backlog.
 
 ## Code of Conduct
