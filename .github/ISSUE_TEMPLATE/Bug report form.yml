@@ -22,7 +22,7 @@ body:
      multiple: false
      options:
        - ----Please select----
-       - Blocking. My app's basic functions is not working due to this issue.
+       - Blocking. My app's basic functions are not working due to this issue.
        - Important. My app's user experience is significantly compromised.
        - Moderate. My app's user experience is affected, but still usable.
   validations:
