@@ -1,9 +1,15 @@
 
-Title
+Code integrity failure source module path
 ===
 
 # Background
-Code integrity is a feature of Windows that verifies the authenticity and integrity of the code that runs on the system. It helps protect it from malware, tampering, and unauthorized changes. Code integrity checks the digital signatures of the files that are loaded into memory, and prevents any file that does not have a valid signature from running in WebView2. We are extending ProcessFailedEventArgs with BlockedFile property which caused webview2 process to exit with code STATUS_INVALID_IMAGE_HASH.
+[Windows Code Integrity](https://learn.microsoft.com/en-us/mem/intune/user-help/you-need-to-enable-code-integrity) is a feature that verifies the
+integrity of the code that runs on the system. It helps protect it from malware,
+tampering, and unauthorized changes. Code integrity checks the digital
+signatures of the files that are loaded into memory, and prevents any
+file that does not have a valid signature from running in WebView2 process.
+We are extending ProcessFailedEventArgs with FailureSourceModulePath property
+which caused webview2 process to exit with code STATUS_INVALID_IMAGE_HASH.
 
 # Examples
 
@@ -13,7 +19,10 @@ Code integrity is a feature of Windows that verifies the authenticity and integr
         {
             if (e.ExitCode == -1073740760 /*STATUS_INVALID_IMAGE_HASH*/)
             {
-                SendTelemetry(e.BlockedFile);
+                // If the process crashed because of STATUS_INVALID_IMAGE_HASH,
+                // then we want to log to our app's telemetry the name of the
+                // DLL that caused the issue.
+                SendTelemetry(e.FailureSourceModulePath);
             }
         }
     ```
@@ -28,10 +37,13 @@ Code integrity is a feature of Windows that verifies the authenticity and integr
                 CHECK_FAILURE(args->get_ExitCode(&exit_code));
 
                 if (exit_code == -1073740760 /*STATUS_INVALID_IMAGE_HASH*/) {
-                    wil::unique_cotaskmem_string blockedFile;
-                    CHECK_FAILURE(arg_blocked_file->get_BlockedFile(&blockedFile));
+                    wil::unique_cotaskmem_string modulePath;
+                    CHECK_FAILURE(args->get_FailureSourceModulePath(&modulePath));
 
-                    SendTelemetry(blockedFile);
+                    // If the process crashed because of STATUS_INVALID_IMAGE_HASH,
+                    // then we want to log to our app's telemetry the name of the
+                    // DLL that caused the issue.
+                    SendTelemetry(modulePath);
                 }
 
                 return S_OK;
@@ -42,21 +54,21 @@ Code integrity is a feature of Windows that verifies the authenticity and integr
 # API Details
 
 ```
-/// A continuation of the ICoreWebView2ProcessFailedEventArgs2 interface
-/// fot getting blocked file for code integrity process failures.
 [uuid(a9fc1af8-f934-4f0f-a788-7be0808c329b), object, pointer_default(unique)]
 interface ICoreWebView2ProcessFailedEventArgs : IUnknown {
+    /// This property is the full path of the module that caused the
+    /// crash in cases of Windows Code Integrity failures.
     /// Code Integrity is a feature that verifies the integrity and
     /// authenticity of dynamic-link libraries (DLLs)
     /// on Windows systems. It ensures that only trusted
     /// code can run on the system and prevents unauthorized or
     /// malicious modifications.
     /// When ProcessFailed occurred due to a failed Code Integrity check,
-    /// this property returns the name of the blocked file that was prevented from
+    /// this property returns the full path of the file that was prevented from
     /// loading on the system.
-    /// The webview2 process which tried to load blocked DLL will fail with
+    /// The webview2 process which tried to load the DLL will fail with
     /// exit code STATUS_INVALID_IMAGE_HASH(-1073740760).
-    /// A file can be blocked for various
+    /// A file can fail integrity check for various
     /// reasons, such as:
     /// - It has an invalid or missing signature that does
     /// not match the publisher or signer of the file.
@@ -64,7 +76,7 @@ interface ICoreWebView2ProcessFailedEventArgs : IUnknown {
     /// - It has been blocklisted by an administrator or a security policy.
     /// This property always will be empty if failure is not caused by
     /// STATUS_INVALID_IMAGE_HASH.
-    [propget] HRESULT BlockedFile([out, retval] LPWSTR* blockedFile);
+    [propget] HRESULT FailureSourceModulePath([out, retval] LPWSTR* modulePath);
 }
 ```
 
@@ -77,7 +89,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ProcessFailedEventArgs3")]
         {
             // ICoreWebView2ProcessFailedEventArgs3 members
-            String BlockedFile { get; };
+            String FailureSourceModulePath { get; };
         }
 
     }
