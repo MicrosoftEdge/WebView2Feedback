@@ -1,7 +1,7 @@
 contact_links:
   - name: WebView2 Questions and Answers
-    url: https://github.com/MicrosoftEdge/WebView2Feedback/discussions/categories/q-a
+    url: https://github.com/MicrosoftEdge/WebView2Feedback/discussions/new?category=q-a
     about: Ask the community for help
   - name: WebView2 Tips and Tricks
-    url: https://github.com/MicrosoftEdge/WebView2Feedback/discussions/categories/tips-and-tricks
+    url: https://github.com/MicrosoftEdge/WebView2Feedback/discussions/new?category=tips-and-tricks
     about: Share tips and tricks you've learned for using WebView2
