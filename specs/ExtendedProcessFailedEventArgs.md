@@ -58,7 +58,8 @@ which caused webview2 process to exit with code STATUS_INVALID_IMAGE_HASH.
 interface ICoreWebView2ProcessFailedEventArgs : IUnknown {
     /// This property is the full path of the module that caused the
     /// crash in cases of Windows Code Integrity failures.
-    /// Code Integrity is a feature that verifies the integrity and
+    /// [Windows Code Integrity](https://learn.microsoft.com/en-us/mem/intune/user-help/you-need-to-enable-code-integrity)
+    /// is a feature that verifies the integrity and
     /// authenticity of dynamic-link libraries (DLLs)
     /// on Windows systems. It ensures that only trusted
     /// code can run on the system and prevents unauthorized or
@@ -74,7 +75,7 @@ interface ICoreWebView2ProcessFailedEventArgs : IUnknown {
     /// not match the publisher or signer of the file.
     /// - It has been tampered with or corrupted by malware or other software.
     /// - It has been blocklisted by an administrator or a security policy.
-    /// This property always will be empty if failure is not caused by
+    /// This property always will be the empty string if failure is not caused by
     /// STATUS_INVALID_IMAGE_HASH.
     [propget] HRESULT FailureSourceModulePath([out, retval] LPWSTR* modulePath);
 }
