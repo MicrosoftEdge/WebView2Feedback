@@ -4,13 +4,16 @@ Welcome to Microsoft Edge WebView2 feedback repository.
 
 This is a place for all developers of the [Microsoft Edge WebView2](https://aka.ms/webview) to report bugs, make feature requests, and ask questions and have discussions about WebView2.
 
-- 🐞 [How to report a bug](#🐞-how-to-report-a-bug)
-- 💡 [How to request a feature](#💡-how-to-request-a-feature)
+- 🐞 [How to report a bug](#-how-to-report-a-bug)
+- 💡 [How to request a feature](#-how-to-request-a-feature)
 - ❓ [Ask a question about WebView2](https://github.com/MicrosoftEdge/WebView2Feedback/discussions/new?category=q-a)
 - 💬 [Discuss WebView2 with other developers](https://github.com/MicrosoftEdge/WebView2Feedback/discussions)
 - 📣 [Subscribe to WebView2Announcements for news, API proposals and SDK Release announcements](https://github.com/MicrosoftEdge/WebView2Announcements)
 - 📖 [Read the WebView2 documentation](https://aka.ms/webview)
 
+<p align="center">
+  <img src="https://az813057.vo.msecnd.net/images/runtime-installer.svg" alt="Graphic of developers using WebView2 in their applications"/>
+</p>
 
 ### 🐞 How to report a bug
 
