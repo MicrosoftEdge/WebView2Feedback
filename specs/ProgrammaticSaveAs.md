@@ -34,21 +34,23 @@ This example hides the default save as dialog and shows a customized dialog.
 ```c++
 bool ScenarioSaveAs::ToggleEventHandler()
 {
-    if (!m_webView2Staging20)
+    if (!m_webView2_20)
         return false;
+    // m_hasSaveAsRequestedEventHandler indicates whether the event handler
+    // has been subscribed.
     if (m_hasSaveAsRequestedEventHandler)
     {
         // Unregister the handler for the `SaveAsRequested` event.
-        m_webView2Staging20->remove_SaveAsRequested(m_saveAsRequestedToken);
+        m_webView2_20->remove_SaveAsRequested(m_saveAsRequestedToken);
     }
     else
     {
         // Register a handler for the `SaveAsRequested` event.
-        m_webView2Staging20->add_SaveAsRequested(
-            Callback<ICoreWebView2StagingSaveAsRequestedEventHandler>(
+        m_webView2_20->add_SaveAsRequested(
+            Callback<ICoreWebView2SaveAsRequestedEventHandler>(
                 [this](
                     ICoreWebView2* sender,
-                    ICoreWebView2StagingSaveAsRequestedEventArgs* args) -> HRESULT
+                    ICoreWebView2SaveAsRequestedEventArgs* args) -> HRESULT
                 {
                     // Hide the system default save as dialog.
                     CHECK_FAILURE(args->put_SuppressDefaultDialog(TRUE));
@@ -59,7 +61,6 @@ bool ScenarioSaveAs::ToggleEventHandler()
                         wil::unique_cotaskmem_string mimeType;
                         CHECK_FAILURE(args->get_ContentMimeType(&mimeType));
 
-                        
                         // As an end developer, you can design your own dialog UI, or no UI at all.
                         // You can ask the user information like file name, file extenstion, and etc. 
                         // Finally, concatenate and pass them into the event args
@@ -112,10 +113,10 @@ Call RequestSaveAs method to trigger the programmatic save as.
 
 bool ScenarioSaveAs::ProgrammaticSaveAs()
 {
-    if (!m_webView2Staging20)
+    if (!m_webView2_20)
         return false;
-    m_webView2Staging20->RequestSaveAs(
-        Callback<ICoreWebView2StagingRequestSaveAsCompletedHandler>(
+    m_webView2_20->RequestSaveAs(
+        Callback<ICoreWebView2RequestSaveAsCompletedHandler>(
             [this](HRESULT errorCode, COREWEBVIEW2_SAVE_AS_REQUESTED_RESULTS result) -> HRESULT
             {
                 // Show RequestSaveAs returned result, optional
@@ -129,10 +130,77 @@ bool ScenarioSaveAs::ProgrammaticSaveAs()
 }
 ```
 
+## .Net/ WinRT
+### Add or Remove the Event Handler
+This example hides the default save as dialog and shows a customized dialog.
+```c#
+
+void TaggleEventHandlerExecuted(object target, ExecutedRoutedEventArgs e)
+{
+    if (hasSaveAsRequestedEventHandler)
+        webView.CoreWebView2.SaveAsRequested -= WebView_SaveAsRequested;
+    else 
+        webView.CoreWebView2.SaveAsRequested += WebView_SaveAsRequested;
+    hasSaveAsRequestedEventHandler = !hasSaveAsRequestedEventHandler;
+    MessageBox.Show(hasSaveAsRequestedEventHandler? "Event Handler Added":"Event Handler Rremoved" , "Info");
+}
+
+void WebView_SaveAsRequested(object sender, CoreWebView2SaveAsRequestedEventArgs args)
+    {
+    // Hide the system default save as dialog.
+    args.SuppressDefaultDialog = true;
+
+    // Developer can obtain a deferral for the event so that the CoreWebView2
+    // doesn't examine the properties we set on the event args until
+    // after the deferral completes asynchronously.
+    CoreWebView2Deferral deferral = args.GetDeferral();
+
+    // We avoid potential reentrancy from running a message loop in the event
+    // handler. Show the customized dialog later when complete the deferral
+    // asynchronously.
+    System.Threading.SynchronizationContext.Current.Post((_) =>
+    {
+        using (deferral)
+        {
+            // This is a customized dialog example, the constructor returns after the 
+            // dialog interaction is completed by the end user.
+            var dialog = new SaveAsDialog(_Kinds);
+            if (dialog.ShowDialog() == true)
+            {
+                // Preview the content mime type, optional.
+                args.ContentMimeType;
+                
+                // Setting parameters of event args from this dialog is optional.
+                // The event args has default values.
+                args.ResultFilePath = dialog.Directory.Text + "/" + dialog.Filename.Text;
+                args.Kind = (CoreWebView2SaveAsRequestedKind)dialog.Kind.SelectedItem;
+                args.AllowReplace = (bool)dialog.AllowReplaceOldFile.IsChecked;
+
+            }
+            else
+            {
+                // Save As cancelled from this customized dialog
+                args.Cancel = true;
+            }
+        }
+    }, null);
+}
+```
+### Programmatic Save As
+Call RequestSaveAsAsync method to trigger the programmatic save as.
+```c#
+async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
+{
+    CoreWebView2SaveAsRequestedResults result = await webView.CoreWebView2.RequestSaveAsAsync();
+    // Show RequestSaveAsAsync returned result, optional
+    MessageBox.Show(result.ToString(), "Info");
+}
+```
+
 # API Details
 ## Win32 C++
 ```c++
-/// Specifies save as requested kind selection options for `ICoreWebView2Staging20`,
+/// Specifies save as requested kind selection options for `ICoreWebView2_20`,
 /// used in `SaveAsRequestedEventArgs`
 ///
 /// When the source is a html page, supports to select `HTML_ONLY`,
@@ -183,12 +251,12 @@ bool ScenarioSaveAs::ProgrammaticSaveAs()
   /// Did not perform Save As because the client side decided to cancel.
   COREWEBVIEW2_SAVE_AS_REQUESTED_CANCELLED,
   /// Save as requested completeed, the downloading would start
-  COREWEBVIEW2_SAVE_AS_REQUESTED_STARTED
+  COREWEBVIEW2_SAVE_AS_REQUESTED_COMPLETED,
 } COREWEBVIEW2_SAVE_AS_REQUESTED_RESULTS;
 
 
 [uuid(15e1c6a3-c72a-4df3-91d7-d097fbec3bfd), object, pointer_default(unique)]
-interface ICoreWebView2Staging20 : IUnknown {
+interface ICoreWebView2_20 : IUnknown {
   /// Programmatically trigger a save as action for current content. `SaveAsRequested` 
   /// event will be raised.
   ///
@@ -200,14 +268,14 @@ interface ICoreWebView2Staging20 : IUnknown {
   /// Please see COREWEBVIEW2_SAVE_AS_REQUESTED_RESULTS
   ///
   /// \snippet ScenarioSaveAs.cpp ProgrammaticSaveAs
-  HRESULT SaveContentAs([in] ICoreWebView2StagingRequestSaveAsCompletedHandler* handler);
+  HRESULT SaveContentAs([in] ICoreWebView2RequestSaveAsCompletedHandler* handler);
 
   /// Add an event handler for the `SaveAsRequested` event. This event is raised
   /// when save as is triggered, programmatically or manually.
   ///
   /// \snippet ScenarioSaveAs.cpp ToggleEventHandler
   HRESULT add_SaveAsRequested(
-   [in] ICoreWebView2StagingSaveAsRequestedEventHandler* eventHanlder,
+   [in] ICoreWebView2SaveAsRequestedEventHandler* eventHanlder,
    [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_SaveAsRequested`.
@@ -219,15 +287,15 @@ interface ICoreWebView2Staging20 : IUnknown {
 
 /// The event handler for the `SaveAsRequested` event.
 [uuid(55b86cd2-adfd-47f1-9cef-cdfb8c414ed3), object, pointer_default(unique)]
-interface ICoreWebView2StagingSaveAsRequestedEventHandler : IUnknown {
+interface ICoreWebView2SaveAsRequestedEventHandler : IUnknown {
   HRESULT Invoke(
    [in] ICoreWebView2* sender,
-   [in] ICoreWebView2StagingSaveAsRequestedEventArgs* args);
+   [in] ICoreWebView2SaveAsRequestedEventArgs* args);
 }
 
 /// The event args for `SaveAsRequested` event
 [uuid(80101027-b8c3-49a1-a052-9ea4bd63ba47), object, pointer_default(unique)]
-interface ICoreWebView2StagingSaveAsRequestedEventArgs : IUnknown {
+interface ICoreWebView2SaveAsRequestedEventArgs : IUnknown {
   /// Get the Mime type of content to be saved
   [propget] HRESULT ContentMimeType([out, retval] LPWSTR* value);
 
@@ -306,7 +374,57 @@ interface ICoreWebView2StagingSaveAsRequestedEventArgs : IUnknown {
 
 /// Receive the result for `RequestSaveAs` method
 [uuid(1a02e9d9-14d3-41c6-9581-8d6e1e6f50fe), object, pointer_default(unique)]
-interface ICoreWebView2StagingRequestSaveAsCompletedHandler : IUnknown {
+interface ICoreWebView2RequestSaveAsCompletedHandler : IUnknown {
   HRESULT Invoke([in] HRESULT errorCode, [in] COREWEBVIEW2_REQUEST_SAVE_RESULTS result);
+}
+```
+
+## .Net/ WinRT
+```c# (but really MIDL3)
+namespace Microsoft.Web.WebView2.Core
+{
+
+    runtimeclass CoreWebView2SaveAsRequestedEventArgs; 
+    runtimeclass CoreWebView2;
+
+    enum CoreWebView2SaveAsRequestedResults
+    {   
+        InvalidPath = 0,
+        FileAlreadyExists = 1,
+        KindNotSupported = 2,
+        Cancelled = 3,
+        Completed = 4,
+    };
+
+    enum CoreWebView2SaveAsRequestedKind
+    {
+        Default = 0,
+        HtmlOnly = 1,
+        SingleFile = 2,
+        Complete = 3,
+    };
+
+    runtimeclass CoreWebView2SaveAsRequestedEventArgs
+    {
+        String ContentMimeType { get; };
+        Boolean Cancel { get; set; };
+        Boolean SuppressDefaultDialog { get; set; };
+        String ResultFilePath { get; set; };
+        Boolean AllowReplace { get; set; };
+        CoreWebView2SaveAsRequestedKind Kind { get; set; };
+        Windows.Foundation.Deferral GetDeferral();
+    };
+
+    runtimeclass CoreWebView2
+    {
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_20")]
+        {
+            // ...
+            event Windows.Foundation.TypedEventHandler
+                <CoreWebView2, CoreWebView2SaveAsRequestedEventArgs> SaveAsRequested;
+            Windows.Foundation.IAsyncOperation<CoreWebView2SaveAsRequestedResults > 
+                RequestSaveAsAsync();
+        }
+    };
 }
 ```
