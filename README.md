@@ -11,6 +11,9 @@ This is a place for all developers of the [Microsoft Edge WebView2](https://aka.
 - 📣 [Subscribe to WebView2Announcements for news, API proposals and SDK Release announcements](https://github.com/MicrosoftEdge/WebView2Announcements)
 - 📖 [Read the WebView2 documentation](https://aka.ms/webview)
 
+<p align="center">
+  <img src="https://az813057.vo.msecnd.net/images/runtime-installer.svg" />
+</p>
 
 ### 🐞 How to report a bug
 
