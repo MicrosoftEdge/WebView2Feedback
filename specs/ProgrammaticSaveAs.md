@@ -175,7 +175,6 @@ void WebView_SaveAsRequested(object sender, CoreWebView2SaveAsRequestedEventArgs
                 args.ResultFilePath = dialog.Directory.Text + "/" + dialog.Filename.Text;
                 args.Kind = (CoreWebView2SaveAsRequestedKind)dialog.Kind.SelectedItem;
                 args.AllowReplace = (bool)dialog.AllowReplaceOldFile.IsChecked;
-
             }
             else
             {
@@ -253,7 +252,6 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
   /// Save as requested completeed, the downloading would start
   COREWEBVIEW2_SAVE_AS_REQUESTED_COMPLETED,
 } COREWEBVIEW2_SAVE_AS_REQUESTED_RESULTS;
-
 
 [uuid(15e1c6a3-c72a-4df3-91d7-d097fbec3bfd), object, pointer_default(unique)]
 interface ICoreWebView2_20 : IUnknown {
@@ -417,9 +415,10 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2
     {
+        // ...
+        
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_20")]
         {
-            // ...
             event Windows.Foundation.TypedEventHandler
                 <CoreWebView2, CoreWebView2SaveAsRequestedEventArgs> SaveAsRequested;
             Windows.Foundation.IAsyncOperation<CoreWebView2SaveAsRequestedResults > 
