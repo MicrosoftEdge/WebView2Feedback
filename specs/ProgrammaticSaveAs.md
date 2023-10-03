@@ -3,107 +3,105 @@ Programmatic Save As API
 
 # Background
 
-The context menu has the "Save as" item to manually save the html page, image,
-pdf, or other content through a save as dialog. We provide more flexiable ways 
-to do the save as programmatically in WebView2. You can bring up the default 
-save as dialog easily. And you will be able to block default dialog, save the 
-content silently, by providing the path and save as kind programmatically or 
-even build your own save as UI.
+Chromium browser's context menus have a "Save as" menu item to save the top level 
+document (html page, image, pdf, or other content) through a save as dialog. We 
+provide more flexible ways to programmatically perform the Save As operation in 
+WebView2. 
 
-In this document we describe the API. We'd appreciate your feedback.
+With the new API you will be able to:
+- Launch the default save as dialog
+- Block the default save as dialog
+- Request save as silently by providing the path and save as kind
+- Build your own save as UI
+
+The chromium browser's Save As operation consists of showing the Save As dialog 
+and then starting a download of the top level document. The Save As method and 
+event described in this document relate to the Save As dialog and not the download, 
+which will go through the existing WebView2 download APIs. 
+
+We'd appreciate your feedback.
 
 # Description
 
 We propose the `RequestSaveAs` method WebView2, which allows you to trigger 
-the save as programmatically. By using this method, the system default dialog, 
-or your own ui will popup.
+the Save As UX programmatically. By using this method, the system default dialog, 
+or your own UI will show and start the Save As operation.
 
-We propose the `SaveAsRequested` event. You can register this event to block 
-the default dialog and use the `SaveAsRequestedEventArgs` instead, to set 
-your preferred save as path, save as kind, and duplicate file replacement rule. 
+We also propose the `CoreWebView2.SaveAsRequested` event. You can register this event to block 
+the default dialog and instead create your own Save As UI using the `SaveAsRequestedEventArgs`, 
+to set your preferred save as path, save as kind, and duplicate file replacement rule. 
 In your client app, you can design your own UI to input these parameters. 
 For HTML documents, we support 3 save as kinds: HTML_ONLY, SINGLE_FILE and 
-COMPLETE. Non-HTML documents, must use DEFAULT, which will save the content as 
+COMPLETE. Non-HTML documents, you must use DEFAULT, which will save the content as 
 it is. This API has default values for all parameters, to perform the common 
 save as operation.
 
 # Examples
 ## Win32 C++ 
-### Add or Remove the Event Handler
+### Add the Event Handler
 This example hides the default save as dialog and shows a customized dialog.
 ```c++
-bool ScenarioSaveAs::ToggleEventHandler()
+bool ScenarioSaveAs::AddEventHandler()
 {
     if (!m_webView2_20)
         return false;
-    // m_hasSaveAsRequestedEventHandler indicates whether the event handler
-    // has been subscribed.
-    if (m_hasSaveAsRequestedEventHandler)
-    {
-        // Unregister the handler for the `SaveAsRequested` event.
-        m_webView2_20->remove_SaveAsRequested(m_saveAsRequestedToken);
-    }
-    else
-    {
-        // Register a handler for the `SaveAsRequested` event.
-        m_webView2_20->add_SaveAsRequested(
-            Callback<ICoreWebView2SaveAsRequestedEventHandler>(
-                [this](
-                    ICoreWebView2* sender,
-                    ICoreWebView2SaveAsRequestedEventArgs* args) -> HRESULT
+
+    // Register a handler for the `SaveAsRequested` event.
+    m_webView2_20->add_SaveAsRequested(
+        Callback<ICoreWebView2SaveAsRequestedEventHandler>(
+            [this](
+            ICoreWebView2* sender,
+                ICoreWebView2SaveAsRequestedEventArgs* args) -> HRESULT
+            {
+                // Hide the system default save as dialog.
+                CHECK_FAILURE(args->put_SuppressDefaultDialog(TRUE));
+                
+                auto showCustomizedDialog = [this, args]
                 {
-                    // Hide the system default save as dialog.
-                    CHECK_FAILURE(args->put_SuppressDefaultDialog(TRUE));
-                    
-                    auto showCustomizedDialog = [this, args]
+                    // Preview the content mime type, optional
+                    wil::unique_cotaskmem_string mimeType;
+                    CHECK_FAILURE(args->get_ContentMimeType(&mimeType));
+
+                    // As an end developer, you can design your own dialog UI, or no UI at all.
+                    // You can ask the user to provide information like file name, file extension, and so on. 
+                    // Finally, and set them on the event args
+                    //
+                    // This is a customized dialog example, the constructor returns after the 
+                    // dialog interaction is completed by the end user.
+                    SaveAsDialog dialog(m_appWindow->GetMainWindow(), saveKinds);
+                    if (dialog.confirmed)
                     {
-                        // Preview the content mime type, optional
-                        wil::unique_cotaskmem_string mimeType;
-                        CHECK_FAILURE(args->get_ContentMimeType(&mimeType));
+                        // Setting the ResultFilePath, Kind, AllowReplace for the event
+                        // args from this customized dialog inputs is optional.
+                        // The event args has default values based on the document to save.
+                        CHECK_FAILURE(
+                            args->put_ResultFilePath((LPCWSTR)dialog.path.c_str()));
+                        CHECK_FAILURE(args->put_Kind(dialog.selectedKind));
+                        CHECK_FAILURE(args->put_AllowReplace(dialog.allowReplace));
+                    }
+                    else
+                    {
+                        // Save As cancelled from this customized dialog
+                        CHECK_FAILURE(args->put_Cancel(TRUE));
+                    }
+                };
 
-                        // As an end developer, you can design your own dialog UI, or no UI at all.
-                        // You can ask the user information like file name, file extenstion, and etc. 
-                        // Finally, concatenate and pass them into the event args
-                        //
-                        // This is a customized dialog example, the constructor returns after the 
-                        // dialog interaction is completed by the end user.
-                        SaveAsDialog dialog(m_appWindow->GetMainWindow(), saveKinds);
-                        if (dialog.confirmed)
-                        {
-                            // Setting the ResultFilePath, Kind, AllowReplace for the event
-                            // args from this customized dialog inputs is optional.
-                            // The event args has default values based on the document to save.
-                            CHECK_FAILURE(
-                                args->put_ResultFilePath((LPCWSTR)dialog.path.c_str()));
-                            CHECK_FAILURE(args->put_Kind(dialog.selectedKind));
-                            CHECK_FAILURE(args->put_AllowReplace(dialog.allowReplace));
-                        }
-                        else
-                        {
-                            // Save As cancelled from this customized dialog
-                            CHECK_FAILURE(args->put_Cancel(TRUE));
-                        }
-                    };
+                wil::com_ptr<ICoreWebView2Deferral> deferral;
+                CHECK_FAILURE(args->GetDeferral(&deferral));
 
-                    wil::com_ptr<ICoreWebView2Deferral> deferral;
-                    CHECK_FAILURE(args->GetDeferral(&deferral));
-
-                    m_appWindow->RunAsync(
-                        [deferral, showCustomizedDialog]()
-                        {
-                            showCustomizedDialog();
-                            CHECK_FAILURE(deferral->Complete());
-                        });
-                    return S_OK;
-                })
-                .Get(),
-            &m_saveAsRequestedToken);
-    }
-    m_hasSaveAsRequestedEventHandler = !m_hasSaveAsRequestedEventHandler;
+                m_appWindow->RunAsync(
+                    [deferral, showCustomizedDialog]()
+                    {
+                        showCustomizedDialog();
+                        CHECK_FAILURE(deferral->Complete());
+                    });
+                return S_OK;
+            })
+            .Get(),
+        &m_saveAsRequestedToken);
+    
     MessageBox(
-        m_appWindow->GetMainWindow(),
-        (m_hasSaveAsRequestedEventHandler ? L"Event Handler Added" : L"Event Handler Rremoved"), L"Info",
-        MB_OK);
+        m_appWindow->GetMainWindow(), L"Event Handler Added", L"Info",MB_OK);
     return true;
 }
 ```
@@ -131,18 +129,14 @@ bool ScenarioSaveAs::ProgrammaticSaveAs()
 ```
 
 ## .Net/ WinRT
-### Add or Remove the Event Handler
+### Add the Event Handler
 This example hides the default save as dialog and shows a customized dialog.
 ```c#
 
-void TaggleEventHandlerExecuted(object target, ExecutedRoutedEventArgs e)
+void AddEventHandlerExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    if (hasSaveAsRequestedEventHandler)
-        webView.CoreWebView2.SaveAsRequested -= WebView_SaveAsRequested;
-    else 
-        webView.CoreWebView2.SaveAsRequested += WebView_SaveAsRequested;
-    hasSaveAsRequestedEventHandler = !hasSaveAsRequestedEventHandler;
-    MessageBox.Show(hasSaveAsRequestedEventHandler? "Event Handler Added":"Event Handler Rremoved" , "Info");
+    webView.CoreWebView2.SaveAsRequested -= WebView_SaveAsRequested;
+    MessageBox.Show("Event Handler Added", "Info");
 }
 
 void WebView_SaveAsRequested(object sender, CoreWebView2SaveAsRequestedEventArgs args)
@@ -167,11 +161,12 @@ void WebView_SaveAsRequested(object sender, CoreWebView2SaveAsRequestedEventArgs
             var dialog = new SaveAsDialog(_Kinds);
             if (dialog.ShowDialog() == true)
             {
-                // Preview the content mime type, optional.
-                args.ContentMimeType;
-                
                 // Setting parameters of event args from this dialog is optional.
                 // The event args has default values.
+                //
+                // Additionally, you can use `args.ContentMimeType` to check the mime 
+                // type of the document that will be saved to help setup your custom 
+                // Save As dialog UI
                 args.ResultFilePath = dialog.Directory.Text + "/" + dialog.Filename.Text;
                 args.Kind = (CoreWebView2SaveAsRequestedKind)dialog.Kind.SelectedItem;
                 args.AllowReplace = (bool)dialog.AllowReplaceOldFile.IsChecked;
@@ -199,11 +194,11 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
 # API Details
 ## Win32 C++
 ```c++
-/// Specifies save as requested kind selection options for `ICoreWebView2_20`,
-/// used in `SaveAsRequestedEventArgs`
+/// Specifies save as requested kind selection options for 
+/// `ICoreWebView2SaveAsRequestedEventArgs`.
 ///
-/// When the source is a html page, supports to select `HTML_ONLY`,
-/// `SINGLE_FILE`, `COMPLETE`; when the source is a non-html,
+/// When the source is an HTML document, `DEFAULT`, `HTML_ONLY`, `SINGLE_FILE`, 
+/// and `COMPLETE` are valid values. When the source is a non-html,
 /// only allows to select `DEFAULT`; otherwise, will deny the download
 /// and return `COREWEBVIEW2_SAVE_AS_REQUESTED_KIND_NOT_SUPPORTED`.
 ///
@@ -219,8 +214,9 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
   COREWEBVIEW2_SAVE_AS_REQUESTED_KIND_HTML_ONLY,
   /// Save the page as mhtml
   COREWEBVIEW2_SAVE_AS_REQUESTED_KIND_SINGLE_FILE,
-  /// Save the page as html, plus, download the page related source files in
-  /// a same name directory
+  /// Save the page as html, plus, download the page related source files 
+  /// (for example CSS, JavaScript, images, and so on) in a directory with 
+  /// the same filename prefix.
   COREWEBVIEW2_SAVE_AS_REQUESTED_KIND_COMPLETE,
 } COREWEBVIEW2_SAVE_AS_REQUESTED_KIND;
 
@@ -230,8 +226,8 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
   /// Could not perform Save As because the destination file path is an invalid path.
   ///
   /// It is considered as invalid when:
-  /// the path is empty, a relativate path, the parent directory doesn't
-  /// exist, or the path is a driectory.
+  /// the path is empty or a relativate path, the parent directory doesn't
+  /// exist, or the path is a directory.
   ///
   /// Parent directory can be itself, if the path is root directory, or
   /// root disk. When the root doesn't exist, the path is invalid.
@@ -247,16 +243,17 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
   /// System limits might happen when select `HTML_ONLY` for an error page,
   /// select `COMPLETE` and WebView running in an App Container, etc.
   COREWEBVIEW2_SAVE_AS_REQUESTED_KIND_NOT_SUPPORTED,
-  /// Did not perform Save As because the client side decided to cancel.
+  /// Did not perform Save As because the end user cancelled or the 
+  /// CoreWebView2SaveAsRequestedEventArgs.Cancel property was set to TRUE.
   COREWEBVIEW2_SAVE_AS_REQUESTED_CANCELLED,
-  /// Save as requested completeed, the downloading would start
+  /// The RequestSaveAs method call completed successfully and the download has started.
   COREWEBVIEW2_SAVE_AS_REQUESTED_COMPLETED,
 } COREWEBVIEW2_SAVE_AS_REQUESTED_RESULTS;
 
 [uuid(15e1c6a3-c72a-4df3-91d7-d097fbec3bfd), object, pointer_default(unique)]
 interface ICoreWebView2_20 : IUnknown {
-  /// Programmatically trigger a save as action for current content. `SaveAsRequested` 
-  /// event will be raised.
+  /// Programmatically trigger a save as action for the current top-level document. 
+  /// The `SaveAsRequested` event will be raised.
   ///
   /// Opens a system modal dialog by default. If it was already opened, this method 
   /// would not open another one. If the `SuppressDefaultDialog` is TRUE, won't open 
@@ -266,19 +263,17 @@ interface ICoreWebView2_20 : IUnknown {
   /// Please see COREWEBVIEW2_SAVE_AS_REQUESTED_RESULTS
   ///
   /// \snippet ScenarioSaveAs.cpp ProgrammaticSaveAs
-  HRESULT SaveContentAs([in] ICoreWebView2RequestSaveAsCompletedHandler* handler);
+  HRESULT RequestSaveAs([in] ICoreWebView2RequestSaveAsCompletedHandler* handler);
 
   /// Add an event handler for the `SaveAsRequested` event. This event is raised
   /// when save as is triggered, programmatically or manually.
   ///
-  /// \snippet ScenarioSaveAs.cpp ToggleEventHandler
+  /// \snippet ScenarioSaveAs.cpp AddEventHandler
   HRESULT add_SaveAsRequested(
    [in] ICoreWebView2SaveAsRequestedEventHandler* eventHanlder,
    [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_SaveAsRequested`.
-  ///
-  /// \snippet ScenarioSaveAs.cpp ToggleEventHandler
   HRESULT remove_SaveAsRequested(
    [in] EventRegistrationToken token);
 }
@@ -297,9 +292,8 @@ interface ICoreWebView2SaveAsRequestedEventArgs : IUnknown {
   /// Get the Mime type of content to be saved
   [propget] HRESULT ContentMimeType([out, retval] LPWSTR* value);
 
-  /// Indicates if client side cancelled the silent save as, TRUE means cancelled.
-  /// When the event is invoked, the download won't start. A programmatic call will
-  /// return COREWEBVIEW2_SAVE_AS_CANCELLED as well. 
+  /// You can set this to TRUE to cancel the Save As. Then the download won't start. 
+  /// A programmatic call will return COREWEBVIEW2_SAVE_AS_CANCELLED as well. 
   ///
   /// The default value is FALSE.
   ///
@@ -325,14 +319,13 @@ interface ICoreWebView2SaveAsRequestedEventArgs : IUnknown {
   /// default Save As dialog and performing the Save As operation.
   HRESULT GetDeferral([out, retval] ICoreWebView2Deferral** deferral);
 
-  /// `ResultFilePath` is absolute full path of the location. It includes the
-  /// file name and extension. If `ResultFilePath` is not valid, e.g. root drive
+  /// `ResultFilePath` is absolute full path of the location. It includes the file name
+  /// and extension. If `ResultFilePath` is not valid, for example the root drive does
   /// not exist, save as will be denied and return COREWEBVIEW2_SAVE_AS_INVALID_PATH.
   ///
-  /// When the download complete and success, a target file will be saved at this
-  /// location. If the select `COREWEBVIEW2_SAVE_AS_REQUESTED_KIND_COMPLETE`, will be 
-  /// an additional directory with resources files. The directory has the same name 
-  /// as filename, at the same location.
+  /// If the associated download completes successfully, a target file will be saved at 
+  /// this location. If the Kind property is `COREWEBVIEW2_SAVE_AS_REQUESTED_KIND_COMPLETE`, 
+  /// there will be an additional directory with resources files.
   ///
   /// The default value is a system suggested path, based on users' local environment.
   /// 
