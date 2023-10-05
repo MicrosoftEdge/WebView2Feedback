@@ -1,0 +1,69 @@
+name: Feature Request
+title: "[Feature]: "
+description: Share your idea for a new feature/API enhancement
+labels: ["feature request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this feature request. Here is an example of a [good feature request](https://github.com/MicrosoftEdge/WebView2Feedback/issues/3683)
+
+  - type: textarea
+    id: feature-need
+    attributes:
+      label: Describe the feature/enhancement you need
+      description: Describe what you want to happen, or what problem you are seeing without this feature. 
+      placeholder: I need to do xyz when ... but I'm having trouble achieving this because... 
+    validations:
+      required: true
+
+  - type: textarea
+    id: usecases
+    attributes:
+      label: The scenario/use case where you would use this feature
+      placeholder: e.g. our user needs to print out a report based on a pre-defined template. We need to set the print options in a dialog box with values defined in the template. 
+    validations:
+      required: true
+
+  - type: dropdown
+    id: importance
+    attributes:
+      label: How important is this request to you?
+      options:
+        - ----Please select----
+        - Critical. My app's basic functions wouldn't work without it.
+        - Impactful. My app's user experience would be significantly compromised without it.
+        - Nice to have. There are other ways to tackle this, but having official API support would be beneficial.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        ## ---Helpful additional info---
+
+  - type: textarea
+    id: suggested-implementation
+    attributes:
+      label: Suggested implementation
+      description: If you have solution ideas you'd like to suggest, please describe here. 
+      placeholder: I'd like to suggest...
+    validations:
+      required: false
+  - type: textarea
+    id: app-background
+    attributes:
+      label: What does your app do? Is there a pending deadline for this request?
+      description: If you haven't shared before, it would be helpful to understand what your app does, how WebView2 is used, and if there's any pending timeline.
+      placeholder: e.g. our app use WebView2 to handle form submission and printing in hospital kiosks. We need to release in this December.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ## ---How to add a '+1' reply for this request---
+        We welcome other developers who saw the original post to indicate they also want this feature. Please reply with these info to help us prioritize:
+        - Your use cases/scenario as it may differ from the original post
+        - How important is this request to you?
+        - Additionally, any context such as what does your app do, and any pending timeline
+
