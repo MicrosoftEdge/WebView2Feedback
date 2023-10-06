@@ -150,7 +150,7 @@ void WebView_SaveAsUIShowing(object sender, CoreWebView2SaveAsUIShowingEventArgs
     CoreWebView2Deferral deferral = args.GetDeferral();
 
     // We avoid potential reentrancy from running a message loop in the event
-    // handler. Show the customized dialog later when complete the deferral
+    // handler. Show the customized dialog later then complete the deferral
     // asynchronously.
     System.Threading.SynchronizationContext.Current.Post((_) =>
     {
@@ -194,31 +194,25 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
 # API Details
 ## Win32 C++
 ```c++
-/// Specifies save as requested kind selection options for 
+/// Specifies save as kind selection options for 
 /// `ICoreWebView2SaveAsUIShowingEventArgs`.
 ///
-/// When the source is an HTML document, `DEFAULT`, `HTML_ONLY`, `SINGLE_FILE`, 
-/// and `COMPLETE` are valid values. When the source is a non-html,
-/// only allows to select `DEFAULT`; otherwise, will deny the download
-/// and return `COREWEBVIEW2_SAVE_AS_UI_KIND_NOT_SUPPORTED`.
-///
-/// The content type/format is a MIME type, indicated by the source
-/// server side and identified by the browser. It's not related to the
-/// file’s type or extension. MIME type of `text/html`,
-/// `application/xhtml+xml` are considered as html page.
-[v1_enum] typedef enum COREWEBVIEW2_SAVE_AS_UI_KIND {
+/// For HTML documents, we support 3 save as kinds: HTML_ONLY, SINGLE_FILE and 
+/// COMPLETE. Non-HTML documents, you must use DEFAULT. MIME type of `text/html`,
+/// `application/xhtml+xml` are considered as HTML documents.
+[v1_enum] typedef enum COREWEBVIEW2_SAVE_AS_KIND {
   /// Default to save for a non-html content. If it is selected for a html
   /// page, it’s same as HTML_ONLY option.
-  COREWEBVIEW2_SAVE_AS_UI_KIND_DEFAULT,
+  COREWEBVIEW2_SAVE_AS_KIND_DEFAULT,
   /// Save the page as html
-  COREWEBVIEW2_SAVE_AS_UI_KIND_HTML_ONLY,
+  COREWEBVIEW2_SAVE_AS_KIND_HTML_ONLY,
   /// Save the page as mhtml
-  COREWEBVIEW2_SAVE_AS_UI_KIND_SINGLE_FILE,
+  COREWEBVIEW2_SAVE_AS_KIND_SINGLE_FILE,
   /// Save the page as html, plus, download the page related source files 
   /// (for example CSS, JavaScript, images, and so on) in a directory with 
   /// the same filename prefix.
-  COREWEBVIEW2_SAVE_AS_UI_KIND_COMPLETE,
-} COREWEBVIEW2_SAVE_AS_UI_KIND;
+  COREWEBVIEW2_SAVE_AS_KIND_COMPLETE,
+} COREWEBVIEW2_SAVE_AS_KIND;
 
 /// Status of a programmatic save as call, indicates the result
 /// for method `ShowSaveAsUI`
@@ -229,12 +223,8 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
   COREWEBVIEW2_SAVE_AS_UI_SUCCESS,
   /// Could not perform Save As because the destination file path is an invalid path.
   ///
-  /// It is considered as invalid when:
-  /// the path is empty or a relative path, the parent directory doesn't
-  /// exist, or the path is a directory.
-  ///
-  /// Parent directory can be itself, if the path is root directory, or
-  /// root disk. When the root doesn't exist, the path is invalid.
+  /// It is considered as invalid when the path is empty, a relative path, a directory,
+  /// or the parent path doesn't exist
   COREWEBVIEW2_SAVE_AS_UI_INVALID_PATH,
   /// Could not perform Save As because the destination file path already exists and 
   /// replacing files was not allowed by the `AllowReplace` property.
@@ -242,7 +232,7 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
   /// Could not perform Save As when the `Kind` property selection not
   /// supported because of the content MIME type or system limits
   ///
-  /// MIME type limits please see the emun `COREWEBVIEW2_SAVE_AS_UI_KIND`
+  /// MIME type limits please see the emun `COREWEBVIEW2_SAVE_AS_KIND`
   ///
   /// System limits might happen when select `HTML_ONLY` for an error page,
   /// select `COMPLETE` and WebView running in an App Container, etc.
@@ -257,9 +247,8 @@ interface ICoreWebView2_20 : IUnknown {
   /// Programmatically trigger a save as action for the current top-level document. 
   /// The `SaveAsUIShowing` event will be raised.
   ///
-  /// Opens a system modal dialog by default. If it was already opened, this method 
-  /// would not open another one. If the `SuppressDefaultDialog` is TRUE, won't open 
-  /// the system dialog.
+  /// Opens a system modal dialog by default. If the `SuppressDefaultDialog` is TRUE, 
+  /// won't open the system dialog.
   ///
   /// The method can return a detailed info to indicate the call's result. 
   /// Please see COREWEBVIEW2_SAVE_AS_UI_RESULT
@@ -326,7 +315,7 @@ interface ICoreWebView2SaveAsUIShowingEventArgs : IUnknown {
   /// not exist, save as will be denied and return COREWEBVIEW2_SAVE_AS_INVALID_PATH.
   ///
   /// If the associated download completes successfully, a target file will be saved at 
-  /// this location. If the Kind property is `COREWEBVIEW2_SAVE_AS_UI_KIND_COMPLETE`, 
+  /// this location. If the Kind property is `COREWEBVIEW2_SAVE_AS_KIND_COMPLETE`, 
   /// there will be an additional directory with resources files.
   ///
   /// The default value is a system suggested path, based on users' local environment.
@@ -352,17 +341,17 @@ interface ICoreWebView2SaveAsUIShowingEventArgs : IUnknown {
   [propget] HRESULT AllowReplace ([out, retval] BOOL* value);
 
   /// How to save documents with different kind. See the enum 
-  /// COREWEBVIEW2_SAVE_AS_UI_KIND for a description of the different options.  
+  /// COREWEBVIEW2_SAVE_AS_KIND for a description of the different options.  
   /// If the kind isn't allowed for the current document, 
   /// COREWEBVIEW2_SAVE_AS_UI_KIND_NOT_SUPPORTED will be returned from ShowSaveAsUI.
   ///
-  /// The default value is COREWEBVIEW2_SAVE_AS_UI_KIND_DEFAULT
+  /// The default value is COREWEBVIEW2_SAVE_AS_KIND_DEFAULT
   ///
   /// Set the kind for save as
-  [propput] HRESULT Kind ([in] COREWEBVIEW2_SAVE_AS_UI_KIND value);
+  [propput] HRESULT Kind ([in] COREWEBVIEW2_SAVE_AS_KIND value);
 
   /// Get the kind for save as
-  [propget] HRESULT Kind ([out, retval] COREWEBVIEW2_SAVE_AS_UI_KIND* value);
+  [propget] HRESULT Kind ([out, retval] COREWEBVIEW2_SAVE_AS_KIND* value);
 }
 
 /// Receive the result for `ShowSaveAsUI` method
