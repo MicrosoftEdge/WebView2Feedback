@@ -1,5 +1,5 @@
 # Background
-WebView2 has `ICoreWebView2AcceleratorKeyPressedEventArgs`  for the `AcceleratorKeyPressed` event. We has been asked extend this API so that developers can indicate that they would like an existing browser accelerator key to be disabled as a browser accelerator.
+WebView2 has `ICoreWebView2AcceleratorKeyPressedEventArgs`  for the `AcceleratorKeyPressed` event. We have been asked to extend this API so that developers can indicate that they would like an existing browser accelerator key to be disabled as a browser accelerator.
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
@@ -7,10 +7,10 @@ In this document we describe the updated API. We'd appreciate your feedback.
 We propose extending the `ICoreWebView2AcceleratorKeyPressedEventArgs` to allow developers to enable/disable the browser from handling accelerator keys with `AllowBrowserHandle` property. 
 
 # Examples
-## C++: Get name of window
+## C++
 
 ``` cpp
-    EventRegistrationToken m_acceleratorKeyPressedStagingToken = {};
+    EventRegistrationToken m_acceleratorKeyPressedToken = {};
 
     wil::com_ptr<ICoreWebView2Controller> m_controller;
     wil::com_ptr<ICoreWebView2> m_webView;
@@ -20,7 +20,8 @@ We propose extending the `ICoreWebView2AcceleratorKeyPressedEventArgs` to allow 
         wil::com_ptr<ICoreWebView2Settings> settings;
         CHECK_FAILURE(m_webView->get_Settings(&settings));
         m_settings3 = settings.try_query<ICoreWebView2Settings3>();
-        if (m_setting3) {
+        if (m_setting3) 
+        {
             // Disable all browser accelerator keys
             CHECK_FAILURE(m_settings3->put_AreBrowserAcceleratorKeysEnabled(FALSE));
             // Register a handler for the AcceleratorKeyPressed event.
@@ -52,13 +53,13 @@ We propose extending the `ICoreWebView2AcceleratorKeyPressedEventArgs` to allow 
                         return S_OK;
                     })
                     .Get(),
-                &m_acceleratorKeyPressedStagingToken));
+                &m_acceleratorKeyPressedToken));
 
         }
     }
 ```
 
-## C#: Get name of window
+## C#
 ```c#
     CoreWebView2Settings _webViewSettings = webView.CoreWebView2.Settings;
     // All browser accelerator keys are disabled with this setting
@@ -75,7 +76,8 @@ We propose extending the `ICoreWebView2AcceleratorKeyPressedEventArgs` to allow 
                 {
                     Keys keyData = (Keys)(e.VirtualKey);
                     // Allow the browser to process F7 key
-                    if(e.VirtualKey == Key.F7) {
+                    if (e.VirtualKey == Key.F7) 
+                    {
                         e.AllowBrowserHandle = true;
                     }
                     break;
@@ -92,7 +94,7 @@ By default, `AreBrowserAcceleratorKeyEnabled` is `TRUE` and default value for `A
 # API Details
 ## C++
 ```
-/// This is This is a continuation of the ICoreWebView2AcceleratorKeyPressedEventArgs interface.
+/// This is a continuation of the ICoreWebView2AcceleratorKeyPressedEventArgs interface.
 [uuid(45238725-3774-4cfe-931f-7985a1b5866f), object, pointer_default(unique)]
 interface ICoreWebView2AcceleratorKeyPressedEventArgs2 : ICoreWebView2AcceleratorKeyPressedEventArgs {
   /// These APIs allow devs to enable/disable the browser from handling specific accelerator keys.
@@ -106,10 +108,10 @@ interface ICoreWebView2AcceleratorKeyPressedEventArgs2 : ICoreWebView2Accelerato
   ///
   /// \snippet ScenarioAcceleratorKeyPressed.cpp
   /// Gets the `AllowBrowserHandle` property.
-  [propget] HRESULT AllowBrowserHandle([out, retval] BOOL* allowed);
+  [propget] HRESULT AllowBrowserHandle([out, retval] BOOL* value);
 
   /// Sets the `AllowBrowserHandle` property.
-  [propput] HRESULT AllowBrowserHandle([in] BOOL allowed);
+  [propput] HRESULT AllowBrowserHandle([in] BOOL value);
 }
 ```
 
