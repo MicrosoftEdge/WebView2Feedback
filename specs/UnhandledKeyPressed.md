@@ -6,10 +6,10 @@ Consumers of the old [WebBrowser](https://learn.microsoft.com/en-us/dotnet/api/s
 The `UnhandledKeyPressed` event allows developers to subscribe event handlers
 to be run when a key event is not handled by the browser (including DOM and browser accelerators). It can be triggered by all keys, which is different from [AcceleratorKeyPressed](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50) event.
 
-`UnhandledKeyPressed` event is async, which means 'GetKeyStates' does not return the exact key state when the key event is fired. Use UnhandledKeyPressedEventArgs::GetKeyState()
-instead to verify whether Ctrl or Alt is down in this situation.
+`UnhandledKeyPressed` event is async, which means 'GetKeyStates' does not return the exact key state when the key event is fired. Use UnhandledKeyPressedEventArgs.Modifiers instead to verify whether Ctrl or Alt is down in this situation.
 
 # Examples
+## C++
 
 ```cpp
   auto controller5 = m_controller.try_query<ICoreWebView2Controller5>();
@@ -58,6 +58,8 @@ instead to verify whether Ctrl or Alt is down in this situation.
   }
 ```
 
+## C#
+
 ```csharp
 private CoreWebView2Controller controller;
 void RegisterKeyEventHandlers()
@@ -70,48 +72,44 @@ void RegisterKeyEventHandlers()
 }
 void CoreWebView2Controller_UnhandledKeyPressed(object sender, CoreWebView2UnhandledKeyPressedEventArgs e)
 {
-  if (e.KeyEventKind == CoreWebView2KeyEventKind.KeyDown &&(e.Modifiers & CoreWebView2KeyEventFlagControlDown)){
-    if (e.VirtualKey == 'z') {
-      Debug.WriteLine($"Key combination Ctrl + Z unhandled by browser is triggered.");
+    if ((e.KeyEventKind == CoreWebView2KeyEventKind.KeyDown) && (e.Modifiers & CoreWebView2KeyPressedFlagKind.CoreWebView2KeyEventFlagControlDown) != 0)
+    {
+        if (e.VirtualKey == 'z')
+        {
+            Debug.WriteLine($"Key combination Ctrl + Z unhandled by browser is triggered.");
+        }
     }
-  }
 }
 ```
 
 # API Details
 ```idl
-/// Flag bits representing the state of keyboard when a "UnhandledKeyPressed" Event happens.
-[v1_enum]
-typedef enum COREWEBVIEW2_KEY_PRESSED_FLAG_KIND {
-    
-  /// No additional keys pressed.
-  COREWEBVIEW2_KEY_EVENT_FLAG_NONE = 0,
+[uuid(053b9a5d-7033-4515-9898-912977d2fde8), object, pointer_default(unique)]
+interface ICoreWebView2Controller : IUnknown {
+  /// Adds an event handler for the `UnhandledKeyPressed` event.
+  /// `UnhandledKeyPressed` runs when an key is not handled in
+  /// the DOM.
 
-  /// SHIFT is down, VK_SHIFT.
-  COREWEBVIEW2_KEY_EVENT_FLAG_SHIFT_DOWN = 1 << 1,
+  HRESULT add_UnhandledKeyPressed(
+    [in] ICoreWebView2UnhandledKeyPressedEventHandler* eventHandler,
+    [out] EventRegistrationToken* token);
 
-  /// Control is down, VK_CONTROL.
-  COREWEBVIEW2_KEY_EVENT_FLAG_CONTROL_DOWN = 1 << 2,
+  /// Removes an event handler previously added with
+  /// `add_UnhandledKeyPressed`.
 
-  /// ALT is down, VK_MENU. 
-  /// This bit is 0 when COREWEBVIEW2_KEY_EVENT_FLAG_ALTGR_DOWN bit is 1.
-  COREWEBVIEW2_KEY_EVENT_FLAG_ALT_DOWN = 1 << 3,
+  HRESULT remove_UnhandledKeyPressed(
+    [in] EventRegistrationToken token);
+}
 
-  /// Windows key is down. VK_LWIN | VK_RWIN
-  COREWEBVIEW2_KEY_EVENT_FLAG_COMMAND_DOWN = 1 << 4,
+[uuid(dc83113b-ce7a-47bb-9661-16b03ff8aac1), object, pointer_default(unique)]
+interface ICoreWebView2UnhandledKeyPressedEventHandler : IUnknown {
 
-  /// Right ALT is down and AltGraph is enabled.
-  COREWEBVIEW2_KEY_EVENT_FLAG_ALTGR_DOWN = 1 << 6,
+  /// Provides the event args for the corresponding event.
 
-  /// NUMLOCK is on. VK_NUMLOCK.
-  COREWEBVIEW2_KEY_EVENT_FLAG_NUM_LOCK_ON = 1 << 8,
-
-  /// CapsLock is on. VK_CAPITAL.
-  COREWEBVIEW2_KEY_EVENT_FLAG_CAPS_LOCK_ON = 1 << 9,
-
-  /// ScrollLock is On. VK_SCROLL.
-  COREWEBVIEW2_KEY_EVENT_FLAG_SCROLL_LOCK_ON = 1 << 10,
-} COREWEBVIEW2_KEY_PRESSED_FLAG_KIND;
+  HRESULT Invoke(
+      [in] ICoreWebView2Controller* sender,
+      [in] ICoreWebView2UnhandledKeyPressedEventArgs* args);
+}
 
 [uuid(dd30e20c-d1b3-4e51-9bb6-1be7aaa3ce90), object, pointer_default(unique)]
 interface ICoreWebView2UnhandledKeyPressedEventArgs : IUnknown {
@@ -123,7 +121,7 @@ interface ICoreWebView2UnhandledKeyPressedEventArgs : IUnknown {
   /// The Win32 virtual key code of the key that was pressed or released.  It
   /// is one of the Win32 virtual key constants such as `VK_RETURN` or an
   /// (uppercase) ASCII value such as `A`.
-  /// use ICoreWebView2UnhandledKeyPressedEventArgs::GetKeyState()
+  /// use ICoreWebView2UnhandledKeyPressedEventArgs::get_Modifiers()
   /// instead of Win32 API ::GetKeyState() to verify whether Ctrl or Alt
   /// is pressed.
 
@@ -159,34 +157,38 @@ interface ICoreWebView2UnhandledKeyPressedEventArgs : IUnknown {
   [propget] HRESULT Modifiers([out, retval] COREWEBVIEW2_KEY_PRESSED_FLAG_KIND* modifiers);
 }
 
-/// Receives `KeyPressed` events.
+/// Flag bits representing the state of keyboard when a "UnhandledKeyPressed" Event happens.
+[v1_enum]
+typedef enum COREWEBVIEW2_KEY_PRESSED_FLAG_KIND {
+    
+  /// No additional keys pressed.
+  COREWEBVIEW2_KEY_EVENT_FLAG_NONE = 0,
 
-[uuid(dc83113b-ce7a-47bb-9661-16b03ff8aac1), object, pointer_default(unique)]
-interface ICoreWebView2UnhandledKeyPressedEventHandler : IUnknown {
+  /// SHIFT is down, VK_SHIFT.
+  COREWEBVIEW2_KEY_EVENT_FLAG_SHIFT_DOWN = 1 << 1,
 
-  /// Provides the event args for the corresponding event.
+  /// Control is down, VK_CONTROL.
+  COREWEBVIEW2_KEY_EVENT_FLAG_CONTROL_DOWN = 1 << 2,
 
-  HRESULT Invoke(
-      [in] ICoreWebView2Controller* sender,
-      [in] ICoreWebView2UnhandledKeyPressedEventArgs* args);
-}
+  /// ALT is down, VK_MENU. 
+  /// This bit is 0 when COREWEBVIEW2_KEY_EVENT_FLAG_ALTGR_DOWN bit is 1.
+  COREWEBVIEW2_KEY_EVENT_FLAG_ALT_DOWN = 1 << 3,
 
-[uuid(053b9a5d-7033-4515-9898-912977d2fde8), object, pointer_default(unique)]
-interface ICoreWebView2Controller : IUnknown {
-  /// Adds an event handler for the `UnhandledKeyPressed` event.
-  /// `UnhandledKeyPressed` runs when an key is not handled in
-  /// the DOM.
+  /// Windows key is down. VK_LWIN | VK_RWIN
+  COREWEBVIEW2_KEY_EVENT_FLAG_COMMAND_DOWN = 1 << 4,
 
-  HRESULT add_UnhandledKeyPressed(
-    [in] ICoreWebView2UnhandledKeyPressedEventHandler* eventHandler,
-    [out] EventRegistrationToken* token);
+  /// Right ALT is down and AltGraph is enabled.
+  COREWEBVIEW2_KEY_EVENT_FLAG_ALTGR_DOWN = 1 << 6,
 
-  /// Removes an event handler previously added with
-  /// `add_UnhandledKeyPressed`.
+  /// NUMLOCK is on. VK_NUMLOCK.
+  COREWEBVIEW2_KEY_EVENT_FLAG_NUM_LOCK_ON = 1 << 8,
 
-  HRESULT remove_UnhandledKeyPressed(
-    [in] EventRegistrationToken token);
-}
+  /// CapsLock is on. VK_CAPITAL.
+  COREWEBVIEW2_KEY_EVENT_FLAG_CAPS_LOCK_ON = 1 << 9,
+
+  /// ScrollLock is On. VK_SCROLL.
+  COREWEBVIEW2_KEY_EVENT_FLAG_SCROLL_LOCK_ON = 1 << 10,
+} COREWEBVIEW2_KEY_PRESSED_FLAG_KIND;
 ```
 
 ```c#
@@ -195,19 +197,6 @@ namespace Microsoft.Web.WebView2.Core
     public class CoreWebView2Controller
     {
         event EventHandler<CoreWebView2UnhandledKeyPressedEventArgs> UnhandledKeyPressed;
-    }
-
-    [Flags] enum CoreWebView2KeyPressedFlagKind
-    {
-        CoreWebView2KeyEventFlagNone = 0,
-        CoreWebView2KeyEventFlagShiftDown = 2,
-        CoreWebView2KeyEventFlagControlDown = 4,
-        CoreWebView2KeyEventFlagAltDown = 8,
-        CoreWebView2KeyEventFlagCommandDown = 16,
-        CoreWebView2KeyEventFlagAltgrDown = 64,
-        CoreWebView2KeyEventFlagNumLockOn = 256,
-        CoreWebView2KeyEventFlagCapsLockOn = 512,
-        CoreWebView2KeyEventFlagScrollLockOn = 1024,
     }
 
     /// Event args for the `CoreWebView2Controller.UnhandledKeyPressed` event.
@@ -224,6 +213,19 @@ namespace Microsoft.Web.WebView2.Core
         bool Handled { get; set; };
 
         CoreWebView2KeyPressedFlagKind Modifiers { get; };
+    }
+
+    [Flags] enum CoreWebView2KeyPressedFlagKind
+    {
+        CoreWebView2KeyEventFlagNone = 0,
+        CoreWebView2KeyEventFlagShiftDown = 2,
+        CoreWebView2KeyEventFlagControlDown = 4,
+        CoreWebView2KeyEventFlagAltDown = 8,
+        CoreWebView2KeyEventFlagCommandDown = 16,
+        CoreWebView2KeyEventFlagAltgrDown = 64,
+        CoreWebView2KeyEventFlagNumLockOn = 256,
+        CoreWebView2KeyEventFlagCapsLockOn = 512,
+        CoreWebView2KeyEventFlagScrollLockOn = 1024,
     }
 }
 ```
