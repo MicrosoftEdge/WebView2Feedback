@@ -15,7 +15,7 @@ instead to verify whether Ctrl or Alt is down in this situation.
   auto controller5 = m_controller.try_query<ICoreWebView2Controller5>();
   if (controller5)
   {
-      CHECK_FAILURE(m_controller->add_UnhandledKeyPressed(
+      CHECK_FAILURE(controller5->add_UnhandledKeyPressed(
           Callback<ICoreWebView2UnhandledKeyPressedEventHandler>(
               [this](
                   ICoreWebView2Controller* sender,
