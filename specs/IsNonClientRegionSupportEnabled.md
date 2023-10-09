@@ -53,7 +53,7 @@ ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWin
                 wil::com_ptr<ICoreWebView2Settings> m_settings;
                 CHECK_FAILURE(m_webView->get_Settings(&m_settings));
                 wil::com_ptr<ICoreWebView2Settings12> coreWebView2Settings12;
-                coreWebView2Settings12 = m_settings.try_query<ICoreWebView2Settings12();
+                coreWebView2Settings12 = m_settings.try_query<ICoreWebView2Settings12>();
                 CHECK_FEATURE_RETURN(coreWebView2Settings12);
                 
                 BOOL enabled;
