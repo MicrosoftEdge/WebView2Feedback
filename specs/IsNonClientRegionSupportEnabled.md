@@ -53,10 +53,11 @@ ScenarioNonClientRegionSupport::ScenarioNonClientRegionSupport(AppWindow* appWin
                 wil::com_ptr<ICoreWebView2Settings> m_settings;
                 CHECK_FAILURE(m_webView->get_Settings(&m_settings));
                 wil::com_ptr<ICoreWebView2Settings12> coreWebView2Settings12;
-                coreWebView2Settings12 = m_settings.try_query<ICoreWebView2Settings12();
+                coreWebView2Settings12 = m_settings.try_query<ICoreWebView2Settings12>();
                 CHECK_FEATURE_RETURN(coreWebView2Settings12);
                 
                 bool trusted = _wcsicmp(domain.get(), allowedHostName) == 0;
+                // This change will take affect after this navitation event completes
                 CHECK_FAILURE(coreWebView2Settings12->put_IsNonClientRegionSupportEnabled(trusted));
                 
                 return S_OK;
@@ -81,30 +82,24 @@ private void SetNonClientRegionSupport(CoreWebView2 sender, CoreWebView2Navigati
     var urlCompareExample = "www.microsoft.com";
     var uri = new Uri(args.Uri);
 
-    if (String.Equals(uri.Host, urlCompareExample, StringComparison.OrdinalIgnoreCase) &&
-        !coreWebView2Settings.IsNonClientRegionSupportEnabled)
-    {
-        coreWebView2Settings.IsNonClientRegionSupportEnabled = true;
-    }
-    else if (!String.Equals(uri.Host, urlCompareExample, StringComparison.OrdinalIgnoreCase) && 
-        coreWebView2Settings.IsNonClientRegionSupportEnabled)
-    {
-        coreWebView2Settings.IsNonClientRegionSupportEnabled = false;
-    }
+    bool trusted = String.Equals(uri.Host, urlCompareExample, StringComparison.OrdinalIgnoreCase);
+    coreWebView2Settings.IsNonClientRegionSupportEnabled = trusted
 }
 ```
 
 ## Declaring Non-client App Regions
-Non-client regions are HTML elements that are marked with the css style `app-region`.
-* Draggable regions can be declared through the values `drag` or `no-drag`. 
+The value of the app-region CSS property can be used to indicate which HTML elements are treated as non-client regions.
+* Draggable regions can be controlled through the values `drag` or `no-drag`. 
     * `app-region: drag` will support [draggable region functionality](#description) for the html element.
-    * `app-region: no-drag` will change cursor to I-bar, with text highlighting enabled. 
-    Elements with this style will not support draggable region functionality.
+    * `app-region: no-drag` will unmark the html element as a drag region, reverting it to all it's default behaviors. 
+    The app-region CSS property inherits. The initial value is no-drag
 ```html
 <!DOCTYPE html>
 <body>
-    <div style="app-region:drag">Drag Region</div>
-    <div style="app-region:no-drag">No-drag Region</div>
+    <div style="app-region:drag">
+        Drag Region
+        <div style="app-region:no-drag">No-drag Region</div>
+    </div>
 </body>
 <html>
 ```
@@ -126,23 +121,25 @@ See [API Details](#api-details) section below for API reference.
 interface ICoreWebView2Settings12 : ICoreWebView2Settings11 {
   /// The `IsNonClientRegionSupportEnabled` property enables web pages to use the 
   /// `app-region` CSS style. Changing the `IsNonClientRegionSupportEnabled` property
-  /// takes effect after the next navigation of the top level document. Defaults to `FALSE`.
+  /// take effect at the completion of the NavigationStarting event for the next 
+  /// top-level navigation. Defaults to `FALSE`.
   /// 
   /// When this property is `TRUE`, then all the following non-client region support 
   /// will be enabled:
   /// 1. Draggable Regions will be enabled and treated as a window's title bar. 
-  /// Draggable Regions are non-client regions on a webpage that are exposed through the css
-  /// attribute `app-region` and can take the values `drag` or `no-drag`. When set to 
+  /// Draggable Regions are regions on a webpage that are exposed through the css
+  /// attribute `app-region` with the value `drag`. When set to 
   /// `drag`, these regions will be treated like the window's title bar, supporting 
   /// dragging of the entire WebView and its host app window, the title bar context menu
   /// upon right click, and the maximizing to fill the window and restoring the window size
   /// upon double click of the html element. 
   ///
-  /// When set to `FALSE`, then all non-client region support will be disabled. Web
-  /// pages will not be able to use the `app-region` CSS style.
-  [propget] HRESULT IsNonClientRegionSupportEnabled([out, retval] BOOL* enabled);
+  /// When set to `FALSE`, values of the `app-region` CSS style will be ignored. The only 
+  /// exception is `app-region: drag` when the feature flag (msWebView2EnableDraggableRegions) 
+  /// is enabled. 
+  [propget] HRESULT IsNonClientRegionSupportEnabled([out, retval] BOOL* value);
   /// Set the IsNonClientRegionSupportEnabled property
-  [propput] HRESULT IsNonClientRegionSupportEnabled([in] BOOL enabled);
+  [propput] HRESULT IsNonClientRegionSupportEnabled([in] BOOL value);
 }
 ```
 
