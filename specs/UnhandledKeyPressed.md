@@ -6,7 +6,7 @@ Consumers of the old [WebBrowser](https://learn.microsoft.com/en-us/dotnet/api/s
 The `UnhandledKeyPressed` event allows developers to subscribe event handlers
 to be run when a key event is not handled by the browser (including DOM and browser accelerators). It can be triggered by all keys, which is different from [AcceleratorKeyPressed](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50) event.
 
-`UnhandledKeyPressed` event is async, which means 'GetKeyStates' does not return the exact key state when the key event is fired. Use UnhandledKeyPressedEventArgs.Modifiers instead to verify whether Ctrl or Alt is down in this situation.
+`UnhandledKeyPressed` event is async, which means 'GetKeyStates' does not return the exact key state when the key event is fired. Use `UnhandledKeyPressedEventArgs.Modifiers` instead to verify whether Ctrl or Alt is down in this situation.
 
 # Examples
 ## C++
