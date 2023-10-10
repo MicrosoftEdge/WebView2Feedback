@@ -3,8 +3,9 @@
 Consumers of the old [WebBrowser](https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.webbrowser?view=windowsdesktop-7.0) control that relied on the [OnKeyDown](https://learn.microsoft.com/previous-versions/aa752133(v=vs.85)) API that allowed them to receive and handle key events not handled by the browser, [requested](https://github.com/MicrosoftEdge/WebViewFeedback/issues/468) same ability in WebView2. 
 
 # Description
-The `UnhandledKeyPressed` event allows developers to subscribe event handlers
-to be run when a key event is not handled by the browser (including DOM and browser accelerators). It can be triggered by all keys, which is different from [AcceleratorKeyPressed](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50) event.
+The `UnhandledKeyPressed` event allows developers to subscribe event handlers to be run when a key event is not handled by the browser (including DOM and browser accelerators).
+
+`UnhandledKeyPressed` event can be triggered by all keys, which is different from [AcceleratorKeyPressed](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50) event.
 
 `UnhandledKeyPressed` event is async, which means 'GetKeyStates' does not return the exact key state when the key event is fired. Use `UnhandledKeyPressedEventArgs.Modifiers` instead to verify whether Ctrl or Alt is down in this situation.
 
@@ -83,6 +84,8 @@ void CoreWebView2Controller_UnhandledKeyPressed(object sender, CoreWebView2Unhan
 ```
 
 # API Details
+
+## Win32 C++
 ```idl
 [uuid(053b9a5d-7033-4515-9898-912977d2fde8), object, pointer_default(unique)]
 interface ICoreWebView2Controller : IUnknown {
@@ -191,6 +194,7 @@ typedef enum COREWEBVIEW2_KEY_PRESSED_FLAG_KIND {
 } COREWEBVIEW2_KEY_PRESSED_FLAG_KIND;
 ```
 
+## .NET and WinRT
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
