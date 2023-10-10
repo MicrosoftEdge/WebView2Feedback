@@ -7,56 +7,56 @@ The `UnhandledKeyPressed` event allows developers to subscribe event handlers to
 
 `UnhandledKeyPressed` event can be triggered by all keys, which is different from [AcceleratorKeyPressed](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2acceleratorkeypressedeventargs?view=webview2-dotnet-1.0.705.50) event.
 
-`UnhandledKeyPressed` event is async, which means [GetKeyStates](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getkeystate) does not return the exact key state when the key event is fired. Use `UnhandledKeyPressedEventArgs.Modifiers` instead to verify whether Ctrl or Alt is down in this situation.
+`UnhandledKeyPressed` event is async, which means [GetKeyState](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getkeystate) does not return the exact key state when the key event is fired. Use `UnhandledKeyPressedEventArgs.Modifiers` instead to verify whether Ctrl or Alt is down in this situation.
 
 # Examples
 ## C++
 
 ```cpp
-  auto controller5 = m_controller.try_query<ICoreWebView2Controller5>();
-  if (controller5)
-  {
-      CHECK_FAILURE(controller5->add_UnhandledKeyPressed(
-          Callback<ICoreWebView2UnhandledKeyPressedEventHandler>(
-              [this](
-                  ICoreWebView2Controller* sender,
-                  ICoreWebView2UnhandledKeyPressedEventArgs* args) -> HRESULT
-              {
-                  COREWEBVIEW2_KEY_EVENT_KIND kind;
-                  CHECK_FAILURE(args->get_KeyEventKind(&kind));
+auto controller5 = m_controller.try_query<ICoreWebView2Controller5>();
+if (controller5)
+{
+    CHECK_FAILURE(controller5->add_UnhandledKeyPressed(
+        Callback<ICoreWebView2UnhandledKeyPressedEventHandler>(
+            [this](
+                ICoreWebView2Controller* sender,
+                ICoreWebView2UnhandledKeyPressedEventArgs* args) -> HRESULT
+            {
+                COREWEBVIEW2_KEY_EVENT_KIND kind;
+                CHECK_FAILURE(args->get_KeyEventKind(&kind));
 
-                  // We only care about key down events.
-                  if (kind == COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN ||
-                      kind == COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN)
-                  {
-                      COREWEBVIEW2_KEY_PRESSED_FLAG_KIND flag;
-                      CHECK_FAILURE(args->get_Modifiers(&flag));
-                      if (flag & COREWEBVIEW2_KEY_EVENT_FLAG_CONTROL_DOWN)
-                      {
-                          UINT key;
-                          CHECK_FAILURE(args->get_VirtualKey(&key));
-                          // Check if the key is one we want to handle.
-                          if (key == 'Z')
-                          {
-                              MessageBox(
-                                  nullptr,
-                                  L"Key combination Ctrl + Z unhandled by browser is "
-                                  L"triggered.",
-                                  L"", MB_OK);
-                          }
-                          else if (key >= 'A' && key <= 'Z')
-                          {
-                              OutputDebugString((std::wstring(L"Ctrl +") + (wchar_t)key +
-                                                  L" not handled by browser is triggered.")
-                                                    .c_str());
-                          }
-                      }
-                  }
-                  return S_OK;
-              })
-              .Get(),
-          &m_unhandledKeyPressedToken));
-  }
+                // We only care about key down events.
+                if (kind == COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN ||
+                    kind == COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN)
+                {
+                    COREWEBVIEW2_KEY_PRESSED_FLAG_KIND flag;
+                    CHECK_FAILURE(args->get_Modifiers(&flag));
+                    if (flag & COREWEBVIEW2_KEY_EVENT_FLAG_CONTROL_DOWN)
+                    {
+                        UINT key;
+                        CHECK_FAILURE(args->get_VirtualKey(&key));
+                        // Check if the key is one we want to handle.
+                        if (key == 'Z')
+                        {
+                            MessageBox(
+                                nullptr,
+                                L"Key combination Ctrl + Z unhandled by browser is "
+                                L"triggered.",
+                                L"", MB_OK);
+                        }
+                        else if (key >= 'A' && key <= 'Z')
+                        {
+                            OutputDebugString((std::wstring(L"Ctrl +") + (wchar_t)key +
+                                                L" not handled by browser is triggered.")
+                                                  .c_str());
+                        }
+                    }
+                }
+                return S_OK;
+            })
+            .Get(),
+        &m_unhandledKeyPressedToken));
+}
 ```
 
 ## C#
