@@ -64,4 +64,25 @@ interface ICoreWebView2EnvironmentOptions7 : ICoreWebView2EnvironmentOptions6
 ## .NET and WinRT
 
 ```c#
+namespace Microsoft.Web.WebView2.Core
+{
+
+    enum CoreWebView2CustomScrollbarStyle
+    {
+        Default = 0,
+        WindowOverlay = 1,
+    };
+    
+    // ...
+    runtimeclass CoreWebView2EnvironmentOptions
+    {
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions7")]
+        {
+            // Set custom scrollbar style
+            CoreWebView2CustomScrollbarStyle CustomScrollbarStyle { set; };
+        }
+    }
+
+    // ...
+}
 ```
