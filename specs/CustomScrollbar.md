@@ -11,7 +11,7 @@ Developers would like to be able to set the scrollbar to Windows overlay style a
 async void CreateEnvironmentWithOption()
 {
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
-    options.SetCustomScrollbarStyle = COREWEBVIEW2_SCROLLBAR_WIN_FLUENT_OVERLAY_STYLE;
+    options.CustomScrollbarStyle = COREWEBVIEW2_SCROLLBAR_WIN_FLUENT_OVERLAY_STYLE;
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(options: options);
     webview.EnsureCoreWebView2Async(environment);
 }
@@ -79,7 +79,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions7")]
         {
             // Set custom scrollbar style
-            CoreWebView2CustomScrollbarStyle CustomScrollbarStyle { set; };
+            CoreWebView2CustomScrollbarStyle CustomScrollbarStyle { get; set; };
         }
     }
 
