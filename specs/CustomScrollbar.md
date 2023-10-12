@@ -46,7 +46,7 @@ typedef enum COREWEBVIEW2_SCROLLBAR_STYLE {
   /// Browser default style
   COREWEBVIEW2_SCROLLBAR_BROWSER_DEFAULT,
   /// Window Style fluent overlay scroll bar
-  COREWEBVIEW2_SCROLLBAR_WIN_FLUENT_OVERLAY_STYLE
+  COREWEBVIEW2_SCROLLBAR_STYLE_WINDOWS_FLUENT_OVERLAY
 } COREWEBVIEW2_SCROLLBAR_STYLE;
 
 /// Additional options used to create WebView2 Environment.
