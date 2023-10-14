@@ -1,10 +1,12 @@
-Custom Scrollbar 
+Custom Scrollbar Style
 ===
 
 # Background
-Developers would like to be able to set the scrollbar to Windows overlay style and match the
-Windows theme, but browser flags keep changing and are not reliable. Thus we want to provide
-an extendable API that allows developers to define a scrollbar style in their app.
+Developers would like to be able to set the scrollbar to Windows fluent overlay style and 
+match the Windows theme, but browser flags keep changing and are not reliable. Thus we want
+to provide an extendable API that allows developers to set scrollbar style. Currently, 
+only Windows fluent overlay are supported, adding new styles in the future will not introduce
+any breaking changes.
 
 # Examples
 ## WinRT and .NET   
@@ -45,9 +47,7 @@ interface ICoreWebView2EnvironmentOptions7;
 
 [v1_enum]
 typedef enum COREWEBVIEW2_SCROLLBAR_STYLE {
-  /// Browser default style
-  COREWEBVIEW2_SCROLLBAR_STYLE_BROWSER_DEFAULT,
-  /// Window Style fluent overlay scroll bar
+  /// Window style fluent overlay scroll bar
   COREWEBVIEW2_SCROLLBAR_STYLE_WINDOWS_FLUENT_OVERLAY
 } COREWEBVIEW2_SCROLLBAR_STYLE;
 
@@ -55,10 +55,10 @@ typedef enum COREWEBVIEW2_SCROLLBAR_STYLE {
 [uuid(9c8ac95a-6b5f-4efb-b5f6-98bb33469759), object, pointer_default(unique)]
 interface ICoreWebView2EnvironmentOptions7 : ICoreWebView2EnvironmentOptions6 {
   /// Get the scrollbar style being set on the WebView2 Environment.
-  [propget] HRESULT CustomScrollbarStyle([out, retval] COREWEBVIEW2_SCROLLBAR_BROWSER_DEFAULT* value);
-  /// Set scrollbar style to be used. Default to be `COREWEBVIEW2_SCROLLBAR_BROWSER_DEFAULT`
+  [propget] HRESULT CustomScrollbarStyle([out, retval] COREWEBVIEW2_SCROLLBAR_STYLE* value);
+  /// Set scrollbar style to be used. Default to be `COREWEBVIEW2_SCROLLBAR_STYLE`
   /// that matches the default browser scrollbar style.
-  [propput] HRESULT CustomScrollbarStyle([in] COREWEBVIEW2_SCROLLBAR_BROWSER_DEFAULT value);
+  [propput] HRESULT CustomScrollbarStyle([in] COREWEBVIEW2_SCROLLBAR_STYLE value);
 }
 ```
 
@@ -70,8 +70,7 @@ namespace Microsoft.Web.WebView2.Core
 
     enum ScrollbarStyle
     {
-        Default = 0,
-        WindowOverlay = 1,
+        WindowOverlay = 0,
     };
     
     // ...
