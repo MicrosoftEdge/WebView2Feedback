@@ -65,7 +65,6 @@ if (controller5)
 private CoreWebView2Controller controller;
 void RegisterKeyEventHandlers()
 {
-    // Disable external drop while navigating.
     if (controller != null)
     {
         controller.UnhandledKeyPressed += CoreWebView2Controller_UnhandledKeyPressed;
