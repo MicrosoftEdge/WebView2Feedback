@@ -57,7 +57,7 @@ namespace Microsoft.Web.WebView2.Core
     /// <param name="value">Pointer to the COM object representing the ICoreWebView2 control.</param>
     /// <returns>Returns a .NET CoreWebView2 object that wraps the COM object.</returns>
     /// <exception cref="ArgumentNullException">Thrown when the provided COM pointer is null.</exception>
-    /// <exception cref="InvalidComObjectException">Thrown when the COM object cannot be wrapped.</exception>
+    /// <exception cref="InvalidComObjectException">Thrown when the value is not an ICoreWebView2 COM object and cannot be wrapped.</exception>
     public static CoreWebView2 CreateFromCOMObject(IntPtr value);
   }
 }
