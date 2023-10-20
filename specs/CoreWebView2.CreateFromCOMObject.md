@@ -1,4 +1,4 @@
-CoreWebView2.CreateFromCOMObject
+CoreWebView2.CreateFromComObject
 ===
 
 # Background
