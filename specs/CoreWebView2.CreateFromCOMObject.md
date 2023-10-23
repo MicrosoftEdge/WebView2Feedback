@@ -25,10 +25,10 @@ public class MyWebView2Control
 {
   ... // Regular control code
 
-  // A previously created ICoreWebView2
-  IntPtr _myCoreWebView2ComObject = ...;
-
   CoreWebView2 _myCoreWebView2 = null;
+
+  [DllImport(DLL_NAME, CallingConvention = CallingConvention.StdCall)]
+  public static extern ComNativePointer GetNativePointer(WebViewInstancePtr instanceId);
 
   // This is the CoreWebView2 property which allows developers to access CoreWebView2 APIs directly.
   public CoreWebView2 CoreWebView2
@@ -37,7 +37,9 @@ public class MyWebView2Control
     {
       if (!_myCoreWebView2)
       {
-        _myCoreWebView2 = CoreWebView2.CreateFromComObject(_myCoreWebView2Object);
+        IntPtr comPtr = WebViewNative.GetNativePointer(InstanceId);
+
+        _myCoreWebView2 = CoreWebView2.CreateFromComObject(comPtr);
       }
       return _myCoreWebView2;
     }
