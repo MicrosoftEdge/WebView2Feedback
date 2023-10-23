@@ -13,7 +13,10 @@ Users may see error page in the WebView2:
 
 ## Identify the dll
 
-**Compatibility problem** web page may show the culprit file otherwise use Event Viewer.
+**Programmatically** app can subscribe to [ProcessFailed event](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-related-events?tabs=dotnetcsharp#events-for-processes-that-exited-or-failed). [Starting from 120.0.2164.0](https://learn.microsoft.com/en-us/microsoft-edge/webview2/release-notes?tabs=dotnetcsharp#experimental-apis)
+`FailureSourceModulePath` property in the `ProcessFailedEventArgs` contains full path of the module that caused the crash in cases of Windows code integrity failures.
+
+**Compatibility problem** web page may also show the culprit file otherwise use Event Viewer.
 
 Open Event Viewer by typing eventvwr in the search box on the taskbar and selecting the app.
 
