@@ -1,6 +1,10 @@
 
 # Background
-Consumers of the old [WebBrowser](https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.webbrowser?view=windowsdesktop-7.0) control that relied on the [OnKeyDown](https://learn.microsoft.com/previous-versions/aa752133(v=vs.85)) API that allowed them to receive and handle key events not handled by the browser, [requested](https://github.com/MicrosoftEdge/WebViewFeedback/issues/468) same ability in WebView2. 
+Consumers of the old [WebBrowser](https://learn.microsoft.com/en-us/dotnet/api/system.windows.controls.webbrowser?view=windowsdesktop-7.0) 
+control that relied on the [OnKeyDown](https://learn.microsoft.com/previous-versions/aa752133(v=vs.85)) API that allowed 
+them to receive and handle key events not handled by the browser, 
+[requested](https://github.com/MicrosoftEdge/WebViewFeedback/issues/468) 
+same ability in WebView2.
 
 # Description
 The `UnhandledKeyPressed` event allows developers to subscribe event handlers to be run when a key event is not handled by the browser (including DOM and browser accelerators).
@@ -26,8 +30,7 @@ if (controller5)
                 CHECK_FAILURE(args->get_KeyEventKind(&kind));
 
                 // We only care about key down events.
-                if (kind == COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN ||
-                    kind == COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN)
+                if (kind == COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN)
                 {
                     COREWEBVIEW2_KEY_PRESSED_FLAG_KIND flag;
                     CHECK_FAILURE(args->get_Modifiers(&flag));
@@ -38,6 +41,8 @@ if (controller5)
                         // Check if the key is one we want to handle.
                         if (key == 'Z')
                         {
+                            // Raised when not focused in an edit control, or
+                            // there is nothing to undo in an edit control.
                             MessageBox(
                                 nullptr,
                                 L"Key combination Ctrl + Z unhandled by browser is "
@@ -72,11 +77,18 @@ void RegisterKeyEventHandlers()
 }
 void CoreWebView2Controller_UnhandledKeyPressed(object sender, CoreWebView2UnhandledKeyPressedEventArgs e)
 {
-    if ((e.KeyEventKind == CoreWebView2KeyEventKind.KeyDown) && (e.Modifiers & CoreWebView2KeyPressedFlagKind.CoreWebView2KeyEventFlagControlDown) != 0)
+    if ((e.KeyEventKind == CoreWebView2KeyEventKind.KeyDown) && 
+        (e.Modifiers & CoreWebView2KeyPressedFlagKind.CoreWebView2KeyEventFlagControlDown) != 0)
     {
-        if (e.VirtualKey == 'z')
+        if (e.VirtualKey == 'Z')
         {
-            Debug.WriteLine($"Key combination Ctrl + Z unhandled by browser is triggered.");
+            // Raised when not focused in an edit control, or
+            // there is nothing to undo in an edit control.
+            MessageBox.Show("Key combination Ctrl + Z unhandled by browser is triggered.");
+        }
+        else if (e.VirtualKey >= 'A' && e.VirtualKey <= 'Z')
+        {
+            Debug.WriteLine($"Ctrl + {(char)e.VirtualKey} not handled by browser is triggered.");
         }
     }
 }
@@ -89,8 +101,10 @@ void CoreWebView2Controller_UnhandledKeyPressed(object sender, CoreWebView2Unhan
 [uuid(053b9a5d-7033-4515-9898-912977d2fde8), object, pointer_default(unique)]
 interface ICoreWebView2Controller : IUnknown {
   /// Adds an event handler for the `UnhandledKeyPressed` event.
-  /// `UnhandledKeyPressed` runs when an key is not handled in
-  /// the DOM.
+  /// `UnhandledKeyPressed` will be raised ONLY IF ALL of the following conditions are met:
+  /// 1. The key event has not been marked as handled in the 'AcceleratorKeyPressed' event.
+  /// 2. The key event is not consumed in the DOM (e.g., through calling event.preventDefault()).
+  /// 3. The event is not recognized or taken over by standard browser shortcuts (like ctrl + F, ctrl + P, etc).
 
   HRESULT add_UnhandledKeyPressed(
     [in] ICoreWebView2UnhandledKeyPressedEventHandler* eventHandler,
