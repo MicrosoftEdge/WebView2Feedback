@@ -103,7 +103,7 @@ interface ICoreWebView2Controller : IUnknown {
   /// Adds an event handler for the `UnhandledKeyPressed` event.
   /// `UnhandledKeyPressed` will be raised ONLY IF ALL of the following conditions are met:
   /// 1. The key event has not been marked as handled in the 'AcceleratorKeyPressed' event.
-  /// 2. The key event is not consumed in the DOM (e.g., through calling event.preventDefault()).
+  /// 2. The key press is not consumed in the DOM. For example, a JavaScript handler for the document's keydown event calling `event.preventDefault()` would handle the key press and the `UnhandledKeyPressed` event will not be raised.
   /// 3. The event is not recognized or taken over by standard browser shortcuts (like ctrl + F, ctrl + P, etc).
 
   HRESULT add_UnhandledKeyPressed(
