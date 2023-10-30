@@ -1,7 +1,8 @@
 # Background
-WebView2 has `ICoreWebView2AcceleratorKeyPressedEventArgs` for the `AcceleratorKeyPressed`
-event. We have been asked to extend this API so that developers can indicate that they 
-would like an existing browser accelerator key to be disabled as a browser accelerator.
+WebView2 has `ICoreWebView2AcceleratorKeyPressedEventArgs` for the 
+`CoreWebView2Controller.AcceleratorKeyPressed` event. We have been asked to extend this API so
+that developers can indicate that theywould like an existing browser accelerator key to be 
+disabled as a browser accelerator.
 
 In this document we describe the updated API. We'd appreciate your feedback.
 
@@ -31,7 +32,7 @@ property.
             // setting. Changing this setting to `false` will change the default setting for 
             // AllowBrowserAcceleratorHandling to `false`.
             CHECK_FAILURE(m_settings3->put_AreBrowserAcceleratorKeysEnabled(FALSE));
-            // Register a handler for the AcceleratorKeyPressed event.
+            // Register a handler for the CoreWebView2Controller.AcceleratorKeyPressed event.
             CHECK_FAILURE(m_controller->add_AcceleratorKeyPressed(
                 Callback<ICoreWebView2AcceleratorKeyPressedEventHandler>(
                     [this](
@@ -101,12 +102,14 @@ property.
 ```
 
 # Remarks
-By default, `AreBrowserAcceleratorKeysEnabled` is `TRUE` and default value for `AllowBrowserAcceleratorHandling`
-is `TRUE`. When developers set `AreBrowserAcceleratorKeysEnabled` to `FALSE` this will also change the default 
-value for `AllowBrowserAcceleratorHandling` to `FALSE`. If developers want specific keys to be handled by the 
-browser after changing the `AreBrowserAcceleratorKeysEnabled` settings to `FALSE`, they need to enable them by 
-setting `event_args->put_ AllowBrowserAcceleratorHandling(TRUE)`. This option will give the event arg higher 
-priority over the settings when the browser decide whether to handle the keys.  
+By default, `CoreWebView2Settings.AreBrowserAcceleratorKeysEnabled` is `TRUE` and default value for
+`AllowBrowserAcceleratorHandling` is `TRUE`. When developers set  
+`CoreWebView2Settings.AreBrowserAcceleratorKeysEnabled` to `FALSE` this will also change the default 
+value for `AllowBrowserAcceleratorHandling` to `FALSE`. If developers want specific keys to be handled 
+by the browser after changing the `CoreWebView2Settings.AreBrowserAcceleratorKeysEnabled` settings to 
+`FALSE`, they need to enable them by setting `event_args->put_ AllowBrowserAcceleratorHandling(TRUE)`. 
+This option will give the event arg higher priority over the settings when the browser decide whether 
+to handle the keys.  
 
 # API Details
 ## C++
@@ -114,6 +117,9 @@ priority over the settings when the browser decide whether to handle the keys.
 /// This is a continuation of the ICoreWebView2AcceleratorKeyPressedEventArgs interface.
 [uuid(45238725-3774-4cfe-931f-7985a1b5866f), object, pointer_default(unique)]
 interface ICoreWebView2AcceleratorKeyPressedEventArgs2 : ICoreWebView2AcceleratorKeyPressedEventArgs {
+  /// This property allows developers to enable or disable the browser from handling a specific 
+  /// browser accelerator key such as Ctrl+P or F3, etc.
+  ///
   /// Browser accelerator keys are the keys/key combinations that access features specific to 
   /// a web browser, including but not limited to:
   ///  - Ctrl-F and F3 for Find on Page
@@ -123,42 +129,41 @@ interface ICoreWebView2AcceleratorKeyPressedEventArgs2 : ICoreWebView2Accelerato
   ///  - Ctrl-Shift-C and F12 for DevTools
   ///  - Special keys for browser functions, such as Back, Forward, and Search
   ///
-  /// These APIs allow developers to enable/disable the browser from handling a specific browser 
-  /// accelerator key. These APIs do not disable accelerator keys related to movement and text 
-  /// editing, such as:
+  /// This property does not disable accelerator keys related to movement and text editing,
+  /// such as:
   ///  - Home, End, Page Up, and Page Down
   ///  - Ctrl-X, Ctrl-C, Ctrl-V
   ///  - Ctrl-A for Select All
   ///  - Ctrl-Z for Undo
   ///
-  /// The exsiting `AreBrowserAcceleratorKeysEnabled` API is a convenience setting for developers 
-  /// to disable all the browser accelerator keys together. This setting sets the default value 
-  /// for the `AllowBrowserAcceleratorHandling` property. 
-  /// By default, `AreBrowserAcceleratorKeysEnabled` is `TRUE` and `AllowBrowserAcceleratorHandling` 
-  /// is `TRUE`. 
-  /// When developers change `AreBrowserAcceleratorKeysEnabled` setting to `FALSE`, this will 
-  /// change default value for `AllowBrowserAcceleratorHandling` to `FALSE`. 
+  /// The exsiting `CoreWebView2Settings.AreBrowserAcceleratorKeysEnabled` API is a convenience setting 
+  /// for developers to disable all the browser accelerator keys together. This setting sets the default 
+  /// value for the `AllowBrowserAcceleratorHandling` property. 
+  /// By default, `CoreWebView2Settings.AreBrowserAcceleratorKeysEnabled` is `TRUE` and  
+  /// `AllowBrowserAcceleratorHandling` is `TRUE`. 
+  /// When developers change `CoreWebView2Settings.AreBrowserAcceleratorKeysEnabled` setting to `FALSE`,  
+  /// this will change default value for `AllowBrowserAcceleratorHandling` to `FALSE`. 
   /// If developers want specific keys to be handled by the browser after changing the 
-  /// `AreBrowserAcceleratorKeysEnabled` setting to `FALSE`, they need to enable these keys by 
-  /// setting `AllowBrowserAcceleratorHandling` to `TRUE`.
-  /// This API will give the event arg higher priority over the `AreBrowserAcceleratorKeysEnabled` 
-  /// setting when we handle the keys.
+  /// `CoreWebView2Settings.AreBrowserAcceleratorKeysEnabled` setting to `FALSE`, they need to enable  
+  /// these keys by setting `AllowBrowserAcceleratorHandling` to `TRUE`.
+  /// This API will give the event arg higher priority over the  
+  /// `CoreWebView2Settings.AreBrowserAcceleratorKeysEnabled` setting when we handle the keys.
   ///
   /// For browser accelerator keys, when an accelerator key is pressed, the propagation and 
   /// processing order is: 
-  /// - An AcceleratorKeyPressed event is generated
-  /// - Browser level handling
+  /// - A CoreWebView2Controller.AcceleratorKeyPressed event is raised
+  /// - WebView2 browser feature accelerator key handling
   /// - Web Content Handling: If the key combination isn't reserved for browser actions, 
   /// the key event propagates to the web content, where JavaScript event listeners can 
   /// capture and respond to it.
   /// 
-  /// Currently, `ICoreWebView2AcceleratorKeyPressedEventArgs` has a `Handled` property, 
-  /// that developers can use to marked a key as handled. When the key is marked as handled 
-  /// anywhere along the path, the propagtion stops, and web content will not receive the key.
+  /// `ICoreWebView2AcceleratorKeyPressedEventArgs` has a `Handled` property, that developers
+  /// can use to marked a key as handled. When the key is marked as handled anywhere along
+  /// the path, the event propagtion stops, and web content will not receive the key.
   /// With `AllowBrowserAcceleratorHandling` property, when developers mark 
-  /// `AllowBrowserAcceleratorHandling` as `FALSE`, the browser will skip the browser level 
-  /// handling process, but the propagation continue, web content will receive the key 
-  /// combination. 
+  /// `AllowBrowserAcceleratorHandling` as `FALSE`, the browser will skip the WebView2 
+  /// browser feature accelerator key handling process, but the event propagation    
+  /// continues, and web content will receive the key combination. 
 
   /// \snippet ScenarioAcceleratorKeyPressed.cpp
   /// Gets the `AllowBrowserAcceleratorHandling` property.
