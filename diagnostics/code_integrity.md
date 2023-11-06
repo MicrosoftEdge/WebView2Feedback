@@ -11,6 +11,10 @@ Users may see error page in the WebView2:
 
 ![Compatibility problem](compatibility_problem.png)
 
+## Update antimalware software
+Starting versions 118 and 119 the options to disable Code Integrity in WebView2 are deprecated and the guard is always on.
+We are seeing cases where old antimalware software violating our policies. Please make sure that antimalware on your devices is up to date when using WebView2.
+
 ## Identify the dll
 
 **Programmatically** app can subscribe to [ProcessFailed event](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-related-events?tabs=dotnetcsharp#events-for-processes-that-exited-or-failed). [Starting from 120.0.2164.0](https://learn.microsoft.com/en-us/microsoft-edge/webview2/release-notes?tabs=dotnetcsharp#experimental-apis)
