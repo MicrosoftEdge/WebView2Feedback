@@ -47,6 +47,8 @@ interface ICoreWebView2EnvironmentOptions7;
 
 [v1_enum]
 typedef enum COREWEBVIEW2_SCROLLBAR_STYLE {
+  /// Browser default scrollbar style
+  COREWEBVIEW2_SCROLLBAR_DEFAULT_STYLE,
   /// Window style fluent overlay scroll bar
   COREWEBVIEW2_SCROLLBAR_STYLE_WINDOWS_FLUENT_OVERLAY
 } COREWEBVIEW2_SCROLLBAR_STYLE;
@@ -70,7 +72,8 @@ namespace Microsoft.Web.WebView2.Core
 
     enum ScrollbarStyle
     {
-        WindowOverlay = 0,
+        Default = 0,
+        WindowOverlay = 1,
     };
     
     // ...
