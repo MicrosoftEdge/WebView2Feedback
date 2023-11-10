@@ -2,16 +2,25 @@ Throttling Control - Script Throttling
 ===
 
 # Background
-Web content in WebView2 is generally subject to the same Web Platform restrictions as in the Microsoft Edge browser. However, some of the scenarios for WebView2 applications differ from the scenarios in the browser. For this reason, we're providing a set of APIs to fine-tune performance of scripts running in WebView2. These APIs allow WebView2 applications to achieve two things:
+Web content in WebView2 is generally subject to the same Web Platform
+restrictions as in the Microsoft Edge browser. However, some of the scenarios
+for WebView2 applications differ from the scenarios in the browser. For this
+reason, we're providing a set of APIs to fine-tune performance of scripts
+running in WebView2. These APIs allow WebView2 applications to achieve two
+things:
 
-* Customize script timers (`setTimeout` and `setInterval`) throttling under different page states (foreground, background, and background with intensive throttling)
+* Customize script timers (`setTimeout` and `setInterval`) throttling under
+different page states (foreground, background, and background with intensive
+throttling)
 * Throttle script timers in select hosted iframes
 
 # Examples
 
 ## Throttle timers in visible WebView
 
-Throttling Control APIs allow you to throttle JavaScript timers in scenarios where the WebView2 control in your application needs to remain visible, but consume less resources, for example, when the user is not interactive.
+Throttling Control APIs allow you to throttle JavaScript timers in scenarios
+where the WebView2 control in your application needs to remain visible, but
+consume less resources, for example, when the user is not interactive.
 
 ```c#
 void OnNoUserInteraction()
@@ -52,7 +61,10 @@ void ScenarioThrottlingControl::OnUserInteraction()
 
 ## Unthrottle timers in hidden WebView
 
-Throttling Control APIs allow you to set a custom throttling interval for timers on hidden WebViews. For example, if there's logic in your app that runs in JavaScript but doesn't need to render content, you can keep the WebView hidden and unthrottle its timers.
+Throttling Control APIs allow you to set a custom throttling interval for timers
+on hidden WebViews. For example, if there's logic in your app that runs in
+JavaScript but doesn't need to render content, you can keep the WebView hidden
+and unthrottle its timers.
 
 ```C#
 void SetupHiddenWebViewCore()
@@ -106,7 +118,10 @@ void ScenarioThrottlingControl::DisableHiddenWebViewCore()
 
 ## Throttle timers in hosted iframes
 
-Throttling Control APIs allow you to throttle timers in specific frames within the WebView2 control. For example, if your application uses iframes to host 3rd party content, you can select and mark these frames to be throttled separately from the main frame and other regular, unmarked frames.
+Throttling Control APIs allow you to throttle timers in specific frames within
+the WebView2 control. For example, if your application uses iframes to host 3rd
+party content, you can select and mark these frames to be throttled separately
+from the main frame and other regular, unmarked frames.
 
 ```C#
 void SetupUntrustedFramesHandler()
