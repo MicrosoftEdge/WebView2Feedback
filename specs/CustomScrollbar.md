@@ -82,7 +82,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions7")]
         {
             // Set scrollbar style
-            ScrollbarStyle CustomScrollbarStyle { get; set; };
+            ScrollbarStyle ScrollbarStyle { get; set; };
         }
     }
 
