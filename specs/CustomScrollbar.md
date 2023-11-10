@@ -3,7 +3,7 @@ Custom Scrollbar Style
 
 # Background
 Developers would like to be able to set the scrollbar to Windows fluent overlay style and 
-match the Windows theme, but browser flags keep changing and are not reliable. Thus we want
+match the Windows theme. Some customers have used browser flags but they change names and behavior and are not reliable. Thus we want
 to provide an extendable API that allows developers to set scrollbar style. Currently, 
 only Windows fluent overlay are supported, adding new styles in the future will not introduce
 any breaking changes.
