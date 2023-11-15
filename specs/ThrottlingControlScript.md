@@ -124,15 +124,15 @@ party content, you can select and mark these frames to be throttled separately
 from the main frame and other regular, unmarked frames.
 
 ```C#
-void SetupUntrustedFramesHandler()
+void SetupIsolatedFramesHandler()
 {
     webView.CoreWebView2.FrameCreated += (sender, args) =>
     {
         // You can use the frame properties to determine whether it should be
         // marked to be throttled separately from main frame.
-        if (args.Frame.Name == "untrusted")
+        if (args.Frame.Name == "isolated")
         {
-            args.Frame.IsUntrusted = true;
+            args.Frame.ShouldUseIsolatedThrottling = true;
         }
     };
 
@@ -141,7 +141,7 @@ void SetupUntrustedFramesHandler()
 ```
 
 ```cpp
-void ScenarioThrottlingControl::SetupUntrustedFramesHandler()
+void ScenarioThrottlingControl::SetupIsolatedFramesHandler()
 {
     auto webview4 = m_webview.try_query<ICoreWebView2_4>();
     CHECK_FEATURE_RETURN_EMPTY(webview4);
@@ -161,9 +161,9 @@ void ScenarioThrottlingControl::SetupUntrustedFramesHandler()
 
                 wil::unique_cotaskmem_string name;
                 CHECK_FAILURE(webviewFrame->get_Name(&name));
-                if (wcscmp(name.get(), L"untrusted") == 0)
+                if (wcscmp(name.get(), L"isolated") == 0)
                 {
-                    CHECK_FAILURE(webviewFrame6->put_IsUntrusted(TRUE));
+                    CHECK_FAILURE(webviewFrame6->put_ShouldUseIsolatedThrottling(TRUE));
                 }
 
                 return S_OK;
@@ -173,7 +173,7 @@ void ScenarioThrottlingControl::SetupUntrustedFramesHandler()
 
     auto webView21 = m_webview.try_query<ICoreWebView2_21>();
     CHECK_FAILURE(webView21->SetThrottlingIntervalPreference(
-        COREWEBVIEW2_THROTTLING_CATEGORY_UNTRUSTED_FRAME, 500));
+        COREWEBVIEW2_THROTTLING_CATEGORY_ISOLATED, 500));
 }
 ```
 
@@ -200,11 +200,11 @@ typedef enum COREWEBVIEW2_THROTTLING_CATEGORY {
   /// WebView2 Runtime.
   COREWEBVIEW2_THROTTLING_CATEGORY_INTENSIVE,
 
-  /// Applies to frames that have been marked untrusted by the host app.
+  /// Applies to frames that have been marked for isolated throttling by the host app.
   /// This is a category specific to WebView2 with no corresponding state in the
   /// Chromium tab state model. The default value is a constant determined by
   /// the running version of the WebView2 Runtime.
-  COREWEBVIEW2_THROTTLING_CATEGORY_UNTRUSTED_FRAME
+  COREWEBVIEW2_THROTTLING_CATEGORY_ISOLATED
 } COREWEBVIEW2_THROTTLING_CATEGORY;
 
 /// A continuation of the `ICoreWebView2` interface to support ThrottlingPreference.
@@ -228,26 +228,28 @@ interface ICoreWebView2_21 : ICoreWebView2_20 {
   /// throttling scenarios, or match the default background value (usually 1000
   /// ms). The WebView2 Runtime will try to respect the preferred interval set
   /// by the application, but the effective value will be constrained by
-  /// resource and platform limitations. Setting a value of `0` means no
-  /// throttling will be applied.
+  /// resource and platform limitations. Setting a value of `0` means a
+  /// preference of no throttling to be applied.
   HRESULT SetThrottlingIntervalPreference(
       [in] COREWEBVIEW2_THROTTLING_CATEGORY category,
       [in] UINT32 intervalInMilliseconds);
 }
 
-/// A continuation of the `ICoreWebView2Frame` interface to support IsUntrusted property.
+/// A continuation of the `ICoreWebView2Frame` interface to support
+/// ShouldUseIsolatedThrottling property.
 [uuid(5b7d1b96-699b-44a2-b9f1-b8e88f9ac2be), object, pointer_default(unique)]
 interface ICoreWebView2Frame6 : ICoreWebView2Frame5 {
-  /// The `IsUntrusted` property indicates whether the frame has been marked
-  /// untrusted by the host app. Untrusted frames will receive a different
-  /// script throttling category as compared to regular frames. Defaults to
-  /// `FALSE` unless set otherwise. When `FALSE`, and for main frame, throttling
-  /// category will be determined by page state. The corresponding preferred
-  /// interval will apply (set through `SetThrottlingIntervalPreference`).
-  [propget] HRESULT IsUntrusted([out, retval] BOOL* value);
+  /// The `ShouldUseIsolatedThrottling` property indicates whether the frame has
+  /// been marked for isolated throttling by the host app. Isolated throttling
+  /// frames will receive a different script throttling category as compared to
+  /// regular frames. Defaults to `FALSE` unless set otherwise. When `FALSE`,
+  /// and for main frame, throttling category will be determined by page state.
+  /// The corresponding preferred interval will apply (set through
+  /// `SetThrottlingIntervalPreference`).
+  [propget] HRESULT ShouldUseIsolatedThrottling([out, retval] BOOL* value);
 
-  /// Marks the frame as untrusted, for script throttling purposes.
-  [propput] HRESULT IsUntrusted([in] BOOL value);
+  /// Marks the frame for isolated script throttling.
+  [propput] HRESULT ShouldUseIsolatedThrottling([in] BOOL value);
 }
 
 ```
@@ -281,7 +283,7 @@ namespace Microsoft.Web.WebView2.Core
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Frame6")]
         {
-            Boolean IsUntrusted { get; set; };
+            Boolean ShouldUseIsolatedThrottling { get; set; };
         }
     }
 }
