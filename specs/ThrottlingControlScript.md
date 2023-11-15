@@ -26,36 +26,38 @@ consume less resources, for example, when the user is not interactive.
 void OnNoUserInteraction()
 {
     // User is not interactive, keep webview visible but throttle timers to 500ms.
-    webView.CoreWebView2.SetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory.Foreground, 500);
+    webView.CoreWebView2.Settings.ThrottlingIntervalPreferenceForeground = 500;
 }
 
 void OnUserInteraction()
 {
     // User is interactive again, unthrottle foreground timers.
-    webView.CoreWebView2.SetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory.Foreground, 0);
+    webView.CoreWebView2.Settings.ThrottlingIntervalPreferenceForeground = 0;
 }
 ```
 
 ```cpp
 void ScenarioThrottlingControl::OnNoUserInteraction()
 {
-    auto webView21 = m_webview.try_query<ICoreWebView2_21>();
-    CHECK_FEATURE_RETURN_EMPTY(webView21);
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    m_webview->get_Settings(&settings);
+    auto settings2 = settings.try_query<ICoreWebView2Settings9>();
+    CHECK_FEATURE_RETURN_EMPTY(settings2);
 
     // User is not interactive, keep webview visible but throttle timers to
     // 500ms.
-    CHECK_FAILURE(webView21->SetThrottlingIntervalPreference(
-        COREWEBVIEW2_THROTTLING_CATEGORY_FOREGROUND, 500));
+    CHECK_FAILURE(settings2->put_ThrottlingIntervalPreferenceForeground(500));
 }
 
 void ScenarioThrottlingControl::OnUserInteraction()
 {
-    auto webView21 = m_webview.try_query<ICoreWebView2_21>();
-    CHECK_FEATURE_RETURN_EMPTY(webView21);
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    m_webview->get_Settings(&settings);
+    auto settings2 = settings.try_query<ICoreWebView2Settings9>();
+    CHECK_FEATURE_RETURN_EMPTY(settings2);
 
     // User is interactive again, unthrottle foreground timers.
-    CHECK_FAILURE(webView21->SetThrottlingIntervalPreference(
-        COREWEBVIEW2_THROTTLING_CATEGORY_FOREGROUND, 0));
+    CHECK_FAILURE(settings2->put_ThrottlingIntervalPreferenceForeground(0));
 }
 ```
 
@@ -71,33 +73,33 @@ void SetupHiddenWebViewCore()
 {
     // This WebView2 will remain hidden but needs to keep running timers.
     // Unthrottle background timers.
-    webView.CoreWebView2.SetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory.Background, 0);
+    webView.CoreWebView2.Settings.ThrottlingIntervalPreferenceBackground = 0;
     // Effectively disable intensive throttling by overriding its timer interval.
-    webView.CoreWebView2.SetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory.Intensive, 0);
+    webView.CoreWebView2.Settings.ThrottlingIntervalPreferenceIntensive = 0;
     webView.Visibility = System.Windows.Visibility.Hidden;
 }
 
 void DisableHiddenWebViewCore()
 {
     webView.Visibility = System.Windows.Visibility.Visible;
-    webView.CoreWebView2.SetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory.Background, 1000);
-    webView.CoreWebView2.SetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory.Intensive, 60000);
+    webView.CoreWebView2.Settings.ThrottlingIntervalPreferenceBackground = 1000;
+    webView.CoreWebView2.Settings.ThrottlingIntervalPreferenceIntensive = 60000;
 }
 ```
 
 ```cpp
 void ScenarioThrottlingControl::SetupHiddenWebViewCore()
 {
-    auto webView21 = m_webview.try_query<ICoreWebView2_21>();
-    CHECK_FEATURE_RETURN_EMPTY(webView21);
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    m_webview->get_Settings(&settings);
+    auto settings2 = settings.try_query<ICoreWebView2Settings9>();
+    CHECK_FEATURE_RETURN_EMPTY(settings2);
 
     // This WebView2 will remain hidden but needs to keep running timers.
     // Unthrottle background timers.
-    CHECK_FAILURE(webView21->SetThrottlingIntervalPreference(
-        COREWEBVIEW2_THROTTLING_CATEGORY_BACKGROUND, 0));
+    CHECK_FAILURE(settings2->put_ThrottlingIntervalPreferenceBackground(0));
     // Effectively disable intensive throttling by overriding its timer interval.
-    CHECK_FAILURE(webView21->SetThrottlingIntervalPreference(
-        COREWEBVIEW2_THROTTLING_CATEGORY_INTENSIVE, 0));
+    CHECK_FAILURE(settings2->put_ThrottlingIntervalPreferenceIntensive(0));
 
     CHECK_FAILURE(m_appWindow->GetWebViewController()->put_IsVisible(FALSE));
 }
@@ -106,13 +108,13 @@ void ScenarioThrottlingControl::DisableHiddenWebViewCore()
 {
     CHECK_FAILURE(m_appWindow->GetWebViewController()->put_IsVisible(TRUE));
 
-    auto webView21 = m_webview.try_query<ICoreWebView2_21>();
-    CHECK_FEATURE_RETURN_EMPTY(webView21);
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    m_webview->get_Settings(&settings);
+    auto settings2 = settings.try_query<ICoreWebView2Settings9>();
+    CHECK_FEATURE_RETURN_EMPTY(settings2);
 
-    CHECK_FAILURE(webView21->SetThrottlingIntervalPreference(
-        COREWEBVIEW2_THROTTLING_CATEGORY_BACKGROUND, 1000));
-    CHECK_FAILURE(webView21->SetThrottlingIntervalPreference(
-        COREWEBVIEW2_THROTTLING_CATEGORY_INTENSIVE, 60000));
+    CHECK_FAILURE(settings2->put_ThrottlingIntervalPreferenceBackground(1000));
+    CHECK_FAILURE(settings2->put_ThrottlingIntervalPreferenceIntensive(60000));
 }
 ```
 
@@ -126,17 +128,17 @@ from the main frame and other regular, unmarked frames.
 ```C#
 void SetupIsolatedFramesHandler()
 {
+    // You can use the frame properties to determine whether it should be
+    // marked to be throttled separately from main frame.
     webView.CoreWebView2.FrameCreated += (sender, args) =>
     {
-        // You can use the frame properties to determine whether it should be
-        // marked to be throttled separately from main frame.
         if (args.Frame.Name == "isolated")
         {
             args.Frame.ShouldUseIsolatedThrottling = true;
         }
     };
 
-    webView.CoreWebView2.SetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory.UntrustedFrame, 500);
+    webView.CoreWebView2.Settings.ThrottlingIntervalPreferenceIsolated = 500;
 }
 ```
 
@@ -171,84 +173,118 @@ void ScenarioThrottlingControl::SetupIsolatedFramesHandler()
             .Get(),
         &m_frameCreatedToken));
 
-    auto webView21 = m_webview.try_query<ICoreWebView2_21>();
-    CHECK_FAILURE(webView21->SetThrottlingIntervalPreference(
-        COREWEBVIEW2_THROTTLING_CATEGORY_ISOLATED, 500));
+    wil::com_ptr<ICoreWebView2Settings> settings;
+    m_webview->get_Settings(&settings);
+    auto settings2 = settings.try_query<ICoreWebView2Settings9>();
+    CHECK_FAILURE(settings2->put_ThrottlingIntervalPreferenceIsolated(500));
 }
 ```
 
 # API Details
 ```cpp
-[v1_enum]
-typedef enum COREWEBVIEW2_THROTTLING_CATEGORY {
-  /// Applies to frames whose WebView is in foreground state. WebViews whose
-  /// `IsVisible` property is `TRUE` are in this state. The default value is a
-  /// constant determined by the running version of the WebView2 Runtime.
-  COREWEBVIEW2_THROTTLING_CATEGORY_FOREGROUND,
-
-  /// Applies to frames whose WebView is in background state. WebViews whose
-  /// `IsVisible` property is `FALSE` are in this state. The default value is a
-  /// constant determined by the running version of the WebView2 Runtime.
-  /// All other background state policies (including intensive throttling) are
-  /// effective independently of this setting.
-  COREWEBVIEW2_THROTTLING_CATEGORY_BACKGROUND,
-
-  /// Applies to frames whose WebView is being intensively throttled (a
-  /// sub-state of background state). For more details about intensive
-  /// throttling, see [Intensive throttling of Javascript timer wake ups](https://chromestatus.com/feature/4718288976216064).
-  /// The default value is a constant determined by the running version of the
-  /// WebView2 Runtime.
-  COREWEBVIEW2_THROTTLING_CATEGORY_INTENSIVE,
-
-  /// Applies to frames that have been marked for isolated throttling by the host app.
-  /// This is a category specific to WebView2 with no corresponding state in the
-  /// Chromium tab state model. The default value is a constant determined by
-  /// the running version of the WebView2 Runtime.
-  COREWEBVIEW2_THROTTLING_CATEGORY_ISOLATED
-} COREWEBVIEW2_THROTTLING_CATEGORY;
-
-/// A continuation of the `ICoreWebView2` interface to support ThrottlingPreference.
+/// A continuation of the `ICoreWebView2Settings` interface to support
+/// ThrottlingPreference.
 [uuid(00f1b5fb-91ed-4722-9404-e0f8fd1e6b0a), object, pointer_default(unique)]
-interface ICoreWebView2_21 : ICoreWebView2_20 {
-  /// Get the preferred wake up interval (in milliseconds) for throttleable
-  /// JavaScript tasks (`setTimeout` and `setInterval`), for the given
-  /// throttling category. A wake up interval is the amount of time that needs
-  /// to pass before the WebView2 Runtime checks for new timer tasks to run.
-  /// The default interval values are constants determined by the running
-  /// version of the WebView2 Runtime.
-  HRESULT GetThrottlingIntervalPreference(
-      [in] COREWEBVIEW2_THROTTLING_CATEGORY category,
-      [out, retval] UINT32* intervalInMilliseconds);
+interface ICoreWebView2Settings9 : ICoreWebView2Settings8 {
+  /// The preferred wake up interval (in milliseconds) to use for throttleable
+  /// JavaScript tasks (`setTimeout` and `setInterval`), when the WebView is in
+  /// foreground state. A WebView is in foreground state when its `IsVisible`
+  /// property is `TRUE`.
+  ///
+  /// A wake up interval is the amount of time that needs to pass before the
+  /// WebView2 Runtime checks for new timer tasks to run.
+  ///
+  /// The WebView2 Runtime will try to respect the preferred interval set by the
+  /// application, but the effective value will be constrained by resource and
+  /// platform limitations. Setting a value of `0` means a preference of no
+  /// throttling to be applied. The default value is a constant determined by
+  /// the running version of the WebView2 Runtime.
+  ///
+  /// For example, an application might use a foreground value of 30 ms for
+  /// moderate throttling scenarios, or match the default background value
+  /// (usually 1000 ms).
+  [propget] HRESULT ThrottlingIntervalPreferenceForeground([out, retval] UINT32* value);
+  /// Sets the `ThrottlingIntervalPreferenceForeground` property.
+  [propput] HRESULT ThrottlingIntervalPreferenceForeground([in] UINT32 value);
 
-  /// Sets the preferred wake up interval (in milliseconds) for throttleable
-  /// JavaScript tasks (`setTimeout` and `setInterval`), for the given
-  /// throttling category. A wake up interval is the amount of time that needs
-  /// to pass before the WebView2 Runtime checks for new timer tasks to run. For
-  /// example, an application might use a foreground value of 30 ms for moderate
-  /// throttling scenarios, or match the default background value (usually 1000
-  /// ms). The WebView2 Runtime will try to respect the preferred interval set
-  /// by the application, but the effective value will be constrained by
-  /// resource and platform limitations. Setting a value of `0` means a
-  /// preference of no throttling to be applied.
-  HRESULT SetThrottlingIntervalPreference(
-      [in] COREWEBVIEW2_THROTTLING_CATEGORY category,
-      [in] UINT32 intervalInMilliseconds);
+  /// The preferred wake up interval (in milliseconds) to use for throttleable
+  /// JavaScript tasks (`setTimeout` and `setInterval`), when the WebView is in
+  /// background state, with no intensive throttling. A WebView is in background
+  /// state when its `IsVisible` property is `FALSE`. Intensive throttling is a
+  /// substate of background state. For more details about intensive throttling,
+  /// see [Intensive throttling of Javascript timer wake ups](https://chromestatus.com/feature/4718288976216064).
+  ///
+  /// A wake up interval is the amount of time that needs to pass before the
+  /// WebView2 Runtime checks for new timer tasks to run.
+  ///
+  /// The WebView2 Runtime will try to respect the preferred interval set by the
+  /// application, but the effective value will be constrained by resource and
+  /// platform limitations. Setting a value of `0` means a preference of no
+  /// throttling to be applied. The default value is a constant determined by
+  /// the running version of the WebView2 Runtime. All other background state
+  /// policies (including intensive throttling) are effective independently of
+  /// this setting.
+  ///
+  /// For example, an application might use a background value of 100 ms to
+  /// relax the default background value (usually 1000 ms).
+  [propget] HRESULT ThrottlingIntervalPreferenceBackground([out, retval] UINT32* value);
+  /// Sets the `ThrottlingIntervalPreferenceBackground` property.
+  [propput] HRESULT ThrottlingIntervalPreferenceBackground([in] UINT32 value);
+
+  /// The preferred wake up interval (in milliseconds) to use for throttleable
+  /// JavaScript tasks (`setTimeout` and `setInterval`), when the WebView is in
+  /// background state with intensive throttling. Intensive throttling is a
+  /// substate of background state. For more details about intensive
+  /// throttling, see
+  /// [Intensive throttling of Javascript timer wake ups](https://chromestatus.com/feature/4718288976216064).
+  ///
+  /// A wake up interval is the amount of time that needs to pass before the
+  /// WebView2 Runtime checks for new timer tasks to run.
+  ///
+  /// The WebView2 Runtime will try to respect the preferred interval set by the
+  /// application, but the effective value will be constrained by resource and
+  /// platform limitations. Setting a value of `0` means a preference of no
+  /// throttling to be applied. The default value is a constant determined by
+  /// the running version of the WebView2 Runtime.
+  [propget] HRESULT ThrottlingIntervalPreferenceIntensive([out, retval] UINT32* value);
+  /// Sets the `ThrottlingIntervalPreferenceIntensive` property.
+  [propput] HRESULT ThrottlingIntervalPreferenceIntensive([in] UINT32 value);
+
+  /// The preferred wake up interval (in milliseconds) to use for throttleable
+  /// JavaScript tasks (`setTimeout` and `setInterval`), in frames whose
+  /// `ShouldUseIsolatedThrottling` property is set to `TRUE`. This is a category
+  /// specific to WebView2 with no corresponding state in the Chromium tab state
+  /// model.
+  ///
+  /// A wake up interval is the amount of time that needs to pass before the
+  /// WebView2 Runtime checks for new timer tasks to run.
+  ///
+  /// The WebView2 Runtime will try to respect the preferred interval set by the
+  /// application, but the effective value will be constrained by resource and
+  /// platform limitations. Setting a value of `0` means a preference of no
+  /// throttling to be applied. The default value is a constant determined by
+  /// the running version of the WebView2 Runtime.
+  ///
+  /// For example, an application might use an isolated throttling value of 30
+  /// ms to reduce resource consumption from third party frames in the WebView.
+  [propget] HRESULT ThrottlingIntervalPreferenceIsolated([out, retval] UINT32* value);
+  /// Sets the `ThrottlingIntervalPreferenceIsolated` property.
+  [propput] HRESULT ThrottlingIntervalPreferenceIsolated([in] UINT32 value);
 }
 
 /// A continuation of the `ICoreWebView2Frame` interface to support
 /// ShouldUseIsolatedThrottling property.
 [uuid(5b7d1b96-699b-44a2-b9f1-b8e88f9ac2be), object, pointer_default(unique)]
 interface ICoreWebView2Frame6 : ICoreWebView2Frame5 {
-  /// The `ShouldUseIsolatedThrottling` property indicates whether the frame has
-  /// been marked for isolated throttling by the host app. Isolated throttling
-  /// frames will receive a different script throttling category as compared to
-  /// regular frames. Defaults to `FALSE` unless set otherwise. When `FALSE`,
-  /// and for main frame, throttling category will be determined by page state.
-  /// The corresponding preferred interval will apply (set through
-  /// `SetThrottlingIntervalPreference`).
+  /// Indicates whether the frame has been marked for isolated throttling by the
+  /// host app. When `TRUE`, the frame will receive the throttling interval set
+  /// by `ThrottlingIntervalPreferenceIsolated`. When `FALSE`, and for main
+  /// frame, throttling interval will be determined by page state and the
+  /// interval through their corresponding properties in the
+  /// `CoreWebView2Settings` object. Defaults to `FALSE` unless set otherwise.
   [propget] HRESULT ShouldUseIsolatedThrottling([out, retval] BOOL* value);
 
-  /// Marks the frame for isolated script throttling.
+  /// Sets the `ShouldUseIsolatedThrottling` property.
   [propput] HRESULT ShouldUseIsolatedThrottling([in] BOOL value);
 }
 
@@ -257,23 +293,19 @@ interface ICoreWebView2Frame6 : ICoreWebView2Frame5 {
 ```C#
 namespace Microsoft.Web.WebView2.Core
 {
-    enum CoreWebView2ThrottlingCategory
-    {
-        Foreground = 0,
-        Background = 1,
-        Intensive = 2,
-        UntrustedFrame = 3,
-    };
-
     runtimeclass CoreWebView2
     {
         // ...
 
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_21")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Settings9")]
         {
-            UInt32 GetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory category);
+            UInt32 ThrottlingIntervalPreferenceForeground { get; set; };
 
-            void SetThrottlingIntervalPreference(CoreWebView2ThrottlingCategory category, UInt32 intervalInMilliseconds);
+            UInt32 ThrottlingIntervalPreferenceBackground { get; set; };
+
+            UInt32 ThrottlingIntervalPreferenceIntensive { get; set; };
+
+            UInt32 ThrottlingIntervalPreferenceIsolated { get; set; };
         }
     }
 
