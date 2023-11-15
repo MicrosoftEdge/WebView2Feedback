@@ -26,7 +26,7 @@ async void CreateEnvironmentWithOption()
 void AppWindow::InitializeWebView()
 {
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-    COREWEBVIEW2_SCROLLBAR_STYLE style = COREWEBVIEW2_SCROLLBAR_STYLE_WINDOWS_FLUENT_OVERLAY;
+    COREWEBVIEW2_SCROLLBAR_STYLE style = COREWEBVIEW2_SCROLLBAR_STYLE_FLUENT_OVERLAY;
     CHECK_FAILURE(options->put_CustomScrollbarStyle(style));
 
     // ... other option properties
@@ -50,7 +50,7 @@ typedef enum COREWEBVIEW2_SCROLLBAR_STYLE {
   /// Browser default scrollbar style
   COREWEBVIEW2_SCROLLBAR_STYLE_DEFAULT,
   /// Window style fluent overlay scroll bar
-  COREWEBVIEW2_SCROLLBAR_STYLE_WINDOWS_FLUENT_OVERLAY
+  COREWEBVIEW2_SCROLLBAR_STYLE_FLUENT_OVERLAY
 } COREWEBVIEW2_SCROLLBAR_STYLE;
 
 /// Additional options used to create WebView2 Environment.
@@ -73,7 +73,7 @@ namespace Microsoft.Web.WebView2.Core
     enum ScrollbarStyle
     {
         Default = 0,
-        WindowOverlay = 1,
+        FluentOverlay = 1,
     };
     
     // ...
