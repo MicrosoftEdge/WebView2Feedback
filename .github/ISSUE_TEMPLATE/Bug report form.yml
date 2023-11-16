@@ -103,6 +103,17 @@ body:
     label: Repro steps
   validations:
     required: true
+- id: repro-in-edge
+  type: dropdown
+  attributes:
+    description: Does this bug repro in the Edge Browser?
+    label: Repros in Edge Browser
+    options:
+    - No, it does not
+    - Yes, it does
+    - Not Applicable
+  validations:
+    required: true
 - id: regression
   type: dropdown
   attributes:
