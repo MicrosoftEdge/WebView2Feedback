@@ -106,7 +106,7 @@ body:
 - id: repro-in-edge
   type: dropdown
   attributes:
-    description: Does this bug repro in the Edge Browser?
+    description: Is this issue reproducible in the Edge or Chrome browsers?
     label: Repros in Edge Browser
     options:
     - No, it does not
