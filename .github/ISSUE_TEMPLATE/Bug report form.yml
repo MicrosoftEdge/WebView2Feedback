@@ -110,7 +110,7 @@ body:
     label: Repros in Edge Browser
     options:
     - No
-    - Yes, it does
+    - Yes
     - Not Applicable
   validations:
     required: true
