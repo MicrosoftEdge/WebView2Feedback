@@ -109,7 +109,7 @@ body:
     description: Is this issue reproducible in the Edge or Chrome browsers?
     label: Repros in Edge Browser
     options:
-    - No, it does not
+    - No
     - Yes, it does
     - Not Applicable
   validations:
