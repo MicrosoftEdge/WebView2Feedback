@@ -109,8 +109,8 @@ body:
     description: Is this issue reproducible in the Edge or Chrome browsers?
     label: Repros in Edge Browser
     options:
-    - No
-    - Yes
+    - 'No'
+    - 'Yes'
     - Not Applicable
   validations:
     required: true
