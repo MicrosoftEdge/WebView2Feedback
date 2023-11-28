@@ -3,10 +3,9 @@ Programmatic Save As API
 
 # Background
 
-Chromium browser's context menus have a "Save as" menu item to save the top level 
-document (html page, image, pdf, or other content) through a save as dialog. We 
-provide more flexible ways to programmatically perform the Save As operation in 
-WebView2. 
+Chromium browser's context menus have a "Save as" menu item to save the document
+(html page, image, pdf, or other content) through a save as dialog. We provide
+more flexible ways to programmatically perform the Save As operation in WebView2.
 
 With the new API you will be able to:
 - Launch the default save as dialog
@@ -15,8 +14,8 @@ With the new API you will be able to:
 - Build your own save as UI
 
 The chromium browser's Save As operation consists of showing the Save As dialog 
-and then starting a download of the top level document. The Save As method and 
-event described in this document relate to the Save As dialog and not the download, 
+and then starting a download of the document. The Save As method and event
+described in this document relate to the Save As dialog and not the download,
 which will go through the existing WebView2 download APIs. 
 
 We'd appreciate your feedback.
@@ -38,10 +37,11 @@ save as operation.
 
 # Examples
 ## Win32 C++ 
-### Add the Event Handler
+### Programmatic Save As
 This example hides the default save as dialog and shows a customized dialog.
+The sample code will register a handler and trigger programmaic save as once.
 ```c++
-bool ScenarioSaveAs::AddEventHandler()
+bool ScenarioSaveAs::ProgrammaticSaveAs()
 {
     if (!m_webView2_20)
         return false;
@@ -72,8 +72,7 @@ bool ScenarioSaveAs::AddEventHandler()
                         // args has default values based on the document to save.
                         //
                         // Additionally, you can use `get_ContentMimeType` to check the mime 
-                        // type of the document that will be saved to help setup your custom 
-                        // Save As dialog UI
+                        // type of the document that will be saved to help the Kind selection.
                         CHECK_FAILURE(
                             args->put_SaveAsFilePath((LPCWSTR)dialog.path.c_str()));
                         CHECK_FAILURE(args->put_Kind(dialog.selectedKind));
@@ -99,25 +98,14 @@ bool ScenarioSaveAs::AddEventHandler()
             })
             .Get(),
         &m_SaveAsUIShowingToken);
-    
-    MessageBox(
-        m_appWindow->GetMainWindow(), L"Event Handler Added", L"Info",MB_OK);
-    return true;
-}
-```
-### Programmatic Save As
-Call ShowSaveAsUI method to trigger the programmatic save as.
-```c++
-
-bool ScenarioSaveAs::ProgrammaticSaveAs()
-{
-    if (!m_webView2_20)
-        return false;
+        
+    // Call method ShowSaveAsUI to trigger the programmatic save as once.
     m_webView2_20->ShowSaveAsUI(
         Callback<ICoreWebView2ShowSaveAsUICompletedHandler>(
             [this](HRESULT errorCode, COREWEBVIEW2_SAVE_AS_UI_RESULT result) -> HRESULT
             {
-                // Show ShowSaveAsUI returned result, optional
+                // Show ShowSaveAsUI returned result, optional. See
+                // COREWEBVIEW2_SAVE_AS_UI_RESULT for more details.
                 MessageBox(
                     m_appWindow->GetMainWindow(),
                     (L"Save As " + saveAsUIString[result]).c_str(), L"Info", MB_OK);
@@ -129,64 +117,58 @@ bool ScenarioSaveAs::ProgrammaticSaveAs()
 ```
 
 ## .Net/ WinRT
-### Add the Event Handler
-This example hides the default save as dialog and shows a customized dialog.
-```c#
-
-void AddEventHandlerExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    webView.CoreWebView2.SaveAsUIShowing += WebView_SaveAsUIShowing;
-    MessageBox.Show("Event Handler Added", "Info");
-}
-
-void WebView_SaveAsUIShowing(object sender, CoreWebView2SaveAsUIShowingEventArgs args)
-    {
-    // Hide the system default save as dialog.
-    args.SuppressDefaultDialog = true;
-
-    // Developer can obtain a deferral for the event so that the CoreWebView2
-    // doesn't examine the properties we set on the event args until
-    // after the deferral completes asynchronously.
-    CoreWebView2Deferral deferral = args.GetDeferral();
-
-    // We avoid potential reentrancy from running a message loop in the event
-    // handler. Show the customized dialog later then complete the deferral
-    // asynchronously.
-    System.Threading.SynchronizationContext.Current.Post((_) =>
-    {
-        using (deferral)
-        {
-            // This is a customized dialog example.
-            var dialog = new SaveAsDialog();
-            if (dialog.ShowDialog() == true)
-            {
-                // Setting parameters of event args from this dialog is optional.
-                // The event args has default values.
-                //
-                // Additionally, you can use `args.ContentMimeType` to check the mime 
-                // type of the document that will be saved to help setup your custom 
-                // Save As dialog UI
-                args.SaveAsFilePath = System.IO.Path.Combine(
-                    dialog.Directory.Text, dialog.Filename.Text);
-                args.Kind = (CoreWebView2SaveAsKind)dialog.Kind.SelectedItem;
-                args.AllowReplace = (bool)dialog.AllowReplaceOldFile.IsChecked;
-            }
-            else
-            {
-                // Save As cancelled from this customized dialog
-                args.Cancel = true;
-            }
-        }
-    }, null);
-}
-```
 ### Programmatic Save As
-Call ShowSaveAsUIAsync method to trigger the programmatic save as.
+This example hides the default save as dialog and shows a customized dialog.
+The sample code will register a handler and trigger programmaic save as once.
 ```c#
+
 async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
 {
+    // Register a handler for the `SaveAsUIShowing` event.
+    webView.CoreWebView2.SaveAsUIShowing += (sender, args) =>
+    {
+        // Hide the system default save as dialog.
+        args.SuppressDefaultDialog = true;
+
+        // Developer can obtain a deferral for the event so that the CoreWebView2
+        // doesn't examine the properties we set on the event args until
+        // after the deferral completes asynchronously.
+        CoreWebView2Deferral deferral = args.GetDeferral();
+
+        // We avoid potential reentrancy from running a message loop in the event
+        // handler. Show the customized dialog later then complete the deferral
+        // asynchronously.
+        System.Threading.SynchronizationContext.Current.Post((_) =>
+        {
+            using (deferral)
+            {
+                // This is a customized dialog example.
+                var dialog = new SaveAsDialog();
+                if (dialog.ShowDialog() == true)
+                {
+                    // Setting parameters of event args from this dialog is optional.
+                    // The event args has default values.
+                    //
+                    // Additionally, you can use `args.ContentMimeType` to check the mime 
+                    // type of the document that will be saved to help the Kind selection.
+                    args.SaveAsFilePath = System.IO.Path.Combine(
+                        dialog.Directory.Text, dialog.Filename.Text);
+                    args.Kind = (CoreWebView2SaveAsKind)dialog.Kind.SelectedItem;
+                    args.AllowReplace = (bool)dialog.AllowReplaceOldFile.IsChecked;
+                }
+                else
+                {
+                    // Save As cancelled from this customized dialog
+                    args.Cancel = true;
+                }
+            }
+        }, null);
+    };
+
+    // Call ShowSaveAsUIAsync method to trigger the programmatic save as once.
     CoreWebView2SaveAsUIResults result = await webView.CoreWebView2.ShowSaveAsUIAsync();
-    // Show ShowSaveAsUIAsync returned result, optional
+    // Show ShowSaveAsUIAsync returned result, optional. See
+    // CoreWebView2SaveAsUIResults for more details.
     MessageBox.Show(result.ToString(), "Info");
 }
 ```
@@ -204,9 +186,11 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
   /// Default to save for a non-html content. If it is selected for a html
   /// page, it’s same as HTML_ONLY option.
   COREWEBVIEW2_SAVE_AS_KIND_DEFAULT,
-  /// Save the page as html
+  /// Save the page as html. It only saves top-level document, excludes
+  /// subresource.
   COREWEBVIEW2_SAVE_AS_KIND_HTML_ONLY,
-  /// Save the page as mhtml
+  /// Save the page as mhtml.
+  /// Read more about mhtml at (https://en.wikipedia.org/wiki/MHTML)
   COREWEBVIEW2_SAVE_AS_KIND_SINGLE_FILE,
   /// Save the page as html, plus, download the page related source files 
   /// (for example CSS, JavaScript, images, and so on) in a directory with 
@@ -244,7 +228,7 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
 
 [uuid(15e1c6a3-c72a-4df3-91d7-d097fbec3bfd), object, pointer_default(unique)]
 interface ICoreWebView2_20 : IUnknown {
-  /// Programmatically trigger a save as action for the current top-level document. 
+  /// Programmatically trigger a save as action for the currently loaded document.
   /// The `SaveAsUIShowing` event will be raised.
   ///
   /// Opens a system modal dialog by default. If the `SuppressDefaultDialog` is TRUE, 
