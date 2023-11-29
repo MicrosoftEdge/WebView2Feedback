@@ -278,7 +278,7 @@ interface ICoreWebView2SaveAsUIShowingEventArgs : IUnknown {
   /// Get the `Cancel` for save as
   [propget] HRESULT Cancel ([out, retval] BOOL* value);
 
-  /// Indicates if the system default dialog will be Suppressed, FALSE means
+  /// Indicates if the system default dialog will be suppressed, FALSE means
   /// save as default dialog will show; TRUE means a silent save as, will
   /// skip the system dialog. 
   ///
@@ -341,7 +341,7 @@ interface ICoreWebView2SaveAsUIShowingEventArgs : IUnknown {
 /// Receive the result for `ShowSaveAsUI` method
 [uuid(1a02e9d9-14d3-41c6-9581-8d6e1e6f50fe), object, pointer_default(unique)]
 interface ICoreWebView2ShowSaveAsUICompletedHandler : IUnknown {
-  HRESULT Invoke([in] HRESULT errorCode, [in] COREWEBVIEW2_REQUEST_SAVE_RESULTS result);
+  HRESULT Invoke([in] HRESULT errorCode, [in] COREWEBVIEW2_SAVE_AS_UI_RESULT result);
 }
 ```
 
