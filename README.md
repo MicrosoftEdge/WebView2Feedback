@@ -12,7 +12,7 @@ This is a place for all developers of the [Microsoft Edge WebView2](https://aka.
 - 📖 [Read the WebView2 documentation](https://aka.ms/webview)
 
 <p align="center">
-  <img src="https://edgestatic.azureedge.net/shared/cms/lrs1c69a1j/section-images/ddf9b74777e1442d8da3608d389a70c3.svg" alt="Graphic of developers using WebView2 in their applications"/>
+  <img src="https://edgestatic.azureedge.net/shared/cms/lrs1c69a1j/section-images/ddf9b74777e1442d8da3608d389a70c3.svg" alt="Graphic of a developer using WebView2 in their applications"/>
 </p>
 
 ### 🐞 How to report a bug
