@@ -10,4 +10,4 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           assignees: vbryh-msft, lflores-ms
-          includeLabels: ['regression']
+          includeLabels: regression
