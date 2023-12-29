@@ -10,4 +10,9 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           assignees: vbryh-msft, lflores-ms
-          includeLabels: regression, bluescreen
+          includeLabels: regression
+      - uses: wow-actions/auto-assign@v3
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          assignees: vbryh-msft, lflores-ms
+          includeLabels: bluescreen
