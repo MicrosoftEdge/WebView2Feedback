@@ -1,2 +1,5 @@
 regression:
   - '(Regression in newer Runtime|Regression in newer SDK)'
+
+bluescreen:
+ - '(blue screen|bug check|BSOD|bugcheck)'
