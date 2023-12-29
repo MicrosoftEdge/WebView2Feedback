@@ -21,4 +21,4 @@ jobs:
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         assignees: vbryh-msft, lflores-ms
-        includeLabels: regression, bluescreen
+        includeLabels: bluescreen, regression
