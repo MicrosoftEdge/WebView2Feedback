@@ -27,7 +27,7 @@ void AppWindow::InitializeWebView()
 {
     auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
     COREWEBVIEW2_SCROLLBAR_STYLE style = COREWEBVIEW2_SCROLLBAR_STYLE_FLUENT_OVERLAY;
-    CHECK_FAILURE(options->put_CustomScrollbarStyle(style));
+    CHECK_FAILURE(options->put_ScrollbarStyle(style));
 
     // ... other option properties
 
