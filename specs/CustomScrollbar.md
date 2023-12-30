@@ -11,7 +11,7 @@ any breaking changes.
 # Examples
 ## WinRT and .NET   
 ```c#
-/// Create WebView Environment with option
+// Create WebView Environment with option
 async void CreateEnvironmentWithOption()
 {
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
