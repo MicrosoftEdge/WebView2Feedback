@@ -60,8 +60,8 @@ typedef enum COREWEBVIEW2_SCROLLBAR_STYLE {
 interface ICoreWebView2EnvironmentOptions7 : ICoreWebView2EnvironmentOptions6 {
   /// Get the scrollbar style being set on the WebView2 Environment.
   [propget] HRESULT ScrollbarStyle([out, retval] COREWEBVIEW2_SCROLLBAR_STYLE* value);
-  /// Set scrollbar style to be used. Default to be `COREWEBVIEW2_SCROLLBAR_STYLE`
-  /// that matches the default browser scrollbar style.
+  /// Set scrollbar style to be used. The default is `COREWEBVIEW2_SCROLLBAR_STYLE_DEFAULT`
+  /// which specifies the default browser scrollbar style.
   [propput] HRESULT ScrollbarStyle([in] COREWEBVIEW2_SCROLLBAR_STYLE value);
 }
 ```
