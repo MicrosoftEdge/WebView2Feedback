@@ -25,7 +25,7 @@ jobs:
 
                     It seems that your issue contains the word "crash". If you have not already, could you attach a crash dump as a comment?
 
-                    WV2 crash dumps are located in a subfolder of the app's user data folder (UDF): `<UDF>\EBWebView\Crashpad\reports\`. By default, the user data folder is created in the app's folder with a name like `<App Exe Name>.exe.WebView2`. Refer to [Crash Diagnostics](https://github.com/MicrosoftEdge/WebView2Feedback/blob/main/diagnostics/crash.md) for more information
+                    WV2 crash dumps are located in a subfolder of the app's user data folder (UDF): `<UDF>\EBWebView\Crashpad\reports\`. By default, the user data folder is created in the app's folder with a name like `<App Exe Name>.exe.WebView2`. Refer to [Crash Diagnostics](https://github.com/MicrosoftEdge/WebView2Feedback/blob/main/diagnostics/crash.md) for more information.
                     
                     Thank you for your cooperation!
 
