@@ -355,6 +355,8 @@ interface ICoreWebView2StagingEnvironment : IUnknown {
       [out, retval ] ICoreWebView2StagingTextureStream** value);
   /// Get the graphics adapter LUID of the renderer. The host should use this
   /// LUID adapter when creating D3D device to use with CreateTextureStream().
+  /// If the machine does not have GPU, then creating D3D device. In that case,
+  /// the host can create WARP mode D3D device with default adapter.
   [propget] HRESULT RenderAdapterLUID([out, retval] UINT64* value);
   /// Listens for change of graphics adapter LUID of the browser.
   /// The host can get the updated LUID by RenderAdapterLUID. It is expected
