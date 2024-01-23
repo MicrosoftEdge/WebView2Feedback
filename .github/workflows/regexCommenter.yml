@@ -2,7 +2,7 @@ name: "Auto comment on issues on regex match"
 
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
 
 jobs:
     auto-comment:
