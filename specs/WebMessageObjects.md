@@ -21,8 +21,9 @@ Currently the only supported DOM object types with this API are:
 
 In general the objects that we can support via these APIs are limited to DOM objects that are
 [structured-cloneable](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm)
-and the same semantics apply when posting them to/from the app (for example posting an object to app and then to another web content
-will be equivalent to postMessaging the same object from one web content to other).
+and the same semantics apply when posting them to/from the app (for example posting an object to app
+and then to another web content will be equivalent to postMessaging the same object from one web
+content to other).
 
 Page content in WebView2 can pass objects to the app via the
 `chrome.webview.postMessageWithAdditionalObjects(string message, ArrayLike<object> objects)` content
@@ -30,22 +31,21 @@ API that takes in the array of such supported DOM objects or you can also use
 [ExecuteScript](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.winforms.webview2.executescriptasync)
 with same API. `null` or `undefined` objects will be passed as `null`. Otherwise, if an invalid or
 unsupported object is passed via this API, an exception will be thrown to the caller and the message
-will fail to post.
-On the WebMessageReceived event handler, the app will retrieve the native representation of objects
-via `AdditionalObjects` property and cast the passed objects to their native types. For example, the
-DOM File object will be exposed as a `CoreWebView2File` object, allowing the app to read the path of
-the passed DOM File object.
+will fail to post. On the WebMessageReceived event handler, the app will retrieve the native
+representation of objects via `AdditionalObjects` property and cast the passed objects to their
+native types. For example, the DOM File object will be exposed as a `CoreWebView2File` object,
+allowing the app to read the path of the passed DOM File object.
 
 The app can also directly create and pass supported DOM objects that it creates via the
 EmbeddedBrowserEnvironment using `PostWebMessageWithAdditionalObjectsAsJson([in] LPCWSTR
 webMessageAsJson, [in] ICoreWebView2ObjectCollectionView* additionalObjects);` API that takes in the
 WebMessage in JSON format and the list of additionalObjects to be injected to the content.
 Similarly, from WebContent side, the page will be able to retrieve the DOM types via the
-`additionalObjects` ArrayLike object off of the `onmessage` event argument. The API should
-work for any WebMessage target that WebView2 supports and will support. It is the app's
-responsibility to ensure that it sends the message to the correct content (i.e. apps should check
-that they are checking the source of WebView2 before posting the message) and that for any file handle that it
-is posting, it has the permission it expects the web content to use.
+`additionalObjects` ArrayLike object off of the `onmessage` event argument. The API should work for
+any WebMessage target that WebView2 supports and will support. It is the app's responsibility to
+ensure that it sends the message to the correct content (i.e. apps should check that they are
+checking the source of WebView2 before posting the message) and that for any file handle that it is
+posting, it has the permission it expects the web content to use.
 
 # Examples
 ## Read the File path of a DOM File
@@ -159,31 +159,35 @@ wil::com_ptr<ICoreWebView2_21> webview21 =
     m_webView2.try_query<ICoreWebView2_21>();
 wil::com_ptr<ICoreWebView2Environment> environment =
     appWindow->GetWebViewEnvironment();
-wil::com_ptr<ICoreWebView2Environment14> environment14 = environment.try_query<ICoreWebView2Environment14>();
+wil::com_ptr<ICoreWebView2Environment14> environment14 = 
+    environment.try_query<ICoreWebView2Environment14>();
 wil::com_ptr<ICoreWebView2FileSystemHandle> fileHandle;
-environment14->CreateWebFileSystemHandle(
+CHECK_FAILURE(environment14->CreateWebFileSystemHandle(
     L"C:\\Users\\<user>\\Documents\\file.txt",
     COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION_READWRITE,
-    COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND_FILE, &fileHandle);
-wil::com_ptr<ICoreWebView2WebObjectCollection> webObjectCollection;
-IUnknown* webObjects[1] = {fileHandle.get()};
-environment14->CreateWebObjectCollection(1, webObjects, &webObjectCollection);
+    COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND_FILE, &fileHandle));
+wil::com_ptr<ICoreWebView2ObjectCollection> webObjectCollection;
+IUnknown* webObjects[] = {fileHandle.get()};
+CHECK_FAILURE(environment14->CreateObjectCollection(
+    ARRAYSIZE(webObjects),
+    webObjects,
+    &webObjectCollection));
 // Check the source to ensure that we are sending the message to the correct target.
 wil::unique_cotaskmem_string source;
-webview21->get_Source(&source);
-if (wcscmp(source.get(), L"https://www.example.com") == 0) {
-    webview21->PostWebMessageWithAdditionalObjectsAsJson(
-        L"{ \"FileHandle\" : true }", webObjectCollection.get());
+CHECK_FAILURE(webview21->get_Source(&source));
+if (std::wstring(source.get()).rfind(L"https://www.example.com/", 0) == 0) {
+    CHECK_FAILURE(webview21->PostWebMessageWithAdditionalObjectsAsJson(
+        L"{ \"FileHandle\" : true }", webObjectCollection.get()));
 }
 ```
 
 ```c#
 // Check the source to ensure that we are sending the message to the correct target.
-if (webView.CoreWebView2.Source.Equals("https://www.example.com")) {
+if (webView.CoreWebView2.Source.StartsWith("https://www.example.com/")) {
     webView.CoreWebView2.PostWebMessageWithAdditionalObjectsAsJson("{ \"FileHandle\" : true }", new List<object>()
     {
         webView.CoreWebView2.Environment.CreateWebFileSystemHandle(
-            "C:\\Users\\<user>\\Documents.file.txt", 
+            "C:\\Users\\<user>\\Documents\\file.txt", 
             CoreWebView2FileSystemHandlePermission.ReadWrite,
             CoreWebView2FileSystemHandleKind.File)
     });
@@ -257,19 +261,20 @@ interface ICoreWebView2FileSystemHandle : IUnknown {
   [propget] HRESULT Permission([out, retval] COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION* kind);
 }
 
+// Generic container of COM objects to pass to WebView2
 [uuid(d2fba648-109f-401c-b701-44fd3ddfb440), object, pointer_default(unique)]
-interface ICoreWebView2WebObjectCollection : ICoreWebView2ObjectCollectionView {
-  /// Removes the `WebObject` at the specified index.
+interface ICoreWebView2ObjectCollection : ICoreWebView2ObjectCollectionView {
+  /// Removes the object at the specified index.
   HRESULT RemoveValueAtIndex([in] UINT32 index);
 
-  /// Inserts the `WebObject` at the specified index.
+  /// Inserts the object at the specified index.
   HRESULT InsertValueAtIndex(
       [in] UINT32 index,
       [in] IUnknown* value);
 }
 
 [uuid(afae6f48-60d6-4b95-8b81-6f60d9c70f0b), object, pointer_default(unique)]
-interface ICoreWebView2Environment14 : ICoreWebView2Environment12 {
+interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// Create a ICoreWebView2FileSystemHandle from a path. If the `kind` is
   /// COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND_FILE, representation of a
   /// FileSystemFileHandle will be created, so the `path` must be a path to the
@@ -292,26 +297,25 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment12 {
       [in] LPCWSTR path,
       [out, retval] ICoreWebView2File** file);
 
-  /// Create a Web object collection. The supported types of this collection are
-  /// the following:
-  /// - ICoreWebView2File
-  /// - ICoreWebView2FileSystemHandle
-  HRESULT CreateWebObjectCollection(
+  /// Create a generic object collection. 
+  HRESULT CreateObjectCollection(
       [in] UINT32 length,
       [in, size_is(length)] IUnknown** items,
-      [out, retval] ICoreWebView2WebObjectCollection** objectCollection);
+      [out, retval] ICoreWebView2ObjectCollection** objectCollection);
 }
 
 [uuid(5220d097-c583-4115-8e08-1af2100338c2), object, pointer_default(unique)]
-interface ICoreWebView2_24 : IUnknown {
+interface ICoreWebView2_24 : ICoreWebView2_23 {
   /// Same as PostWebMessageAsJson, but also has support for posting DOM objects
   /// to page content. The `additionalObjects` property in the DOM MessageEvent
   /// fired on the page content is a ArrayLike list of
   /// DOM objects that can be posted to the web content. Currently these can be
   /// the following types and `null`:
-  /// - ICoreWebView2File, as a File object
-  /// - FileSystemFileHandle as a FileSystemFileHandle object
-  /// - FileSystemDirectoryHandle as a FileSystemDirectoryHandle object
+  /// | Win32             | DOM type    |
+  /// |-------------------|-------------|
+  /// | ICoreWebView2File | [File](https://developer.mozilla.org/docs/Web/API/File] |
+  /// | ICoreWebView2FileSystemHandle | [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle) |
+  /// | nullptr           | null        |
   /// The objects are posted the to web content following the structured-clone
   /// semantics, meaning only objects that can be cloned can be posted.
   /// They will also behave as in they are created on the web content they are
@@ -386,10 +390,13 @@ namespace Microsoft.Web.WebView2.Core
         /// Same as PostWebMessageAsJson, but also has support for posting DOM objects
         /// to page content. The `additionalObjects` property in the DOM MessageEvent
         /// fired on the page content is a ArrayLike list of
-        /// DOM objects that can be posted to the web content. Currently these can be
-        /// the following types and `null`:
-        /// - `CoreWebView2File`, as a File object
-        /// - `CoreWebView2FileSystemHandle` as a FileSystemFileHandle or FileSystemDirectoryHandle object
+        /// DOM objects that can be posted to the web content. Currently the
+        /// following types can be posted to DOM:
+        /// | .NET/WinRT       | DOM type    |
+        /// |------------------|-------------|
+        /// | CoreWebView2File | [File](https://developer.mozilla.org/docs/Web/API/File] |
+        /// | CoreWebView2FileSystemHandle | [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle) |
+        /// | null             | null        |
         /// The objects are posted the to web content following the structured-clone
         /// semantics, meaning only objects that can be cloned can be posted.
         /// They will also behave as in they are created on the web content they are
@@ -441,9 +448,12 @@ interface WebView extends EventTarget {
      * @param additionalObjects A sequence of DOM objects that have native
      * representations in WebView2. This parameter needs to be ArrayLike.
      * The following DOM types are mapped to native:
-     * DOM      | Win32       | .NET     | WinRT
-     * -------- | ------------|----------| --------
-     * [File](https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File | [System.IO.FileInfo](https://learn.microsoft.com/dotnet/api/system.io.fileinfo) | [Windows.Storage.StorageFile](https://learn.microsoft.com/uwp/api/windows.storage.storagefile)
+     * | DOM       | Win32       | .NET/WinRT |
+     * |-----------|-------------|------------|
+     * | [File](https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File | CoreWebView2File |
+     * | [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle) | ICoreWebView2FileSystemHandle | CoreWebView2FileSystemHandle |
+     * | null      | nullptr     | null       |
+     * | undefined | nullptr     | null       |
      * If an invalid or unsupported object is passed via this API, an exception
      * will be thrown and the message will fail to post.
      * @example
@@ -473,12 +483,12 @@ interface WebViewMessageEvent extends MessageEvent {
     /**
      * Additional DOM objects that are sent via PostJSONMessageWithAdditionalObjects.
      * These objects can be of following types:
-     * DOM      | Win32
-     * -------- | ------------
-     * [File](https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File
-     * [FileSystemFileHandle](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle) | ICoreWebView2FileSystemHandle (kind File)
-     * [FileSystemDirectoryHandle](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle) ICoreWebView2FileSystemHandle (kind Directory)
-     * `nullptr` entries will be passed as `null` type
+     * | DOM       | Win32       | .NET/WinRT |
+     * |-----------|-------------|------------|
+     * | [File](https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File | CoreWebView2File |
+     * | [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle) | ICoreWebView2FileSystemHandle | CoreWebView2FileSystemHandle |
+     * | null      | nullptr     | null       |
+     * | undefined | nullptr     | null       |
      */
     additionalObjects: ArrayLike<any>
 }
