@@ -17,10 +17,10 @@ You can examine supported DOM objects using native reflections of the types.
 
 Currently the only supported DOM object types with this API are:
 - [File](https://developer.mozilla.org/docs/Web/API/File)
-- [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle)
+- [FileSystemHandle](https://developer.mozilla.org/docs/Web/API/FileSystemHandle)
 
 In general the objects that we can support via these APIs are limited to DOM objects that are
-[structured-cloneable](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm)
+[structured-cloneable](https://developer.mozilla.org/docs/Web/API/Web_Workers_API/Structured_clone_algorithm)
 and the same semantics apply when posting them to/from the app (for example posting an object to app
 and then to another web content will be equivalent to postMessaging the same object from one web
 content to other).
@@ -275,24 +275,49 @@ interface ICoreWebView2ObjectCollection : ICoreWebView2ObjectCollectionView {
 
 [uuid(afae6f48-60d6-4b95-8b81-6f60d9c70f0b), object, pointer_default(unique)]
 interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
-  /// Create a ICoreWebView2FileSystemHandle from a path. If the `kind` is
-  /// COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND_FILE, representation of a
-  /// FileSystemFileHandle will be created, so the `path` must be a path to the
-  /// file or the parent directory of the path must exist. If the `kind` is
-  /// COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND_DIRECTORY, representation of a
-  /// FileSystemDirectoryHandle will be created and the path must point to a
-  /// directory or its parent directory must exist.
+  /// Create a ICoreWebView2FileSystemHandle from a path. The `path` is the path pointed by the
+  /// file and must be a syntactically correct full path but it is not checked here whether it currently
+  /// points to a file or a directory. If an invalid path is passed, an E_INVALIDARG will be returned
+  /// and the object will fail to create.
+  ///
+  /// If the `kind` is COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND_FILE, representation of a Web
+  /// [FileSystemFileHandle](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle)
+  /// will be created. Once the object is passed to web content, if the content is attempting a read,
+  /// the file must be existing and available to read similar to a file chosen by
+  /// [open file picker](https://developer.mozilla.org/docs/Web/API/Window/showOpenFilePicker),
+  /// otherwise the read operation will throw a DOM exception. For write operations the file does not
+  /// need to exist as `FileSystemFileHandle` will behave more like a file path chosen by 
+  /// [save file picker](https://developer.mozilla.org/docs/Web/API/Window/showSaveFilePicker)
+  /// and will create or overwrite the file, but the parent directory structure pointed 
+  /// by the file must exist and an existing file must be available to write and delete
+  /// or the write operation will throw a DOM exception.
+  ///
+  /// If the `kind` is COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND_DIRECTORY, representation of a
+  /// FileSystemDirectoryHandle will be created. The path must point to a directory
+  /// as if it was chosen via
+  /// [directory picker](https://developer.mozilla.org/docs/Web/API/Window/showDirectoryPicker)
+  /// when it is accessed by web content otherwise the IO operation will throw a DOM exception.
+  /// 
   /// In either case, the app must have the same permissions to the path it
-  /// wishes to give the web content to read/write the file/directory. Note that
-  /// these checks will be done when this handle is accessed from web content
-  /// and will cause JS exceptions if they fail.
+  /// wishes to give the web content to read/write the file/directory due to [process
+  /// model of WebView2](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model).
+  /// Note that the only validation done in this function is that the path is a valid
+  /// full path and otherwise the function will succeed.
+  /// Any other state validation will be done when this handle is accessed from web content
+  /// and will cause DOM exceptions if access operations fail.
   HRESULT CreateWebFileSystemHandle(
       [in] LPCWSTR path,
       [in] COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION permission,
       [in] COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND kind,
       [out, retval] ICoreWebView2FileSystemHandle** fileSystemHandle);
 
-  /// Create a ICoreWebView2File from a file path.
+  /// Create a ICoreWebView2File from a file path. The object created is a
+  /// representation of a DOM [File](https://developer.mozilla.org/docs/Web/API/File)
+  /// object.
+  /// The `path` is the full path pointed to the file. It must be a valid file 
+  /// that the app has read access for and is available to read or creation will fail
+  /// with E_INVALIDARG.
+  /// (See Footnote 1)
   HRESULT CreateWebFile(
       [in] LPCWSTR path,
       [out, retval] ICoreWebView2File** file);
@@ -314,7 +339,7 @@ interface ICoreWebView2_24 : ICoreWebView2_23 {
   /// | Win32             | DOM type    |
   /// |-------------------|-------------|
   /// | ICoreWebView2File | [File](https://developer.mozilla.org/docs/Web/API/File] |
-  /// | ICoreWebView2FileSystemHandle | [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle) |
+  /// | ICoreWebView2FileSystemHandle | [FileSystemHandle](https://developer.mozilla.org/docs/Web/API/FileSystemHandle) |
   /// | nullptr           | null        |
   /// The objects are posted the to web content following the structured-clone
   /// semantics, meaning only objects that can be cloned can be posted.
@@ -395,7 +420,7 @@ namespace Microsoft.Web.WebView2.Core
         /// | .NET/WinRT       | DOM type    |
         /// |------------------|-------------|
         /// | CoreWebView2File | [File](https://developer.mozilla.org/docs/Web/API/File] |
-        /// | CoreWebView2FileSystemHandle | [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle) |
+        /// | CoreWebView2FileSystemHandle | [FileSystemHandle](https://developer.mozilla.org/docs/Web/API/FileSystemHandle) |
         /// | null             | null        |
         /// The objects are posted the to web content following the structured-clone
         /// semantics, meaning only objects that can be cloned can be posted.
@@ -451,7 +476,7 @@ interface WebView extends EventTarget {
      * | DOM       | Win32       | .NET/WinRT |
      * |-----------|-------------|------------|
      * | [File](https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File | CoreWebView2File |
-     * | [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle) | ICoreWebView2FileSystemHandle | CoreWebView2FileSystemHandle |
+     * | [FileSystemHandle](https://developer.mozilla.org/docs/Web/API/FileSystemHandle) | ICoreWebView2FileSystemHandle | CoreWebView2FileSystemHandle |
      * | null      | nullptr     | null       |
      * | undefined | nullptr     | null       |
      * If an invalid or unsupported object is passed via this API, an exception
@@ -486,7 +511,7 @@ interface WebViewMessageEvent extends MessageEvent {
      * | DOM       | Win32       | .NET/WinRT |
      * |-----------|-------------|------------|
      * | [File](https://developer.mozilla.org/docs/Web/API/File] | ICoreWebView2File | CoreWebView2File |
-     * | [FileSystemHandle](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle) | ICoreWebView2FileSystemHandle | CoreWebView2FileSystemHandle |
+     * | [FileSystemHandle](https://developer.mozilla.org/docs/Web/API/FileSystemHandle) | ICoreWebView2FileSystemHandle | CoreWebView2FileSystemHandle |
      * | null      | nullptr     | null       |
      * | undefined | nullptr     | null       |
      */
@@ -502,3 +527,8 @@ interface WebViewEventMap {
     "sharedbufferreceived": SharedBufferReceivedEvent;
 }
 ```
+
+# Footnote for API Review Board
+1) While the FileSystemHandle API does not require the objects until they are used, the File object
+   needs to point to a correct File for it to be created as it already has some metadata such as
+   last modified that it needs to know up front. 
