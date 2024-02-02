@@ -436,20 +436,45 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment22")]
         {
-            /// Create a `CoreWebView2FileSystemHandle` from a path. If the `kind` is
-            /// CoreWebView2FileSystemHandleKind.File, representation of a
-            /// FileSystemFileHandle will be created, so the `path` must be a path to the
-            /// file or the parent directory of the path must exist. If the `kind` is
-            /// CoreWebView2FileSystemHandleKind.Directory, representation of a
-            /// FileSystemDirectoryHandle will be created and the path must point to a
-            /// directory or its parent directory must exist.
+            /// Create a `CoreWebView2FileSystemHandle` from a path. The `path` is the path pointed by the
+            /// file and must be a syntactically correct full path but it is not checked here whether it currently
+            /// points to a file or a directory. If an invalid path is passed, an E_INVALIDARG will be returned
+            /// and the object will fail to create.
+            ///
+            /// If the `kind` is CoreWebView2FileSystemHandleKind.File, representation of a Web
+            /// [FileSystemFileHandle](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle)
+            /// will be created. Once the object is passed to web content, if the content is attempting a read,
+            /// the file must be existing and available to read similar to a file chosen by
+            /// [open file picker](https://developer.mozilla.org/docs/Web/API/Window/showOpenFilePicker),
+            /// otherwise the read operation will throw a DOM exception. For write operations the file does not
+            /// need to exist as `FileSystemFileHandle` will behave more like a file path chosen by 
+            /// [save file picker](https://developer.mozilla.org/docs/Web/API/Window/showSaveFilePicker)
+            /// and will create or overwrite the file, but the parent directory structure pointed 
+            /// by the file must exist and an existing file must be available to write and delete
+            /// or the write operation will throw a DOM exception.
+            ///
+            /// If the `kind` is CoreWebView2FileSystemHandleKind.Directory, representation of a
+            /// FileSystemDirectoryHandle will be created. The path must point to a directory
+            /// as if it was chosen via
+            /// [directory picker](https://developer.mozilla.org/docs/Web/API/Window/showDirectoryPicker)
+            /// when it is accessed by web content otherwise the IO operation will throw a DOM exception.
+            /// 
             /// In either case, the app must have the same permissions to the path it
-            /// wishes to give the web content to read/write the file/directory. Note that
-            /// these checks will be done when this handle is accessed from web content
-            /// and will cause JS exceptions if they fail.
+            /// wishes to give the web content to read/write the file/directory due to [process
+            /// model of WebView2](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model).
+            /// Note that the only validation done in this function is that the path is a valid
+            /// full path and otherwise the function will succeed.
+            /// Any other state validation will be done when this handle is accessed from web content
+            /// and will cause DOM exceptions if access operations fail.
             CoreWebView2FileSystemHandle CreateWebFileSystemHandle(String Path, CoreWebView2FileSystemHandlePermission Permission, CoreWebView2FileSystemHandleKind Kind);
 
-             /// Create a `CoreWebView2File` from a file path.
+            /// Create a `CoreWebView2File` from a file path. The object created is a
+            /// representation of a DOM [File](https://developer.mozilla.org/docs/Web/API/File)
+            /// object.
+            /// The `path` is the full path pointed to the file. It must be a valid file 
+            /// that the app has read access for and is available to read or this will throw
+            /// InvalidArgumentException.
+            /// (See Footnote 1)
             CoreWebView2File CreateWebFile(String Path);
         }
     }
