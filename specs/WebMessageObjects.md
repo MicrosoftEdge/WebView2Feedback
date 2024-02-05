@@ -340,7 +340,7 @@ interface ICoreWebView2_24 : ICoreWebView2_23 {
   /// the following types and `null`:
   /// | Win32             | DOM type    |
   /// |-------------------|-------------|
-  /// | ICoreWebView2File | [File](https://developer.mozilla.org/docs/Web/API/File] |
+  /// | ICoreWebView2File | [File](https://developer.mozilla.org/docs/Web/API/File) |
   /// | ICoreWebView2FileSystemHandle | [FileSystemHandle](https://developer.mozilla.org/docs/Web/API/FileSystemHandle) |
   /// | nullptr           | null        |
   /// The objects are posted the to web content following the structured-clone
