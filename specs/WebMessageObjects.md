@@ -7,8 +7,7 @@ other DOM objects, including iframes, <object> objects, etc. which will be added
 WebMessageObjects framework in future.
 
 This API will also allow to inject DOM objects into WebView2 content constructed via the app and via
-the CoreWebView2.PostWebMessage API in the other direction. This API surface needs to be compatible
-with that. (See Appendix)
+the CoreWebView2.PostWebMessage API in the other direction.
 
 # Conceptual pages (How To)
 WebMessageObjects are representations of DOM objects that can be passed via the [WebView2 WebMessage
@@ -73,6 +72,9 @@ input.addEventListener('change', function() {
 ```
 
 ### App code
+
+#### Win32
+
 ```cpp
 CHECK_FAILURE(m_webView->add_WebMessageReceived(
     Callback<ICoreWebView2WebMessageReceivedEventHandler>(
@@ -122,6 +124,8 @@ CHECK_FAILURE(m_webView->add_WebMessageReceived(
     &m_webMessageReceivedToken));
 ```
 
+#### .NET
+
 ```c#
 webView.CoreWebView2.WebMessageReceived += WebView_WebMessageReceivedHandler;
 void WebView_WebMessageReceivedHandler(object sender, CoreWebView2WebMessageReceivedEventArgs args)
@@ -144,7 +148,7 @@ Use this API to create a FileSystemHandle from the app and send it to the web co
 ### Web content code
 ```javascript
 chrome.webview.addEventListener("message", function (e) {
-    if (e.data.MyMessageType === "FileHandle") {
+    if (e.data.MyMessageType === "myFileHandleMessage") {
         var fileHandle = e.additionalObjects[0];
         if (fileHandle.kind === "file") {
             // run file code
@@ -156,6 +160,9 @@ chrome.webview.addEventListener("message", function (e) {
 ```
 
 ### App code
+
+#### Win32
+
 ```cpp
 wil::com_ptr<ICoreWebView2_21> webview21 =
     m_webView2.try_query<ICoreWebView2_21>();
@@ -179,14 +186,16 @@ wil::unique_cotaskmem_string source;
 CHECK_FAILURE(webview21->get_Source(&source));
 if (std::wstring(source.get()).rfind(L"https://www.example.com/", 0) == 0) {
     CHECK_FAILURE(webview21->PostWebMessageAsJsonWithAdditionalObjects(
-        L"{ \"MyMessageType\" : \"FileHandle\" }", webObjectCollection.get()));
+        L"{ \"MyMessageType\" : \"myFileHandleMessage\" }", webObjectCollection.get()));
 }
 ```
+
+#### .NET
 
 ```c#
 // Check the source to ensure that we are sending the message to the correct target.
 if (webView.CoreWebView2.Source.StartsWith("https://www.example.com/")) {
-    webView.CoreWebView2.PostWebMessageAsJsonWithAdditionalObjects("{ \"MyMessageType\" : \"FileHandle\" }", new List<object>()
+    webView.CoreWebView2.PostWebMessageAsJsonWithAdditionalObjects("{ \"MyMessageType\" : \"myFileHandleMessage\" }", new List<object>()
     {
         webView.CoreWebView2.Environment.CreateWebFileSystemHandle(
             "C:\\Users\\<user>\\Documents\\file.txt", 
@@ -207,7 +216,7 @@ if (webView.CoreWebView2.Source.StartsWith("https://www.example.com/")) {
 [uuid(f2c19559-6bc1-4583-a757-90021be9afec), object, pointer_default(unique)]
 interface ICoreWebView2File : IUnknown {
   /// Get the absolute file path.
-  [propget] HRESULT Path([out, retval] LPWSTR* path);
+  [propget] HRESULT Path([out, retval] LPWSTR* value);
 }
 
 /// Read-only collection of generic objects
@@ -254,13 +263,13 @@ typedef enum COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION {
 [uuid(0ecf4d7d-bbf6-4320-930e-82ff6cf2d8dc), object, pointer_default(unique)]
 interface ICoreWebView2FileSystemHandle : IUnknown {
   /// The Kind of the FileSystemHandle. It can either be a file or a directory.
-  [propget] HRESULT Kind([out, retval] COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND* kind);
+  [propget] HRESULT Kind([out, retval] COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND* value);
 
   /// The path to the FileSystemHandle.
-  [propget] HRESULT Path([out, retval] LPWSTR* path);
+  [propget] HRESULT Path([out, retval] LPWSTR* value);
 
   /// The permissions granted to the FileSystemHandle.
-  [propget] HRESULT Permission([out, retval] COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION* kind);
+  [propget] HRESULT Permission([out, retval] COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION* value);
 }
 
 // Generic container of COM objects to pass to WebView2
@@ -278,7 +287,7 @@ interface ICoreWebView2ObjectCollection : ICoreWebView2ObjectCollectionView {
 [uuid(afae6f48-60d6-4b95-8b81-6f60d9c70f0b), object, pointer_default(unique)]
 interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// Create a ICoreWebView2FileSystemHandle from a path. The `path` is the path pointed by the
-  /// file and must be a syntactically correct full path but it is not checked here whether it currently
+  /// file and must be a syntactically correct fully qualified path but it is not checked here whether it currently
   /// points to a file or a directory. If an invalid path is passed, an E_INVALIDARG will be returned
   /// and the object will fail to create.
   ///
@@ -358,16 +367,16 @@ namespace Microsoft.Web.WebView2.Core
     enum CoreWebView2FileSystemHandlePermission
     {
         /// Read-only permission for FileSystemHandle
-        CoreWebView2FileSystemHandlePermissionReadonly = 0,
+        ReadOnly = 0,
         /// Read and write permissions for FileSystemHandle
-        CoreWebView2FileSystemHandlePermissionReadwrite = 1,
+        ReadWrite = 1,
     };
     enum CoreWebView2FileSystemHandleKind
     {
         /// FileSystemHandle is for a file (i.e. FileSystemFileHandle)
-        CoreWebView2FileSystemHandleKindFile = 0,
+        File = 0,
         /// FileSystemHandle is for a directory (i.e. FileSystemDirectoryHandle)
-        CoreWebView2FileSystemHandleKindDirectory = 1,
+        Directory = 1,
     };
 
     /// Create a CoreWebView2FileSystemHandle from a path. If the `kind` is
@@ -551,7 +560,7 @@ interface WebViewMessageEvent extends MessageEvent {
  */
 interface WebViewEventMap {
     "message": WebViewMessageEvent;
-    "sharedbufferreceived": SharedBufferReceivedEvent;
+    ...
 }
 ```
 
