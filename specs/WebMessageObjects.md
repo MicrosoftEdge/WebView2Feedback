@@ -327,7 +327,9 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// object.
   /// The `path` is the full path pointed to the file. It must be a valid file 
   /// that the app has read access for and is available to read or creation will fail
-  /// with E_INVALIDARG.
+  /// with E_INVALIDARG. Note that this is different from FileSystemHandle as
+  /// file metadata properties are needed to create DOM File objects, but not for
+  /// FileSystemHandles.
   /// (See Footnote 1)
   HRESULT CreateWebFile(
       [in] LPCWSTR path,
@@ -564,8 +566,3 @@ interface WebViewEventMap {
     ...
 }
 ```
-
-# Footnote for API Review Board
-1) While the FileSystemHandle API does not require the objects until they are used, the File object
-   needs to point to a correct File for it to be created as it already has some metadata such as
-   last modified that it needs to know up front. 
