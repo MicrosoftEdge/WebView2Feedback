@@ -345,7 +345,8 @@ interface ICoreWebView2_24 : ICoreWebView2_23 {
   /// | nullptr           | null        |
   /// The objects are posted the to web content following the structured-clone
   /// semantics, meaning only objects that can be cloned can be posted.
-  /// They will also behave as in they are created on the web content they are
+  /// They will also behave as if they had been created by the web content they are
+
   /// posted to. For example, if a FileSystemFileHandle is posted to a web content
   /// it can only be transferred via postMessage to other web content with the same origin.
   HRESULT PostWebMessageAsJsonWithAdditionalObjects([in] LPCWSTR webMessageAsJson, [in] ICoreWebView2ObjectCollectionView* additionalObjects);
