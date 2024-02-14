@@ -466,7 +466,8 @@ namespace Microsoft.Web.WebView2.Core
             /// full path and otherwise the function will succeed.
             /// Any other state validation will be done when this handle is accessed from web content
             /// and will cause DOM exceptions if access operations fail.
-            CoreWebView2FileSystemHandle CreateWebFileSystemHandle(String Path, CoreWebView2FileSystemHandlePermission Permission, CoreWebView2FileSystemHandleKind Kind);
+            CoreWebView2FileSystemHandle CreateWebFileSystemHandle(String path, CoreWebView2FileSystemHandlePermission permission, CoreWebView2FileSystemHandleKind kind);
+
 
             /// Create a `CoreWebView2File` from a file path. The object created is a
             /// representation of a DOM [File](https://developer.mozilla.org/docs/Web/API/File)
