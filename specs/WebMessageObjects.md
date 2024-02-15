@@ -219,12 +219,10 @@ if (webView.CoreWebView2.Source.StartsWith("https://www.example.com/")) {
     {
         webView.CoreWebView2.Environment.CreateWebFileSystemFileHandle(
             "C:\\Users\\<user>\\Documents\\file.txt", 
-            CoreWebView2FileSystemHandlePermission.ReadOnly,
-            CoreWebView2FileSystemHandleKind.File),
+            CoreWebView2FileSystemHandlePermission.ReadOnly),
         webView.CoreWebView2.Environment.CreateWebFileSystemDirectoryHandle(
             "C:\\Users\\<user>\\Documents", 
-            CoreWebView2FileSystemHandlePermission.ReadWrite,
-            CoreWebView2FileSystemHandleKind.File)
+            CoreWebView2FileSystemHandlePermission.ReadWrite)
     });
 }
 ```
