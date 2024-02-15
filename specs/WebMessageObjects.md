@@ -171,26 +171,41 @@ chrome.webview.addEventListener("message", function (e) {
 ```cpp
 wil::com_ptr<ICoreWebView2_21> webview21 =
     m_webView2.try_query<ICoreWebView2_21>();
+if (!webview21) {
+    // Feature not available in current runtime.
+    return;
+}
 wil::com_ptr<ICoreWebView2Environment> environment =
     appWindow->GetWebViewEnvironment();
 wil::com_ptr<ICoreWebView2Environment14> environment14 = 
     environment.try_query<ICoreWebView2Environment14>();
 wil::com_ptr<ICoreWebView2FileSystemHandle> fileHandle;
-CHECK_FAILURE(environment14->CreateWebFileSystemHandle(
+CHECK_FAILURE(environment14->CreateWebFileSystemFileHandle(
     L"C:\\Users\\<user>\\Documents\\file.txt",
-    COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION_READWRITE,
-    COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND_FILE, &fileHandle));
+    COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION_READ_ONLY,
+    &fileHandle));
+wil::com_ptr<ICoreWebView2FileSystemHandle> directoryHandle;
+CHECK_FAILURE(environment14->CreateWebFileSystemDirectoryHandle(
+    L"C:\\Users\\<user>\\Documents",
+    COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION_READ_WRITE,
+    &directoryHandle));
 wil::com_ptr<ICoreWebView2ObjectCollection> webObjectCollection;
-IUnknown* webObjects[] = {fileHandle.get()};
+IUnknown* webObjects[] = {fileHandle.get(), directoryHandle.get()};
 CHECK_FAILURE(environment14->CreateObjectCollection(
     ARRAYSIZE(webObjects),
     webObjects,
     &webObjectCollection));
 // Check the source to ensure that we are sending the message to the correct target.
 wil::unique_cotaskmem_string source;
-CHECK_FAILURE(webview21->get_Source(&source));
-if (std::wstring(source.get()).rfind(L"https://www.example.com/", 0) == 0) {
-    CHECK_FAILURE(webview21->PostWebMessageAsJsonWithAdditionalObjects(
+CHECK_FAILURE(m_webView->get_Source(&source));
+
+static const wchar_t* expectedDomain = L"www.example.com";
+wil::unique_bstr sourceDomain = GetDomainOfUri(source.get());
+
+// Check the source to ensure the message is sent to the correct target content.
+if (wcscmp(expectedDomain, sourceDomain) == 0)
+{
+    CHECK_FAILURE(webview_staging22->PostWebMessageAsJsonWithAdditionalObjects(
         L"{ \"MyMessageType\" : \"myFileHandleMessage\" }", webObjectCollection.get()));
 }
 ```
@@ -202,10 +217,81 @@ if (std::wstring(source.get()).rfind(L"https://www.example.com/", 0) == 0) {
 if (webView.CoreWebView2.Source.StartsWith("https://www.example.com/")) {
     webView.CoreWebView2.PostWebMessageAsJsonWithAdditionalObjects("{ \"MyMessageType\" : \"myFileHandleMessage\" }", new List<object>()
     {
-        webView.CoreWebView2.Environment.CreateWebFileSystemHandle(
+        webView.CoreWebView2.Environment.CreateWebFileSystemFileHandle(
             "C:\\Users\\<user>\\Documents\\file.txt", 
+            CoreWebView2FileSystemHandlePermission.ReadOnly,
+            CoreWebView2FileSystemHandleKind.File),
+        webView.CoreWebView2.Environment.CreateWebFileSystemDirectoryHandle(
+            "C:\\Users\\<user>\\Documents", 
             CoreWebView2FileSystemHandlePermission.ReadWrite,
             CoreWebView2FileSystemHandleKind.File)
+    });
+}
+```
+
+## Post a File to the web content
+Use this API to create a DOM File object from the app and send it to the web content in WebView2.
+
+### Web content code
+```javascript
+chrome.webview.addEventListener("message", function (e) {
+    if (e.data.MyMessageType === "myFileMessage") {
+        var file = e.additionalObjects[0];
+        // Open the file in a new window.
+        var url = URL.createObjectURL(file);
+        window.open(url);
+    }
+});
+```
+
+### App code
+
+#### Win32
+
+```cpp
+wil::com_ptr<ICoreWebView2_21> webview21 =
+    m_webView2.try_query<ICoreWebView2_21>();
+if (!webview21) {
+    // Feature not available in current runtime.
+    return;
+}
+wil::com_ptr<ICoreWebView2Environment> environment =
+    appWindow->GetWebViewEnvironment();
+wil::com_ptr<ICoreWebView2Environment14> environment14 = 
+    environment.try_query<ICoreWebView2Environment14>();
+wil::com_ptr<ICoreWebView2File> file;
+CHECK_FAILURE(environment14->CreateWebFile(
+    L"C:\\Users\\<user>\\Documents\\file.txt", &file));
+wil::com_ptr<ICoreWebView2ObjectCollection> webObjectCollection;
+IUnknown* webObjects[] = {file.get()};
+CHECK_FAILURE(environment14->CreateObjectCollection(
+    ARRAYSIZE(webObjects),
+    webObjects,
+    &webObjectCollection));
+// Check the source to ensure that we are sending the message to the correct target.
+wil::unique_cotaskmem_string source;
+CHECK_FAILURE(m_webView->get_Source(&source));
+
+static const wchar_t* expectedDomain = L"www.example.com";
+wil::unique_bstr sourceDomain = GetDomainOfUri(source.get());
+
+// Check the source to ensure the message is sent to the correct target content.
+if (wcscmp(expectedDomain, sourceDomain) == 0)
+{
+    CHECK_FAILURE(webview_staging22->PostWebMessageAsJsonWithAdditionalObjects(
+        L"{ \"MyMessageType\" : \"myFileMessage\" }", webObjectCollectionView.get()));
+}
+```
+
+#### .NET
+
+```c#
+// Check the source to ensure that we are sending the message to the correct target.
+if (webView.CoreWebView2.Source.StartsWith("https://www.example.com/")) {
+    webView.CoreWebView2.PostWebMessageAsJsonWithAdditionalObjects("{ \"MyMessageType\" : \"myFileMessage\" }", new List<object>()
+    {
+        webView.CoreWebView2.Environment.CreateWebFile(
+            "C:\\Users\\<user>\\Documents\\file.txt")
     });
 }
 ```
@@ -260,11 +346,14 @@ typedef enum COREWEBVIEW2_FILE_SYSTEM_HANDLE_KIND {
 [v1_enum]
 typedef enum COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION {
   /// Read-only permission for FileSystemHandle
-  COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION_READONLY,
+  COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION_READ_ONLY,
   /// Read and write permissions for FileSystemHandle
-  COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION_READWRITE
+  COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION_READ_WRITE
 } COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION;
 
+/// Representation of a DOM
+/// [FileSystemHandle](https://developer.mozilla.org/docs/Web/API/FileSystemHandle)
+/// object.
 [uuid(0ecf4d7d-bbf6-4320-930e-82ff6cf2d8dc), object, pointer_default(unique)]
 interface ICoreWebView2FileSystemHandle : IUnknown {
   /// The Kind of the FileSystemHandle. It can either be a file or a directory.
@@ -291,10 +380,10 @@ interface ICoreWebView2ObjectCollection : ICoreWebView2ObjectCollectionView {
 
 [uuid(afae6f48-60d6-4b95-8b81-6f60d9c70f0b), object, pointer_default(unique)]
 interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
-  /// Create a ICoreWebView2FileSystemHandle from a path that represents a Web 
+  /// Create a `ICoreWebView2FileSystemHandle` object from a path that represents a Web 
   /// [FileSystemFileHandle](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle). 
   /// The `path` is the path pointed by the file and must be a syntactically correct fully qualified
-  /// path but it is not checked here whether it currently points to a file. If an invalid path is
+  /// path, but it is not checked here whether it currently points to a file. If an invalid path is
   /// passed, an E_INVALIDARG will be returned and the object will fail to create. Any other state
   /// validation will be done when this handle is accessed from web content
   /// and will cause the DOM exceptions described in
@@ -303,7 +392,7 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   ///
   /// An app needs to be mindful that this object, when posted to the web content, provides it with unusual
   /// access to OS file system via the Web FileSystem API! The app should therefore only post objects
-  /// for paths that it wants to allow to the web content and it is not recommended that the web content
+  /// for paths that it wants to allow access to the web content and it is not recommended that the web content
   /// "asks" for this path. The app should also check the source property of the target to ensure
   /// that it is sending to the web content of intended origin.
   ///
@@ -311,14 +400,14 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// the file must be existing and available to read similar to a file chosen by
   /// [open file picker](https://developer.mozilla.org/docs/Web/API/Window/showOpenFilePicker),
   /// otherwise the read operation will
-  /// [throw a DOM exception](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemFileHandle/getFile#exceptions).
+  /// [throw a DOM exception](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle/getFile#exceptions).
   /// For write operations, the file does not need to exist as `FileSystemFileHandle` will behave
   /// as a file path chosen by 
   /// [save file picker](https://developer.mozilla.org/docs/Web/API/Window/showSaveFilePicker)
   /// and will create or overwrite the file, but the parent directory structure pointed 
   /// by the file must exist and an existing file must be available to write and delete
   /// or the write operation will
-  /// [throw a DOM exception](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemFileHandle/createWritable#exceptions).
+  /// [throw a DOM exception](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle/createWritable#exceptions).
   /// 
   /// `Permission` property is used to specify whether the Handle should be created with a Read-only or
   /// Read-and-write web permission. For the `permission` value specified here, the DOM
@@ -333,7 +422,7 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// with 'granted' PermissionStatus without firing the WebView2 
   /// [PermissionRequested](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs)
   /// event or prompting the user for permission. Otherwise, `requestPermission` will behave as the
-  /// status of permission is currently `Prompt`, which means the PermissionRequested event will fire
+  /// status of permission is currently `prompt`, which means the `PermissionRequested` event will fire
   /// or the user will be prompted.
   /// Additionally, the app must have the same OS permissions that have propagated to the
   /// [WebView2 browser process](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model)
@@ -341,24 +430,22 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// Specifically, the WebView2 browser process will run in same user, package identity, and app
   /// container of the app, but other means such as security context impersonations do not get 
   /// propagated, so such permissions that the app has will not be effective in WebView2.
-  /// Note that the only validation done in this function is that the path is a valid
-  /// full path and otherwise the function will succeed.
   HRESULT CreateWebFileSystemFileHandle(
       [in] LPCWSTR path,
       [in] COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION permission,
       [out, retval] ICoreWebView2FileSystemHandle** fileSystemHandle);
 
-    /// Create a ICoreWebView2FileSystemHandle from a path that represents a Web 
+    /// Create a `ICoreWebView2FileSystemHandle` object from a path that represents a Web 
     /// [FileSystemDirectoryHandle](https://developer.mozilla.org/docs/Web/API/FileSystemDirectoryHandle). 
     /// The `path` is the path pointed by the directory and must be a syntactically correct fully qualified
-    /// path but it is not checked here whether it currently points to a directory. Any other state
+    /// path, but it is not checked here whether it currently points to a directory. Any other state
     /// validation will be done when this handle is accessed from web content
     /// and will cause DOM exceptions if access operations fail. If an invalid path is
     /// passed, an E_INVALIDARG will be returned and the object will fail to create.
     ///
     /// An app needs to be mindful that this object, when posted to the web content, provides it with unusual
     /// access to OS file system via the Web FileSystem API! The app should therefore only post objects
-    /// for paths that it wants to allow to the web content and it is not recommended that the web content
+    /// for paths that it wants to allow access to the web content and it is not recommended that the web content
     /// "asks" for this path. The app should also check the source property of the target to ensure
     /// that it is sending to the web content of intended origin.
     ///
@@ -379,7 +466,7 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
     /// with 'granted' PermissionStatus without firing the WebView2 
     /// [PermissionRequested](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs)
     /// event or prompting the user for permission. Otherwise, `requestPermission` will behave as the
-    /// status of permission is currently `Prompt`, which means the PermissionRequested event will fire
+    /// status of permission is currently `Prompt`, which means the `PermissionRequested` event will fire
     /// or the user will be prompted.
     /// Additionally, the app must have the same OS permissions that have propagated to the
     /// [WebView2 browser process](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model)
@@ -387,8 +474,6 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
     /// Specifically, the WebView2 browser process will run in same user, package identity, and app
     /// container of the app, but other means such as security context impersonations do not get 
     /// propagated, so such permissions that the app has will not be effective in WebView2.
-    /// Note that the only validation done in this function is that the path is a valid
-    /// full path and otherwise the function will succeed.
   HRESULT CreateWebFileSystemDirectoryHandle(
       [in] LPCWSTR path,
       [in] COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION permission,
@@ -433,11 +518,11 @@ interface ICoreWebView2_24 : ICoreWebView2_23 {
   /// it can only be re-transferred via postMessage to other web content
   /// [with the same origin](https://fs.spec.whatwg.org/#filesystemhandle).
   /// Warning: An app needs to be mindful when using this API to post DOM objects
-  /// as this API provides it with unusual access to sensitive Web API such as
-  /// File-system access! Similar to PostWebMessageAsJson the app should check the
-  /// `Source` of WebView2 right before posting the message to ensure the message
-  /// and objects will only be sent to the target web content that it expects to
-  /// receive the DOM objects.
+  /// as this API provides the web content with unusual access to sensitive Web
+  /// Platform features such as filesystem access! Similar to PostWebMessageAsJson
+  /// the app should check the `Source` of WebView2 right before posting the message
+  /// to ensure the message and objects will only be sent to the target web content
+  /// that it expects to receive the DOM objects.
   HRESULT PostWebMessageAsJsonWithAdditionalObjects([in] LPCWSTR webMessageAsJson, [in] ICoreWebView2ObjectCollectionView* additionalObjects);
 }
 ```
@@ -460,17 +545,9 @@ namespace Microsoft.Web.WebView2.Core
         Directory = 1,
     };
 
-    /// Create a CoreWebView2FileSystemHandle from a path. If the `kind` is
-    /// CoreWebView2FileSystemHandleKind.File, representation of a
-    /// FileSystemFileHandle will be created, so the `path` must be a path to the
-    /// file or the parent directory of the path must exist. If the `kind` is
-    /// CoreWebView2FileSystemHandleKind.Directory, representation of a
-    /// FileSystemDirectoryHandle will be created and the path must point to a
-    /// directory or its parent directory must exist.
-    /// In either case, the app must have the same permissions to the path it
-    /// wishes to give the web content to read/write the file/directory. Note that
-    /// these checks will be done when this handle is accessed from web content
-    /// and will cause JS exceptions if they fail.
+    /// Representation of a DOM
+    /// [FileSystemHandle](https://developer.mozilla.org/docs/Web/API/FileSystemHandle)
+    /// object.
     runtimeclass CoreWebView2FileSystemHandle
     {
         /// The Kind of the FileSystemHandle. It can either be a file or a directory.
@@ -504,7 +581,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2
     {
         ...
-        /// Same as PostWebMessageAsJson, but also has support for posting DOM objects
+        /// Same as `PostWebMessageAsJson`, but also has support for posting DOM objects
         /// to page content. The `additionalObjects` property in the DOM MessageEvent
         /// fired on the page content is a ArrayLike list of
         /// DOM objects that can be posted to the web content. Currently the
@@ -526,7 +603,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment22")]
         {
-            /// Create a `CoreWebView2FileSystemHandle` from a path that represents a Web 
+            /// Creates a `CoreWebView2FileSystemHandle` object from a path that represents a Web 
             /// [FileSystemFileHandle](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle). 
             /// The `path` is the path pointed by the file and must be a syntactically correct fully qualified
             /// path but it is not checked here whether it currently points to a file.
@@ -538,7 +615,7 @@ namespace Microsoft.Web.WebView2.Core
             ///
             /// An app needs to be mindful that this object, when posted to the web content, provides it with unusual
             /// access to OS file system via the Web FileSystem API! The app should therefore only post objects
-            /// for paths that it wants to allow to the web content and it is not recommended that the web content
+            /// for paths that it wants to allow access to the web content and it is not recommended that the web content
             /// "asks" for this path. The app should also check the source property of the target to ensure
             /// that it is sending to the web content of intended origin.
             ///
@@ -546,14 +623,14 @@ namespace Microsoft.Web.WebView2.Core
             /// the file must be existing and available to read similar to a file chosen by
             /// [open file picker](https://developer.mozilla.org/docs/Web/API/Window/showOpenFilePicker),
             /// otherwise the read operation will
-            /// [throw a DOM exception](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemFileHandle/getFile#exceptions).
+            /// [throw a DOM exception](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle/getFile#exceptions).
             /// For write operations the file does not
             /// need to exist as `FileSystemFileHandle` will behave more like a file path chosen by 
             /// [save file picker](https://developer.mozilla.org/docs/Web/API/Window/showSaveFilePicker)
             /// and will create or overwrite the file, but the parent directory structure pointed 
             /// by the file must exist and an existing file must be available to write and delete
             /// or the write operation will
-            /// [throw a DOM exception](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemFileHandle/createWritable#exceptions).
+            /// [throw a DOM exception](https://developer.mozilla.org/docs/Web/API/FileSystemFileHandle/createWritable#exceptions).
             /// 
             /// `Permission` property is used to specify whether the Handle should be created with a Read-only or
             /// Read-and-write web permission. For the `permission` value specified here, the Web
@@ -568,7 +645,7 @@ namespace Microsoft.Web.WebView2.Core
             /// with 'granted' PermissionStatus without firing the WebView2 
             /// [PermissionRequested](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs)
             /// event or prompting the user for permission. Otherwise, `requestPermission` will behave as the
-            /// status of permission is currently `Prompt`, which means the PermissionRequested event will fire
+            /// status of permission is currently `prompt`, which means the PermissionRequested event will fire
             /// or the user will be prompted.
             /// Additionally, the app must have the same OS permissions that have propagated to the
             /// [WebView2 browser process](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model)
@@ -576,8 +653,6 @@ namespace Microsoft.Web.WebView2.Core
             /// Specifically, the WebView2 browser process will run in same user, package identity, and app
             /// container of the app, but other means such as security context impersonations do not get 
             /// propagated, so such permissions that the app has will not be effective in WebView2.
-            /// Note that the only validation done in this function is that the path is a valid
-            /// full path and otherwise the function will succeed.
             CoreWebView2FileSystemHandle CreateWebFileSystemFileHandle(String path, CoreWebView2FileSystemHandlePermission permission);
 
             /// Create a `CoreWebView2FileSystemHandle` from a path that represents a Web 
@@ -592,7 +667,7 @@ namespace Microsoft.Web.WebView2.Core
             ///
             /// An app needs to be mindful that this object, when posted to the web content, provides it with unusual
             /// access to OS file system via the Web FileSystem API! The app should therefore only post objects
-            /// for paths that it wants to allow to the web content and it is not recommended that the web content
+            /// for paths that it wants to allow access to the web content and it is not recommended that the web content
             /// "asks" for this path. The app should also check the source property of the target to ensure
             /// that it is sending to the web content of intended origin.
             ///
@@ -613,7 +688,7 @@ namespace Microsoft.Web.WebView2.Core
             /// with 'granted' PermissionStatus without firing the WebView2 
             /// [PermissionRequested](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs)
             /// event or prompting the user for permission. Otherwise, `requestPermission` will behave as the
-            /// status of permission is currently `Prompt`, which means the PermissionRequested event will fire
+            /// status of permission is currently `prompt`, which means the PermissionRequested event will fire
             /// or the user will be prompted.
             /// Additionally, the app must have the same OS permissions that have propagated to the
             /// [WebView2 browser process](https://learn.microsoft.com/microsoft-edge/webview2/concepts/process-model)
@@ -621,8 +696,6 @@ namespace Microsoft.Web.WebView2.Core
             /// Specifically, the WebView2 browser process will run in same user, package identity, and app
             /// container of the app, but other means such as security context impersonations do not get 
             /// propagated, so such permissions that the app has will not be effective in WebView2.
-            /// Note that the only validation done in this function is that the path is a valid
-            /// full path and otherwise the function will succeed.
             CoreWebView2FileSystemHandle CreateWebFileSystemDirectoryHandle(String path, CoreWebView2FileSystemHandlePermission permission);
 
             /// Create a `CoreWebView2File` from a file path. The object created is a
