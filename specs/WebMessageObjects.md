@@ -429,7 +429,7 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
   /// for the path it wishes to give the web content to read/write the file.
   /// Specifically, the WebView2 browser process will run in same user, package identity, and app
   /// container of the app, but other means such as security context impersonations do not get 
-  /// propagated, so such permissions that the app has will not be effective in WebView2.
+  /// propagated, so such permissions that the app has, will not be effective in WebView2.
   HRESULT CreateWebFileSystemFileHandle(
       [in] LPCWSTR path,
       [in] COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION permission,
@@ -473,7 +473,7 @@ interface ICoreWebView2Environment14 : ICoreWebView2Environment13 {
     /// for the path it wishes to give the web content to make any operations on the directory.
     /// Specifically, the WebView2 browser process will run in same user, package identity, and app
     /// container of the app, but other means such as security context impersonations do not get 
-    /// propagated, so such permissions that the app has will not be effective in WebView2.
+    /// propagated, so such permissions that the app has, will not be effective in WebView2.
   HRESULT CreateWebFileSystemDirectoryHandle(
       [in] LPCWSTR path,
       [in] COREWEBVIEW2_FILE_SYSTEM_HANDLE_PERMISSION permission,
@@ -652,7 +652,7 @@ namespace Microsoft.Web.WebView2.Core
             /// for the path it wishes to give the web content to read/write the file.
             /// Specifically, the WebView2 browser process will run in same user, package identity, and app
             /// container of the app, but other means such as security context impersonations do not get 
-            /// propagated, so such permissions that the app has will not be effective in WebView2.
+            /// propagated, so such permissions that the app has, will not be effective in WebView2.
             CoreWebView2FileSystemHandle CreateWebFileSystemFileHandle(String path, CoreWebView2FileSystemHandlePermission permission);
 
             /// Create a `CoreWebView2FileSystemHandle` from a path that represents a Web 
@@ -695,7 +695,7 @@ namespace Microsoft.Web.WebView2.Core
             /// for the path it wishes to give the web content to make any operations on the directory.
             /// Specifically, the WebView2 browser process will run in same user, package identity, and app
             /// container of the app, but other means such as security context impersonations do not get 
-            /// propagated, so such permissions that the app has will not be effective in WebView2.
+            /// propagated, so such permissions that the app has, will not be effective in WebView2.
             CoreWebView2FileSystemHandle CreateWebFileSystemDirectoryHandle(String path, CoreWebView2FileSystemHandlePermission permission);
 
             /// Create a `CoreWebView2File` from a file path. The object created is a
