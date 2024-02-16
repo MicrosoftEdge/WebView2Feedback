@@ -108,15 +108,9 @@ body:
   attributes:
     description: Does this issue reporduce in the Edge or Chrome browsers?
     label: Repros in Edge Browser
-    multiple: true
     options:
-    - 'No'
-    - 'Yes, in Stable'
-    - 'Yes, in Beta'
-    - 'Yes, in Dev'
-    - 'Yes, in Canary'
-    - 'Yes, in Chrome'
-    - Not Applicable
+    - 'No, issue does not reproduce in the corresponding Edge version'
+    - 'Yes, issue can be reproduced in the corresponding Edge version'
   validations:
     required: true
 - id: regression
