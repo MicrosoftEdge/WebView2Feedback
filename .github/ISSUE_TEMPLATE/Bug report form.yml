@@ -106,12 +106,11 @@ body:
 - id: repro-in-edge
   type: dropdown
   attributes:
-    description: Is this issue reproducible in the Edge or Chrome browsers?
+    description: Does this issue reporduce in the Edge or Chrome browsers?
     label: Repros in Edge Browser
     options:
-    - 'No'
-    - 'Yes'
-    - Not Applicable
+    - 'No, issue does not reproduce in the corresponding Edge version'
+    - 'Yes, issue can be reproduced in the corresponding Edge version'
   validations:
     required: true
 - id: regression
