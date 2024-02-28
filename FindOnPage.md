@@ -345,16 +345,6 @@ interface ICoreWebView2Find : IUnknown {
     // This event is raised when a find operation completes, either by finding all matches, navigating to a match, or by being stopped.
     // \param eventHandler The event handler to be added.
     // \return A token representing the added event handler. This token can be used to unregister the event handler.
-    HRESULT add_FindOperationCompleted(
-        [in] ICoreWebView2FindOperationCompletedHandler* eventHandler,
-        [out] EventRegistrationToken* token);
-    // Unregisters an event handler from the FindCompleted event.
-    // \param token The token of the event handler to be removed, obtained during the registration of the event handler.
-    HRESULT remove_FindOperationCompleted([in] EventRegistrationToken token);
-    // Registers an event handler for the MatchCountChanged event.
-    // This event is raised when the total count of matches in the document changes due to a new find operation or changes in the document.
-    // \param eventHandler The event handler to be added.
-    // \return A token representing the added event handler. This token can be used to unregister the event handler.
     HRESULT add_MatchCountChanged(
         [in] ICoreWebView2FindMatchCountChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
