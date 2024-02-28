@@ -146,32 +146,6 @@ void AppWindow::FindPrevious()
 //! [FindPrevious]
 ```
 
-#### Handle Match Count Changes
-
-```cpp
-void OnMatchCountChanged(LONG matchesCount)
-{
-    // Handle match count changes
-    // Update UI elements or perform actions based on the new match count
-}
-```
-#### Handle Active Match Index Changes
-```cpp
-void OnActiveMatchIndexChanged(ICoreWebView2* sender, ICoreWebView2StagingFindActiveMatchIndexChangedEventArgs* args)
-{
-    // Handle active match index changes
-    // Update UI to reflect the change in the active match index
-}
-```
-
-#### Handle Find Operation Completion
-
-```cpp
-void OnFindOperationCompleted(HRESULT value, LONG activeMatchIndex, LONG matchesCount)
-{
-    // Handle find operation completion
-    // Update UI elements, display search results, or handle errors
-}
 ```
 ## API Details
 ```csharp
