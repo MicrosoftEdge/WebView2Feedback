@@ -183,96 +183,7 @@ typedef enum COREWEBVIEW2_FIND_DIRECTION {
     /// Specifies a backwards find in the document.
     COREWEBVIEW2_FIND_DIRECTION_BACKWARD 
 } COREWEBVIEW2_FIND_DIRECTION; 
-/// Interface defining the find configuration.
-/// This interface provides the necessary methods and properties to configure a find operation.
-[uuid(4A6ED732-DF08-4449-8949-3632A4DEBFCD), object, pointer_default(unique)] 
-interface ICoreWebView2FindConfiguration : IUnknown {
-    /// Gets the find term used for the find operation.
-    /// \return The find term.
-    [propget] HRESULT FindTerm([out, retval] LPWSTR* value);
-    /// Sets the find term to be used for the find operation.
-    /// \param[in] value The find term.
-    [propput] HRESULT FindTerm([in] LPCWSTR value); 
-    /// Gets the direction of the find operation (forward or backward).
-    /// \return The find direction.
-    [propget] HRESULT FindDirection([out, retval] COREWEBVIEW2_FIND_DIRECTION* value); 
-    /// Sets the direction for the find operation.
-    /// \param[in] value The find direction.
-    [propput] HRESULT FindDirection([in] COREWEBVIEW2_FIND_DIRECTION value); 
-    /// Determines if the find operation is case sensitive.
-    /// \return TRUE if the find is case sensitive, FALSE otherwise.
-    [propget] HRESULT IsCaseSensitive([out, retval] BOOL* value); 
-    /// Sets whether the find operation should be case sensitive.
-    /// \param[in] value TRUE to make the find case sensitive, FALSE otherwise.
-    [propput] HRESULT IsCaseSensitive([in] BOOL value); 
-    /// Determines if only whole words should be matched during the find operation.
-    /// \return TRUE if only whole words should be matched, FALSE otherwise.
-    [propget] HRESULT ShouldMatchWord([out, retval] BOOL* value); 
-    /// Sets whether to only match whole words during the find operation.
-    [propput] HRESULT ShouldMatchWord([in] BOOL value); 
-    /// Gets the state of whether all matches are highlighted.
-    /// \return TRUE if all matches are highlighted, FALSE otherwise.
-    [propget] HRESULT ShouldHighlightAllMatches([out, retval] BOOL* value); 
-    /// Sets the state to either highlight all matches or not.
-    [propput] HRESULT ShouldHighlightAllMatches([in] BOOL value); 
-    /// Determines if the currently active match is highlighted.
-    /// \return TRUE if the active match is highlighted, FALSE otherwise.
-    [propget] HRESULT ShouldHighlightActiveMatch([out, retval] BOOL* value); 
-    /// Sets whether to highlight the currently active match.
-    [propput] HRESULT ShouldHighlightActiveMatch([in] BOOL value); 
-    /// Checks if a custom user interface is desired by end developer.
-    /// If TRUE, the default Find bar is not displayed.
-    /// \return TRUE if using a custom UI, FALSE if using the default.
-    [propget] HRESULT UseCustomUI([out, retval] BOOL* value); 
-    /// Sets whether to use a custom UI for the Find operation.
-    [propput] HRESULT UseCustomUI([in] BOOL value); 
-    /// Gets the index of the currently active match.
-    /// If there's no active find session but an attempt is made to change the active match index:
-    /// The function might crash if the global_match_id isn't found in the map.
-    /// It will clear any active match highlighting if there's a previously active frame.
-    /// It will either select a new active match or return an error through the callback if the frame associated with the match isn't valid.
-    /// \return The active match index.
-    [propget] HRESULT ActiveMatchIndex([out, retval] LONG* value); 
-    /// Sets the index for the active match.
-    [propput] HRESULT ActiveMatchIndex([in] LONG value);
-    /// Gets the total count of matches found in the current document based on the last find criteria.
-    /// \return The total count of matches.
-    [propget] HRESULT MatchesCount([out, retval] LONG* value);
-    /**
-    * Passes the current highlighting settings to the underlying Mojo.
-    *
-    * This function retrieves the current text highlighting settings set by the user 
-    * or the default system and ensures that they are used during any subsequent text 
-    * find or highlight operations. This includes settings related to highlighting 
-    * all matches, the active match, and any custom UI preferences. 
-    * 
-    * Users should call this function after changing any highlight settings to ensure 
-    * that they are applied properly in the system.
-    */
-    HRESULT PassHighlightSettings();
-}
-/// Handles the event that's fired when the match count changes.
-[uuid(623EFBFB-A19E-43C4-B309-D578511D24AB), object, pointer_default(unique)]
-interface ICoreWebView2FindMatchCountChangedEventHandler : IUnknown {
-    /// Provides the event args when the match count changes.
-    HRESULT Invoke(LONG matchesCount);
-}
-/// Handles the event that's fired when the active match index changes.
-[uuid(623EFBF9-A19E-43C4-B309-D578511D24A9), object, pointer_default(unique)]
-interface ICoreWebView2FindActiveMatchIndexChangedEventHandler : IUnknown {
-    /// Provides the event args when the active match index changes.
-    /// \param sender The sender of this event, representing the current instance of ICoreWebView2Find.
-    /// \param args The event args that contain the new active match index.
-    HRESULT Invoke(
-        [in] ICoreWebView2* sender,
-        [in] ICoreWebView2FindActiveMatchIndexChangedEventArgs* args);
-}
-/// Handles the event that's fired when the find operation completes.
-[uuid(2604789D-9553-4246-8E21-B9C74EFAD04F), object, pointer_default(unique)]
-interface ICoreWebView2FindOperationCompletedHandler : IUnknown {
-    /// Provides the event args when the find operation completes.
-    HRESULT Invoke(HRESULT value, LONG activeMatchIndex, LONG matchesCount);
-}
+
 // Interface defining the find configuration.
 [uuid(4A6ED732-DF08-4449-8949-3632A4DEBFCD), object, pointer_default(unique)] 
 interface ICoreWebView2FindConfiguration : IUnknown {
@@ -329,6 +240,31 @@ interface ICoreWebView2FindConfiguration : IUnknown {
     */
     HRESULT PassHighlightSettings();
 }
+
+/// Handles the event that's fired when the match count changes.
+[uuid(623EFBFB-A19E-43C4-B309-D578511D24AB), object, pointer_default(unique)]
+interface ICoreWebView2FindMatchCountChangedEventHandler : IUnknown {
+    /// Provides the event args when the match count changes.
+    HRESULT Invoke(LONG matchesCount);
+}
+
+/// Handles the event that's fired when the active match index changes.
+[uuid(623EFBF9-A19E-43C4-B309-D578511D24A9), object, pointer_default(unique)]
+interface ICoreWebView2FindActiveMatchIndexChangedEventHandler : IUnknown {
+    /// Provides the event args when the active match index changes.
+    /// \param sender The sender of this event, representing the current instance of ICoreWebView2Find.
+    /// \param args The event args that contain the new active match index.
+    HRESULT Invoke(
+        [in] ICoreWebView2* sender,
+        [in] ICoreWebView2FindActiveMatchIndexChangedEventArgs* args);
+}
+/// Handles the event that's fired when the find operation completes.
+[uuid(2604789D-9553-4246-8E21-B9C74EFAD04F), object, pointer_default(unique)]
+interface ICoreWebView2FindOperationCompletedHandler : IUnknown {
+    /// Provides the event args when the find operation completes.
+    HRESULT Invoke(HRESULT value, LONG activeMatchIndex, LONG matchesCount);
+}
+
 // Interface providing methods and properties for finding and navigating through text in the web view.
 [uuid(7C49A8AA-2A17-4846-8207-21D1520AABC0), object, pointer_default(unique)] 
 interface ICoreWebView2Find : IUnknown { 
