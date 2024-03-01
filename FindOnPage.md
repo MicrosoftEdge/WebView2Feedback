@@ -13,39 +13,72 @@ To initiate a find operation within a WebView2 control, developers can utilize t
 This method allows specifying the find term and configuring other find parameters using the `ICoreWebView2FindConfiguration` interface.
 
 #### Create/Specify a Find Configuration
-
-
-
 ```cpp
-ICoreWebView2FindConfiguration CreateFindConfiguration()
+bool AppWindow::ConfigureAndExecuteFind(
+    const std::wstring& searchTerm,
+    bool caseSensitive,
+    bool highlightAllMatches,
+    COREWEBVIEW2_FIND_DIRECTION direction)
 {
-    ICoreWebView2Environment5 environment = webView2Control.GetEnvironment();
-    ICoreWebView2FindConfiguration configuration;
-    environment.CreateFindConfiguration(out configuration);
-    configuration.FindTerm = "example";
-    configuration.FindDirection = COREWEBVIEW2_FIND_DIRECTION.COREWEBVIEW2_FIND_DIRECTION_FORWARD;
-    configuration.IsCaseSensitive = false;
-    configuration.ShouldMatchWord = false;
-    return configuration;
+    // Query for the ICoreWebView2StagingEnvironment5 interface.
+    auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2StagingEnvironment5>();
+    CHECK_FEATURE_RETURN(webView2Environment5);
+
+    // Create the find configuration.
+    wil::com_ptr<ICoreWebView2StagingFindConfiguration> findConfiguration;
+    CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
+
+    // Apply the find operation configurations.
+    CHECK_FAILURE(findConfiguration->put_FindTerm(searchTerm.c_str()));
+    CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(caseSensitive));
+    CHECK_FAILURE(findConfiguration->put_ShouldHighlightAllMatches(highlightAllMatches));
+    CHECK_FAILURE(findConfiguration->put_FindDirection(direction));
+
+    // Proceed to execute the find operation with the configured settings.
+    return ExecuteFindOperation(findConfiguration.get());
 }
 ```
 
 ### Start a Find Operation
 
-
 ```cpp
 //! [StartFindOnPage]
-void AppWindow::StartFindOnPage(const std::wstring& findTerm)
+bool AppWindow::ExecuteFindOperation(ICoreWebView2StagingFindConfiguration* configuration)
 {
-    // Get the find interface
-    auto find = webView2Control.GetFind();
+    // Query for the ICoreWebView2Staging17 interface to access the Find feature.
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
 
-    // Create find configuration
-    auto configuration = CreateFindConfiguration();
+    // Get the Find interface.
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
 
-    // Start the find operation
-    find.StartFind(configuration, OnFindOperationCompleted);
+    // Apply custom UI settings and highlight configurations.
+    CHECK_FAILURE(webView2stagingfind->put_UseCustomUI(false)); // Assuming you want to use the default UI, adjust as necessary.
+    CHECK_FAILURE(webView2stagingfind->put_ShouldHighlightAllMatches(true)); // This should match the passed parameter if dynamic.
+    CHECK_FAILURE(webView2stagingfind->PassHighlightSettings());
+
+    // Start the find operation with the configured findConfiguration.
+    HRESULT result = webView2stagingfind->StartFind(
+        configuration,
+        Callback<ICoreWebView2StagingFindOperationCompletedHandler>(
+            [this](HRESULT result, LONG ActiveIdx, LONG MatchesCount) -> HRESULT
+            {
+                if (SUCCEEDED(result))
+                {
+                    // Handle successful find operation
+                    // For example, updating UI elements to reflect the find results
+                }
+                else
+                {
+                    // Handle errors appropriately
+                }
+                return S_OK;
+            }).Get());
+
+    return SUCCEEDED(result);
 }
+
 //! [StartFindOnPage]
 ```
 ### Stop an existing find operation
@@ -53,13 +86,14 @@ void AppWindow::StartFindOnPage(const std::wstring& findTerm)
 To stop an ongoing find operation within a WebView2 control, developers can use the `StopFind` method of the `ICoreWebView2Find` interface.
 ```cpp
 //! [StopFind]
-void AppWindow::StopFind()
+bool AppWindow::StopFind()
 {
-    // Get the find interface
-    auto find = webView2Control.GetFind();
-    
-    // Stop the find operation
-    find.StopFind();
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
+    CHECK_FAILURE(webView2stagingfind->StopFind());
+    return true;
 }
 //! [StopFind]
 ```
@@ -72,16 +106,21 @@ To retrieve the total number of matches found during a find operation within a W
 
 ```cpp
 //! [GetMatchCount]
-void AppWindow::GetMatchCount()
+bool AppWindow::GetMatchCount()
 {
-    // Get the find interface
-    auto find = webView2Control.GetFind();
-
-    // Get the match count
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
     LONG matchCount;
-    find.GetMatchesCount(&matchCount);
+    CHECK_FAILURE(webView2stagingfind->get_MatchesCount(&matchCount));
 
-    // Update UI or handle matchCount
+    // Update UI or handle matchCount as you wish
+    // For example, you could show a message box
+    std::wstring matchCountStr = L"Match Count: " + std::to_wstring(matchCount);
+    MessageBox(m_mainWindow, matchCountStr.c_str(), L"Find Operation", MB_OK);
+
+    return true;
 }
 //! [GetMatchCount]
 ```
@@ -94,16 +133,22 @@ Developers can retrieve the index of the currently active match within a WebView
 
 ```cpp
 //! [GetActiveMatchIndex]
-void AppWindow::GetActiveMatchIndex()
+bool AppWindow::GetActiveMatchIndex()
 {
-    // Get the find interface
-    auto find = webView2Control.GetFind();
-
-    // Get the active match index
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
     LONG activeMatchIndex;
-    find.GetActiveMatchIndex(&activeMatchIndex);
+    CHECK_FAILURE(webView2stagingfind->get_ActiveMatchIndex(&activeMatchIndex));
 
-    // Update UI or handle activeMatchIndex
+    // Update UI or handle activeMatchIndex as you wish
+    // For example, you could show a message box
+    std::wstring activeMatchIndexStr =
+        L"Active Match Index: " + std::to_wstring(activeMatchIndex);
+    MessageBox(m_mainWindow, activeMatchIndexStr.c_str(), L"Find Operation", MB_OK);
+
+    return true;
 }
 //! [GetActiveMatchIndex]
 ```
@@ -116,13 +161,18 @@ To navigate to the next match found during a find operation within a WebView2 co
 
 ```cpp
 //! [FindNext]
-void AppWindow::FindNext()
+bool AppWindow::FindNext()
 {
-    // Get the find interface
-    auto find = webView2Control.GetFind();
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
 
-    // Find the next occurrence
-    find.FindNext();
+    CHECK_FAILURE(webView2stagingfind->FindNext());
+    CHECK_FAILURE(webView2stagingfind->remove_ActiveMatchIndexChanged(
+        m_ActiveMatchIndexChangedEventToken));
+
+    return true;
 }
 //! [FindNext]
 ```
@@ -135,20 +185,23 @@ To navigate to the previous match found during a find operation within a WebView
 
 ```cpp
 //! [FindPrevious]
-void AppWindow::FindPrevious()
+bool AppWindow::FindPrevious()
 {
-    // Get the find interface
-    auto find = webView2Control.GetFind();
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
 
-    // Find the previous occurrence
-    find.FindPrevious();
+    CHECK_FAILURE(webView2stagingfind->FindPrevious());
+
+    return true;
 }
 //! [FindPrevious]
 ```
 
-```
 ## API Details
 ```csharp
+
 /// Specifies the direction of find Parameters.
 [v1_enum]
 typedef enum COREWEBVIEW2_FIND_DIRECTION { 
@@ -161,58 +214,46 @@ typedef enum COREWEBVIEW2_FIND_DIRECTION {
 // Interface defining the find configuration.
 [uuid(4A6ED732-DF08-4449-8949-3632A4DEBFCD), object, pointer_default(unique)] 
 interface ICoreWebView2FindConfiguration : IUnknown {
+
     // Gets or sets the find term used for the find operation.
     [propget] HRESULT FindTerm([out, retval] LPWSTR* value);
-    [propput] HRESULT FindTerm([in] LPCWSTR value); 
+    [propput] HRESULT FindTerm([in] LPCWSTR value);
+
     // Gets or sets the direction of the find operation (forward or backward).
     [propget] HRESULT FindDirection([out, retval] COREWEBVIEW2_FIND_DIRECTION* value); 
-    [propput] HRESULT FindDirection([in] COREWEBVIEW2_FIND_DIRECTION value); 
+    [propput] HRESULT FindDirection([in] COREWEBVIEW2_FIND_DIRECTION value);
+
     // Gets or sets whether the find operation is case sensitive.
     [propget] HRESULT IsCaseSensitive([out, retval] BOOL* value); 
-    [propput] HRESULT IsCaseSensitive([in] BOOL value); 
+    [propput] HRESULT IsCaseSensitive([in] BOOL value);
+
     // Gets or sets whether to only match whole words during the find operation.
     [propget] HRESULT ShouldMatchWord([out, retval] BOOL* value); 
-    [propput] HRESULT ShouldMatchWord([in] BOOL value); 
+    [propput] HRESULT ShouldMatchWord([in] BOOL value);
+
     // Gets the state of whether all matches are highlighted.
     // \return TRUE if all matches are highlighted, FALSE otherwise.
     [propget] HRESULT ShouldHighlightAllMatches([out, retval] BOOL* value); 
     // Sets the state to either highlight all matches or not.
-    [propput] HRESULT ShouldHighlightAllMatches([in] BOOL value); 
-    // Determines if the currently active match is highlighted.
-    // \return TRUE if the active match is highlighted, FALSE otherwise.
-    [propget] HRESULT ShouldHighlightActiveMatch([out, retval] BOOL* value); 
-    // Sets whether to highlight the currently active match.
-    [propput] HRESULT ShouldHighlightActiveMatch([in] BOOL value); 
+    [propput] HRESULT ShouldHighlightAllMatches([in] BOOL value);
+ 
     // Checks if a custom user interface is desired by end developer.
     // If TRUE, the default Find bar is not displayed.
-    // \return TRUE if using a custom UI, FALSE if using the default.
-    [propget] HRESULT UseCustomUI([out, retval] BOOL* value); 
+    // Returns TRUE if using a custom UI, FALSE if using the default.
+    [propget] HRESULT SuppressDefaultDialog([out, retval] BOOL* value); 
     // Sets whether to use a custom UI for the Find operation.
-    [propput] HRESULT UseCustomUI([in] BOOL value); 
+    [propput] HRESULT SuppressDefaultDialog([in] BOOL value);
+
     // Gets the index of the currently active match.
-    // If there's no active find session but an attempt is made to change the active match index:
-    // The function might crash if the global_match_id isn't found in the map.
-    // It will clear any active match highlighting if there's a previously active frame.
-    // It will either select a new active match or return an error through the callback if the frame associated with the match isn't valid.
-    // \return The active match index.
+    // If there's no active find session but an attempt is made to get the active match index:
+    // The function will return -1.
+    // Returns The active match index.
     [propget] HRESULT ActiveMatchIndex([out, retval] LONG* value); 
-    // Sets the index for the active match.
-    [propput] HRESULT ActiveMatchIndex([in] LONG value);
+
     // Gets the total count of matches found in the current document based on the last find criteria.
     // \return The total count of matches.
     [propget] HRESULT MatchesCount([out, retval] LONG* value);
-    /**
-    * Passes the current highlighting settings to the underlying Mojo.
-    *
-    * This function retrieves the current text highlighting settings set by the user 
-    * or the default system and ensures that they are used during any subsequent text 
-    * find or highlight operations. This includes settings related to highlighting 
-    * all matches, the active match, and any custom UI preferences. 
-    * 
-    * Users should call this function after changing any highlight settings to ensure 
-    * that they are applied properly in the system.
-    */
-    HRESULT PassHighlightSettings();
+
 }
 
 /// Handles the event that's fired when the match count changes.
@@ -226,8 +267,8 @@ interface ICoreWebView2FindMatchCountChangedEventHandler : IUnknown {
 [uuid(623EFBF9-A19E-43C4-B309-D578511D24A9), object, pointer_default(unique)]
 interface ICoreWebView2FindActiveMatchIndexChangedEventHandler : IUnknown {
     /// Provides the event args when the active match index changes.
-    /// \param sender The sender of this event, representing the current instance of ICoreWebView2Find.
-    /// \param args The event args that contain the new active match index.
+    /// Parameter is a  sender The sender of this event, representing the current instance of ICoreWebView2Find.
+    /// Parameter is a  args The event args that contain the new active match index.
     HRESULT Invoke(
         [in] ICoreWebView2* sender,
         [in] ICoreWebView2FindActiveMatchIndexChangedEventArgs* args);
@@ -241,36 +282,42 @@ interface ICoreWebView2FindOperationCompletedHandler : IUnknown {
 
 // Interface providing methods and properties for finding and navigating through text in the web view.
 [uuid(7C49A8AA-2A17-4846-8207-21D1520AABC0), object, pointer_default(unique)] 
-interface ICoreWebView2Find : IUnknown { 
+interface ICoreWebView2Find : IUnknown {
+ 
     // Initiates a find using the specified configuration.
     HRESULT StartFind([in] ICoreWebView2FindConfiguration* configuration, 
                       ICoreWebView2FindOperationCompletedHandler* handler);
+
     // Navigates to the next match in the document.
-    HRESULT FindNext(); 
+    HRESULT FindNext();
+
     // Navigates to the previous match in the document.
-    HRESULT FindPrevious(); 
+    HRESULT FindPrevious();
+
     // Stops the current 'Find' operation and hides the Find bar.
-    HRESULT StopFind(); 
+    HRESULT StopFind();
+
     // Registers an event handler for the FindCompleted event.
     // This event is raised when a find operation completes, either by finding all matches, navigating to a match, or by being stopped.
-    // \param eventHandler The event handler to be added.
-    // \return A token representing the added event handler. This token can be used to unregister the event handler.
+    // Parameter is the event handler to be added.
+    // Returns a token representing the added event handler. This token can be used to unregister the event handler.
     HRESULT add_MatchCountChanged(
         [in] ICoreWebView2FindMatchCountChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
     // Unregisters an event handler from the MatchCountChanged event.
-    // \param token The token of the event handler to be removed, obtained during the registration of the event handler.
+    // Parameter is the token of the event handler to be removed, obtained during the registration of the event handler.
     HRESULT remove_MatchCountChanged([in] EventRegistrationToken token);
+
     // Registers an event handler for the ActiveMatchIndexChanged event.
     // This event is raised when the index of the currently active match changes.
     // This can happen when the user navigates to a different match or when the active match is changed programmatically.
-    // \param eventHandler The event handler to be added.
-    // \return A token representing the added event handler. This token can be used to unregister the event handler.
+    // Parameter is the event handler to be added.
+    // Returns a token representing the added event handler. This token can be used to unregister the event handler.
     HRESULT add_ActiveMatchIndexChanged(
         [in] ICoreWebView2FindActiveMatchIndexChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
     // Unregisters an event handler from the ActiveMatchIndexChanged event.
-    // \param token The token of the event handler to be removed, obtained during the registration of the event handler.
+    // parameter is the token of the event handler to be removed, obtained during the registration of the event handler.
     HRESULT remove_ActiveMatchIndexChanged([in] EventRegistrationToken token);
 }
 ```
