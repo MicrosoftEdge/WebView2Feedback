@@ -43,11 +43,11 @@ The sample code will register a handler and trigger programmaic save as once.
 ```c++
 bool ScenarioSaveAs::ProgrammaticSaveAs()
 {
-    if (!m_webView2_20)
+    if (!m_webView2_24)
         return false;
 
     // Register a handler for the `SaveAsUIShowing` event.
-    m_webView2_20->add_SaveAsUIShowing(
+    m_webView2_24->add_SaveAsUIShowing(
         Callback<ICoreWebView2SaveAsUIShowingEventHandler>(
             [this](
             ICoreWebView2* sender,
@@ -60,7 +60,7 @@ bool ScenarioSaveAs::ProgrammaticSaveAs()
                 {
                     // As an end developer, you can design your own dialog UI, or no UI at all.
                     // You can ask the user to provide information like file name, file extension, 
-                    // and so on. Finally, and set them on the event args
+                    // and so on. Finally, and set them on the event args.
                     //
                     // This is a customized dialog example, the constructor returns after the 
                     // dialog interaction is completed by the end user.
@@ -80,7 +80,7 @@ bool ScenarioSaveAs::ProgrammaticSaveAs()
                     }
                     else
                     {
-                        // Save As cancelled from this customized dialog
+                        // Save As cancelled from this customized dialog.
                         CHECK_FAILURE(args->put_Cancel(TRUE));
                     }
                 };
@@ -100,7 +100,7 @@ bool ScenarioSaveAs::ProgrammaticSaveAs()
         &m_SaveAsUIShowingToken);
         
     // Call method ShowSaveAsUI to trigger the programmatic save as once.
-    m_webView2_20->ShowSaveAsUI(
+    m_webView2_24->ShowSaveAsUI(
         Callback<ICoreWebView2ShowSaveAsUICompletedHandler>(
             [this](HRESULT errorCode, COREWEBVIEW2_SAVE_AS_UI_RESULT result) -> HRESULT
             {
@@ -158,7 +158,7 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
                 }
                 else
                 {
-                    // Save As cancelled from this customized dialog
+                    // Save As cancelled from this customized dialog.
                     args.Cancel = true;
                 }
             }
@@ -166,9 +166,9 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
     };
 
     // Call ShowSaveAsUIAsync method to trigger the programmatic save as once.
-    CoreWebView2SaveAsUIResults result = await webView.CoreWebView2.ShowSaveAsUIAsync();
+    CoreWebView2SaveAsUIResult result = await webView.CoreWebView2.ShowSaveAsUIAsync();
     // Show ShowSaveAsUIAsync returned result, optional. See
-    // CoreWebView2SaveAsUIResults for more details.
+    // CoreWebView2SaveAsUIResult for more details.
     MessageBox.Show(result.ToString(), "Info");
 }
 ```
@@ -184,7 +184,7 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
 /// `application/xhtml+xml` are considered as HTML documents.
 [v1_enum] typedef enum COREWEBVIEW2_SAVE_AS_KIND {
   /// Default to save for a non-html content. If it is selected for a html
-  /// page, it’s same as HTML_ONLY option.
+  /// page, it's same as HTML_ONLY option.
   COREWEBVIEW2_SAVE_AS_KIND_DEFAULT,
   /// Save the page as html. It only saves top-level document, excludes
   /// subresource.
@@ -199,35 +199,35 @@ async void ProgrammaticSaveAsExecuted(object target, ExecutedRoutedEventArgs e)
 } COREWEBVIEW2_SAVE_AS_KIND;
 
 /// Status of a programmatic save as call, indicates the result
-/// for method `ShowSaveAsUI`
+/// for method `ShowSaveAsUI`.
 [v1_enum] typedef enum COREWEBVIEW2_SAVE_AS_UI_RESULT {
   /// The ShowSaveAsUI method call completed successfully. By defaut the the system 
   /// save as dialog will open. If `SuppressDefaultDialog` is set to TRUE, will skip
   /// the system dialog, and start the download.
-  COREWEBVIEW2_SAVE_AS_UI_SUCCESS,
+  COREWEBVIEW2_SAVE_AS_UI_RESULT_SUCCESS,
   /// Could not perform Save As because the destination file path is an invalid path.
   ///
   /// It is considered as invalid when the path is empty, a relative path, a directory,
-  /// or the parent path doesn't exist
-  COREWEBVIEW2_SAVE_AS_UI_INVALID_PATH,
+  /// or the parent path doesn't exist.
+  COREWEBVIEW2_SAVE_AS_UI_RESULT_INVALID_PATH,
   /// Could not perform Save As because the destination file path already exists and 
   /// replacing files was not allowed by the `AllowReplace` property.
-  COREWEBVIEW2_SAVE_AS_UI_FILE_ALREADY_EXISTS,
+  COREWEBVIEW2_SAVE_AS_UI_RESULT_FILE_ALREADY_EXISTS,
   /// Could not perform Save As when the `Kind` property selection not
-  /// supported because of the content MIME type or system limits
+  /// supported because of the content MIME type or system limits.
   ///
-  /// MIME type limits please see the emun `COREWEBVIEW2_SAVE_AS_KIND`
+  /// MIME type limits please see the emun `COREWEBVIEW2_SAVE_AS_KIND`.
   ///
-  /// System limits might happen when select `HTML_ONLY` for an error page,
-  /// select `COMPLETE` and WebView running in an App Container, etc.
-  COREWEBVIEW2_SAVE_AS_UI_KIND_NOT_SUPPORTED,
+  /// System limits might happen when select `HTML_ONLY` for an error page at child
+  /// mode, select `COMPLETE` and WebView running in an App Container, etc.
+  COREWEBVIEW2_SAVE_AS_UI_RESULT_KIND_NOT_SUPPORTED,
   /// Did not perform Save As because the end user cancelled or the 
   /// CoreWebView2SaveAsUIShowingEventArgs.Cancel property was set to TRUE.
-  COREWEBVIEW2_SAVE_AS_UI_CANCELLED,
+  COREWEBVIEW2_SAVE_AS_UI_RESULT_CANCELLED,
 } COREWEBVIEW2_SAVE_AS_UI_RESULT;
 
 [uuid(15e1c6a3-c72a-4df3-91d7-d097fbec3bfd), object, pointer_default(unique)]
-interface ICoreWebView2_20 : IUnknown {
+interface ICoreWebView2_24 : IUnknown {
   /// Programmatically trigger a save as action for the currently loaded document.
   /// The `SaveAsUIShowing` event will be raised.
   ///
@@ -235,15 +235,13 @@ interface ICoreWebView2_20 : IUnknown {
   /// won't open the system dialog.
   ///
   /// The method can return a detailed info to indicate the call's result. 
-  /// Please see COREWEBVIEW2_SAVE_AS_UI_RESULT
+  /// Please see COREWEBVIEW2_SAVE_AS_UI_RESULT.
   ///
   /// \snippet ScenarioSaveAs.cpp ProgrammaticSaveAs
   HRESULT ShowSaveAsUI([in] ICoreWebView2ShowSaveAsUICompletedHandler* handler);
 
   /// Add an event handler for the `SaveAsUIShowing` event. This event is raised
   /// when save as is triggered, programmatically or manually.
-  ///
-  /// \snippet ScenarioSaveAs.cpp AddEventHandler
   HRESULT add_SaveAsUIShowing(
    [in] ICoreWebView2SaveAsUIShowingEventHandler* eventHanlder,
    [out] EventRegistrationToken* token);
@@ -261,21 +259,21 @@ interface ICoreWebView2SaveAsUIShowingEventHandler : IUnknown {
    [in] ICoreWebView2SaveAsUIShowingEventArgs* args);
 }
 
-/// The event args for `SaveAsUIShowing` event
+/// The event args for `SaveAsUIShowing` event.
 [uuid(80101027-b8c3-49a1-a052-9ea4bd63ba47), object, pointer_default(unique)]
 interface ICoreWebView2SaveAsUIShowingEventArgs : IUnknown {
-  /// Get the Mime type of content to be saved
+  /// Get the Mime type of content to be saved.
   [propget] HRESULT ContentMimeType([out, retval] LPWSTR* value);
 
   /// You can set this to TRUE to cancel the Save As. Then the download won't start. 
-  /// A programmatic call will return COREWEBVIEW2_SAVE_AS_CANCELLED as well. 
+  /// A programmatic call will return COREWEBVIEW2_SAVE_AS_UI_RESULT_CANCELLED as well. 
   ///
   /// The default value is FALSE.
   ///
-  /// Set the `Cancel` for save as
+  /// Set the `Cancel` for save as.
   [propput] HRESULT Cancel ([in] BOOL value);
 
-  /// Get the `Cancel` for save as
+  /// Get the `Cancel` for save as.
   [propget] HRESULT Cancel ([out, retval] BOOL* value);
 
   /// Indicates if the system default dialog will be suppressed, FALSE means
@@ -284,10 +282,10 @@ interface ICoreWebView2SaveAsUIShowingEventArgs : IUnknown {
   ///
   /// The default value is FALSE.
   ///
-  /// Set the `SuppressDefaultDialog`
+  /// Set the `SuppressDefaultDialog`.
   [propput] HRESULT SuppressDefaultDialog([in] BOOL value);
 
-  /// Get the `SuppressDefaultDialog`
+  /// Get the `SuppressDefaultDialog`.
   [propget] HRESULT SuppressDefaultDialog([out, retval] BOOL* value);
 
   /// Returns an `ICoreWebView2Deferral` object. This will defer showing the 
@@ -296,7 +294,7 @@ interface ICoreWebView2SaveAsUIShowingEventArgs : IUnknown {
 
   /// `SaveAsFilePath` is absolute full path of the location. It includes the file name
   /// and extension. If `SaveAsFilePath` is not valid, for example the root drive does
-  /// not exist, save as will be denied and return COREWEBVIEW2_SAVE_AS_INVALID_PATH.
+  /// not exist, save as will be denied and return COREWEBVIEW2_SAVE_AS_UI_RESULT_INVALID_PATH.
   ///
   /// If the associated download completes successfully, a target file will be saved at 
   /// this location. If the Kind property is `COREWEBVIEW2_SAVE_AS_KIND_COMPLETE`, 
@@ -304,41 +302,42 @@ interface ICoreWebView2SaveAsUIShowingEventArgs : IUnknown {
   ///
   /// The default value is a system suggested path, based on users' local environment.
   /// 
-  /// Set the `SaveAsFilePath` for save as
+  /// Set the `SaveAsFilePath` for save as.
   [propput] HRESULT SaveAsFilePath ([in] LPCWSTR value);
 
-  /// Get the `SaveAsFilePath` for save as
+  /// Get the `SaveAsFilePath` for save as.
   [propget] HRESULT SaveAsFilePath ([out, retval] LPWSTR* value);
 
   /// `AllowReplace` allows you to control what happens when a file already 
   /// exists in the file path to which the Save As operation is saving.
   /// Setting this TRUE allows existing files to be replaced.
-  /// Settings this FALSE will not replace existing files and  will return
-  /// COREWEBVIEW2_SAVE_AS_FILE_ALREADY_EXISTS.
+  /// Setting this FALSE will not replace existing files and will return
+  /// COREWEBVIEW2_SAVE_AS_UI_RESULT_FILE_ALREADY_EXISTS.
   ///
-  /// The default value is FALSE
+  /// The default value is FALSE.
   ///
-  /// Set if allowed to replace the old file if duplicate happens in the save as
+  /// Set if allowed to replace the old file if duplicate happens in the save as.
   [propput] HRESULT AllowReplace ([in] BOOL value);
 
-  /// Get the duplicates replace rule for save as
+  /// Get the duplicates replace rule for save as.
   [propget] HRESULT AllowReplace ([out, retval] BOOL* value);
 
   /// How to save documents with different kind. See the enum 
   /// COREWEBVIEW2_SAVE_AS_KIND for a description of the different options.  
   /// If the kind isn't allowed for the current document, 
-  /// COREWEBVIEW2_SAVE_AS_UI_KIND_NOT_SUPPORTED will be returned from ShowSaveAsUI.
+  /// COREWEBVIEW2_SAVE_AS_UI_RESULT_KIND_NOT_SUPPORTED will be returned from
+  /// ShowSaveAsUI.
   ///
-  /// The default value is COREWEBVIEW2_SAVE_AS_KIND_DEFAULT
+  /// The default value is COREWEBVIEW2_SAVE_AS_KIND_DEFAULT.
   ///
-  /// Set the kind for save as
+  /// Set the kind for save as.
   [propput] HRESULT Kind ([in] COREWEBVIEW2_SAVE_AS_KIND value);
 
-  /// Get the kind for save as
+  /// Get the kind for save as.
   [propget] HRESULT Kind ([out, retval] COREWEBVIEW2_SAVE_AS_KIND* value);
 }
 
-/// Receive the result for `ShowSaveAsUI` method
+/// Receive the result for `ShowSaveAsUI` method.
 [uuid(1a02e9d9-14d3-41c6-9581-8d6e1e6f50fe), object, pointer_default(unique)]
 interface ICoreWebView2ShowSaveAsUICompletedHandler : IUnknown {
   HRESULT Invoke([in] HRESULT errorCode, [in] COREWEBVIEW2_SAVE_AS_UI_RESULT result);
@@ -353,7 +352,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2SaveAsUIShowingEventArgs; 
     runtimeclass CoreWebView2;
 
-    enum CoreWebView2SaveAsUIResults
+    enum CoreWebView2SaveAsUIResult
     {   
         Success = 0,
         InvalidPath = 1,
@@ -385,11 +384,11 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
         
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_20")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_24")]
         {
             event Windows.Foundation.TypedEventHandler
                 <CoreWebView2, CoreWebView2SaveAsUIShowingEventArgs> SaveAsUIShowing;
-            Windows.Foundation.IAsyncOperation<CoreWebView2SaveAsUIResults > 
+            Windows.Foundation.IAsyncOperation<CoreWebView2SaveAsUIResult > 
                 ShowSaveAsUIAsync();
         }
     };
