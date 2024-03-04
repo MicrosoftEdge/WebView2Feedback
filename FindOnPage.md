@@ -124,7 +124,15 @@ bool AppWindow::GetMatchCount()
 }
 //! [GetMatchCount]
 ```
+#### Handle Match Count Changes
 
+```cpp
+void OnMatchCountChanged(LONG matchesCount)
+{
+    // Handle match count changes
+    // Update UI elements or perform actions based on the new match count
+}
+```
 ### Retrieve the Index of the Active Match
 
 #### Description
@@ -151,6 +159,15 @@ bool AppWindow::GetActiveMatchIndex()
     return true;
 }
 //! [GetActiveMatchIndex]
+```
+
+#### Handle Active Match Index Changes
+```cpp
+void OnActiveMatchIndexChanged(ICoreWebView2* sender, ICoreWebView2StagingFindActiveMatchIndexChangedEventArgs* args)
+{
+    // Handle active match index changes
+    // Update UI to reflect the change in the active match index
+}
 ```
 
 ### Navigate to the Next Match
@@ -259,25 +276,21 @@ interface ICoreWebView2FindConfiguration : IUnknown {
 /// Handles the event that's fired when the match count changes.
 [uuid(623EFBFB-A19E-43C4-B309-D578511D24AB), object, pointer_default(unique)]
 interface ICoreWebView2FindMatchCountChangedEventHandler : IUnknown {
-    /// Provides the event args when the match count changes.
+    /// Parameter is the match count.
     HRESULT Invoke(LONG matchesCount);
 }
 
 /// Handles the event that's fired when the active match index changes.
 [uuid(623EFBF9-A19E-43C4-B309-D578511D24A9), object, pointer_default(unique)]
 interface ICoreWebView2FindActiveMatchIndexChangedEventHandler : IUnknown {
-    /// Provides the event args when the active match index changes.
-    /// Parameter is a  sender The sender of this event, representing the current instance of ICoreWebView2Find.
-    /// Parameter is a  args The event args that contain the new active match index.
-    HRESULT Invoke(
-        [in] ICoreWebView2* sender,
-        [in] ICoreWebView2FindActiveMatchIndexChangedEventArgs* args);
+    /// Parameter is the active match index.
+    HRESULT Invoke(LONG activeMatchIndex);
 }
 /// Handles the event that's fired when the find operation completes.
 [uuid(2604789D-9553-4246-8E21-B9C74EFAD04F), object, pointer_default(unique)]
 interface ICoreWebView2FindOperationCompletedHandler : IUnknown {
     /// Provides the event args when the find operation completes.
-    HRESULT Invoke(HRESULT value, LONG activeMatchIndex, LONG matchesCount);
+    HRESULT Invoke(HRESULT errorCode, BOOL status);
 }
 
 // Interface providing methods and properties for finding and navigating through text in the web view.
