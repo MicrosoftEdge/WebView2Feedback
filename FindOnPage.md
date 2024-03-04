@@ -3,7 +3,9 @@
 ## Background
 
 The WebView2Find API provides methods and events to support text finding and navigation within a WebView2 control. 
-It allows developers to initiate find operations, navigate between find results, and customize various find configurations.
+It allows developers to programmatically initiate find operations, navigate between find results, supress default UI, customize various find configurations
+such as query, direction of search, match case, match word, etc. Also enables developers to track the status of ongoing operations such as whether a find session has 
+completed or not, whether the match count has changed, and whether the match index has changed.
 
 ## Examples
 
