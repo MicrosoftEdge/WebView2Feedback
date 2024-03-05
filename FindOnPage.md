@@ -337,6 +337,100 @@ interface ICoreWebView2Find : IUnknown {
 }
 ```
 
+
+### Setting Up Find Configuration
+
+```csharp
+public enum CoreWebView2FindDirection
+{
+    Forward,
+    Backward
+}
+
+public class CoreWebView2FindConfiguration
+{
+    public string FindTerm { get; set; }
+    public CoreWebView2FindDirection FindDirection { get; set; }
+    public bool IsCaseSensitive { get; set; }
+    public bool ShouldMatchWord { get; set; }
+}
+```
+
+### Starting a Find Operation
+
+```csharp
+public interface ICoreWebView2StagingFind
+{
+    Task StartFindAsync(CoreWebView2FindConfiguration configuration);
+    void FindNext();
+    void FindPrevious();
+    void StopFind();
+    bool ShouldHighlightAllMatches { get; set; }
+    bool ShouldHighlightActiveMatch { get; set; }
+    bool UseCustomUI { get; set; }
+    int ActiveMatchIndex { get; }
+    int MatchesCount { get; }
+    void PassHighlightSettings();
+}
+
+// Usage example:
+public async Task PerformFindOperation(ICoreWebView2StagingFind webViewFind)
+{
+    var findConfig = new CoreWebView2FindConfiguration
+    {
+        FindTerm = "example",
+        FindDirection = CoreWebView2FindDirection.Forward,
+        IsCaseSensitive = false,
+        ShouldMatchWord = true
+    };
+    
+    await webViewFind.StartFindAsync(findConfig);
+    webViewFind.FindNext();
+    // Further operations...
+}
+```
+
+### Handling Find Operation Events
+
+```csharp
+public interface ICoreWebView2StagingFindMatchCountChangedEventHandler
+{
+    void OnMatchCountChanged(ICoreWebView2StagingFind sender);
+}
+
+public interface ICoreWebView2StagingFindActiveMatchIndexChangedEventHandler
+{
+    void OnActiveMatchIndexChanged(ICoreWebView2StagingFind sender);
+}
+
+public interface ICoreWebView2StagingFindOperationCompletedHandler
+{
+    void OnFindOperationCompleted(ICoreWebView2StagingFind sender);
+}
+
+public void SubscribeToFindEvents(ICoreWebView2StagingFind webViewFind)
+{
+    webViewFind.MatchCountChanged += OnMatchCountChanged;
+    webViewFind.ActiveMatchIndexChanged += OnActiveMatchIndexChanged;
+    webViewFind.FindOperationCompleted += OnFindOperationCompleted;
+}
+
+private void OnMatchCountChanged(ICoreWebView2StagingFind sender)
+{
+    Console.WriteLine($"Match count changed. New count: {sender.MatchesCount}");
+}
+
+private void OnActiveMatchIndexChanged(ICoreWebView2StagingFind sender)
+{
+    Console.WriteLine($"Active match index changed. New index: {sender.ActiveMatchIndex}");
+}
+
+private void OnFindOperationCompleted(ICoreWebView2StagingFind sender)
+{
+    Console.WriteLine("Find operation completed.");
+}
+```
+
 # Appendix
 
 This API specification focuses on providing developers with the necessary information to integrate text finding and navigation functionalities into WebView2 applications. 
