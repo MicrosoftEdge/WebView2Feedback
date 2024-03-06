@@ -41,28 +41,21 @@ bool AppWindow::ConfigureAndExecuteFind(
 }
 ```
 ```csharp
-bool AppWindow::ConfigureAndExecuteFind(
-    const std::wstring& searchTerm,
+public async Task<bool> ConfigureAndExecuteFindAsync(
+    string searchTerm,
     bool caseSensitive,
     bool highlightAllMatches,
-    COREWEBVIEW2_FIND_DIRECTION direction)
+    CoreWebView2FindDirection direction)
 {
-    // Query for the ICoreWebView2StagingEnvironment5 interface.
-    auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2StagingEnvironment5>();
-    CHECK_FEATURE_RETURN(webView2Environment5);
+    var findConfiguration = new CoreWebView2FindConfiguration
+    {
+        FindTerm = searchTerm,
+        IsCaseSensitive = caseSensitive,
+        ShouldHighlightAllMatches = highlightAllMatches,
+        FindDirection = direction
+    };
 
-    // Create the find configuration.
-    wil::com_ptr<ICoreWebView2StagingFindConfiguration> findConfiguration;
-    CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
-
-    // Apply the find operation configurations.
-    CHECK_FAILURE(findConfiguration->put_FindTerm(searchTerm.c_str()));
-    CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(caseSensitive));
-    CHECK_FAILURE(findConfiguration->put_ShouldHighlightAllMatches(highlightAllMatches));
-    CHECK_FAILURE(findConfiguration->put_FindDirection(direction));
-
-    // Proceed to execute the find operation with the configured settings.
-    return ExecuteFindOperation(findConfiguration.get());
+    return await ExecuteFindOperationAsync(findConfiguration);
 }
 ```
 ### Start a Find Operation
@@ -109,40 +102,16 @@ bool AppWindow::ExecuteFindOperation(ICoreWebView2StagingFindConfiguration* conf
 ```
 ```csharp
 //! [StartFindOnPage]
-bool AppWindow::ExecuteFindOperation(ICoreWebView2StagingFindConfiguration* configuration)
+public async Task<bool> ExecuteFindOperationAsync(CoreWebView2FindConfiguration configuration)
 {
-    // Query for the ICoreWebView2Staging17 interface to access the Find feature.
-    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
-    CHECK_FEATURE_RETURN(webView2staging17);
+    var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
 
-    // Get the Find interface.
-    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
-    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
+    // Assume CoreWebView2.FindController has been appropriately implemented or wrapped to expose async tasks.
+    // This example assumes such an implementation for illustration.
+    await webViewFind.StartFindAsync(configuration);
 
-    // Apply custom UI settings and highlight configurations.
-    CHECK_FAILURE(webView2stagingfind->put_UseCustomUI(false)); // Assuming you want to use the default UI, adjust as necessary.
-    CHECK_FAILURE(webView2stagingfind->put_ShouldHighlightAllMatches(true)); // This should match the passed parameter if dynamic.
-    CHECK_FAILURE(webView2stagingfind->PassHighlightSettings());
-
-    // Start the find operation with the configured findConfiguration.
-    HRESULT result = webView2stagingfind->StartFind(
-        configuration,
-        Callback<ICoreWebView2StagingFindOperationCompletedHandler>(
-            [this](HRESULT result, LONG ActiveIdx, LONG MatchesCount) -> HRESULT
-            {
-                if (SUCCEEDED(result))
-                {
-                    // Handle successful find operation
-                    // For example, updating UI elements to reflect the find results
-                }
-                else
-                {
-                    // Handle errors appropriately
-                }
-                return S_OK;
-            }).Get());
-
-    return SUCCEEDED(result);
+    // Optionally, handle completion or results with events or further async operations.
+    return true;
 }
 
 //! [StartFindOnPage]
@@ -165,14 +134,10 @@ bool AppWindow::StopFind()
 ```
 ```csharp
 //! [StopFind]
-bool AppWindow::StopFind()
+public void StopFindOperation()
 {
-    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
-    CHECK_FEATURE_RETURN(webView2staging17);
-    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
-    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
-    CHECK_FAILURE(webView2stagingfind->StopFind());
-    return true;
+    var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
+    webViewFind.StopFind();
 }
 //! [StopFind]
 ```
@@ -206,20 +171,12 @@ bool AppWindow::GetMatchCount()
 ```csharp
 //! [GetMatchCount]
 bool AppWindow::GetMatchCount()
+public async Task<int> GetMatchCountAsync()
 {
-    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
-    CHECK_FEATURE_RETURN(webView2staging17);
-    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
-    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
-    LONG matchCount;
-    CHECK_FAILURE(webView2stagingfind->get_MatchesCount(&matchCount));
-
-    // Update UI or handle matchCount as you wish
-    // For example, you could show a message box
-    std::wstring matchCountStr = L"Match Count: " + std::to_wstring(matchCount);
-    MessageBox(m_mainWindow, matchCountStr.c_str(), L"Find Operation", MB_OK);
-
-    return true;
+    var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
+    var matchCount = await webViewFind.GetMatchesCountAsync();
+    MessageBox.Show($"Match Count: {matchCount}", "Find Operation", MessageBoxButton.OK);
+    return matchCount;
 }
 //! [GetMatchCount]
 ```
@@ -234,10 +191,10 @@ void OnMatchCountChanged(LONG matchesCount)
 ```
 
 ```csharp
-void OnMatchCountChanged(LONG matchesCount)
+private void OnMatchCountChanged(object sender, EventArgs e)
 {
-    // Handle match count changes
-    // Update UI elements or perform actions based on the new match count
+    // Assuming EventArgs or a derived type carries the new match count
+    MessageBox.Show($"Match count changed. New count: {e.MatchCount}", "Find Operation");
 }
 ```
 ### Retrieve the Index of the Active Match
@@ -270,23 +227,14 @@ bool AppWindow::GetActiveMatchIndex()
 
 ```csharp
 //! [GetActiveMatchIndex]
-bool AppWindow::GetActiveMatchIndex()
+public async Task<int> GetActiveMatchIndexAsync()
 {
-    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
-    CHECK_FEATURE_RETURN(webView2staging17);
-    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
-    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
-    LONG activeMatchIndex;
-    CHECK_FAILURE(webView2stagingfind->get_ActiveMatchIndex(&activeMatchIndex));
-
-    // Update UI or handle activeMatchIndex as you wish
-    // For example, you could show a message box
-    std::wstring activeMatchIndexStr =
-        L"Active Match Index: " + std::to_wstring(activeMatchIndex);
-    MessageBox(m_mainWindow, activeMatchIndexStr.c_str(), L"Find Operation", MB_OK);
-
-    return true;
+    var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
+    var activeMatchIndex = await webViewFind.GetActiveMatchIndexAsync();
+    MessageBox.Show($"Active Match Index: {activeMatchIndex}", "Find Operation", MessageBoxButton.OK);
+    return activeMatchIndex;
 }
+
 //! [GetActiveMatchIndex]
 ```
 
@@ -300,10 +248,10 @@ void OnActiveMatchIndexChanged(ICoreWebView2* sender, ICoreWebView2StagingFindAc
 ```
 
 ```csharp
-void OnActiveMatchIndexChanged(ICoreWebView2* sender, ICoreWebView2StagingFindActiveMatchIndexChangedEventArgs* args)
+private void OnActiveMatchIndexChanged(object sender, EventArgs e)
 {
-    // Handle active match index changes
-    // Update UI to reflect the change in the active match index
+    // Assuming EventArgs or a derived type carries the new active match index
+    MessageBox.Show($"Active match index changed. New index: {e.ActiveMatchIndex}", "Find Operation");
 }
 ```
 
