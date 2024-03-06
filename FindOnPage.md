@@ -40,10 +40,74 @@ bool AppWindow::ConfigureAndExecuteFind(
     return ExecuteFindOperation(findConfiguration.get());
 }
 ```
+```csharp
+bool AppWindow::ConfigureAndExecuteFind(
+    const std::wstring& searchTerm,
+    bool caseSensitive,
+    bool highlightAllMatches,
+    COREWEBVIEW2_FIND_DIRECTION direction)
+{
+    // Query for the ICoreWebView2StagingEnvironment5 interface.
+    auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2StagingEnvironment5>();
+    CHECK_FEATURE_RETURN(webView2Environment5);
 
+    // Create the find configuration.
+    wil::com_ptr<ICoreWebView2StagingFindConfiguration> findConfiguration;
+    CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
+
+    // Apply the find operation configurations.
+    CHECK_FAILURE(findConfiguration->put_FindTerm(searchTerm.c_str()));
+    CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(caseSensitive));
+    CHECK_FAILURE(findConfiguration->put_ShouldHighlightAllMatches(highlightAllMatches));
+    CHECK_FAILURE(findConfiguration->put_FindDirection(direction));
+
+    // Proceed to execute the find operation with the configured settings.
+    return ExecuteFindOperation(findConfiguration.get());
+}
+```
 ### Start a Find Operation
 
 ```cpp
+//! [StartFindOnPage]
+bool AppWindow::ExecuteFindOperation(ICoreWebView2StagingFindConfiguration* configuration)
+{
+    // Query for the ICoreWebView2Staging17 interface to access the Find feature.
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+
+    // Get the Find interface.
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
+
+    // Apply custom UI settings and highlight configurations.
+    CHECK_FAILURE(webView2stagingfind->put_UseCustomUI(false)); // Assuming you want to use the default UI, adjust as necessary.
+    CHECK_FAILURE(webView2stagingfind->put_ShouldHighlightAllMatches(true)); // This should match the passed parameter if dynamic.
+    CHECK_FAILURE(webView2stagingfind->PassHighlightSettings());
+
+    // Start the find operation with the configured findConfiguration.
+    HRESULT result = webView2stagingfind->StartFind(
+        configuration,
+        Callback<ICoreWebView2StagingFindOperationCompletedHandler>(
+            [this](HRESULT result, LONG ActiveIdx, LONG MatchesCount) -> HRESULT
+            {
+                if (SUCCEEDED(result))
+                {
+                    // Handle successful find operation
+                    // For example, updating UI elements to reflect the find results
+                }
+                else
+                {
+                    // Handle errors appropriately
+                }
+                return S_OK;
+            }).Get());
+
+    return SUCCEEDED(result);
+}
+
+//! [StartFindOnPage]
+```
+```csharp
 //! [StartFindOnPage]
 bool AppWindow::ExecuteFindOperation(ICoreWebView2StagingFindConfiguration* configuration)
 {
@@ -99,6 +163,19 @@ bool AppWindow::StopFind()
 }
 //! [StopFind]
 ```
+```csharp
+//! [StopFind]
+bool AppWindow::StopFind()
+{
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
+    CHECK_FAILURE(webView2stagingfind->StopFind());
+    return true;
+}
+//! [StopFind]
+```
 
 ### Retrieve the Number of Matches
 
@@ -126,9 +203,37 @@ bool AppWindow::GetMatchCount()
 }
 //! [GetMatchCount]
 ```
+```csharp
+//! [GetMatchCount]
+bool AppWindow::GetMatchCount()
+{
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
+    LONG matchCount;
+    CHECK_FAILURE(webView2stagingfind->get_MatchesCount(&matchCount));
+
+    // Update UI or handle matchCount as you wish
+    // For example, you could show a message box
+    std::wstring matchCountStr = L"Match Count: " + std::to_wstring(matchCount);
+    MessageBox(m_mainWindow, matchCountStr.c_str(), L"Find Operation", MB_OK);
+
+    return true;
+}
+//! [GetMatchCount]
+```
 #### Handle Match Count Changes
 
 ```cpp
+void OnMatchCountChanged(LONG matchesCount)
+{
+    // Handle match count changes
+    // Update UI elements or perform actions based on the new match count
+}
+```
+
+```csharp
 void OnMatchCountChanged(LONG matchesCount)
 {
     // Handle match count changes
@@ -163,8 +268,38 @@ bool AppWindow::GetActiveMatchIndex()
 //! [GetActiveMatchIndex]
 ```
 
+```csharp
+//! [GetActiveMatchIndex]
+bool AppWindow::GetActiveMatchIndex()
+{
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
+    LONG activeMatchIndex;
+    CHECK_FAILURE(webView2stagingfind->get_ActiveMatchIndex(&activeMatchIndex));
+
+    // Update UI or handle activeMatchIndex as you wish
+    // For example, you could show a message box
+    std::wstring activeMatchIndexStr =
+        L"Active Match Index: " + std::to_wstring(activeMatchIndex);
+    MessageBox(m_mainWindow, activeMatchIndexStr.c_str(), L"Find Operation", MB_OK);
+
+    return true;
+}
+//! [GetActiveMatchIndex]
+```
+
 #### Handle Active Match Index Changes
 ```cpp
+void OnActiveMatchIndexChanged(ICoreWebView2* sender, ICoreWebView2StagingFindActiveMatchIndexChangedEventArgs* args)
+{
+    // Handle active match index changes
+    // Update UI to reflect the change in the active match index
+}
+```
+
+```csharp
 void OnActiveMatchIndexChanged(ICoreWebView2* sender, ICoreWebView2StagingFindActiveMatchIndexChangedEventArgs* args)
 {
     // Handle active match index changes
@@ -196,6 +331,24 @@ bool AppWindow::FindNext()
 //! [FindNext]
 ```
 
+```csharp
+//! [FindNext]
+bool AppWindow::FindNext()
+{
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
+
+    CHECK_FAILURE(webView2stagingfind->FindNext());
+    CHECK_FAILURE(webView2stagingfind->remove_ActiveMatchIndexChanged(
+        m_ActiveMatchIndexChangedEventToken));
+
+    return true;
+}
+//! [FindNext]
+```
+
 ### Navigate to the Previous Match
 
 #### Description
@@ -203,6 +356,22 @@ To navigate to the previous match found during a find operation within a WebView
 
 
 ```cpp
+//! [FindPrevious]
+bool AppWindow::FindPrevious()
+{
+    auto webView2staging17 = m_webView.try_query<ICoreWebView2Staging17>();
+    CHECK_FEATURE_RETURN(webView2staging17);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging17->get_Find(&webView2stagingfind));
+
+    CHECK_FAILURE(webView2stagingfind->FindPrevious());
+
+    return true;
+}
+//! [FindPrevious]
+```
+
+```csharp
 //! [FindPrevious]
 bool AppWindow::FindPrevious()
 {
