@@ -13,6 +13,8 @@ completed or not, whether the match count has changed, and whether the match ind
 #### Description
 To initiate a find operation within a WebView2 control, developers can utilize the `StartFindOnPage` method. 
 This method allows specifying the find term and configuring other find parameters using the `ICoreWebView2FindConfiguration` interface.
+When StartFind is called while a find session is currently active, it will navigate the active match index forwards or backwards depending
+on the direction specified within the find configuration.
 
 #### Create/Specify a Find Configuration
 ```cpp
@@ -300,7 +302,6 @@ bool AppWindow::FindNext()
 
 #### Description
 To navigate to the previous match found during a find operation within a WebView2 control, developers can use the `FindPrevious` method.
-
 
 ```cpp
 //! [FindPrevious]
