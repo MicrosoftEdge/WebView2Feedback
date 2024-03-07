@@ -13,33 +13,114 @@ completed or not, whether the match count has changed, and whether the match ind
 #### Description
 To initiate a find operation within a WebView2 control, developers can utilize the `StartFindOnPage` method. 
 This method allows specifying the find term and configuring other find parameters using the `ICoreWebView2FindConfiguration` interface.
-When StartFind is called while a find session is currently active, it will navigate the active match index forwards or backwards depending
-on the direction specified within the find configuration.
 
 #### Create/Specify a Find Configuration
 ```cpp
-    bool AppWindow::ConfigureAndExecuteFind(
-        const std::wstring& searchTerm,
-        bool caseSensitive,
-        bool highlightAllMatches,
-        COREWEBVIEW2_FIND_DIRECTION direction)
-    {
-        // Query for the ICoreWebView2Environment5 interface.
-        auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2Environment5>();
-        CHECK_FEATURE_RETURN(webView2Environment5);
-    
-        // Create the find configuration.
-        wil::com_ptr<ICoreWebView2FindConfiguration> findConfiguration;
-        CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
-    
-        // Apply the find operation configurations.
-        CHECK_FAILURE(findConfiguration->put_FindTerm(searchTerm.c_str()));
-        CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(caseSensitive));
-        CHECK_FAILURE(findConfiguration->put_ShouldHighlightAllMatches(highlightAllMatches));
-        CHECK_FAILURE(findConfiguration->put_FindDirection(direction));
-    
-        // Proceed to execute the find operation with the configured settings.
-        return ExecuteFindOperation(findConfiguration.get());
+    //! [StartFindOnPage]
+bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
+{
+    // Query for the ICoreWebView2Environment5 interface.
+    auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2Environment5>();
+    CHECK_FEATURE_RETURN(webView2Environment5);
+
+    // Initialize find configuration/settings
+    wil::com_ptr<ICoreWebView2StagingFindConfiguration> findConfiguration;
+    CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
+    CHECK_FAILURE(findConfiguration->put_FindTerm(searchTerm.c_str()));
+    CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(false));
+    CHECK_FAILURE(findConfiguration->put_ShouldMatchWord(false));
+    CHECK_FAILURE(findConfiguration->put_FindDirection(COREWEBVIEW2_FIND_DIRECTION_FORWARD));
+
+    // Query for the ICoreWebView217 interface to access the Find feature.
+    auto webView217 = m_webView.try_query<ICoreWebView217>();
+    CHECK_FEATURE_RETURN(webView217);
+
+    // Get the Find interface.
+    wil::com_ptr<ICoreWebView2Find> webView2find;
+    CHECK_FAILURE(webView217->get_Find(&webView2find));
+
+    // Apply custom UI settings and highlight configurations.
+    CHECK_FAILURE(webView2find->put_UseCustomUI(false)); // Assuming you want to use the default UI, adjust as necessary.
+    CHECK_FAILURE(webView2find->put_ShouldHighlightAllMatches(true)); // This should match the passed parameter if dynamic.
+
+
+
+    // Start the find operation
+    CHECK_FAILURE(webView2find->StartFind(
+        findConfiguration.get(),
+        Callback<ICoreWebView2StagingFindOperationCompletedHandler>(
+            [this](HRESULT result, LONG ActiveIdx, LONG MatchesCount) -> HRESULT
+            {
+                if (SUCCEEDED(result))
+                {
+                    // Handle successful find operation
+                    // For example, you could update UI elements here
+                }
+                else
+                {
+                    // Handle errors
+                }
+                return S_OK;
+            })
+            .Get()));
+    CHECK_FAILURE(webView2find->FindNext());
+    CHECK_FAILURE(webView2find->FindNext());
+    CHECK_FAILURE(webView2find->FindPrevious());
+
+    return true;
+}
+//! [StartFindOnPage]
+
+//! [StopFind]
+bool AppWindow::StopFind()
+{
+    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
+    CHECK_FEATURE_RETURN(webView2staging11);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
+
+    return true;
+}
+//! [StopFind]
+
+//! [GetMatchCount]
+bool AppWindow::GetMatchCount()
+{
+    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
+    CHECK_FEATURE_RETURN(webView2staging11);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
+    LONG matchCount;
+    CHECK_FAILURE(webView2stagingfind->get_MatchesCount(&matchCount));
+
+    // Update UI or handle matchCount as you wish
+    // For example, you could show a message box
+    std::wstring matchCountStr = L"Match Count: " + std::to_wstring(matchCount);
+    MessageBox(m_mainWindow, matchCountStr.c_str(), L"Find Operation", MB_OK);
+
+    return true;
+}
+//! [GetMatchCount]
+
+//! [GetActiveMatchIndex]
+bool AppWindow::GetActiveMatchIndex()
+{
+    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
+    CHECK_FEATURE_RETURN(webView2staging11);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
+    LONG activeMatchIndex;
+    CHECK_FAILURE(webView2stagingfind->get_ActiveMatchIndex(&activeMatchIndex));
+
+    // Update UI or handle activeMatchIndex as you wish
+    // For example, you could show a message box
+    std::wstring activeMatchIndexStr = L"Active Match Index: " + std::to_wstring(activeMatchIndex);
+    MessageBox(m_mainWindow, activeMatchIndexStr.c_str(), L"Find Operation", MB_OK);
+
+    return true;
+}
+//! [GetActiveMatchIndex]
+#endif
     }
     ```
     ```csharp
@@ -302,6 +383,7 @@ bool AppWindow::FindNext()
 
 #### Description
 To navigate to the previous match found during a find operation within a WebView2 control, developers can use the `FindPrevious` method.
+
 
 ```cpp
 //! [FindPrevious]
