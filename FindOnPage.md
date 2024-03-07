@@ -549,56 +549,6 @@ namespace Microsoft.Web.WebView2.Core
 }
 ```
 
-### Handling Find Operation Events
-
-```csharp
-namespace Microsoft.Web.WebView2.Core
-{
-
-    public interface ICoreWebView2FindMatchCountChangedEventHandler
-    {
-        void OnMatchCountChanged(ICoreWebView2Find sender, int newCount);
-    }
-
-    public interface ICoreWebView2FindActiveMatchIndexChangedEventHandler
-    {
-        void OnActiveMatchIndexChanged(ICoreWebView2Find sender, int newIndex);
-    }
-
-    public interface ICoreWebView2FindOperationCompletedHandler
-    {
-        void OnFindOperationCompleted(ICoreWebView2Find sender, bool isSuccess);
-    }
-
-    // Subscribing to events:
-    public class FindEventSubscriber
-    {
-        public void SubscribeToFindEvents(ICoreWebView2Find webViewFind)
-        {
-            webViewFind.MatchCountChanged += OnMatchCountChanged;
-            webViewFind.ActiveMatchIndexChanged += OnActiveMatchIndexChanged;
-            webViewFind.FindOperationCompleted += OnFindOperationCompleted;
-        }
-
-        private void OnMatchCountChanged(ICoreWebView2Find sender, int newCount)
-        {
-            Console.WriteLine($"Match count changed. New count: {newCount}");
-        }
-
-        private void OnActiveMatchIndexChanged(ICoreWebView2Find sender, int newIndex)
-        {
-            Console.WriteLine($"Active match index changed. New index: {newIndex}");
-        }
-
-        private void OnFindOperationCompleted(ICoreWebView2Find sender, bool isSuccess)
-        {
-            var status = isSuccess ? "completed successfully" : "failed";
-            Console.WriteLine($"Find operation {status}.");
-        }
-    }
-}
-```
-
 These examples demonstrate how you might conceptualize and implement a Find API within the Microsoft WebView2 environment, focusing on async patterns for responsive UI interactions and event handling for dynamic UI updates based on the results of find operations. This design emphasizes asynchronous task-based APIs, event handling for UI updates, and modular API design for clear separation of concerns.
 
 # Appendix
