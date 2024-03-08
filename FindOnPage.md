@@ -11,8 +11,12 @@ completed or not, whether the match count has changed, and whether the match ind
 
 
 #### Description
-To initiate a find operation within a WebView2 control, developers can utilize the `StartFindOnPage` method. 
+To initiate a find operation within a WebView2 control, developers can utilize the `StartFind` method. 
 This method allows specifying the find term and configuring other find parameters using the `ICoreWebView2FindConfiguration` interface.
+Additionally there can only be one find session active per webview environment.
+If an attempt is made to call start find more than once with the same findconfugration, 
+it will result in the active match index either being increased or decreased depending on what 
+Find Direction parameter was chosen for the Find Configuration.
 
 #### Create/Specify a Find Configuration
 ```cpp
