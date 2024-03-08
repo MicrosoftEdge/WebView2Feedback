@@ -154,8 +154,7 @@ To retrieve the total number of matches found during a find operation within a W
     }
     //! [GetMatchCount]
 ```
-#### Handle Match Count Changes
-    
+#### WIN32 C++
 ```cpp
 // Register MatchCountChanged event handler
         m_webView->add_MatchCountChanged(
@@ -168,7 +167,7 @@ To retrieve the total number of matches found during a find operation within a W
                 }).Get(),
             &m_matchCountChangedToken);
 ```
-
+#### .NET C#
 ```csharp
 void MatchCountChangedSample()
 {
@@ -179,6 +178,7 @@ void MatchCountChangedSample()
 }
 ```
 #### Handle Match Index Changes
+#### WIN32 C++
 
 ```cpp
 // Register ActiveMatchIndexChanged event handler
@@ -192,7 +192,7 @@ m_webView->add_ActiveMatchIndexChanged(
         }).Get(),
     &m_activeMatchIndexChangedToken);
 ```
-
+#### .NET C#
 ```csharp
 void ActiveMatchIndexChangedSample()
 {
@@ -229,7 +229,7 @@ Developers can retrieve the index of the currently active match within a WebView
     }
     //! [GetActiveMatchIndex]
 ```
-    
+#### .NET C#
 ```csharp
 //! [GetActiveMatchIndex]
 public async Task<int> GetActiveMatchIndexAsync()
@@ -460,7 +460,8 @@ namespace Microsoft.Web.WebView2.Core
 }
 ```
 
-These examples demonstrate how you might conceptualize and implement a Find API within the Microsoft WebView2 environment, focusing on async patterns for responsive UI interactions and event handling for dynamic UI updates based on the results of find operations. This design emphasizes asynchronous task-based APIs, event handling for UI updates, and modular API design for clear separation of concerns.
+These examples demonstrate how you would conceptualize and implement the Find API within the Microsoft WebView2 environment, focusing on async patterns for responsive UI interactions and event handling for dynamic UI updates based on the results of find operations. 
+This design emphasizes asynchronous task-based APIs, event handling for UI updates, and modular API design for clear separation of concerns.
 
 # Appendix
 
