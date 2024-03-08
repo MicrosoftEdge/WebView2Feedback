@@ -74,14 +74,13 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
 ```
 ```csharp
 //! [ConfigureAndExecuteFind]
-public async Task<bool> ConfigureAndExecuteFindAsync(string searchTerm)
-    {
+async void ConfigureAndExecuteFindAsync(string searchTerm){
         try
         {
             // Assuming 'webView' is already initialized and is an instance of CoreWebView2
 
             // Initialize find configuration/settings
-            var findConfiguration = new CoreWebView2FindConfiguration
+            CoreWebView2FindConfinguration findConfiguration = new CoreWebView2FindConfiguration
             {
                 FindTerm = searchTerm,
                 IsCaseSensitive = false,
@@ -90,20 +89,20 @@ public async Task<bool> ConfigureAndExecuteFindAsync(string searchTerm)
             };
 
             // Use the FindController to start the find operation
-            var findController = webView.FindController;
+            CoreWebView2Find find = new CoreWebView2Find(findConfiguration);
 
             // Assuming you want to use the default UI, adjust as necessary
-            findController.UseCustomUI = false;
-            findController.ShouldHighlightAllMatches = true;
+            find.UseCustomUI = false;
+            find.ShouldHighlightAllMatches = true;
 
             // Start the find operation
-            await findController.StartFindAsync(findConfiguration);
+            await find.StartFindAsync(findConfiguration);
 
             // Perform FindNext operations
-            await findController.FindNextAsync();
-            await findController.FindNextAsync();
-            await findController.FindPreviousAsync();
-            findController.StopFind();
+            await find.FindNextAsync();
+            await find.FindNextAsync();
+            await find.FindPreviousAsync();
+            find.StopFind();
 
             return true;
         }
@@ -113,22 +112,10 @@ public async Task<bool> ConfigureAndExecuteFindAsync(string searchTerm)
             Console.WriteLine($"An error occurred: {ex.Message}");
             return false;
         }
-    }
 }
 //! [ConfigureAndExecuteFind]
 ```
 
-//! [StopFind]
-bool AppWindow::StopFind()
-{
-    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
-    CHECK_FEATURE_RETURN(webView2staging11);
-    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
-    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
-
-    return true;
-}
-//! [StopFind]
 
 //! [GetMatchCount]
 bool AppWindow::GetMatchCount()
@@ -167,140 +154,12 @@ bool AppWindow::GetActiveMatchIndex()
     return true;
 }
 //! [GetActiveMatchIndex]
-#endif
-
-    bool AppWindow::ConfigureAndExecuteFind(
-        const std::wstring& searchTerm,
-        bool caseSensitive,
-        bool highlightAllMatches,
-        COREWEBVIEW2_FIND_DIRECTION direction)
-    {
-        // Query for the ICoreWebView2Environment5 interface.
-        auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2Environment5>();
-        CHECK_FEATURE_RETURN(webView2Environment5);
-    
-        // Create the find configuration.
-        wil::com_ptr<ICoreWebView2FindConfiguration> findConfiguration;
-        CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
-    
-        // Apply the find operation configurations.
-        CHECK_FAILURE(findConfiguration->put_FindTerm(searchTerm.c_str()));
-        CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(caseSensitive));
-        CHECK_FAILURE(findConfiguration->put_ShouldHighlightAllMatches(highlightAllMatches));
-        CHECK_FAILURE(findConfiguration->put_FindDirection(direction));
-    
-        // Proceed to execute the find operation with the configured settings.
-        return ExecuteFindOperation(findConfiguration.get());
-    }
 ```
-
-```csharp
-    public async Task<bool> ConfigureAndExecuteFindAsync(
-        string searchTerm,
-        bool caseSensitive,
-        bool highlightAllMatches,
-        CoreWebView2FindDirection direction)
-    {
-        var findConfiguration = new CoreWebView2FindConfiguration
-        {
-            FindTerm = searchTerm,
-            IsCaseSensitive = caseSensitive,
-            ShouldHighlightAllMatches = highlightAllMatches,
-            FindDirection = direction
-        };
-        return await ExecuteFindOperationAsync(findConfiguration);
-    }
-```
-### Start a Find Operation
+   
+### Retrieve the Number of Matches
     
-```cpp
-    //! [StartFindOnPage]
-    bool AppWindow::ExecuteFindOperation(ICoreWebView2FindConfiguration* configuration)
-    {
-        // Query for the ICoreWebView217 interface to access the Find feature.
-        auto webView217 = m_webView.try_query<ICoreWebView217>();
-        CHECK_FEATURE_RETURN(webView217);
-    
-        // Get the Find interface.
-        wil::com_ptr<ICoreWebView2Find> webView2find;
-        CHECK_FAILURE(webView217->get_Find(&webView2find));
-    
-        // Apply custom UI settings and highlight configurations.
-        CHECK_FAILURE(webView2find->put_UseCustomUI(false)); // Assuming you want to use the default UI, adjust as necessary.
-        CHECK_FAILURE(webView2find->put_ShouldHighlightAllMatches(true)); // This should match the passed parameter if dynamic.
-        CHECK_FAILURE(webView2find->PassHighlightSettings());
-    
-        // Start the find operation with the configured findConfiguration.
-        HRESULT result = webView2find->StartFind(
-            configuration,
-            Callback<ICoreWebView2FindOperationCompletedHandler>(
-                [this](HRESULT result, LONG ActiveIdx, LONG MatchesCount) -> HRESULT
-                {
-                    if (SUCCEEDED(result))
-                    {
-                        // Handle successful find operation
-                        // For example, updating UI elements to reflect the find results
-                    }
-                    else
-                    {
-                        // Handle errors appropriately
-                    }
-                    return S_OK;
-                }).Get());
-    
-        return SUCCEEDED(result);
-    }
-    
-    //! [StartFindOnPage]
-```
-
-```csharp
-    //! [StartFindOnPage]
-    public async Task<bool> ExecuteFindOperationAsync(CoreWebView2FindConfiguration configuration)
-    {
-        var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
-    
-        // Assume CoreWebView2.FindController has been appropriately implemented or wrapped to expose async tasks.
-        // This example assumes such an implementation for illustration.
-        await webViewFind.StartFindAsync(configuration);
-    
-        // Optionally, handle completion or results with events or further async operations.
-        return true;
-    }
-    
-    //! [StartFindOnPage]
-```
-### Stop an existing find operation
 #### Description
-To stop an ongoing find operation within a WebView2 control, developers can use the `StopFind` method of the `ICoreWebView2Find` interface.
-```cpp
-    //! [StopFind]
-    bool AppWindow::StopFind()
-    {
-        auto webView217 = m_webView.try_query<ICoreWebView217>();
-        CHECK_FEATURE_RETURN(webView217);
-        wil::com_ptr<ICoreWebView2Find> webView2find;
-        CHECK_FAILURE(webView217->get_Find(&webView2find));
-        CHECK_FAILURE(webView2find->StopFind());
-        return true;
-    }
-    //! [StopFind]
-```
-
-```csharp
-    //! [StopFind]
-    public void StopFindOperation()
-    {
-        var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
-        webViewFind.StopFind();
-    }
-    //! [StopFind]
-```
-    
-    ### Retrieve the Number of Matches
-    
-    #### Description
-    To retrieve the total number of matches found during a find operation within a WebView2 control, developers can utilize the `GetMatchCount` method.
+To retrieve the total number of matches found during a find operation within a WebView2 control, developers can utilize the `GetMatchCount` method.
     
     
 ```cpp
@@ -411,85 +270,7 @@ private void OnActiveMatchIndexChanged(object sender, EventArgs e)
 }
 ```
 
-### Navigate to the Next Match
 
-#### Description
-To navigate to the next match found during a find operation within a WebView2 control, developers can use the `FindNext` method.
-
-
-```cpp
-//! [FindNext]
-bool AppWindow::FindNext()
-{
-    auto webView217 = m_webView.try_query<ICoreWebView217>();
-    CHECK_FEATURE_RETURN(webView217);
-    wil::com_ptr<ICoreWebView2Find> webView2find;
-    CHECK_FAILURE(webView217->get_Find(&webView2find));
-
-    CHECK_FAILURE(webView2find->FindNext());
-    CHECK_FAILURE(webView2find->remove_ActiveMatchIndexChanged(
-        m_ActiveMatchIndexChangedEventToken));
-
-    return true;
-}
-//! [FindNext]
-```
-
-```csharp
-//! [FindNext]
-bool AppWindow::FindNext()
-{
-    auto webView217 = m_webView.try_query<ICoreWebView217>();
-    CHECK_FEATURE_RETURN(webView217);
-    wil::com_ptr<ICoreWebView2Find> webView2find;
-    CHECK_FAILURE(webView217->get_Find(&webView2find));
-
-    CHECK_FAILURE(webView2find->FindNext());
-    CHECK_FAILURE(webView2find->remove_ActiveMatchIndexChanged(
-        m_ActiveMatchIndexChangedEventToken));
-
-    return true;
-}
-//! [FindNext]
-```
-
-### Navigate to the Previous Match
-
-#### Description
-To navigate to the previous match found during a find operation within a WebView2 control, developers can use the `FindPrevious` method.
-
-
-```cpp
-//! [FindPrevious]
-bool AppWindow::FindPrevious()
-{
-    auto webView217 = m_webView.try_query<ICoreWebView217>();
-    CHECK_FEATURE_RETURN(webView217);
-    wil::com_ptr<ICoreWebView2Find> webView2find;
-    CHECK_FAILURE(webView217->get_Find(&webView2find));
-
-    CHECK_FAILURE(webView2find->FindPrevious());
-
-    return true;
-}
-//! [FindPrevious]
-```
-
-```csharp
-//! [FindPrevious]
-bool AppWindow::FindPrevious()
-{
-    auto webView217 = m_webView.try_query<ICoreWebView217>();
-    CHECK_FEATURE_RETURN(webView217);
-    wil::com_ptr<ICoreWebView2Find> webView2find;
-    CHECK_FAILURE(webView217->get_Find(&webView2find));
-
-    CHECK_FAILURE(webView2find->FindPrevious());
-
-    return true;
-}
-//! [FindPrevious]
-```
 
 ## API Details
 ```csharp
