@@ -88,7 +88,6 @@ async void ConfigureAndExecuteFindAsync(string searchTerm){
                 FindDirection = CoreWebView2FindDirection.Forward
             };
 
-            // Use the FindController to start the find operation
             CoreWebView2Find find = new CoreWebView2Find(findConfiguration);
 
             // Assuming you want to use the default UI, adjust as necessary
@@ -102,7 +101,9 @@ async void ConfigureAndExecuteFindAsync(string searchTerm){
             await find.FindNextAsync();
             await find.FindNextAsync();
             await find.FindPreviousAsync();
-            find.StopFind();
+
+            //  Stop the active find session
+            await find.StopFindAsync();
 
             return true;
         }
