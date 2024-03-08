@@ -455,7 +455,8 @@ namespace Microsoft.Web.WebView2.Core
 
         await webViewFind.StartFindAsync(findConfig);
         await webViewFind.FindNextAsync();
-        // Additional operations...
+        await webViewFind.FindNextAsync();
+        await webViewFind.StopFindAsync();
     }
 }
 ```
