@@ -115,46 +115,6 @@ async void ConfigureAndExecuteFindAsync(string searchTerm){
 }
 //! [ConfigureAndExecuteFind]
 ```
-
-
-//! [GetMatchCount]
-bool AppWindow::GetMatchCount()
-{
-    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
-    CHECK_FEATURE_RETURN(webView2staging11);
-    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
-    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
-    LONG matchCount;
-    CHECK_FAILURE(webView2stagingfind->get_MatchesCount(&matchCount));
-
-    // Update UI or handle matchCount as you wish
-    // For example, you could show a message box
-    std::wstring matchCountStr = L"Match Count: " + std::to_wstring(matchCount);
-    MessageBox(m_mainWindow, matchCountStr.c_str(), L"Find Operation", MB_OK);
-
-    return true;
-}
-//! [GetMatchCount]
-
-//! [GetActiveMatchIndex]
-bool AppWindow::GetActiveMatchIndex()
-{
-    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
-    CHECK_FEATURE_RETURN(webView2staging11);
-    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
-    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
-    LONG activeMatchIndex;
-    CHECK_FAILURE(webView2stagingfind->get_ActiveMatchIndex(&activeMatchIndex));
-
-    // Update UI or handle activeMatchIndex as you wish
-    // For example, you could show a message box
-    std::wstring activeMatchIndexStr = L"Active Match Index: " + std::to_wstring(activeMatchIndex);
-    MessageBox(m_mainWindow, activeMatchIndexStr.c_str(), L"Find Operation", MB_OK);
-
-    return true;
-}
-//! [GetActiveMatchIndex]
-```
    
 ### Retrieve the Number of Matches
     
@@ -185,7 +145,6 @@ To retrieve the total number of matches found during a find operation within a W
 
 ```csharp
     //! [GetMatchCount]
-    bool AppWindow::GetMatchCount()
     public async Task<int> GetMatchCountAsync()
     {
         var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
@@ -195,30 +154,61 @@ To retrieve the total number of matches found during a find operation within a W
     }
     //! [GetMatchCount]
 ```
-    #### Handle Match Count Changes
+#### Handle Match Count Changes
     
-    ```cpp
-    void OnMatchCountChanged(LONG matchesCount)
+```cpp
+// Register MatchCountChanged event handler
+        m_webView->add_MatchCountChanged(
+            Callback<ICoreWebView2FindMatchCountChangedEventHandler>(
+                [this](LONG matchCount) -> HRESULT
+                {
+                    // Update custom UI 
+                    wprintf(L"Match Count Changed: %ld\n", matchCount);
+                    return S_OK;
+                }).Get(),
+            &m_matchCountChangedToken);
+```
+
+```csharp
+void MatchCountChangedSample()
+{
+    _webview.MatchCountChanged += (object sender, CoreWebView2MatchCountChangedEventArgs args) =>
     {
-        // Handle match count changes
-        // Update UI elements or perform actions based on the new match count
-    }
-    ```
-    
-    ```csharp
-    private void OnMatchCountChanged(object sender, EventArgs e)
+        // Update Custom UI
+    };
+}
+```
+#### Handle Match Index Changes
+
+```cpp
+// Register ActiveMatchIndexChanged event handler
+m_webView->add_ActiveMatchIndexChanged(
+    Callback<ICoreWebView2FindActiveMatchIndexChangedEventHandler>(
+        [this](LONG activeMatchIndex) -> HRESULT
+        {
+            // Update custom UI 
+            wprintf(L"Active Match Index Changed: %ld\n", activeMatchIndex);
+            return S_OK;
+        }).Get(),
+    &m_activeMatchIndexChangedToken);
+```
+
+```csharp
+void ActiveMatchIndexChangedSample()
+{
+    _webview.MatchCountChanged += (object sender, CoreWebView2ActiveMatchIndexChangedEventArgs args) =>
     {
-        // Assuming EventArgs or a derived type carries the new match count
-        MessageBox.Show($"Match count changed. New count: {e.MatchCount}", "Find Operation");
-    }
-    ```
-    ### Retrieve the Index of the Active Match
+        // Update Custom UI
+    };
+}
+```
+### Retrieve the Index of the Active Match
     
-    #### Description
-    Developers can retrieve the index of the currently active match within a WebView2 control using the `GetActiveMatchIndex` method.
+#### Description
+Developers can retrieve the index of the currently active match within a WebView2 control using the `GetActiveMatchIndex` method.
     
     
-    ```cpp
+```cpp
     //! [GetActiveMatchIndex]
     bool AppWindow::GetActiveMatchIndex()
     {
@@ -238,36 +228,19 @@ To retrieve the total number of matches found during a find operation within a W
         return true;
     }
     //! [GetActiveMatchIndex]
-    ```
-    
-    ```csharp
-    //! [GetActiveMatchIndex]
-    public async Task<int> GetActiveMatchIndexAsync()
-    {
-        var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
-        var activeMatchIndex = await webViewFind.GetActiveMatchIndexAsync();
-        MessageBox.Show($"Active Match Index: {activeMatchIndex}", "Find Operation", MessageBoxButton.OK);
-        return activeMatchIndex;
-    }
-    
-    //! [GetActiveMatchIndex]
-    ```
-    
-    #### Handle Active Match Index Changes
-    ```cpp
-    void OnActiveMatchIndexChanged(ICoreWebView2* sender, ICoreWebView2FindActiveMatchIndexChangedEventArgs* args)
-{
-    // Handle active match index changes
-    // Update UI to reflect the change in the active match index
-}
 ```
-
+    
 ```csharp
-private void OnActiveMatchIndexChanged(object sender, EventArgs e)
+//! [GetActiveMatchIndex]
+public async Task<int> GetActiveMatchIndexAsync()
 {
-    // Assuming EventArgs or a derived type carries the new active match index
-    MessageBox.Show($"Active match index changed. New index: {e.ActiveMatchIndex}", "Find Operation");
+    var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
+    var activeMatchIndex = await webViewFind.GetActiveMatchIndexAsync();
+    MessageBox.Show($"Active Match Index: {activeMatchIndex}", "Find Operation", MessageBoxButton.OK);
+    return activeMatchIndex;
 }
+
+//! [GetActiveMatchIndex]
 ```
 
 
