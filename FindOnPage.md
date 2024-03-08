@@ -17,7 +17,7 @@ This method allows specifying the find term and configuring other find parameter
 #### Create/Specify a Find Configuration
 ```cpp
 
-    //! [ConfigureAndExecuteFind]
+//! [ConfigureAndExecuteFind]
 bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
 {
     // Query for the ICoreWebView2Environment5 interface.
@@ -71,6 +71,52 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
     return true;
 }
 //! [ConfigureAndExecuteFind]
+```
+```csharp
+//! [ConfigureAndExecuteFind]
+public async Task<bool> ConfigureAndExecuteFindAsync(string searchTerm)
+    {
+        try
+        {
+            // Assuming 'webView' is already initialized and is an instance of CoreWebView2
+
+            // Initialize find configuration/settings
+            var findConfiguration = new CoreWebView2FindConfiguration
+            {
+                FindTerm = searchTerm,
+                IsCaseSensitive = false,
+                ShouldMatchWord = false,
+                FindDirection = CoreWebView2FindDirection.Forward
+            };
+
+            // Use the FindController to start the find operation
+            var findController = webView.FindController;
+
+            // Assuming you want to use the default UI, adjust as necessary
+            findController.UseCustomUI = false;
+            findController.ShouldHighlightAllMatches = true;
+
+            // Start the find operation
+            await findController.StartFindAsync(findConfiguration);
+
+            // Perform FindNext operations
+            await findController.FindNextAsync();
+            await findController.FindNextAsync();
+            await findController.FindPreviousAsync();
+            findController.StopFind();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Handle errors
+            Console.WriteLine($"An error occurred: {ex.Message}");
+            return false;
+        }
+    }
+}
+//! [ConfigureAndExecuteFind]
+```
 
 //! [StopFind]
 bool AppWindow::StopFind()
