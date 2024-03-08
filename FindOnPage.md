@@ -16,6 +16,113 @@ This method allows specifying the find term and configuring other find parameter
 
 #### Create/Specify a Find Configuration
 ```cpp
+
+    //! [ConfigureAndExecuteFind]
+bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
+{
+    // Query for the ICoreWebView2Environment5 interface.
+    auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2Environment5>();
+    CHECK_FEATURE_RETURN(webView2Environment5);
+
+    // Initialize find configuration/settings
+    wil::com_ptr<ICoreWebView2FindConfiguration> findConfiguration;
+    CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
+    CHECK_FAILURE(findConfiguration->put_FindTerm(searchTerm.c_str()));
+    CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(false));
+    CHECK_FAILURE(findConfiguration->put_ShouldMatchWord(false));
+    CHECK_FAILURE(findConfiguration->put_FindDirection(COREWEBVIEW2_FIND_DIRECTION_FORWARD));
+
+    // Query for the ICoreWebView217 interface to access the Find feature.
+    auto webView217 = m_webView.try_query<ICoreWebView217>();
+    CHECK_FEATURE_RETURN(webView217);
+
+    // Get the Find interface.
+    wil::com_ptr<ICoreWebView2Find> webView2find;
+    CHECK_FAILURE(webView217->get_Find(&webView2find));
+
+    // Determine if custom UI will be usedsettings and highlight configurations.
+
+    // Assuming you want to use the default UI, adjust as necessary.
+    CHECK_FAILURE(webView2find->put_UseCustomUI(false)); 
+    CHECK_FAILURE(webView2find->put_ShouldHighlightAllMatches(true));
+
+    // Start the find operation
+    CHECK_FAILURE(webView2find->StartFind(
+        findConfiguration.get(),
+        Callback<ICoreWebView2FindOperationCompletedHandler>(
+            [this](HRESULT result, LONG ActiveIdx, LONG MatchesCount) -> HRESULT
+            {
+                if (SUCCEEDED(result))
+                {
+                    // For example, you could update UI elements here
+                }
+                else
+                {
+                    // Handle errors
+                }
+                return S_OK;
+            })
+            .Get()));
+    CHECK_FAILURE(webView2find->FindNext());
+    CHECK_FAILURE(webView2find->FindNext());
+    CHECK_FAILURE(webView2find->FindPrevious());
+    CHECK_FAILURE(webView2find->StopFind());
+
+    return true;
+}
+//! [ConfigureAndExecuteFind]
+
+//! [StopFind]
+bool AppWindow::StopFind()
+{
+    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
+    CHECK_FEATURE_RETURN(webView2staging11);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
+
+    return true;
+}
+//! [StopFind]
+
+//! [GetMatchCount]
+bool AppWindow::GetMatchCount()
+{
+    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
+    CHECK_FEATURE_RETURN(webView2staging11);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
+    LONG matchCount;
+    CHECK_FAILURE(webView2stagingfind->get_MatchesCount(&matchCount));
+
+    // Update UI or handle matchCount as you wish
+    // For example, you could show a message box
+    std::wstring matchCountStr = L"Match Count: " + std::to_wstring(matchCount);
+    MessageBox(m_mainWindow, matchCountStr.c_str(), L"Find Operation", MB_OK);
+
+    return true;
+}
+//! [GetMatchCount]
+
+//! [GetActiveMatchIndex]
+bool AppWindow::GetActiveMatchIndex()
+{
+    auto webView2staging11 = m_webView.try_query<ICoreWebView2Staging11>();
+    CHECK_FEATURE_RETURN(webView2staging11);
+    wil::com_ptr<ICoreWebView2StagingFind> webView2stagingfind;
+    CHECK_FAILURE(webView2staging11->get_Find(&webView2stagingfind));
+    LONG activeMatchIndex;
+    CHECK_FAILURE(webView2stagingfind->get_ActiveMatchIndex(&activeMatchIndex));
+
+    // Update UI or handle activeMatchIndex as you wish
+    // For example, you could show a message box
+    std::wstring activeMatchIndexStr = L"Active Match Index: " + std::to_wstring(activeMatchIndex);
+    MessageBox(m_mainWindow, activeMatchIndexStr.c_str(), L"Find Operation", MB_OK);
+
+    return true;
+}
+//! [GetActiveMatchIndex]
+#endif
+
     bool AppWindow::ConfigureAndExecuteFind(
         const std::wstring& searchTerm,
         bool caseSensitive,
@@ -39,8 +146,9 @@ This method allows specifying the find term and configuring other find parameter
         // Proceed to execute the find operation with the configured settings.
         return ExecuteFindOperation(findConfiguration.get());
     }
-    ```
-    ```csharp
+```
+
+```csharp
     public async Task<bool> ConfigureAndExecuteFindAsync(
         string searchTerm,
         bool caseSensitive,
@@ -56,10 +164,10 @@ This method allows specifying the find term and configuring other find parameter
         };
         return await ExecuteFindOperationAsync(findConfiguration);
     }
-    ```
-    ### Start a Find Operation
+```
+### Start a Find Operation
     
-    ```cpp
+```cpp
     //! [StartFindOnPage]
     bool AppWindow::ExecuteFindOperation(ICoreWebView2FindConfiguration* configuration)
     {
@@ -98,8 +206,9 @@ This method allows specifying the find term and configuring other find parameter
     }
     
     //! [StartFindOnPage]
-    ```
-    ```csharp
+```
+
+```csharp
     //! [StartFindOnPage]
     public async Task<bool> ExecuteFindOperationAsync(CoreWebView2FindConfiguration configuration)
     {
@@ -114,11 +223,11 @@ This method allows specifying the find term and configuring other find parameter
     }
     
     //! [StartFindOnPage]
-    ```
-    ### Stop an existing find operation
-    #### Description
-    To stop an ongoing find operation within a WebView2 control, developers can use the `StopFind` method of the `ICoreWebView2Find` interface.
-    ```cpp
+```
+### Stop an existing find operation
+#### Description
+To stop an ongoing find operation within a WebView2 control, developers can use the `StopFind` method of the `ICoreWebView2Find` interface.
+```cpp
     //! [StopFind]
     bool AppWindow::StopFind()
     {
@@ -130,8 +239,9 @@ This method allows specifying the find term and configuring other find parameter
         return true;
     }
     //! [StopFind]
-    ```
-    ```csharp
+```
+
+```csharp
     //! [StopFind]
     public void StopFindOperation()
     {
@@ -139,7 +249,7 @@ This method allows specifying the find term and configuring other find parameter
         webViewFind.StopFind();
     }
     //! [StopFind]
-    ```
+```
     
     ### Retrieve the Number of Matches
     
@@ -147,7 +257,7 @@ This method allows specifying the find term and configuring other find parameter
     To retrieve the total number of matches found during a find operation within a WebView2 control, developers can utilize the `GetMatchCount` method.
     
     
-    ```cpp
+```cpp
     //! [GetMatchCount]
     bool AppWindow::GetMatchCount()
     {
@@ -166,8 +276,9 @@ This method allows specifying the find term and configuring other find parameter
         return true;
     }
     //! [GetMatchCount]
-    ```
-    ```csharp
+```
+
+```csharp
     //! [GetMatchCount]
     bool AppWindow::GetMatchCount()
     public async Task<int> GetMatchCountAsync()
@@ -178,7 +289,7 @@ This method allows specifying the find term and configuring other find parameter
         return matchCount;
     }
     //! [GetMatchCount]
-    ```
+```
     #### Handle Match Count Changes
     
     ```cpp
