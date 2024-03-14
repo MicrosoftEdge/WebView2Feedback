@@ -34,7 +34,11 @@ jobs:
               // Querying Lastest Work Items
               const queryResult = await adoClient.queryById(process.env.query_id);
               
-              for (const workItem of queryResult.workItems) {
-                const workItemDetails = await adoClient.getWorkItem(workItem.id, null, null, 1);
-                console.log(workItemDetails);
+              // Iterate over work items
+              const workItemsDetails = await adoClient.getWorkItems(queryResult.workItems.map(wi => wi.id), null, null, 1);
+              
+              for (relations of workItemsDetails[0]){
+                print(relations.attributes);
               }
+
+            
