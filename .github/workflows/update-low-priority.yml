@@ -1,0 +1,34 @@
+name: update low priority items based on ADO query
+
+on: 
+  workflow_dispatch:
+
+jobs:
+    update-low-priority-items:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/setup-node@v3
+          with:
+            node-version: '20.x'
+        - run: npm install azure-devops-node-api
+        - uses: actions/github-script@v7
+          env:
+            ado_token: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
+            query_id: '${{ secrets.ADO_QUERY_ID }}'
+          with:
+            script: |
+              const azdev = require('azure-devops-node-api')
+              
+              try {
+                const orgUrl = "https://dev.azure.com/microsoft";
+                const adoAuthHandler = azdev.getPersonalAccessTokenHandler(process.env.ado_token);
+                const adoConnection = new azdev.WebApi(orgUrl, adoAuthHandler);
+                adoClient = await adoConnection.getWorkItemTrackingApi();
+              } catch (e) {
+                console.error(e);
+                core.setFailed('Could not connect to ADO');
+                return;
+              }
+              
+              const queryResult = await adoClient.queryById(process.env.query_id);
+              console.log(queryResult);
