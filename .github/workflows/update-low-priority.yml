@@ -34,11 +34,14 @@ jobs:
               // Querying Lastest Work Items
               const queryResult = await adoClient.queryById(process.env.query_id);
               
-              // Iterate over work items
+              // Iterate over work items, including relations
+              // https://github.com/microsoft/azure-devops-node-api/blob/master/api/interfaces/WorkItemTrackingInterfaces.ts#L1485
               const workItemsDetails = await adoClient.getWorkItems(queryResult.workItems.map(wi => wi.id), null, null, 1);
               
               // Obtain GitHub Issue Number
               function getGitHubIssueNumber(workItem) {
+
+                // Try using relations
                 const relation = workItem.relations.find(r => r.rel === 'Hyperlink' && r.url.includes('github.com'));
                 if (relation) {
                   const match = relation.url.match(/github.com\/[^/]+\/[^/]+\/issues\/(\d+)/);
@@ -46,11 +49,33 @@ jobs:
                     return match[1];
                   }
                 }
+                
+                // Try using the title, which includes [GitHub #123]
+                const match = workItem.fields['System.Title'].match(/\[GitHub #(\d+)\]/);
+                if (match) {
+                  return match[1];
+                }
+
                 return null;
               }
-            
-              // Map ADO work items to GitHub number
-              const ghIssueNumbers = workItemsDetails.map(wi => getGitHubIssueNumber(wi));
-              console.log(ghIssueNumbers);
+    
+              // Map ADO work items to GitHub number, remove nulls
+              const ghIssueNumbers = workItemsDetails.map(wi => getGitHubIssueNumber(wi)).filter(n => n !== null);
+              
+              // Add priority-low label to GitHub issues
+              const addLowPriorityLabel = async (issueNumber) => {
+                await github.rest.issues.addLabels({
+                  issue_number: issueNumber,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  labels: ['priority-low']
+                });
+              }
+              
+              ghIssueNumbers.forEach(async (issueNumber) => {
+                await addLowPriorityLabel(issueNumber);
+              });
+
+
               
             
