@@ -36,6 +36,5 @@ jobs:
               
               for (const workItem of queryResult.workItems) {
                 const workItemDetails = await adoClient.getWorkItem(id=workItem.id, expand='links');
-                console.log(workItemDetails.fields['System.Title']);
-                console.log(workItemDetails.fields['System.Links']);
+                console.log(workItemDetails);
               }
