@@ -1,4 +1,4 @@
-name: update low priority items based on ADO query
+name: tag priority-low items
 
 on: 
   workflow_dispatch:
@@ -78,6 +78,8 @@ jobs:
               ghIssueNumbers.forEach(async (issueNumber) => {
                 await addLowPriorityLabel(issueNumber);
               });
+              
+              core.setOutput('Tagged Issues', ghIssueNumbers.join(','));
 
 
               
