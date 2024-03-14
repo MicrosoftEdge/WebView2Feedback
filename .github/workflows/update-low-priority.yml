@@ -3,6 +3,10 @@ name: update low priority items based on ADO query
 on: 
   workflow_dispatch:
 
+permissions:
+    issues: write
+    contents: read
+
 jobs:
     update-low-priority-items:
         runs-on: ubuntu-latest
@@ -71,7 +75,7 @@ jobs:
                   labels: ['priority-low']
                 });
               }
-              
+
               ghIssueNumbers.forEach(async (issueNumber) => {
                 await addLowPriorityLabel(issueNumber);
               });
