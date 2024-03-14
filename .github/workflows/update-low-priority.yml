@@ -18,7 +18,8 @@ jobs:
           with:
             script: |
               const azdev = require('azure-devops-node-api')
-              
+
+              // Get the ADO client
               try {
                 const orgUrl = "https://dev.azure.com/microsoft";
                 const adoAuthHandler = azdev.getPersonalAccessTokenHandler(process.env.ado_token);
@@ -30,5 +31,10 @@ jobs:
                 return;
               }
               
+              // Querying Lastest Work Items
               const queryResult = await adoClient.queryById(process.env.query_id);
-              console.log(queryResult);
+              
+              for (const workItem of queryResult.workItems) {
+                const workItemDetails = await adoClient.getWorkItem(workItem.id);
+                console.log(workItemDetails.relations);
+              }
