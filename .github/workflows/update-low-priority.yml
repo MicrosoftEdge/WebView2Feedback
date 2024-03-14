@@ -37,8 +37,20 @@ jobs:
               // Iterate over work items
               const workItemsDetails = await adoClient.getWorkItems(queryResult.workItems.map(wi => wi.id), null, null, 1);
               
-              for (relations of workItemsDetails[0]){
-                print(relations.attributes);
+              // Obtain GitHub Issue Number
+              function getGitHubIssueNumber(workItem) {
+                const relation = workItem.relations.find(r => r.rel === 'Hyperlink' && r.url.includes('github.com'));
+                if (relation) {
+                  const match = relation.url.match(/github.com\/[^/]+\/[^/]+\/issues\/(\d+)/);
+                  if (match) {
+                    return match[1];
+                  }
+                }
+                return null;
               }
-
+            
+              // Map ADO work items to GitHub number
+              const ghIssueNumbers = workItemsDetails.map(wi => getGitHubIssueNumber(wi));
+              console.log(ghIssueNumbers);
+              
             
