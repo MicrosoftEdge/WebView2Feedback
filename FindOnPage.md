@@ -283,7 +283,7 @@ interface ICoreWebView2FindConfiguration : IUnknown {
     [propput] HRESULT ShouldMatchWord([in] BOOL value);
 
     // Gets the state of whether all matches are highlighted.
-    // \return TRUE if all matches are highlighted, FALSE otherwise.
+    // Returns TRUE if all matches are highlighted, FALSE otherwise.
     [propget] HRESULT ShouldHighlightAllMatches([out, retval] BOOL* value); 
     // Sets the state to either highlight all matches or not.
     [propput] HRESULT ShouldHighlightAllMatches([in] BOOL value);
@@ -302,7 +302,7 @@ interface ICoreWebView2FindConfiguration : IUnknown {
     [propget] HRESULT ActiveMatchIndex([out, retval] LONG* value); 
 
     // Gets the total count of matches found in the current document based on the last find criteria.
-    // \return The total count of matches.
+    // Returns the total count of matches.
     [propget] HRESULT MatchesCount([out, retval] LONG* value);
 
 }
