@@ -48,9 +48,8 @@ This is a place for all developers of the [Microsoft Edge WebView2](https://aka.
 - <span class="label" style="background-color: #008800"> tracked </span> We have acknowledged the issue and are tracking it on our internal backlog. We will consider and investigate them in the near future.
     - For bugs, it means we have reproduced the issue.
     - For feature requests, it means we consider it to be a valid request.
-- <span class="label" style="background-color: #B60205"> regression </span> A behavior that used to work in a previous version of WebView2, but no longer works as expected. We will prioritize these issues higher.
-- <span class="label" style="background-color: #006B75"> priority-low </span> We have considered this issue and we decided that we will not be able to address them in the near future.
-
+- <span class="label" style="background-color: #B60205"> regression </span> A behavior that used to work in a previous version of WebView2, but no longer works as expected. We will prioritize this issue higher.
+- <span class="label" style="background-color: #006B75"> priority-low </span> We have considered this issue and decided that we will not be able to address it in the near future. Developers are welcomed to provide justifications on this issue for us to revisit the prioritization.
 
 ## Code of Conduct
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
