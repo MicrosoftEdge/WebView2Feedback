@@ -46,7 +46,7 @@ This is a place for all developers of the [Microsoft Edge WebView2](https://aka.
 ### What do the labels on the issues mean?
 
 - <span class="label" style="background-color: #008800"> tracked </span> We have acknowledged the issue and are tracking it on our internal backlog. We will consider and investigate them in the near future.
-    - For bugs, it means we have reproduced the issue.
+    - For bugs, it means we think this is an actual product issue.
     - For feature requests, it means we consider it to be a valid request.
 - <span class="label" style="background-color: #B60205"> regression </span> A behavior that used to work in a previous version of WebView2, but no longer works as expected. We will prioritize this issue higher.
 - <span class="label" style="background-color: #006B75"> priority-low </span> We have considered this issue and decided that we will not be able to address it in the near future. Developers are welcomed to provide justifications on this issue for us to revisit the prioritization.
