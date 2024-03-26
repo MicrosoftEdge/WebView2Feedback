@@ -37,12 +37,25 @@ jobs:
               // Querying Lastest Work Items
               const queryResult = await adoClient.queryById(process.env.query_id);
               
-              // Iterate over work items, including relations
-              // https://github.com/microsoft/azure-devops-node-api/blob/master/api/interfaces/WorkItemTrackingInterfaces.ts#L1485
-              const workItemsDetails = await adoClient.getWorkItems(queryResult.workItems.map(wi => wi.id), null, null, 1);
+              // Work Item IDs
+              const workItemIds = queryResult.workItems.map(wi => wi.id);
+
+              // getWorkItems has a limit of 200, so we need to batch the requests
+              const batchSize = 200;
+              const workItemsDetails = [];
+              
+              for (let i = 0; i < workItemIds.length; i += batchSize) {
+                const batchIds = workItemIds.slice(i, i + batchSize);
+                // Include relations in the response
+                // https://github.com/microsoft/azure-devops-node-api/blob/master/api/interfaces/WorkItemTrackingInterfaces.ts#L1485
+                const batchDetails = await adoClient.getWorkItems(batchIds, null, null, 1);
+                workItemsDetails.push(...batchDetails);
+              }
               
               // Obtain GitHub Issue Number
               function getGitHubIssueNumber(workItem) {
+
+                console.log(workItem);
 
                 // Try using relations
                 const relation = workItem.relations.find(r => r.rel === 'Hyperlink' && r.url.includes('github.com'));
