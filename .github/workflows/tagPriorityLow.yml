@@ -55,10 +55,9 @@ jobs:
               // Obtain GitHub Issue Number
               function getGitHubIssueNumber(workItem) {
 
-                console.log(workItem);
-
                 // Try using relations
-                const relation = workItem.relations.find(r => r.rel === 'Hyperlink' && r.url.includes('github.com'));
+                const relation = workItem?.relations?.find(r => r.rel === 'Hyperlink' && r.url.includes('github.com'));
+
                 if (relation) {
                   const match = relation.url.match(/github.com\/[^/]+\/[^/]+\/issues\/(\d+)/);
                   if (match) {
