@@ -21,7 +21,7 @@ Please include the requested information listed below (as much as you can provid
 
 This information will help us triage your report more quickly.
 
-Reports via MSRC may qualify for the Edge Bug Bounty. Details including terms and conditions can be found at [Microsoft Edge Bounty Program](https://www.microsoft.com/en-us/msrc/bounty-new-edge).
+Reports via MSRC may qualify for the Edge Bug Bounty. Details of the program, including terms and conditions, can be found at [Microsoft Edge Bounty Program](https://www.microsoft.com/en-us/msrc/bounty-new-edge).
 
 ## Preferred Languages
 
