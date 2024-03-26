@@ -17,7 +17,7 @@ jobs:
         - uses: actions/github-script@v7
           env:
             ado_token: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
-            query_id: '${{ secrets.ADO_LOW_PRIORITY_QUERY_ID }}'
+            query_id: '6777cf01-7065-42ca-99ca-ba0d7b77d8fd'
           with:
             script: |
               const azdev = require('azure-devops-node-api')
