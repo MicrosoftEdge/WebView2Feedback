@@ -41,7 +41,7 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
     CHECK_FEATURE_RETURN(webView2_17);
 
     // Get the Find interface.
-    wil::com_ptr<ICoreWebView2Find> webView2find;
+    wil::com_ptr<ICoreWebView2Find> webView2Find;
     CHECK_FAILURE(webView2_17->get_Find(&webView2find));
 
     // Determine if custom UI will be usedsettings and highlight configurations.
