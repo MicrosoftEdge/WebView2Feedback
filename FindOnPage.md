@@ -67,11 +67,9 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
                 return S_OK;
             })
             .Get()));
-    CHECK_FAILURE(webView2find->FindNext());
-    CHECK_FAILURE(webView2find->FindNext());
-    CHECK_FAILURE(webView2find->FindPrevious());
-    CHECK_FAILURE(webView2find->StopFind());
-
+    // End user will now be able to interact with default Find UX
+    // using the built in navigation buttons and Find filters to
+    // customize their search.
     return true;
 }
 //! [ConfigureAndExecuteFind]
