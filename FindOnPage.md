@@ -19,10 +19,11 @@ This method allows setting the search term and find parameters via the
 webview environment. Starting another with the same configuration will adjust
 the active match index based on the selected Find Direction.
 #### Create/Specify a Find Configuration
+
 ```cpp
 
-//! [ConfigureAndExecuteFind]
-bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
+//! [InitializeFindConfiguration]
+wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfiguration(const std::wstring& searchTerm)
 {
     // Query for the ICoreWebView2Environment5 interface.
     auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2Environment5>();
@@ -44,35 +45,102 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
     wil::com_ptr<ICoreWebView2Find> webView2Find;
     CHECK_FAILURE(webView2_17->get_Find(&webView2find));
 
-    // Determine if custom UI will be usedsettings and highlight configurations.
+    return findConfiguration;
+}
+//! [InitializeFindConfiguration]
+```
+
+```cpp
+//! [ExecuteFindWithDefaultUI]
+bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
+{
+    auto findConfiguration = InitializeFindConfiguration(searchTerm);
+    if (!findConfiguration)
+    {
+        return false;
+    }
+    // Query for the ICoreWebView2_17 interface to access the Find feature.
+    auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
+    CHECK_FEATURE_RETURN(webView2_17);
+
+    // Get the Find interface.
+    wil::com_ptr<ICoreWebView2Find> webView2Find;
+    CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
 
     // Assuming you want to use the default UI, adjust as necessary.
-    CHECK_FAILURE(webView2find->put_UseCustomUI(false)); 
-    CHECK_FAILURE(webView2find->put_ShouldHighlightAllMatches(true));
+    CHECK_FAILURE(webView2Find->put_UseCustomUI(false)); 
+    CHECK_FAILURE(webView2Find->put_ShouldHighlightAllMatches(true));
 
-    // Start the find operation
-    CHECK_FAILURE(webView2find->StartFind(
+    // Start the find operation with a callback for completion.
+    CHECK_FAILURE(webView2Find->StartFind(
         findConfiguration.get(),
         Callback<ICoreWebView2FindOperationCompletedHandler>(
             [this](HRESULT result, BOOL status) -> HRESULT
             {
                 if (SUCCEEDED(result))
                 {
-                    // For example, you could update UI elements here
+                    // Optionally update UI elements here upon successful find operation.
                 }
                 else
                 {
-                    // Handle errors
+                    // Handle errors.
                 }
                 return S_OK;
-            })
-            .Get()));
-    // End user will now be able to interact with default Find UX
-    // using the built in navigation buttons and Find filters to
-    // customize their search.
+            }).Get()));
+
+    // End user interaction is handled via UI.
     return true;
 }
-//! [ConfigureAndExecuteFind]
+//! [ExecuteFindWithDefaultUI]
+```
+
+```cpp
+//! [ExecuteFindWithCustomUI]
+bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& searchTerm)
+{
+    auto findConfiguration = InitializeFindConfiguration(searchTerm);
+    if (!findConfiguration)
+    {
+        return false;
+    }
+    // Query for the ICoreWebView2_17 interface to access the Find feature.
+    auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
+    CHECK_FEATURE_RETURN(webView2_17);
+
+    // Get the Find interface.
+    wil::com_ptr<ICoreWebView2Find> webView2Find;
+    CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
+
+    // Opt for using a custom UI for the find operation.
+    CHECK_FAILURE(webView2find->put_UseCustomUI(true));
+    CHECK_FAILURE(webView2find->put_ShouldHighlightAllMatches(true));
+
+    // Start the find operation with callback for completion.
+    CHECK_FAILURE(webView2find->StartFind(
+        findConfiguration.get(),
+        Callback<ICoreWebView2FindOperationCompletedHandler>(
+            [this](HRESULT result, BOOL status) -> HRESULT
+            {
+                if (SUCCEEDED(result) && status)
+                {
+                    // Optionally update UI elements here upon successful find operation.
+                }
+                else
+                {
+                    // Handle errors or unsuccessful search.
+                }
+                return S_OK;
+            }).Get()));
+
+    // Note: In this example, navigation through find results (FindNext/FindPrevious)
+    // and stopping the find operation (StopFind) are assumed to be handled by
+    // custom UI elements and user interaction, not directly in code here.
+    // User could then connect functions such as FindNext, FindPrevious, and StopFind
+    // to corresponding custom UI elements.
+
+    return true;
+}
+//! [ExecuteFindWithCustomUI]
 ```
 ```csharp
 //! [ConfigureAndExecuteFind]
