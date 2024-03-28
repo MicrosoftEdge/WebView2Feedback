@@ -18,7 +18,8 @@ This method allows setting the search term and find parameters via the
 `ICoreWebView2FindConfiguration` interface. Only one find session can be active per
 webview environment. Starting another with the same configuration will adjust
 the active match index based on the selected Find Direction.
-#### Create/Specify a Find Configuration
+### Create/Specify a Find Configuration
+#### WIN32 C++
 
 ```cpp
 
@@ -142,6 +143,7 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& searchTerm)
 }
 //! [ExecuteFindWithCustomUI]
 ```
+#### .NET C#
 ```csharp
 //! [ConfigureAndExecuteFindWithDefaultUI]
 async Task ConfigureAndExecuteFindWithDefaultUIAsync(string searchTerm)
