@@ -2,22 +2,22 @@
 
 ## Background
 
-The WebView2Find API provides methods and events to support text finding and navigation within a WebView2 control. 
-It allows developers to programmatically initiate find operations, navigate between find results, supress default UI, customize various find configurations
-such as query, direction of search, match case, match word, etc. Also enables developers to track the status of ongoing operations such as whether a find session has 
-completed or not, whether the match count has changed, and whether the match index has changed.
+The WebView2Find API offers methods and events for text finding and navigation
+within a WebView2 control. It enables developers to programmatically initiate find
+operations, navigate find results, suppress default UI, and customize find configurations
+like query and search direction. It also tracks the status of operations, indicating
+completion, match count changes, and match index changes.
 
 ## Examples
 
 
 #### Description
-To initiate a find operation within a WebView2 control, developers can utilize the `StartFind` method. 
-This method allows specifying the find term and configuring other find parameters using the `ICoreWebView2FindConfiguration` interface.
-Additionally there can only be one find session active per webview environment.
-If an attempt is made to call start find more than once with the same findconfugration, 
-it will result in the active match index either being increased or decreased depending on what 
-Find Direction parameter was chosen for the Find Configuration.
 
+To initiate a find operation in a WebView2 control, use the `StartFind` method.
+This method allows setting the search term and find parameters via the
+`ICoreWebView2FindConfiguration` interface. Only one find session can be active per
+webview environment. Starting another with the same configuration will adjust
+the active match index based on the selected Find Direction.
 #### Create/Specify a Find Configuration
 ```cpp
 
@@ -124,7 +124,8 @@ async void ConfigureAndExecuteFindAsync(string searchTerm){
 ### Retrieve the Number of Matches
     
 #### Description
-To retrieve the total number of matches found during a find operation within a WebView2 control, developers can utilize the `GetMatchCount` method.
+To retrieve the total number of matches found during a find operation
+within a WebView2 control, developers can utilize the `GetMatchCount` method.
     
     
 ```cpp
@@ -152,7 +153,8 @@ To retrieve the total number of matches found during a find operation within a W
     //! [GetMatchCount]
     public async Task<int> GetMatchCountAsync()
     {
-        var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
+        // Assuming webView is your WebView2 control
+        var webViewFind = webView.CoreWebView2.FindController; 
         var matchCount = await webViewFind.GetMatchesCountAsync();
         MessageBox.Show($"Match Count: {matchCount}", "Find Operation", MessageBoxButton.OK);
         return matchCount;
@@ -210,7 +212,8 @@ void ActiveMatchIndexChangedSample()
 ### Retrieve the Index of the Active Match
     
 #### Description
-Developers can retrieve the index of the currently active match within a WebView2 control using the `GetActiveMatchIndex` method.
+Developers can retrieve the index of the currently active match 
+within a WebView2 control using the `GetActiveMatchIndex` method.
     
     
 ```cpp
@@ -372,7 +375,11 @@ interface ICoreWebView2Find : IUnknown {
 
 ### Setting Up Find Configuration with MIDL3
 
-To represent the given C# examples in a manner consistent with the behavior demonstrated earlier in the chat and align them with an API design that could be described using MIDL3 (noted as C# for formatting), let's formalize the design for a hypothetical WebView2 Find operation API. This design will incorporate setting up a find configuration, starting a find operation, handling find operation events, and navigating through find matches.
+To represent the given C# examples in a manner consistent with the behavior demonstrated 
+earlier in the chat and align them with an API design that could be described using 
+MIDL3 (noted as C# for formatting), let's formalize the design for a hypothetical 
+WebView2 Find operation API. This design will incorporate setting up a find configuration,
+ starting a find operation, handling find operation events, and navigating through find matches.
 
 ### CoreWebView2 Find Configuration and Direction
 
@@ -440,13 +447,20 @@ namespace Microsoft.Web.WebView2.Core
 }
 ```
 
-These examples demonstrate how you would conceptualize and implement the Find API within the Microsoft WebView2 environment, focusing on async patterns for responsive UI interactions and event handling for dynamic UI updates based on the results of find operations. 
-This design emphasizes asynchronous task-based APIs, event handling for UI updates, and modular API design for clear separation of concerns.
+These examples demonstrate how you would conceptualize and implement the Find API 
+within the Microsoft WebView2 environment, focusing on async patterns for 
+responsive UI interactions and event handling for dynamic UI updates based on the 
+results of find operations. This design emphasizes asynchronous task-based APIs, 
+event handling for UI updates, and modular API design for clear separation of concerns.
 
 # Appendix
 
-This API specification focuses on providing developers with the necessary information to integrate text finding and navigation functionalities into WebView2 applications. 
-It emphasizes the usage of interfaces such as `ICoreWebView2Find` and `ICoreWebView2FindConfiguration` to perform find operations effectively. 
+This API specification focuses on providing developers with the necessary information 
+to integrate text finding and navigation functionalities into WebView2 applications. 
+It emphasizes the usage of interfaces such as `ICoreWebView2Find` and 
+`ICoreWebView2FindConfiguration` to perform find operations effectively. 
+
 Additional Info:
-Starting a find session when one is in progress will result in the active match index being moved forward or backwards depending on what find configuration has been used
+Starting a find session when one is in progress will result in the active match index
+being moved forward or backwards depending on what find configuration has been used
 (forward,backward).
