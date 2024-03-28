@@ -54,7 +54,7 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
     CHECK_FAILURE(webView2find->StartFind(
         findConfiguration.get(),
         Callback<ICoreWebView2FindOperationCompletedHandler>(
-            [this](HRESULT result, LONG ActiveIdx, LONG MatchesCount) -> HRESULT
+            [this](HRESULT result, BOOL status) -> HRESULT
             {
                 if (SUCCEEDED(result))
                 {
@@ -326,7 +326,8 @@ interface ICoreWebView2FindActiveMatchIndexChangedEventHandler : IUnknown {
 /// Handles the event that's fired when the find operation completes.
 [uuid(2604789D-9553-4246-8E21-B9C74EFAD04F), object, pointer_default(unique)]
 interface ICoreWebView2FindOperationCompletedHandler : IUnknown {
-    /// Provides the event args when the find operation completes.
+    /// Param1 refers to the returned code when the find operation completes.
+    /// Param2 refers whether the find session successfully finished executing or not.    
     HRESULT Invoke(HRESULT errorCode, BOOL status);
 }
 
