@@ -226,90 +226,62 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string searchTerm)
     
 #### Description
 To retrieve the total number of matches found during a find operation
-within a WebView2 control, developers can utilize the `GetMatchCount` method.
+within a WebView2 control, developers can utilize the `GetmatchCount ` method.
     
     
 ```cpp
-    //! [GetMatchCount]
-    bool AppWindow::GetMatchCount()
+    //! [GetmatchCount ]
+    bool AppWindow::GetmatchCount ()
     {
         auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
         CHECK_FEATURE_RETURN(webView2_17);
         wil::com_ptr<ICoreWebView2Find> webView2find;
         CHECK_FAILURE(webView2_17->get_Find(&webView2find));
-        LONG matchCount;
-        CHECK_FAILURE(webView2find->get_MatchesCount(&matchCount));
+        LONG matchCount ;
+        CHECK_FAILURE(webView2find->get_MatchesCount(&matchCount ));
     
-        // Update UI or handle matchCount as you wish
+        // Update UI or handle matchCount  as you wish
         // For example, you could show a message box
-        std::wstring matchCountStr = L"Match Count: " + std::to_wstring(matchCount);
-        MessageBox(m_mainWindow, matchCountStr.c_str(), L"Find Operation", MB_OK);
+        std::wstring matchCount Str = L"Match Count: " + std::to_wstring(matchCount );
+        MessageBox(m_mainWindow, matchCount Str.c_str(), L"Find Operation", MB_OK);
     
         return true;
     }
-    //! [GetMatchCount]
+    //! [GetmatchCount ]
+
+// Register matchCount Changed event handler
+        m_webView->add_matchCount Changed(
+            Callback<ICoreWebView2FindmatchCount ChangedEventHandler>(
+                [this](LONG matchCount ) -> HRESULT
+                {
+                    // Update custom UI 
+                    wprintf(L"Match Count Changed: %ld\n", matchCount );
+                    return S_OK;
+                }).Get(),
+            &m_matchCount ChangedToken);
 ```
 
 ```csharp
-    //! [GetMatchCount]
-    public async Task<int> GetMatchCountAsync()
+    //! [GetmatchCount ]
+    public async Task<int> GetmatchCount Async()
     {
         // Assuming webView is your WebView2 control
         var webViewFind = webView.CoreWebView2.FindController; 
-        var matchCount = await webViewFind.GetMatchesCountAsync();
-        MessageBox.Show($"Match Count: {matchCount}", "Find Operation", MessageBoxButton.OK);
-        return matchCount;
+        var matchCount  = await webViewFind.GetMatchesCountAsync();
+        MessageBox.Show($"Match Count: {matchCount }", "Find Operation", MessageBoxButton.OK);
+        return matchCount ;
     }
-    //! [GetMatchCount]
-```
-#### WIN32 C++
-```cpp
-// Register MatchCountChanged event handler
-        m_webView->add_MatchCountChanged(
-            Callback<ICoreWebView2FindMatchCountChangedEventHandler>(
-                [this](LONG matchCount) -> HRESULT
-                {
-                    // Update custom UI 
-                    wprintf(L"Match Count Changed: %ld\n", matchCount);
-                    return S_OK;
-                }).Get(),
-            &m_matchCountChangedToken);
-```
-#### .NET C#
-```csharp
-void MatchCountChangedSample()
-{
-    _webview.MatchCountChanged += (object sender, CoreWebView2MatchCountChangedEventArgs args) =>
-    {
-        // Update Custom UI
-    };
-}
-```
-#### Handle Match Index Changes
-#### WIN32 C++
+    //! [GetmatchCount ]
 
-```cpp
-// Register ActiveMatchIndexChanged event handler
-m_webView->add_ActiveMatchIndexChanged(
-    Callback<ICoreWebView2FindActiveMatchIndexChangedEventHandler>(
-        [this](LONG activeMatchIndex) -> HRESULT
-        {
-            // Update custom UI 
-            wprintf(L"Active Match Index Changed: %ld\n", activeMatchIndex);
-            return S_OK;
-        }).Get(),
-    &m_activeMatchIndexChangedToken);
-```
-#### .NET C#
-```csharp
-void ActiveMatchIndexChangedSample()
-{
-    _webview.MatchCountChanged += (object sender, CoreWebView2ActiveMatchIndexChangedEventArgs args) =>
+    void matchCount ChangedSample()
     {
-        // Update Custom UI
-    };
-}
+        _webview.matchCount Changed += (object sender, CoreWebView2matchCount ChangedEventArgs args) =>
+        {
+            // Update Custom UI
+        };
+    }
 ```
+
 ### Retrieve the Index of the Active Match
     
 #### Description
@@ -337,6 +309,17 @@ within a WebView2 control using the `GetActiveMatchIndex` method.
         return true;
     }
     //! [GetActiveMatchIndex]
+
+    // Register ActiveMatchIndexChanged event handler
+    m_webView->add_ActiveMatchIndexChanged(
+        Callback<ICoreWebView2FindActiveMatchIndexChangedEventHandler>(
+            [this](LONG activeMatchIndex) -> HRESULT
+            {
+                // Update custom UI 
+                wprintf(L"Active Match Index Changed: %ld\n", activeMatchIndex);
+                return S_OK;
+            }).Get(),
+        &m_activeMatchIndexChangedToken);
 ```
 #### .NET C#
 ```csharp
@@ -349,10 +332,15 @@ public async Task<int> GetActiveMatchIndexAsync()
     return activeMatchIndex;
 }
 
+void ActiveMatchIndexChangedSample()
+{
+    _webview.matchCount Changed += (object sender, CoreWebView2ActiveMatchIndexChangedEventArgs args) =>
+    {
+        // Update Custom UI
+    };
+}
 //! [GetActiveMatchIndex]
 ```
-
-
 
 ## API Details
 ```csharp
@@ -413,7 +401,7 @@ interface ICoreWebView2FindConfiguration : IUnknown {
 
 /// Handles the event that's fired when the match count changes.
 [uuid(623EFBFB-A19E-43C4-B309-D578511D24AB), object, pointer_default(unique)]
-interface ICoreWebView2FindMatchCountChangedEventHandler : IUnknown {
+interface ICoreWebView2FindmatchCount ChangedEventHandler : IUnknown {
     /// Parameter is the match count.
     HRESULT Invoke(LONG matchesCount);
 }
@@ -453,12 +441,12 @@ interface ICoreWebView2Find : IUnknown {
     // This event is raised when a find operation completes, either by finding all matches, navigating to a match, or by being stopped.
     // Parameter is the event handler to be added.
     // Returns a token representing the added event handler. This token can be used to unregister the event handler.
-    HRESULT add_MatchCountChanged(
-        [in] ICoreWebView2FindMatchCountChangedEventHandler* eventHandler,
+    HRESULT add_matchCount Changed(
+        [in] ICoreWebView2FindmatchCount ChangedEventHandler* eventHandler,
         [out] EventRegistrationToken* token);
-    // Unregisters an event handler from the MatchCountChanged event.
+    // Unregisters an event handler from the matchCount Changed event.
     // Parameter is the token of the event handler to be removed, obtained during the registration of the event handler.
-    HRESULT remove_MatchCountChanged([in] EventRegistrationToken token);
+    HRESULT remove_matchCount Changed([in] EventRegistrationToken token);
 
     // Registers an event handler for the ActiveMatchIndexChanged event.
     // This event is raised when the index of the currently active match changes.
