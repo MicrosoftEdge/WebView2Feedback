@@ -36,13 +36,13 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
     CHECK_FAILURE(findConfiguration->put_ShouldMatchWord(false));
     CHECK_FAILURE(findConfiguration->put_FindDirection(COREWEBVIEW2_FIND_DIRECTION_FORWARD));
 
-    // Query for the ICoreWebView217 interface to access the Find feature.
-    auto webView217 = m_webView.try_query<ICoreWebView217>();
-    CHECK_FEATURE_RETURN(webView217);
+    // Query for the ICoreWebView2_17 interface to access the Find feature.
+    auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
+    CHECK_FEATURE_RETURN(webView2_17);
 
     // Get the Find interface.
     wil::com_ptr<ICoreWebView2Find> webView2find;
-    CHECK_FAILURE(webView217->get_Find(&webView2find));
+    CHECK_FAILURE(webView2_17->get_Find(&webView2find));
 
     // Determine if custom UI will be usedsettings and highlight configurations.
 
@@ -132,10 +132,10 @@ within a WebView2 control, developers can utilize the `GetMatchCount` method.
     //! [GetMatchCount]
     bool AppWindow::GetMatchCount()
     {
-        auto webView217 = m_webView.try_query<ICoreWebView217>();
-        CHECK_FEATURE_RETURN(webView217);
+        auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
+        CHECK_FEATURE_RETURN(webView2_17);
         wil::com_ptr<ICoreWebView2Find> webView2find;
-        CHECK_FAILURE(webView217->get_Find(&webView2find));
+        CHECK_FAILURE(webView2_17->get_Find(&webView2find));
         LONG matchCount;
         CHECK_FAILURE(webView2find->get_MatchesCount(&matchCount));
     
@@ -220,10 +220,10 @@ within a WebView2 control using the `GetActiveMatchIndex` method.
     //! [GetActiveMatchIndex]
     bool AppWindow::GetActiveMatchIndex()
     {
-        auto webView217 = m_webView.try_query<ICoreWebView217>();
-        CHECK_FEATURE_RETURN(webView217);
+        auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
+        CHECK_FEATURE_RETURN(webView2_17);
         wil::com_ptr<ICoreWebView2Find> webView2find;
-        CHECK_FAILURE(webView217->get_Find(&webView2find));
+        CHECK_FAILURE(webView2_17->get_Find(&webView2find));
         LONG activeMatchIndex;
         CHECK_FAILURE(webView2find->get_ActiveMatchIndex(&activeMatchIndex));
     
