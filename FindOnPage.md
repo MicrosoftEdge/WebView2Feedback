@@ -395,7 +395,7 @@ namespace Microsoft.Web.WebView2.Core
 }
 ```
 
-### CoreWebView2 Find Interface and Usage
+### CoreWebView2 Find Interface
 
 ```csharp
 namespace Microsoft.Web.WebView2.Core
@@ -437,24 +437,6 @@ namespace Microsoft.Web.WebView2.Core
     {
         CoreWebView2FindConfiguration CreateFindConfiguration();
     };
-
-
-    // Example usage:
-    public async Task PerformFindOperationAsync(ICoreWebView2Find webViewFind)
-    {
-        var findConfig = new CoreWebView2FindConfiguration
-        {
-            FindTerm = "example",
-            FindDirection = CoreWebView2FindDirection.Forward,
-            IsCaseSensitive = false,
-            ShouldMatchWord = true
-        };
-
-        await webViewFind.StartFindAsync(findConfig);
-        await webViewFind.FindNextAsync();
-        await webViewFind.FindNextAsync();
-        await webViewFind.StopFindAsync();
-    }
 }
 ```
 
