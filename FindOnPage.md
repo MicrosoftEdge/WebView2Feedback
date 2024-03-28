@@ -143,48 +143,81 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& searchTerm)
 //! [ExecuteFindWithCustomUI]
 ```
 ```csharp
-//! [ConfigureAndExecuteFind]
-async void ConfigureAndExecuteFindAsync(string searchTerm){
-        try
+//! [ConfigureAndExecuteFindWithDefaultUI]
+async Task ConfigureAndExecuteFindWithDefaultUIAsync(string searchTerm)
+{
+    try
+    {
+        // Check if the webView is already initialized and is an instance of CoreWebView2.
+        if (webView.CoreWebView2 == null)
         {
-            // Assuming 'webView' is already initialized and is an instance of CoreWebView2
-
-            // Initialize find configuration/settings
-            CoreWebView2FindConfinguration findConfiguration = new CoreWebView2FindConfiguration
-            {
-                FindTerm = searchTerm,
-                IsCaseSensitive = false,
-                ShouldMatchWord = false,
-                FindDirection = CoreWebView2FindDirection.Forward
-            };
-
-            CoreWebView2Find find = new CoreWebView2Find(findConfiguration);
-
-            // Assuming you want to use the default UI, adjust as necessary
-            find.UseCustomUI = false;
-            find.ShouldHighlightAllMatches = true;
-
-            // Start the find operation
-            await find.StartFindAsync(findConfiguration);
-
-            // Perform FindNext operations
-            await find.FindNextAsync();
-            await find.FindNextAsync();
-            await find.FindPreviousAsync();
-
-            //  Stop the active find session
-            await find.StopFindAsync();
-
-            return true;
+            throw new InvalidOperationException("WebView2 is not initialized.");
         }
-        catch (Exception ex)
+
+        // Initialize the find configuration with specified settings.
+        var findConfiguration = new CoreWebView2FindConfiguration
         {
-            // Handle errors
-            Console.WriteLine($"An error occurred: {ex.Message}");
-            return false;
-        }
+            FindTerm = searchTerm,
+            IsCaseSensitive = false,
+            ShouldMatchWord = false,
+            FindDirection = CoreWebView2FindDirection.Forward
+        };
+
+        // Use the default UI provided by WebView2 for the find operation.
+        webView.CoreWebView2.FindController.UseCustomUI = false;
+        webView.CoreWebView2.FindController.ShouldHighlightAllMatches = true;
+
+        // Start the find operation with the specified configuration.
+        await webView.CoreWebView2.FindController.StartFindAsync(findConfiguration);
+
+        // End user interaction is handled via UI.
+    }
+    catch (Exception ex)
+    {
+        // Handle any errors that may occur during the find operation.
+        Console.WriteLine($"An error occurred: {ex.Message}");
+    }
 }
-//! [ConfigureAndExecuteFind]
+//! [ConfigureAndExecuteFindWithDefaultUI]
+```
+
+```csharp
+//! [ConfigureAndExecuteFindWithCustomUI]
+async Task ConfigureAndExecuteFindWithCustomUIAsync(string searchTerm)
+{
+    try
+    {
+        // Check if the webView is already initialized and is an instance of CoreWebView2.
+        if (webView.CoreWebView2 == null)
+        {
+            throw new InvalidOperationException("WebView2 is not initialized.");
+        }
+
+        // Initialize the find configuration with specified settings.
+        var findConfiguration = new CoreWebView2FindConfiguration
+        {
+            FindTerm = searchTerm,
+            IsCaseSensitive = false,
+            ShouldMatchWord = false,
+            FindDirection = CoreWebView2FindDirection.Forward
+        };
+
+        // Specify that a custom UI will be used for the find operation.
+        webView.CoreWebView2.FindController.UseCustomUI = true;
+        webView.CoreWebView2.FindController.ShouldHighlightAllMatches = true;
+
+        // Start the find operation with the specified configuration.
+        await webView.CoreWebView2.FindController.StartFindAsync(findConfiguration);
+        // It's expected that the custom UI for navigating between matches (next, previous)
+        // and stopping the find operation will be managed by the developer's custom code.
+    }
+    catch (Exception ex)
+    {
+        // Handle any errors that may occur during the find operation.
+        Console.WriteLine($"An error occurred: {ex.Message}");
+    }
+}
+//! [ConfigureAndExecuteFindWithCustomUI]
 ```
    
 ### Retrieve the Number of Matches
