@@ -327,16 +327,18 @@ within a WebView2 control using the `GetActiveMatchIndex` method.
 public async Task<int> GetActiveMatchIndexAsync()
 {
     var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
-    var activeMatchIndex = await webViewFind.GetActiveMatchIndexAsync();
+    var activeMatchIndex = webViewFind.ActiveMatchIndex();
     MessageBox.Show($"Active Match Index: {activeMatchIndex}", "Find Operation", MessageBoxButton.OK);
     return activeMatchIndex;
 }
 
 void ActiveMatchIndexChangedSample()
 {
-    _webview.matchCount Changed += (object sender, CoreWebView2ActiveMatchIndexChangedEventArgs args) =>
+    webView.CoreWebView2.FindController.ActiveMatchIndexChanged += (object sender, EventArgs args) =>
     {
-        // Update Custom UI
+        // Access the active match index synchronously in the event handler.
+        int activeMatchIndex = webView.CoreWebView2.FindController.ActiveMatchIndex;
+        // Update Custom UI based on the new active match index.
     };
 }
 //! [GetActiveMatchIndex]
@@ -504,21 +506,22 @@ namespace Microsoft.Web.WebView2.Core
         Backward, 
     };
 
-    runtime CoreWebView2Find
+runtime CoreWebView2Find
+{
+    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Find")]
     {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Find")]
-        {
-            void StartFindAsync(CoreWebView2FindConfiguration configuration);
-            void FindNextAsync();
-            void FindPreviousAsync();
-            void StopFindAsync();
-            bool ShouldHighlightAllMatches { get; set; }
-            bool ShouldHighlightActiveMatch { get; set; }
-            bool UseCustomUI { get; set; }
-            int GetActiveMatchIndexAsync();
-            int GetMatchesCountAsync();
-        }
+        void StartFind(CoreWebView2FindConfiguration configuration);
+        void FindNext();
+        void FindPrevious();
+        void StopFind();
+        bool ShouldHighlightAllMatches { get; set; }
+        bool ShouldHighlightActiveMatch { get; set; }
+        bool UseCustomUI { get; set; }
+        int ActiveMatchIndex { get; }; // Synchronously gets the active match index.
+        int MatchesCount { get; }; // Synchronously gets the matches count.
     }
+}
+
 
     runtimeclass CoreWebView2FindConfiguration {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingFindConfiguration")]
