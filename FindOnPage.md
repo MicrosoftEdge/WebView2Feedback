@@ -403,7 +403,7 @@ interface ICoreWebView2FindConfiguration : IUnknown {
 [uuid(623EFBFB-A19E-43C4-B309-D578511D24AB), object, pointer_default(unique)]
 interface ICoreWebView2FindmatchCount ChangedEventHandler : IUnknown {
     /// Parameter is the match count.
-    HRESULT Invoke(LONG matchesCount);
+    HRESULT Invoke(ICoreWebView2Find* source, IUnknown* eventArgs);
 }
 
 /// Handles the event that's fired when the active match index changes.
