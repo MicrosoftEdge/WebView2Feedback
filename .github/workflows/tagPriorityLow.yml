@@ -2,6 +2,8 @@ name: tag low priority issues
 
 on: 
   workflow_dispatch:
+  schedule:
+    - cron: '0 16 * * 4'
 
 permissions:
     issues: write
