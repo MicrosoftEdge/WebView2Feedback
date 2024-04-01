@@ -221,66 +221,6 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string searchTerm)
 }
 //! [ConfigureAndExecuteFindWithCustomUI]
 ```
-   
-### Retrieve the Number of Matches
-    
-#### Description
-To retrieve the total number of matches found during a find operation
-within a WebView2 control, developers can utilize the `GetmatchCount ` method.
-    
-    
-```cpp
-    //! [GetmatchCount ]
-    bool AppWindow::GetmatchCount ()
-    {
-        auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
-        CHECK_FEATURE_RETURN(webView2_17);
-        wil::com_ptr<ICoreWebView2Find> webView2find;
-        CHECK_FAILURE(webView2_17->get_Find(&webView2find));
-        LONG matchCount ;
-        CHECK_FAILURE(webView2find->get_MatchCount(&matchCount ));
-    
-        // Update UI or handle matchCount  as you wish
-        // For example, you could show a message box
-        std::wstring matchCount Str = L"Match Count: " + std::to_wstring(matchCount );
-        MessageBox(m_mainWindow, matchCount Str.c_str(), L"Find Operation", MB_OK);
-    
-        return true;
-    }
-    //! [GetmatchCount ]
-
-// Register matchCount Changed event handler
-        m_webView->add_matchCount Changed(
-            Callback<ICoreWebView2FindmatchCount ChangedEventHandler>(
-                [this](LONG matchCount ) -> HRESULT
-                {
-                    // Update custom UI 
-                    wprintf(L"Match Count Changed: %ld\n", matchCount );
-                    return S_OK;
-                }).Get(),
-            &m_matchCount ChangedToken);
-```
-
-```csharp
-    //! [GetmatchCount ]
-    public async Task<int> GetmatchCount Async()
-    {
-        // Assuming webView is your WebView2 control
-        var webViewFind = webView.CoreWebView2.FindController; 
-        var matchCount  = await webViewFind.GetMatchCountAsync();
-        MessageBox.Show($"Match Count: {matchCount }", "Find Operation", MessageBoxButton.OK);
-        return matchCount ;
-    }
-    //! [GetmatchCount ]
-
-    void matchCount ChangedSample()
-    {
-        _webview.matchCount Changed += (object sender, CoreWebView2matchCount ChangedEventArgs args) =>
-        {
-            // Update Custom UI
-        };
-    }
-```
 
 ### Retrieve the Index of the Active Match
     
