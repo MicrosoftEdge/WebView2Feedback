@@ -276,7 +276,6 @@ void ActiveMatchIndexChangedSample()
 {
     webView.CoreWebView2.FindController.ActiveMatchIndexChanged += (object sender, EventArgs args) =>
     {
-        // Access the active match index synchronously in the event handler.
         int activeMatchIndex = webView.CoreWebView2.FindController.ActiveMatchIndex;
         // Update Custom UI based on the new active match index.
     };
