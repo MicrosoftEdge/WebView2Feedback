@@ -238,7 +238,7 @@ within a WebView2 control, developers can utilize the `GetmatchCount ` method.
         wil::com_ptr<ICoreWebView2Find> webView2find;
         CHECK_FAILURE(webView2_17->get_Find(&webView2find));
         LONG matchCount ;
-        CHECK_FAILURE(webView2find->get_MatchesCount(&matchCount ));
+        CHECK_FAILURE(webView2find->get_MatchCount(&matchCount ));
     
         // Update UI or handle matchCount  as you wish
         // For example, you could show a message box
@@ -267,7 +267,7 @@ within a WebView2 control, developers can utilize the `GetmatchCount ` method.
     {
         // Assuming webView is your WebView2 control
         var webViewFind = webView.CoreWebView2.FindController; 
-        var matchCount  = await webViewFind.GetMatchesCountAsync();
+        var matchCount  = await webViewFind.GetMatchCountAsync();
         MessageBox.Show($"Match Count: {matchCount }", "Find Operation", MessageBoxButton.OK);
         return matchCount ;
     }
@@ -397,7 +397,7 @@ interface ICoreWebView2FindConfiguration : IUnknown {
 
     // Gets the total count of matches found in the current document based on the last find criteria.
     // Returns the total count of matches.
-    [propget] HRESULT MatchesCount([out, retval] LONG* value);
+    [propget] HRESULT MatchCount([out, retval] LONG* value);
 
 }
 
@@ -517,8 +517,8 @@ runtime CoreWebView2Find
         bool ShouldHighlightAllMatches { get; set; }
         bool ShouldHighlightActiveMatch { get; set; }
         bool UseCustomUI { get; set; }
-        int ActiveMatchIndex { get; }; // Synchronously gets the active match index.
-        int MatchesCount { get; }; // Synchronously gets the matches count.
+        int ActiveMatchIndex { get; }; 
+        int MatchCount { get; }; 
     }
 }
 
