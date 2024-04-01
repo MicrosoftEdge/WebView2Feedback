@@ -414,7 +414,7 @@ interface ICoreWebView2FindActiveMatchIndexChangedEventHandler : IUnknown {
 }
 /// Handles the event that's fired when the find operation completes.
 [uuid(2604789D-9553-4246-8E21-B9C74EFAD04F), object, pointer_default(unique)]
-interface ICoreWebView2FindOperationCompletedHandler : IUnknown {
+interface ICoreWebView2FindStartFindOperationCompletedHandler: IUnknown {
     /// Param1 refers to the returned code when the find operation completes.
     /// Param2 refers whether the find session successfully finished executing or not.    
     HRESULT Invoke(HRESULT errorCode, BOOL status);
