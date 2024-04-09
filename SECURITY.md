@@ -20,7 +20,6 @@ Please include the requested information listed below (as much as you can provid
 
   * Type of issue (e.g. buffer overflow, SQL injection, cross-site scripting, etc.)
   * Full paths of source file(s) related to the manifestation of the issue
-  * The location of the affected source code (tag/branch/commit or direct URL)
   * Any special configuration required to reproduce the issue
   * Step-by-step instructions to reproduce the issue
   * Proof-of-concept or exploit code (if possible)
@@ -28,7 +27,7 @@ Please include the requested information listed below (as much as you can provid
 
 This information will help us triage your report more quickly.
 
-If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. Please visit our [Microsoft Bug Bounty Program](https://aka.ms/security.md/msrc/bounty) page for more details about our active programs.
+Reports via MSRC may qualify for the Edge Bug Bounty. Details of the program, including terms and conditions, can be found at [Microsoft Edge Bounty Program](https://www.microsoft.com/en-us/msrc/bounty-new-edge).
 
 ## Preferred Languages
 
