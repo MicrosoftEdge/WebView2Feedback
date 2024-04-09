@@ -44,11 +44,11 @@ async System.Threading.Tasks.Task CreateEnvironmentAsync() {
         channelSearchKind: CoreWebView2ChannelSearchKind.LeastStable,
         releaseChannels: channels
     );
-    // Use GetAvailableCoreWebView2BrowserVersionStringWithOptions to check which
+    // Use GetAvailableCoreWebView2BrowserVersionString to check which
     // channel is used with the custom options. If Beta channel was not found,
     // install it on the device.
     string version =
-        CoreWebView2Environment.GetAvailableBrowserVersionStringWithOptions(
+        CoreWebView2Environment.GetAvailableBrowserVersionString(
             browserExecutableFolder: null,
             environmentOptions: customOptions);
     if (!IsBetaChannel(version))
