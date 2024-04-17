@@ -284,133 +284,222 @@ void ActiveMatchIndexChangedSample()
 ```
 
 ## API Details
-```csharp
+```cpp
 
-/// Specifies the direction of find Parameters.
+/// Specifies the direction of Search Parameters.
+// MSOWNERS: core (maxwellmyers@microsoft.com)
 [v1_enum]
-typedef enum COREWEBVIEW2_FIND_DIRECTION { 
-    /// Specifies a forward find in the document.
-    COREWEBVIEW2_FIND_DIRECTION_FORWARD, 
-    /// Specifies a backwards find in the document.
-    COREWEBVIEW2_FIND_DIRECTION_BACKWARD 
-} COREWEBVIEW2_FIND_DIRECTION; 
+typedef enum COREWEBVIEW2_FIND_DIRECTION {
+  /// Specifies a forward search in the document.
+  COREWEBVIEW2_FIND_DIRECTION_FORWARD,
+  /// Specifies a backwards search in the document.
+  COREWEBVIEW2_FIND_DIRECTION_BACKWARD,
+} COREWEBVIEW2_FIND_DIRECTION;
 
-// Interface defining the find configuration.
-[uuid(4A6ED732-DF08-4449-8949-3632A4DEBFCD), object, pointer_default(unique)] 
-interface ICoreWebView2FindConfiguration : IUnknown {
 
-    // Gets or sets the find term used for the find operation.
-    [propget] HRESULT FindTerm([out, retval] LPWSTR* value);
-    [propput] HRESULT FindTerm([in] LPCWSTR value);
+/// Interface that provides methods related to the environment settings of CoreWebView2.
+/// This interface allows for the creation of new find configuration objects.
+// MSOWNERS: core (maxwellmyers@microsoft.com)
+[uuid(f10bddd3-bb59-5d5b-8748-8a1a53f65d0c), object, pointer_default(unique)]
+interface ICoreWebView2StagingEnvironment5 : IUnknown {
+  /// Creates a new instance of a FindConfiguration object.
+  /// This configuration object can be used to define parameters for a search operation.
+  /// Returns the newly created FindConfiguration object.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT CreateFindConfiguration(
+      [out, retval] ICoreWebView2StagingFindConfiguration** value
+  );
 
-    // Gets or sets the direction of the find operation (forward or backward).
-    [propget] HRESULT FindDirection([out, retval] COREWEBVIEW2_FIND_DIRECTION* value); 
-    [propput] HRESULT FindDirection([in] COREWEBVIEW2_FIND_DIRECTION value);
-
-    // Gets or sets whether the find operation is case sensitive.
-    [propget] HRESULT IsCaseSensitive([out, retval] BOOL* value); 
-    [propput] HRESULT IsCaseSensitive([in] BOOL value);
-
-    // Gets or sets whether to only match whole words during the find operation.
-    [propget] HRESULT ShouldMatchWord([out, retval] BOOL* value); 
-    [propput] HRESULT ShouldMatchWord([in] BOOL value);
-
-    // Gets the state of whether all matches are highlighted.
-    // Returns TRUE if all matches are highlighted, FALSE otherwise.
-    [propget] HRESULT ShouldHighlightAllMatches([out, retval] BOOL* value); 
-    // Sets the state to either highlight all matches or not.
-    [propput] HRESULT ShouldHighlightAllMatches([in] BOOL value);
- 
-    // Checks if a custom user interface is desired by end developer.
-    // If TRUE, the default Find bar is not displayed.
-    // Returns TRUE if using a custom UI, FALSE if using the default.
-    [propget] HRESULT SuppressDefaultDialog([out, retval] BOOL* value); 
-    // Sets whether to use a custom UI for the Find operation.
-    [propput] HRESULT SuppressDefaultDialog([in] BOOL value);
-
-    // Gets the index of the currently active match.
-    // If there's no active find session but an attempt is made to get the active match index:
-    // The function will return -1.
-    // Returns The active match index.
-    [propget] HRESULT ActiveMatchIndex([out, retval] LONG* value); 
-
-    // Gets the total count of matches found in the current document based on the last find criteria.
-    // Returns the total count of matches.
-    [propget] HRESULT MatchCount([out, retval] LONG* value);
 
 }
 
-/// Handles the event that's fired when the match count changes.
-[uuid(623EFBFB-A19E-43C4-B309-D578511D24AB), object, pointer_default(unique)]
-interface ICoreWebView2FindmatchCount ChangedEventHandler : IUnknown {
-    /// Parameter is the match count.
-    HRESULT Invoke(ICoreWebView2Find* source, IUnknown* eventArgs);
+
+/// Receives the result of the `StartFind` method.
+[uuid(7c20f8b0-c14e-5135-a099-6c9d11d59dd1), object, pointer_default(unique)]
+interface ICoreWebView2StagingFindStartFindCompletedHandler : IUnknown {
+
+  /// Provides the result of the corresponding asynchronous method.
+  HRESULT Invoke([in] HRESULT errorCode);
 }
 
-/// Handles the event that's fired when the active match index changes.
-[uuid(623EFBF9-A19E-43C4-B309-D578511D24A9), object, pointer_default(unique)]
-interface ICoreWebView2FindActiveMatchIndexChangedEventHandler : IUnknown {
-    /// Parameter is the active match index.
-    HRESULT Invoke(LONG activeMatchIndex);
+/// Receives `FindActiveMatchIndexChanged` events.
+[uuid(8d3422bf-66df-5bae-9916-71fd23d5bef6), object, pointer_default(unique)]
+interface ICoreWebView2StagingFindActiveMatchIndexChangedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2StagingFind* sender,
+      [in] IUnknown* args);
 }
-/// Handles the event that's fired when the find operation completes.
-[uuid(2604789D-9553-4246-8E21-B9C74EFAD04F), object, pointer_default(unique)]
-interface ICoreWebView2FindStartFindOperationCompletedHandler: IUnknown {
-    /// Param1 refers to the returned code when the find operation completes.
-    /// Param2 refers whether the find session successfully finished executing or not.    
-    HRESULT Invoke(HRESULT errorCode, BOOL status);
+/// Receives `FindMatchCountChanged` events.
+[uuid(cecb8e8f-b6c8-55c3-98b1-68fd1e2b9eea), object, pointer_default(unique)]
+interface ICoreWebView2StagingFindMatchCountChangedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2StagingFind* sender,
+      [in] IUnknown* args);
 }
 
-// Interface providing methods and properties for finding and navigating through text in the web view.
-[uuid(7C49A8AA-2A17-4846-8207-21D1520AABC0), object, pointer_default(unique)] 
-interface ICoreWebView2Find : IUnknown {
- 
-    // Initiates a find using the specified configuration.
-    HRESULT StartFind([in] ICoreWebView2FindConfiguration* configuration, 
-                      ICoreWebView2FindOperationCompletedHandler* handler);
 
-    // Navigates to the next match in the document.
-    HRESULT FindNext();
+/// Interface providing methods and properties for finding and navigating through text in the web view.
+/// This interface allows for text searches, navigation between matches, and customization of the find UI.
+// MSOWNERS: core (maxwellmyers@microsoft.com)
+[uuid(b21617e6-34a1-516d-846c-5615516afa90), object, pointer_default(unique)]
+interface ICoreWebView2StagingFind : IUnknown {
+  /// Retrieves the index of the currently active match in the find session. Returns the index of the currently active match, or -1 if there is no active match.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT ActiveMatchIndex([out, retval] UINT32* value);
 
-    // Navigates to the previous match in the document.
-    HRESULT FindPrevious();
 
-    // Stops the current 'Find' operation and hides the Find bar.
-    HRESULT StopFind();
+  /// Gets the total count of matches found in the current document based on the last search criteria. Returns the total count of matches.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT MatchCount([out, retval] UINT32* value);
 
-    // Registers an event handler for the FindCompleted event.
-    // This event is raised when a find operation completes, either by finding all matches, navigating to a match, or by being stopped.
-    // Parameter is the event handler to be added.
-    // Returns a token representing the added event handler. This token can be used to unregister the event handler.
-    HRESULT add_matchCount Changed(
-        [in] ICoreWebView2FindmatchCount ChangedEventHandler* eventHandler,
-        [out] EventRegistrationToken* token);
-    // Unregisters an event handler from the matchCount Changed event.
-    // Parameter is the token of the event handler to be removed, obtained during the registration of the event handler.
-    HRESULT remove_matchCount Changed([in] EventRegistrationToken token);
 
-    // Registers an event handler for the ActiveMatchIndexChanged event.
-    // This event is raised when the index of the currently active match changes.
-    // This can happen when the user navigates to a different match or when the active match is changed programmatically.
-    // Parameter is the event handler to be added.
-    // Returns a token representing the added event handler. This token can be used to unregister the event handler.
-    HRESULT add_ActiveMatchIndexChanged(
-        [in] ICoreWebView2FindActiveMatchIndexChangedEventHandler* eventHandler,
-        [out] EventRegistrationToken* token);
-    // Unregisters an event handler from the ActiveMatchIndexChanged event.
-    // parameter is the token of the event handler to be removed, obtained during the registration of the event handler.
-    HRESULT remove_ActiveMatchIndexChanged([in] EventRegistrationToken token);
+  /// Gets the `ShouldHighlightAllMatches` property.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT ShouldHighlightAllMatches([out, retval] BOOL* value);
+
+
+  /// Gets or sets the state of whether all matches are highlighted. Returns TRUE if all matches are highlighted, FALSE otherwise.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propput] HRESULT ShouldHighlightAllMatches([in] BOOL value);
+
+
+  /// Gets the `SuppressDefaultDialog` property.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT SuppressDefaultDialog([out, retval] BOOL* value);
+
+
+  /// Checks if a custom user interface is desired by the end developer. Returns TRUE if using a custom UI, FALSE if using the default.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propput] HRESULT SuppressDefaultDialog([in] BOOL value);
+
+
+
+  /// Adds an event handler for the `FindActiveMatchIndexChanged` event.
+  /// Registers an event handler for the ActiveMatchIndexChanged event. This event is raised when the index of the currently active match changes. This can happen when the user navigates to a different match or when the active match is changed programmatically. The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT add_FindActiveMatchIndexChanged(
+      [in] ICoreWebView2StagingFindActiveMatchIndexChangedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Removes an event handler previously added with `add_FindActiveMatchIndexChanged`.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT remove_FindActiveMatchIndexChanged(
+      [in] EventRegistrationToken token);
+
+  /// Adds an event handler for the `FindMatchCountChanged` event.
+  /// Registers an event handler for the MatchCountChanged event. This event is raised when the total count of matches in the document changes due to a new search operation or changes in the document. The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT add_FindMatchCountChanged(
+      [in] ICoreWebView2StagingFindMatchCountChangedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Removes an event handler previously added with `add_FindMatchCountChanged`.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT remove_FindMatchCountChanged(
+      [in] EventRegistrationToken token);
+
+
+  /// Initiates a search using the specified configuration.
+  /// Displays the Find bar and starts the search operation. If a search was already ongoing, it will be stopped and replaced with this new instance.
+  /// If called with an empty string, the Find bar is displayed but no search occurs. Changing the configuration object after initiation won't affect the ongoing search.
+  /// To change the ongoing search, StartFind must be called again with a new or modified configuration object.
+  /// This method is primarily designed for HTML document searches.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT StartFind(
+      [in] ICoreWebView2StagingFindConfiguration* configuration
+      , [in] ICoreWebView2StagingFindStartFindCompletedHandler* handler
+  );
+
+  /// Navigates to the next match in the document.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT FindNext(
+  );
+
+  /// Navigates to the previous match in the document.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT FindPrevious(
+  );
+
+  /// Stops the current 'Find' operation and hides the Find bar.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  HRESULT StopFind(
+  );
+
+
+}
+
+
+
+/// Interface defining the find configuration.
+/// This interface provides the necessary methods and properties to configure a search operation.
+// MSOWNERS: core (maxwellmyers@microsoft.com)
+[uuid(52a04b23-acc8-5659-aa2f-26dbe9faafde), object, pointer_default(unique)]
+interface ICoreWebView2StagingFindConfiguration : IUnknown {
+  /// Gets the `FindDirection` property.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT FindDirection([out, retval] COREWEBVIEW2_FIND_DIRECTION* value);
+
+
+  /// 
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propput] HRESULT FindDirection([in] COREWEBVIEW2_FIND_DIRECTION value);
+
+
+  /// Gets the `FindTerm` property.
+  ///
+  /// The caller must free the returned string with `CoTaskMemFree`.  See
+  /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT FindTerm([out, retval] LPWSTR* value);
+
+
+  /// 
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propput] HRESULT FindTerm([in] LPCWSTR value);
+
+
+  /// Gets the `IsCaseSensitive` property.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT IsCaseSensitive([out, retval] BOOL* value);
+
+
+  /// 
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propput] HRESULT IsCaseSensitive([in] BOOL value);
+
+
+  /// Gets the `ShouldMatchWord` property.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT ShouldMatchWord([out, retval] BOOL* value);
+
+
+  /// 
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propput] HRESULT ShouldMatchWord([in] BOOL value);
+
+
+
+}
+
+///  
+/// Interface providing methods to access the find operation functionalities in the CoreWebView2.
+/// 
+// MSOWNERS: core (maxwellmyers@microsoft.com)
+[uuid(c9a130ca-a807-549c-9d76-8e09ccee3973), object, pointer_default(unique)]
+interface ICoreWebView2Staging17 : IUnknown {
+  /// Retrieves the find operation interface for the current web view.
+  // MSOWNERS: core (maxwellmyers@microsoft.com)
+  [propget] HRESULT Find([out, retval] ICoreWebView2StagingFind** value);
+
+
+
 }
 ```
 
 
 ### Setting Up Find Configuration with MIDL3
-
-To represent the given C# examples in a manner consistent with the behavior demonstrated 
-earlier in the chat and align them with an API design that could be described using 
-MIDL3 (noted as C# for formatting), let's formalize the design for a hypothetical 
-WebView2 Find operation API. This design will incorporate setting up a find configuration,
- starting a find operation, handling find operation events, and navigating through find matches.
 
 ### CoreWebView2 Find Configuration and Direction
 
@@ -438,52 +527,84 @@ namespace Microsoft.Web.WebView2.Core
 ```csharp
 namespace Microsoft.Web.WebView2.Core
 {
-
+    /// Specifies the direction of Search Parameters.
+    [ms_owner("core", "maxwellmyers@microsoft.com")]
+    [availability("staging")]
     enum CoreWebView2FindDirection
     {
+        /// Specifies a forward search in the document.
         Forward, 
+        /// Specifies a backwards search in the document.
         Backward, 
     };
 
-runtime CoreWebView2Find
-{
-    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Find")]
+    runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfiguration {}
+
+    /// Interface defining the find configuration.
+    /// This interface provides the necessary methods and properties to configure a search operation.
+    [com_interface("staging=ICoreWebView2StagingFindConfiguration")]
+    [ms_owner("core", "maxwellmyers@microsoft.com")]
+    [availability("staging")]
+    interface ICoreWebView2FindConfiguration 
     {
-        void StartFind(CoreWebView2FindConfiguration configuration);
+        // Gets or sets the search term used for the find operation. Returns the search term.
+        String FindTerm { get; set; };
+        // Gets or sets the direction of the search operation (forward or backward). Returns the search direction.
+        CoreWebView2FindDirection FindDirection { get; set; };
+        // Determines if the search operation is case sensitive. Returns TRUE if the search is case sensitive, FALSE otherwise.
+        Boolean IsCaseSensitive { get; set; };
+        // Determines if only whole words should be matched during the find operation. Returns TRUE if only whole words should be matched, FALSE otherwise.
+        Boolean ShouldMatchWord { get; set; };
+    };
+
+    runtimeclass CoreWebView2Find : [default]ICoreWebView2Find {}
+
+    /// Interface providing methods and properties for finding and navigating through text in the web view.
+    /// This interface allows for text searches, navigation between matches, and customization of the find UI.
+    [com_interface("staging=ICoreWebView2StagingFind")]
+    [ms_owner("core", "maxwellmyers@microsoft.com")]
+    [availability("staging")]
+    interface ICoreWebView2Find 
+    {
+        [completed_handler("")]
+        /// Initiates a search using the specified configuration.
+        /// Displays the Find bar and starts the search operation. If a search was already ongoing, it will be stopped and replaced with this new instance.
+        /// If called with an empty string, the Find bar is displayed but no search occurs. Changing the configuration object after initiation won't affect the ongoing search.
+        /// To change the ongoing search, StartFind must be called again with a new or modified configuration object.
+        /// This method is primarily designed for HTML document searches.
+        Windows.Foundation.IAsyncAction StartFindAsync(CoreWebView2FindConfiguration configuration);
+
+        /// Navigates to the next match in the document.
         void FindNext();
+
+        /// Navigates to the previous match in the document.
         void FindPrevious();
+
+        /// Stops the current 'Find' operation and hides the Find bar.
         void StopFind();
-        bool ShouldHighlightAllMatches { get; set; }
-        bool ShouldHighlightActiveMatch { get; set; }
-        bool UseCustomUI { get; set; }
-        int ActiveMatchIndex { get; }; 
-        int MatchCount { get; }; 
-    }
-}
 
+        /// Gets or sets the state of whether all matches are highlighted. Returns TRUE if all matches are highlighted, FALSE otherwise.
+        Boolean ShouldHighlightAllMatches { get; set; };
 
-    runtimeclass CoreWebView2FindConfiguration {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingFindConfiguration")]
-        {
-            String FindTerm { get; set; };
-            CoreWebView2FindDirection FindDirection { get; set; };
-            Boolean IsCaseSensitive { get; set; };
-            Boolean ShouldMatchWord { get; set; };
-        };
-    }
+        /// Checks if a custom user interface is desired by the end developer. Returns TRUE if using a custom UI, FALSE if using the default.
+        Boolean SuppressDefaultDialog { get; set; };
 
-    interface ICoreWebView2Environment14
-    {
-        CoreWebView2FindConfiguration CreateFindConfiguration();
+        /// Retrieves the index of the currently active match in the find session. Returns the index of the currently active match, or -1 if there is no active match.
+        UInt32 ActiveMatchIndex { get; };
+
+        /// Gets the total count of matches found in the current document based on the last search criteria. Returns the total count of matches.
+        UInt32 MatchCount { get; };
+        
+        /// Registers an event handler for the MatchCountChanged event. This event is raised when the total count of matches in the document changes due to a new search operation or changes in the document. The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
+        [event_handler("", "", "")]
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Find, Object> FindMatchCountChanged;
+
+        /// Registers an event handler for the ActiveMatchIndexChanged event. This event is raised when the index of the currently active match changes. This can happen when the user navigates to a different match or when the active match is changed programmatically. The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
+        [event_handler("", "", "")]
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Find, Object> FindActiveMatchIndexChanged;
     };
 }
 ```
-
-These examples demonstrate how you would conceptualize and implement the Find API 
-within the Microsoft WebView2 environment, focusing on async patterns for 
-responsive UI interactions and event handling for dynamic UI updates based on the 
-results of find operations. This design emphasizes asynchronous task-based APIs, 
-event handling for UI updates, and modular API design for clear separation of concerns.
 
 # Appendix
 
