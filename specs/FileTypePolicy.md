@@ -37,20 +37,20 @@ bool ScenarioFileTypePolicyStaging::AddCustomFileTypePolicies()
                 ICoreWebView2* sender,
                 ICoreWebView2StagingFileTypePolicyCheckingEventArgs* args) -> HRESULT
             {
-                LPWSTR extension;
                 // Get the file extension for file to be saved.
+                // And create your own rules of file type policy.
+                LPWSTR extension;
                 CHECK_FAILURE(args->get_FileExtension(&extension));
-                // Create your own rules of file type policy.
                 if (lstrcmpW(extension, L"eml") == 0)
-                    // Set the `SuppressDefaultPolicy` property to skip the default
-                    // file type policy checking and a possible security alert dialog.
-                    //
-                    // This will consent to save the file. 
+                    // Set the `SuppressDefaultPolicy` property to skip the
+                    // default file type policy checking and a possible security
+                    // alert dialog for "eml" file. This will consent to
+                    // save the file.
                     CHECK_FAILURE(args->put_SuppressDefaultPolicy(TRUE));
                 if (lstrcmpW(extension, L"exe") == 0)
-                    // Set the `Cancel` property to cancel the saving directly.
-                    //
-                    // This will abort to save the file. 
+                    // Set the `Cancel` property to cancel the saving for "exe"
+                    // file directly. Save action will be aborted without any
+                    // alert.
                     CHECK_FAILURE(args->put_Cancel(TRUE));
                 wil::com_ptr<ICoreWebView2Deferral> deferral;
                 CHECK_FAILURE(args->GetDeferral(&deferral));
@@ -66,8 +66,43 @@ bool ScenarioFileTypePolicyStaging::AddCustomFileTypePolicies()
 ```
 
 ## .Net/ WinRT
-###
+This example shows suppressing file type policy, security dialog, and 
+allow to save the file directly. It also blocks saving the exe file.
+The sample code will register the event with custom rules.
 ```c#
+void AddCustomFileTypePoliciesExecuted(object target, ExecutedRoutedEventArgs e)
+{
+    // Register a handler for the `FileTypePolicyChecking` event.
+    webView.CoreWebView2.FileTypePolicyChecking += (sender, args) =>
+    {
+        // Developer can obtain a deferral for the event so that the CoreWebView2
+        // doesn't examine the properties we set on the event args until
+        // after the deferral completes asynchronously.
+        CoreWebView2Deferral deferral = args.GetDeferral();
+
+        // We avoid potential reentrancy from running a message loop in the event
+        // handler. Complete the deferral asynchronously.
+        System.Threading.SynchronizationContext.Current.Post((_) =>
+        {
+            using (deferral)
+            {
+                // Get the file extension for file to be saved.
+                // And create your own rules of file type policy.
+                if (args.FileExtension == "eml")
+                    // Set the `SuppressDefaultPolicy` property to skip the
+                    // default file type policy checking and a possible security
+                    // alert dialog for "eml" file. This will consent to
+                    // save the file.
+                    args.SuppressDefaultPolicy = true;
+                if (args.FileExtension == "exe")
+                    // Set the `Cancel` property to cancel the saving for "exe"
+                    // file directly. Save action will be aborted without any
+                    // alert.
+                    args.Cancel = true;
+            }
+        }, null);
+    };
+}
 ```
 
 # API Details
@@ -160,4 +195,31 @@ interface ICoreWebView2StagingFileTypePolicyCheckingEventHandler : IUnknown {
 
 ## .Net/ WinRT
 ```c# (but really MIDL3)
+namespace Microsoft.Web.WebView2.Core
+{
+
+    runtimeclass CoreWebView2FileTypePolicyCheckingEventArgs; 
+    runtimeclass CoreWebView2;
+
+    runtimeclass CoreWebView2FileTypePolicyCheckingEventArgs
+    {
+        Boolean Cancel { get; set; };
+        String FileExtension { get; };
+        String FilePath { get; };
+        Boolean SuppressDefaultPolicy { get; set; };
+        String Uri { get; };
+        Windows.Foundation.Deferral GetDeferral();
+    };
+
+    runtimeclass CoreWebView2
+    {
+        // ...
+        
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_25")]
+        {
+            event Windows.Foundation.TypedEventHandler
+                <CoreWebView2, CoreWebView2FileTypePolicyCheckingEventArgs> FileTypePolicyChecking;
+        }
+    };
+}
 ```
