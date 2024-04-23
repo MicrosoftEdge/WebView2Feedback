@@ -14,7 +14,7 @@ We'd appreciate your feedback.
 # Description
 
 We proposed the `CoreWebView2.FileTypePolicyChecking` event. You can register
-this event to get the file path, file extension and domain uri information,
+this event to get the file path, file extension and URI information,
 when end users try to save a file from your App. Then you can apply your own
 rules to allow save the file with, or without a default warning dialog;
 to cancel the saving; and even to create your own UI to manage runtime 
@@ -42,21 +42,20 @@ bool ScenarioFileTypePolicyStaging::AddCustomFileTypePolicies()
                 LPWSTR extension;
                 CHECK_FAILURE(args->get_FileExtension(&extension));
                 if (lstrcmpW(extension, L"eml") == 0)
+                {
                     // Set the `SuppressDefaultPolicy` property to skip the
                     // default file type policy checking and a possible security
                     // alert dialog for "eml" file. This will consent to
                     // save the file.
                     CHECK_FAILURE(args->put_SuppressDefaultPolicy(TRUE));
+                }
                 if (lstrcmpW(extension, L"exe") == 0)
+                {
                     // Set the `Cancel` property to cancel the saving for "exe"
                     // file directly. Save action will be aborted without any
                     // alert.
                     CHECK_FAILURE(args->put_Cancel(TRUE));
-                wil::com_ptr<ICoreWebView2Deferral> deferral;
-                CHECK_FAILURE(args->GetDeferral(&deferral));
-
-                m_appWindow->RunAsync([deferral]() { CHECK_FAILURE(deferral->Complete()); });
-
+                }
                 return S_OK;
             })
             .Get(),
@@ -75,32 +74,23 @@ void AddCustomFileTypePoliciesExecuted(object target, ExecutedRoutedEventArgs e)
     // Register a handler for the `FileTypePolicyChecking` event.
     webView.CoreWebView2.FileTypePolicyChecking += (sender, args) =>
     {
-        // Developer can obtain a deferral for the event so that the CoreWebView2
-        // doesn't examine the properties we set on the event args until
-        // after the deferral completes asynchronously.
-        CoreWebView2Deferral deferral = args.GetDeferral();
-
-        // We avoid potential reentrancy from running a message loop in the event
-        // handler. Complete the deferral asynchronously.
-        System.Threading.SynchronizationContext.Current.Post((_) =>
+        // Get the file extension for file to be saved.
+        // And create your own rules of file type policy.
+        if (args.FileExtension == "eml")
         {
-            using (deferral)
-            {
-                // Get the file extension for file to be saved.
-                // And create your own rules of file type policy.
-                if (args.FileExtension == "eml")
-                    // Set the `SuppressDefaultPolicy` property to skip the
-                    // default file type policy checking and a possible security
-                    // alert dialog for "eml" file. This will consent to
-                    // save the file.
-                    args.SuppressDefaultPolicy = true;
-                if (args.FileExtension == "exe")
-                    // Set the `Cancel` property to cancel the saving for "exe"
-                    // file directly. Save action will be aborted without any
-                    // alert.
-                    args.Cancel = true;
-            }
-        }, null);
+            // Set the `SuppressDefaultPolicy` property to skip the
+            // default file type policy checking and a possible security
+            // alert dialog for "eml" file. This will consent to
+            // save the file.
+            args.SuppressDefaultPolicy = true;
+        }
+        if (args.FileExtension == "exe")
+        {
+            // Set the `Cancel` property to cancel the saving for "exe"
+            // file directly. Save action will be aborted without any
+            // alert.
+            args.Cancel = true;
+        }
     };
 }
 ```
@@ -110,7 +100,9 @@ void AddCustomFileTypePoliciesExecuted(object target, ExecutedRoutedEventArgs e)
 ```c++
 interface ICoreWebView2 : IUnknown {
   /// Adds an event handler for the `FileTypePolicyChecking` event.
-  /// This event will be raised during system FileTypePolicy
+  /// If the default save file picker is used to save a file, for
+  /// example, client using the File System API `showSaveFilePicker`;
+  /// this event will be raised during system FileTypePolicy
   /// checking the dangerous file extension list.
   /// 
   /// Developers can specify their own decision on if allow this file 
@@ -121,14 +113,14 @@ interface ICoreWebView2 : IUnknown {
   /// 
   /// | Cancel | SuppressDefaultPolicy | Result
   /// | ------ | ------ | ---------------------  
-  /// | False  | False  | Process to default policy check. It might show 
+  /// | False  | False  | Perform the default policy check. It may show the
   /// |        |        | security warning UI if the file extension is 
   /// |        |        | dangerous.
   /// | ------ | ------ | --------------------- 
   /// | False  | True   | Skip the default policy check and the possible
   /// |        |        | security warning. Start saving or downloading.
   /// | ------ | ------ | --------------------- 
-  /// | True   | T or F | Skip the default policy check and the possible
+  /// | True   | Any    | Skip the default policy check and the possible
   /// |        |        | security warning. Abort save or download.
   HRESULT add_FileTypePolicyChecking(
       [in] ICoreWebView2StagingFileTypePolicyCheckingEventHandler* eventHandler,
@@ -153,10 +145,12 @@ interface ICoreWebView2StagingFileTypePolicyCheckingEventArgs : IUnknown {
 
   /// Get the extension of file to be saved.
   ///
-  /// File extension can be empty.
+  /// File extension can be empty, if the file name has no extension
+  /// at all.
   ///
-  /// Only final extension will be provided. For example, "*.tar.gz" 
-  /// is a double extension, where the "gz" will be its final extension.
+  /// Only final extension without "." will be provided. For example,
+  /// "*.tar.gz" is a double extension, where the "gz" will be its
+  /// final extension.
   ///
   /// File extension usage in the API is case sensitive.
   [propget] HRESULT FileExtension([out, retval] LPWSTR* value);
@@ -174,11 +168,14 @@ interface ICoreWebView2StagingFileTypePolicyCheckingEventArgs : IUnknown {
   /// The default value is `FALSE`.
   [propput] HRESULT SuppressDefaultPolicy([in] BOOL value);
 
-  /// Get the uri of file source.
+  /// The URI source of this file save operation.
   [propget] HRESULT Uri([out, retval] LPWSTR* value);
 
   /// Returns an `ICoreWebView2Deferral` object. Use this operation to complete
   /// the FileTypePolicyCheckingEvent.
+  ///
+  /// The default policy checking and any default UI will be blocked temporarily,
+  /// saving file to local won't start, until the deferral is completed.
   HRESULT GetDeferral(
       [out, retval] ICoreWebView2Deferral** value
   );
