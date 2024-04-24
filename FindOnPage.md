@@ -44,7 +44,7 @@ wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfigurat
 
     // Get the Find interface.
     wil::com_ptr<ICoreWebView2Find> webView2Find;
-    CHECK_FAILURE(webView2_17->get_Find(&webView2find));
+    CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
 
     return findConfiguration;
 }
@@ -113,11 +113,11 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& searchTerm)
     CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
 
     // Opt for using a custom UI for the find operation.
-    CHECK_FAILURE(webView2find->put_UseCustomUI(true));
+    CHECK_FAILURE(webView2Find->put_UseCustomUI(true));
     CHECK_FAILURE(webView2find->put_ShouldHighlightAllMatches(true));
 
     // Start the find operation with callback for completion.
-    CHECK_FAILURE(webView2find->StartFind(
+    CHECK_FAILURE(webView2Find->StartFind(
         findConfiguration.get(),
         Callback<ICoreWebView2FindOperationCompletedHandler>(
             [this](HRESULT result, BOOL status) -> HRESULT
@@ -236,9 +236,9 @@ within a WebView2 control using the `GetActiveMatchIndex` method.
         auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
         CHECK_FEATURE_RETURN(webView2_17);
         wil::com_ptr<ICoreWebView2Find> webView2find;
-        CHECK_FAILURE(webView2_17->get_Find(&webView2find));
+        CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
         LONG activeMatchIndex;
-        CHECK_FAILURE(webView2find->get_ActiveMatchIndex(&activeMatchIndex));
+        CHECK_FAILURE(webView2Find->get_ActiveMatchIndex(&activeMatchIndex));
     
         // Update UI or handle activeMatchIndex as you wish
         // For example, you could show a message box
