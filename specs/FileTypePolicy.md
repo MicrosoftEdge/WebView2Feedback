@@ -13,8 +13,8 @@ We'd appreciate your feedback.
 
 # Description
 
-We proposed the `CoreWebView2.FileTypePolicyChecking` event. You can register
-this event to get the file path, file extension and URI information,
+We proposed the `CoreWebView2.SaveFileSecurityCheckStarting` event. You can register
+this event to get the file path, file extension and URI source information,
 when end users try to save a file from your App. Then you can apply your own
 rules to allow save the file with, or without a default warning dialog;
 to cancel the saving; and even to create your own UI to manage runtime 
@@ -30,12 +30,12 @@ bool ScenarioFileTypePolicyStaging::AddCustomFileTypePolicies()
 {
     if (!m_webView2Staging25)
         return false;
-    // Register a handler for the `FileTypePolicyChecking` event.
-    m_webView2Staging25->add_FileTypePolicyChecking(
-        Callback<ICoreWebView2StagingFileTypePolicyCheckingEventHandler>(
+    // Register a handler for the `SaveFileSecurityCheckStarting` event.
+    m_webView2Staging25->add_SaveFileSecurityCheckStarting(
+        Callback<ICoreWebView2StagingSaveFileSecurityCheckStartingEventHandler>(
             [this](
                 ICoreWebView2* sender,
-                ICoreWebView2StagingFileTypePolicyCheckingEventArgs* args) -> HRESULT
+                ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs* args) -> HRESULT
             {
                 // Get the file extension for file to be saved.
                 // And create your own rules of file type policy.
@@ -59,7 +59,7 @@ bool ScenarioFileTypePolicyStaging::AddCustomFileTypePolicies()
                 return S_OK;
             })
             .Get(),
-        &m_fileTypePolicyCheckingToken);
+        &m_saveFileSecurityCheckStartingToken);
     return true;
 }
 ```
@@ -71,8 +71,8 @@ The sample code will register the event with custom rules.
 ```c#
 void AddCustomFileTypePoliciesExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    // Register a handler for the `FileTypePolicyChecking` event.
-    webView.CoreWebView2.FileTypePolicyChecking += (sender, args) =>
+    // Register a handler for the `SaveFileSecurityCheckStarting` event.
+    webView.CoreWebView2.SaveFileSecurityCheckStarting += (sender, args) =>
     {
         // Get the file extension for file to be saved.
         // And create your own rules of file type policy.
@@ -99,7 +99,7 @@ void AddCustomFileTypePoliciesExecuted(object target, ExecutedRoutedEventArgs e)
 ## Win32 C++
 ```c++
 interface ICoreWebView2 : IUnknown {
-  /// Adds an event handler for the `FileTypePolicyChecking` event.
+  /// Adds an event handler for the `SaveFileSecurityCheckStarting` event.
   /// If the default save file picker is used to save a file, for
   /// example, client using the File System API `showSaveFilePicker`;
   /// this event will be raised during system FileTypePolicy
@@ -107,7 +107,7 @@ interface ICoreWebView2 : IUnknown {
   /// 
   /// Developers can specify their own decision on if allow this file 
   /// type extension to be saved, or downloaded. Here are two properties
-  /// in `ICoreWebView2FileTypePolicyCheckingEventArgs` to manage the 
+  /// in `ICoreWebView2SaveFileSecurityCheckStartingEventArgs` to manage the 
   /// decision, `Cancel` and `SuppressDefaultPolicy`.
   /// Table of Properties' value and result:
   /// 
@@ -122,18 +122,18 @@ interface ICoreWebView2 : IUnknown {
   /// | ------ | ------ | --------------------- 
   /// | True   | Any    | Skip the default policy check and the possible
   /// |        |        | security warning. Abort save or download.
-  HRESULT add_FileTypePolicyChecking(
-      [in] ICoreWebView2StagingFileTypePolicyCheckingEventHandler* eventHandler,
+  HRESULT add_SaveFileSecurityCheckStarting(
+      [in] ICoreWebView2StagingSaveFileSecurityCheckStartingEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Removes an event handler previously added with `add_FileTypePolicyChecking`.
-  HRESULT remove_FileTypePolicyChecking(
+  /// Removes an event handler previously added with `add_SaveFileSecurityCheckStarting`.
+  HRESULT remove_SaveFileSecurityCheckStarting(
       [in] EventRegistrationToken token);
 }
 
 
-/// The event args for `FileTypePolicyChecking` event.
-interface ICoreWebView2StagingFileTypePolicyCheckingEventArgs : IUnknown {
+/// The event args for `SaveFileSecurityCheckStarting` event.
+interface ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs : IUnknown {
   /// Gets the `Cancel` property.
   [propget] HRESULT Cancel([out, retval] BOOL* value);
 
@@ -169,10 +169,10 @@ interface ICoreWebView2StagingFileTypePolicyCheckingEventArgs : IUnknown {
   [propput] HRESULT SuppressDefaultPolicy([in] BOOL value);
 
   /// The URI source of this file save operation.
-  [propget] HRESULT Uri([out, retval] LPWSTR* value);
+  [propget] HRESULT SourceUri([out, retval] LPWSTR* value);
 
   /// Returns an `ICoreWebView2Deferral` object. Use this operation to complete
-  /// the FileTypePolicyCheckingEvent.
+  /// the SaveFileSecurityCheckStartingEvent.
   ///
   /// The default policy checking and any default UI will be blocked temporarily,
   /// saving file to local won't start, until the deferral is completed.
@@ -181,12 +181,12 @@ interface ICoreWebView2StagingFileTypePolicyCheckingEventArgs : IUnknown {
   );
 }
 
-/// Receives `FileTypePolicyChecking` events.
-interface ICoreWebView2StagingFileTypePolicyCheckingEventHandler : IUnknown {
+/// Receives `SaveFileSecurityCheckStarting` events.
+interface ICoreWebView2StagingSaveFileSecurityCheckStartingEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2* sender,
-      [in] ICoreWebView2StagingFileTypePolicyCheckingEventArgs* args);
+      [in] ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs* args);
 }
 ```
 
@@ -195,16 +195,16 @@ interface ICoreWebView2StagingFileTypePolicyCheckingEventHandler : IUnknown {
 namespace Microsoft.Web.WebView2.Core
 {
 
-    runtimeclass CoreWebView2FileTypePolicyCheckingEventArgs; 
+    runtimeclass CoreWebView2SaveFileSecurityCheckStartingEventArgs; 
     runtimeclass CoreWebView2;
 
-    runtimeclass CoreWebView2FileTypePolicyCheckingEventArgs
+    runtimeclass CoreWebView2SaveFileSecurityCheckStartingEventArgs
     {
         Boolean Cancel { get; set; };
         String FileExtension { get; };
         String FilePath { get; };
         Boolean SuppressDefaultPolicy { get; set; };
-        String Uri { get; };
+        String SourceUri { get; };
         Windows.Foundation.Deferral GetDeferral();
     };
 
@@ -215,7 +215,7 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_25")]
         {
             event Windows.Foundation.TypedEventHandler
-                <CoreWebView2, CoreWebView2FileTypePolicyCheckingEventArgs> FileTypePolicyChecking;
+                <CoreWebView2, CoreWebView2SaveFileSecurityCheckStartingEventArgs> SaveFileSecurityCheckStarting;
         }
     };
 }
