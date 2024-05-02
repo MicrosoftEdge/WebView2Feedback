@@ -42,10 +42,6 @@ wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfigurat
     auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
     CHECK_FEATURE_RETURN(webView2_17);
 
-    // Get the Find interface.
-    wil::com_ptr<ICoreWebView2Find> webView2Find;
-    CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
-
     return findConfiguration;
 }
 //! [InitializeFindConfiguration]
@@ -53,7 +49,7 @@ wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfigurat
 
 ```cpp
 //! [ExecuteFindWithDefaultUI]
-bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
+bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm) 
 {
     auto findConfiguration = InitializeFindConfiguration(searchTerm);
     if (!findConfiguration)
@@ -69,7 +65,7 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
     CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
 
     // Assuming you want to use the default UI, adjust as necessary.
-    CHECK_FAILURE(webView2Find->put_UseCustomUI(false)); 
+    CHECK_FAILURE(webView2Find->put_SuppressDefaultDialog(false)); 
     CHECK_FAILURE(webView2Find->put_ShouldHighlightAllMatches(true));
 
     // Start the find operation with a callback for completion.
@@ -113,7 +109,7 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& searchTerm)
     CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
 
     // Opt for using a custom UI for the find operation.
-    CHECK_FAILURE(webView2Find->put_UseCustomUI(true));
+    CHECK_FAILURE(webView2Find->put_SuppressDefaultDialog(true));
     CHECK_FAILURE(webView2find->put_ShouldHighlightAllMatches(true));
 
     // Start the find operation with callback for completion.
@@ -166,7 +162,7 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string searchTerm)
         };
 
         // Use the default UI provided by WebView2 for the find operation.
-        webView.CoreWebView2.FindController.UseCustomUI = false;
+        webView.CoreWebView2.FindController.SuppressDefaultDialog = false;
         webView.CoreWebView2.FindController.ShouldHighlightAllMatches = true;
 
         // Start the find operation with the specified configuration.
@@ -205,7 +201,7 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string searchTerm)
         };
 
         // Specify that a custom UI will be used for the find operation.
-        webView.CoreWebView2.FindController.UseCustomUI = true;
+        webView.CoreWebView2.FindController.SuppressDefaultDialog = true;
         webView.CoreWebView2.FindController.ShouldHighlightAllMatches = true;
 
         // Start the find operation with the specified configuration.
