@@ -571,10 +571,17 @@ namespace Microsoft.Web.WebView2.Core
         Windows.Foundation.IAsyncAction StartFindAsync(CoreWebView2FindConfiguration configuration);
 
         /// Navigates to the next match in the document.
+        /// Note: If called when there is no find operation in progress, FindNext will start a new find session. 
+        /// If there are no matches to find, FindNext will wrap around to the first match if the search direction is forward, 
+        /// or to the last match if the search direction is backward.
         void FindNext();
-
+        
         /// Navigates to the previous match in the document.
+        /// Note: If called when there is no find operation in progress, FindPrevious will start a new find session. 
+        /// If there are no matches to find, FindPrevious will wrap around to the last match if the search direction is forward, 
+        /// or to the first match if the search direction is backward.
         void FindPrevious();
+
 
         /// Stops the current 'Find' operation and hides the Find bar.
         /// If called with no Find session active, it will silently do nothing.
