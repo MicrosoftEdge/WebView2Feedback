@@ -563,12 +563,16 @@ namespace Microsoft.Web.WebView2.Core
     interface ICoreWebView2Find 
     {
         [completed_handler("")]
-        /// Initiates a find using the specified configuration.
+        /// Initiates a find using the specified configuration asynchronously.
         /// Displays the Find bar and starts the find operation. If a find session was already ongoing, it will be stopped and replaced with this new instance.
         /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the configuration object after initiation won't affect the ongoing find session.
-        /// To change the ongoing find session, StartFind must be called again with a new or modified configuration object.
+        /// To change the ongoing find session, StartFindAsync must be called again with a new or modified configuration object.
         /// This method is primarily designed for HTML document queries.
+        /// Note: The asynchronous action completes when the UI has been displayed with the find term in the UI bar, and the matches have populated on the counter on the find bar. 
+        /// There may be a slight latency between the UI display and the matches populating in the counter. 
+        /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after StartFindAsync has completed, otherwise they will have their default values (-1 for both).
         Windows.Foundation.IAsyncAction StartFindAsync(CoreWebView2FindConfiguration configuration);
+
 
         /// Navigates to the next match in the document.
         /// Note: If called when there is no find operation in progress, FindNext will start a new find session. 
