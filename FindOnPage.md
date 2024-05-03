@@ -582,7 +582,7 @@ namespace Microsoft.Web.WebView2.Core
         /// Gets or sets the state of whether all matches are highlighted. Returns TRUE if all matches are highlighted, FALSE otherwise.
         Boolean ShouldHighlightAllMatches { get; set; };
 
-        /// Checks if a custom user interface is desired by the end developer. Returns TRUE if using a custom UI, FALSE if using the default.
+        /// Set this property to hide the default Find UI. You can use this to hide the default UI so that you can show your own custom UI or programmatically interact with the Find API while showing no Find UI. Returns TRUE if hiding the default Find UI and FALSE if using showing the default Find UI.
         Boolean SuppressDefaultFindDialog { get; set; };
 
         /// Retrieves the index of the currently active match in the find session. Returns the index of the currently active match, or -1 if there is no active match.
