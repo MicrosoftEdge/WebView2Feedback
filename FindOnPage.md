@@ -5,7 +5,7 @@
 The WebView2Find API offers methods and events for text finding and navigation
 within a WebView2 control. It enables developers to programmatically initiate find
 operations, navigate find results, suppress default UI, and customize find configurations
-like query and search direction. It also tracks the status of operations, indicating
+like query and find direction. It also tracks the status of operations, indicating
 completion, match count changes, and match index changes.
 
 ## Examples
@@ -14,7 +14,7 @@ completion, match count changes, and match index changes.
 #### Description
 
 To initiate a find operation in a WebView2 control, use the `StartFind` method.
-This method allows setting the search term and find parameters via the
+This method allows setting the find term and find parameters via the
 `ICoreWebView2FindConfiguration` interface. Only one find session can be active per
 webview environment. Starting another with the same configuration will adjust
 the active match index based on the selected Find Direction.
@@ -24,7 +24,7 @@ the active match index based on the selected Find Direction.
 ```cpp
 
 //! [InitializeFindConfiguration]
-wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfiguration(const std::wstring& searchTerm)
+wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfiguration(const std::wstring& findTerm)
 {
     // Query for the ICoreWebView2Environment5 interface.
     auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2Environment5>();
@@ -33,7 +33,7 @@ wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfigurat
     // Initialize find configuration/settings
     wil::com_ptr<ICoreWebView2FindConfiguration> findConfiguration;
     CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
-    CHECK_FAILURE(findConfiguration->put_FindTerm(searchTerm.c_str()));
+    CHECK_FAILURE(findConfiguration->put_FindTerm(findTerm.c_str()));
     CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(false));
     CHECK_FAILURE(findConfiguration->put_ShouldMatchWord(false));
     CHECK_FAILURE(findConfiguration->put_FindDirection(COREWEBVIEW2_FIND_DIRECTION_FORWARD));
@@ -49,9 +49,9 @@ wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfigurat
 
 ```cpp
 //! [ExecuteFindWithDefaultUI]
-bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm) 
+bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm) 
 {
-    auto findConfiguration = InitializeFindConfiguration(searchTerm);
+    auto findConfiguration = InitializeFindConfiguration(findTerm);
     if (!findConfiguration)
     {
         return false;
@@ -93,9 +93,9 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& searchTerm)
 
 ```cpp
 //! [ExecuteFindWithCustomUI]
-bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& searchTerm)
+bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& findTerm)
 {
-    auto findConfiguration = InitializeFindConfiguration(searchTerm);
+    auto findConfiguration = InitializeFindConfiguration(findTerm);
     if (!findConfiguration)
     {
         return false;
@@ -124,7 +124,7 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& searchTerm)
                 }
                 else
                 {
-                    // Handle errors or unsuccessful search.
+                    // Handle errors or unsuccessful find.
                 }
                 return S_OK;
             }).Get()));
@@ -142,7 +142,7 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& searchTerm)
 #### .NET C#
 ```csharp
 //! [ConfigureAndExecuteFindWithDefaultUI]
-async Task ConfigureAndExecuteFindWithDefaultUIAsync(string searchTerm)
+async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
 {
     try
     {
@@ -155,7 +155,7 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string searchTerm)
         // Initialize the find configuration with specified settings.
         var findConfiguration = new CoreWebView2FindConfiguration
         {
-            FindTerm = searchTerm,
+            FindTerm = findTerm,
             IsCaseSensitive = false,
             ShouldMatchWord = false,
             FindDirection = CoreWebView2FindDirection.Forward
@@ -181,7 +181,7 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string searchTerm)
 
 ```csharp
 //! [ConfigureAndExecuteFindWithCustomUI]
-async Task ConfigureAndExecuteFindWithCustomUIAsync(string searchTerm)
+async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
 {
     try
     {
@@ -194,7 +194,7 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string searchTerm)
         // Initialize the find configuration with specified settings.
         var findConfiguration = new CoreWebView2FindConfiguration
         {
-            FindTerm = searchTerm,
+            FindTerm = findTerm,
             IsCaseSensitive = false,
             ShouldMatchWord = false,
             FindDirection = CoreWebView2FindDirection.Forward
@@ -282,13 +282,13 @@ void ActiveMatchIndexChangedSample()
 ## API Details
 ```cpp
 
-/// Specifies the direction of Search Parameters.
+/// Specifies the direction of find Parameters.
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [v1_enum]
 typedef enum COREWEBVIEW2_FIND_DIRECTION {
-  /// Specifies a forward search in the document.
+  /// Specifies a forward find in the document.
   COREWEBVIEW2_FIND_DIRECTION_FORWARD,
-  /// Specifies a backwards search in the document.
+  /// Specifies a backwards find in the document.
   COREWEBVIEW2_FIND_DIRECTION_BACKWARD,
 } COREWEBVIEW2_FIND_DIRECTION;
 
@@ -299,7 +299,7 @@ typedef enum COREWEBVIEW2_FIND_DIRECTION {
 [uuid(f10bddd3-bb59-5d5b-8748-8a1a53f65d0c), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironment5 : IUnknown {
   /// Creates a new instance of a FindConfiguration object.
-  /// This configuration object can be used to define parameters for a search operation.
+  /// This configuration object can be used to define parameters for a find operation.
   /// Returns the newly created FindConfiguration object.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   HRESULT CreateFindConfiguration(
@@ -429,7 +429,7 @@ interface ICoreWebView2StagingFind : IUnknown {
 
 
 /// Interface defining the find configuration.
-/// This interface provides the necessary methods and properties to configure a search operation.
+/// This interface provides the necessary methods and properties to configure a find operation.
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(52a04b23-acc8-5659-aa2f-26dbe9faafde), object, pointer_default(unique)]
 interface ICoreWebView2StagingFindConfiguration : IUnknown {
@@ -523,31 +523,31 @@ namespace Microsoft.Web.WebView2.Core
 ```csharp
 namespace Microsoft.Web.WebView2.Core
 {
-    /// Specifies the direction of Search Parameters.
+    /// Specifies the direction of find Parameters.
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     [availability("staging")]
     enum CoreWebView2FindDirection
     {
-        /// Specifies a forward search in the document.
+        /// Specifies a forward find in the document.
         Forward, 
-        /// Specifies a backwards search in the document.
+        /// Specifies a backwards find in the document.
         Backward, 
     };
 
     runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfiguration {}
 
     /// Interface defining the find configuration.
-    /// This interface provides the necessary methods and properties to configure a search operation.
+    /// This interface provides the necessary methods and properties to configure a find operation.
     [com_interface("staging=ICoreWebView2StagingFindConfiguration")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     [availability("staging")]
     interface ICoreWebView2FindConfiguration 
     {
-        // Gets or sets the search term used for the find operation. Returns the search term.
+        // Gets or sets the find term used for the find operation. Returns the find term.
         String FindTerm { get; set; };
-        // Gets or sets the direction of the search operation (forward or backward). Returns the search direction.
+        // Gets or sets the direction of the find operation (forward or backward). Returns the find direction.
         CoreWebView2FindDirection FindDirection { get; set; };
-        // Determines if the search operation is case sensitive. Returns TRUE if the search is case sensitive, FALSE otherwise.
+        // Determines if the find operation is case sensitive. Returns TRUE if the find is case sensitive, FALSE otherwise.
         Boolean IsCaseSensitive { get; set; };
         // Determines if only whole words should be matched during the find operation. Returns TRUE if only whole words should be matched, FALSE otherwise.
         Boolean ShouldMatchWord { get; set; };
