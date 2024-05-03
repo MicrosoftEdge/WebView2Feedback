@@ -577,6 +577,7 @@ namespace Microsoft.Web.WebView2.Core
         void FindPrevious();
 
         /// Stops the current 'Find' operation and hides the Find bar.
+        /// If called with no Find session active, it will silently do nothing.
         void StopFind();
 
         /// Gets or sets the state of whether all matches are highlighted. 
