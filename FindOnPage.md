@@ -615,6 +615,12 @@ It emphasizes the usage of interfaces such as `ICoreWebView2Find` and
 `ICoreWebView2FindConfiguration` to perform find operations effectively. 
 
 Additional Info:
-Starting a find session when one is in progress will result in the active match index
-being moved forward or backwards depending on what find configuration has been used
-(forward,backward).
+When initiating a find session while another session is in progress, the behavior of 
+the active match index depends on the direction set for the find operation (forward or backward).
+However, calling StartFind again during an ongoing find operation does not resume from the point 
+of the current active match. For example, given the text "1 1 A 1 1" and initiating a find session for "A",
+ then starting another find session for "1", it will start searching from the beginning of the document, 
+regardless of the previous active match. This behavior indicates that changing the find query initiates a 
+completely new find session, rather than continuing from the previous match index. This distinction is essential 
+to understand when utilizing the StartFind method for navigating through text matches.
+
