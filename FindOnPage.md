@@ -543,11 +543,14 @@ namespace Microsoft.Web.WebView2.Core
     [availability("staging")]
     interface ICoreWebView2FindConfiguration 
     {
-        // Gets or sets the find term used for the find operation. Returns the find term.
+        /// Gets or sets the find term used for the find operation. Returns the find term.
         String FindTerm { get; set; };
-        // Gets or sets the direction of the find operation (forward or backward). Returns the find direction.
+        /// Gets or sets the direction of the find operation (forward or backward). Returns the find direction.
         CoreWebView2FindDirection FindDirection { get; set; };
-        // Determines if the find operation is case sensitive. Returns TRUE if the find is case sensitive, FALSE otherwise.
+        /// Determines if the find operation is case sensitive. Returns TRUE if the find is case sensitive, FALSE otherwise.
+        /// In text operations such as case sensitivity and word breaking, the behavior can vary by locale, which may be influenced by both the browser's UI locale and the document's language settings. The browser's UI locale         
+        /// typically provides a default handling approach, while the document's language settings (e.g., specified using the HTML lang attribute) can override these defaults to apply locale-specific rules. This dual consideration 
+        /// ensures that text is processed in a manner consistent with user expectations and the linguistic context of the content
         Boolean IsCaseSensitive { get; set; };
         // Determines if only whole words should be matched during the find operation. Returns TRUE if only whole words should be matched, FALSE otherwise.
         Boolean ShouldMatchWord { get; set; };
@@ -567,10 +570,19 @@ namespace Microsoft.Web.WebView2.Core
         /// Displays the Find bar and starts the find operation. If a find session was already ongoing, it will be stopped and replaced with this new instance.
         /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the configuration object after initiation won't affect the ongoing find session.
         /// To change the ongoing find session, StartFindAsync must be called again with a new or modified configuration object.
-        /// This method is primarily designed for HTML document queries.
+        /// StartFind supports, HTML, PDF, and TXT document queries. In general this api is designed for text based find sessions.
+        //// If you start a find session programmatically on another file format that doesnt have text fields, the find session will try to execute but will fail to find any matches. (It will silently fail)
         /// Note: The asynchronous action completes when the UI has been displayed with the find term in the UI bar, and the matches have populated on the counter on the find bar. 
         /// There may be a slight latency between the UI display and the matches populating in the counter. 
         /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after StartFindAsync has completed, otherwise they will have their default values (-1 for both).
+        /// When initiating a find session while another session is in progress, the behavior of 
+        /// the active match index depends on the direction set for the find operation (forward or backward).
+        /// However, calling StartFind again during an ongoing find operation does not resume from the point 
+        /// of the current active match. For example, given the text "1 1 A 1 1" and initiating a find session for "A",
+        /// then starting another find session for "1", it will start searching from the beginning of the document, 
+        /// regardless of the previous active match. This behavior indicates that changing the find query initiates a 
+        /// completely new find session, rather than continuing from the previous match index. This distinction is essential 
+        /// to understand when utilizing the StartFind method for navigating through text matches.
         Windows.Foundation.IAsyncAction StartFindAsync(CoreWebView2FindConfiguration configuration);
 
 
@@ -614,15 +626,15 @@ namespace Microsoft.Web.WebView2.Core
         Int32 MatchCount { get; };
         
         /// Registers an event handler for the MatchCountChanged event. 
-        This event is raised when the total count of matches in the document changes due to a new find operation or changes in the document. 
-        The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
+        /// This event is raised when the total count of matches in the document changes due to a new find operation or changes in the document. 
+        /// The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
         [event_handler("", "", "")]
         event Windows.Foundation.TypedEventHandler<CoreWebView2Find, Object> MatchCountChanged;
 
         /// Registers an event handler for the ActiveMatchIndexChanged event. This event is raised when the index of the currently active match changes.
-        This can happen when the user navigates to a different match or when the active match is changed programmatically. 
-        The parameter is the event handler to be added. Returns a token representing the added event handler. 
-        This token can be used to unregister the event handler.
+        /// This can happen when the user navigates to a different match or when the active match is changed programmatically. 
+        /// The parameter is the event handler to be added. Returns a token representing the added event handler. 
+        /// This token can be used to unregister the event handler.
         [event_handler("", "", "")]
         event Windows.Foundation.TypedEventHandler<CoreWebView2Find, Object> ActiveMatchIndexChanged;
     };
@@ -636,13 +648,4 @@ to integrate text finding and navigation functionalities into WebView2 applicati
 It emphasizes the usage of interfaces such as `ICoreWebView2Find` and 
 `ICoreWebView2FindConfiguration` to perform find operations effectively. 
 
-Additional Info:
-When initiating a find session while another session is in progress, the behavior of 
-the active match index depends on the direction set for the find operation (forward or backward).
-However, calling StartFind again during an ongoing find operation does not resume from the point 
-of the current active match. For example, given the text "1 1 A 1 1" and initiating a find session for "A",
- then starting another find session for "1", it will start searching from the beginning of the document, 
-regardless of the previous active match. This behavior indicates that changing the find query initiates a 
-completely new find session, rather than continuing from the previous match index. This distinction is essential 
-to understand when utilizing the StartFind method for navigating through text matches.
 
