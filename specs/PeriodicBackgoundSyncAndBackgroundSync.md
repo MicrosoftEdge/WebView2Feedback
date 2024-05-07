@@ -3,8 +3,8 @@ Periodic Background Synchronization and Background Synchronization APIs
 
 # Background
 There're WebView2 customers who want to run tasks in the background at 
-periodic intervals for purposes such as updating code, caching data,  
-and pre-loading resources. Based on that, the WebView2 team is adding  
+periodic intervals for purposes such as updating code, caching data, 
+and pre-loading resources. Based on that, the WebView2 team is adding 
 support for [Periodic_Background_Synchronization](https://developer.mozilla.org/docs/Web/API/Web_Periodic_Background_Synchronization_API). 
 In the meanwhile, the WebView2 team is also adding support for 
 [Background_Synchronization](https://developer.mozilla.org/docs/Web/API/Background_Synchronization_API)
@@ -18,16 +18,16 @@ over how to run a periodic background synchronization task.
 # Description
 We propose following APIs:
 
-**SyncRegistrationManager API**: This API gives developers the ability  
+**SyncRegistrationManager API**: This API gives developers the ability 
 to manage the periodic background synchronizations and background sync 
 synchronizations in that service worker. 
 
-**PeriodicSyncRegistered API**: This API gives developers the ability  
+**PeriodicSyncRegistered API**: This API gives developers the ability 
 to subscribe to the event when a new Periodic Background synchronization 
 task is registered.
 
 **BackgroundSyncRegistered API**: This API gives developers the ability 
-to subscribe to the event when a new Background synchronization task is  
+to subscribe to the event when a new Background synchronization task is 
 registered.
 
 **GetSyncRegistrations API**: This asynchronous call returns the 
