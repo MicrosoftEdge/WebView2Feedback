@@ -228,6 +228,17 @@ namespace Microsoft.Web.WebView2.Core
 
         Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ServiceWorkerSyncRegistrationInfo>> GetSyncRegistrationsAsync(CoreWebView2ServiceWorkerSynchronizationKind Kind);
     }
+
+    runtimeclass CoreWebView2ServiceWorkerSyncRegisteredEventArgs
+    {
+        CoreWebView2ServiceWorkerSyncRegistrationInfo RegistrationInfo { get; };
+    }
+
+    runtimeclass CoreWebView2ServiceWorkerSyncRegistrationInfo
+    {
+        Int64 MinInterval { get; };
+        String Tag { get; };
+    }
 }
 ```
 
