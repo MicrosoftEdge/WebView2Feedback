@@ -197,9 +197,26 @@ C#
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
+    enum CoreWebView2ServiceWorkerSynchronizationKind
+    {
+        // Indicates that the synchronization is a background synchronization.
+        // See [Background Synchronization](https://developer.mozilla.org/docs/Web/API/Background_Synchronization_API)
+        // for more information.
+        BackgroundSync = 0,
+        // Indicates that the synchronization is a periodic background synchronization.
+        // See [Periodic Background Synchronization](https://developer.mozilla.org/docs/Web/API/Web_Periodic_Background_Synchronization_API)
+        // for more information.
+        PeriodicSync = 1,
+    };
+
     runtimeclass CoreWebView2ServiceWorkerRegistration
     {
         CoreWebView2ServiceWorkerSyncRegistrationManager SyncRegistrationManager { get; };
+    }
+
+    runtimeclass CoreWebView2ServiceWorker
+    {
+        Windows.Foundation.IAsyncOperation<Boolean> DispatchPeriodicSyncEventAsync(String Tag);
     }
 
     runtimeclass CoreWebView2ServiceWorkerSyncRegistrationManager
@@ -210,8 +227,6 @@ namespace Microsoft.Web.WebView2.Core
         event Windows.Foundation.TypedEventHandler<CoreWebView2ServiceWorkerSyncRegistrationManager, CoreWebView2ServiceWorkerSyncRegisteredEventArgs> PeriodicSyncRegistered;
 
         Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ServiceWorkerSyncRegistrationInfo>> GetSyncRegistrationsAsync(CoreWebView2ServiceWorkerSynchronizationKind Kind);
-
-        Windows.Foundation.IAsyncOperation<Boolean> DispatchPeriodicSyncEventAsync(String Tag);
     }
 }
 ```
