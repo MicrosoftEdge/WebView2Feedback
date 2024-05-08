@@ -539,7 +539,8 @@ async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2
             {
                 var tag = registrationList[i].Tag;
                 messageBuilder.AppendLine($"Tag: {tag}");
-                if (isPeriodicSync) {
+                if (isPeriodicSync) 
+                {
                     var interval = registrationList[i].MinInterval;
                     messageBuilder.Append($" MinInterval: {interval}");
                 }
