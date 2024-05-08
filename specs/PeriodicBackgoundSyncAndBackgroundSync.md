@@ -477,30 +477,32 @@ void ScenarioServiceWorkerSyncRegistrationManager::AppendSyncRegistrationInfo(
 ```
 ### C# Sample
 ```c#
-CoreWebView2ServiceWorkerSyncRegistrationManager syncRegistrationManager_;
-CoreWebView2ServiceWorkerRegistration serviceWorkerRegistration_;
+CoreWebView2ServiceWorkerSyncRegistrationManager SyncRegistrationManager_;
+CoreWebView2ServiceWorkerRegistration ServiceWorkerRegistration_;
 async void ServiceWorkerSyncManagerExecuted(object target, ExecutedRoutedEventArgs e) 
 {
     webView.Source = new Uri("https://appassets.example/ScenarioServiceWorkerSyncRegistrationManager.html");
     webView.CoreWebView2.WebMessageReceived += ServiceWorkerSyncEvent_WebMessageReceived;
 
-    CoreWebView2Profile WebViewProfile = webView.CoreWebView2.Profile;
-    CoreWebView2ServiceWorkerManager ServiceWorkerManager = WebViewProfile.ServiceWorkerManager;
-    if (ServiceWorkerManager != null) {
-        serviceWorkerRegistration_ = 
-            await ServiceWorkerManager.GetServiceWorkerRegistrationAsync("https://appassets.example.com");
-        if (serviceWorkerRegistration_ != null) {
-            syncRegistrationManager_ = serviceWorkerRegistration_.SyncRegistrationManager;
-            if (syncRegistrationManager_ != null)
+    CoreWebView2Profile webViewProfile = webView.CoreWebView2.Profile;
+    CoreWebView2ServiceWorkerManager serviceWorkerManager = webViewProfile.ServiceWorkerManager;
+    if (serviceWorkerManager != null) 
+    {
+        ServiceWorkerRegistration_ = 
+            await serviceWorkerManager.GetServiceWorkerRegistrationAsync("https://appassets.example.com");
+        if (ServiceWorkerRegistration_ != null) 
+        {
+            SyncRegistrationManager_ = ServiceWorkerRegistration_.SyncRegistrationManager;
+            if (SyncRegistrationManager_ != null)
             {
                 try
                 {
-                    syncRegistrationManager_.PeriodicSyncRegistered += (sender, args) =>
+                    SyncRegistrationManager_.PeriodicSyncRegistered += (sender, args) =>
                     {
                         MessageBox.Show($"Periodic Sync Task Tag: {args.RegistrationInfo.Tag}, 
                                         MinInterval: {args.RegistrationInfo.MinInterval} registered");
                     };
-                    syncRegistrationManager_.BackgroundSyncRegistered += (sender, args) =>
+                    SyncRegistrationManager_.BackgroundSyncRegistered += (sender, args) =>
                     {
                         MessageBox.Show($"Background Sync Task Tag: {args.RegistrationInfo.Tag} registered");
                     };
@@ -519,9 +521,10 @@ async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2
 {
     async void ShowServiceWorkerSyncRegistrations(bool isPeriodicSync) 
     {
-        if (syncRegistrationManager_) {
+        if (SyncRegistrationManager_ != null) 
+        {
             IReadOnlyList<CoreWebView2ServiceWorkerSyncRegistrationInfo> registrationList =
-            await syncRegistrationManager_.GetSyncRegistrationsAsync(isPeriodicSync ?
+            await SyncRegistrationManager_.GetSyncRegistrationsAsync(isPeriodicSync ?
                 CoreWebView2ServiceWorkerSynchronizationKind.PeriodicSync :
                 CoreWebView2ServiceWorkerSynchronizationKind.BackgroundSync);
         
@@ -556,15 +559,21 @@ async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2
     string message = args.TryGetWebMessageAsString();
     if (message.Contains("DispatchPeriodicSyncEvent"))
     {
-        int msgLength = "DispatchPeriodicSyncEvent".Length;
-        var tag = message.Substring(msgLength);
-        CoreWebView2ServiceWorker serviceWorker = await serviceWorkerRegistration_.GetServiceWorkerAsync();
-        if (serviceWorker != null) {
-            await serviceWorker.DispatchPeriodicSyncEventAsync(tag);
+        if (ServiceWorkerRegistration_ != null)
+        {
+            int msgLength = "DispatchPeriodicSyncEvent".Length;
+            var tag = message.Substring(msgLength);
+            CoreWebView2ServiceWorker serviceWorker = await ServiceWorkerRegistration_.GetServiceWorkerAsync();
+            if (serviceWorker != null)
+            {
+                await serviceWorker.DispatchPeriodicSyncEventAsync(tag);
+            }
         }
-    } else if (message.Contains("GetPeriodicSyncRegistrations")) {
+    } else if (message.Contains("GetPeriodicSyncRegistrations")) 
+    {
         ShowServiceWorkerSyncRegistrations(true);
-    } else if (message.Contains("GetBackgroundSyncRegistrations")) {
+    } else if (message.Contains("GetBackgroundSyncRegistrations")) 
+    {
         ShowServiceWorkerSyncRegistrations(false);
     }
 }
