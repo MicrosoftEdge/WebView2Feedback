@@ -1,4 +1,4 @@
-ReleaseChannels.md
+ReleaseChannelSelection.md
 ===
 
 # Background
@@ -34,6 +34,7 @@ and otherwise fall back on the stable WebView2 Runtime. With the new options you
 ## ReleaseChannels
 The release channels and channel search order are specified on the
 CoreWebView2EnvironmentOptions prior to creating the WebView2 environment.
+### .Net
 ```c#
 CoreWebView2Environment _webViewEnvironment;
 async System.Threading.Tasks.Task CreateEnvironmentAsync() {
@@ -55,8 +56,8 @@ async System.Threading.Tasks.Task CreateEnvironmentAsync() {
     {
         InstallChannel(CoreWebView2ReleaseChannels.Beta);
     }
-    // If the loader is unable to find a valid installation from the runtime
-    // channel preference set, environment creation will fail.
+    // If the loader is unable to find a valid installation from the release
+    // channels set, environment creation will fail.
     _webViewEnvironment = await CoreWebView2Environment.CreateAsync(
         options: customOptions);
     if (_webViewEnvironment != null)
@@ -65,6 +66,7 @@ async System.Threading.Tasks.Task CreateEnvironmentAsync() {
     }
 }
 ```
+### Win32 C++
 ```cpp
 void AppWindow::InitializeWebViewEnvironment()
 {
@@ -85,8 +87,8 @@ void AppWindow::InitializeWebViewEnvironment()
     {
         InstallChannel(COREWEBVIEW2_RELEASE_CHANNELS_BETA);
     }
-    // If the loader is unable to find a valid installation from the runtime
-    // channel preference set, environment creation will fail with
+    // If the loader is unable to find a valid installation from the release
+    // channels set, environment creation will fail with
     // HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND).
     CHECK_FAILURE(CreateCoreWebView2EnvironmentWithOptions(
         nullptr, m_userDataFolder.c_str(), options.Get(),
@@ -178,14 +180,45 @@ interface ICoreWebView2EnvironmentOptions7 : IUnknown {
   /// Gets the `ReleaseChannels` property.
   [propget] HRESULT ReleaseChannels([out, retval] COREWEBVIEW2_RELEASE_CHANNELS* value);
 
-  /// Sets the `ReleaseChannels`, which is a mask of one or more  indicating which channels environment creation should search for.
-  /// OR operation(s) can be applied to multiple  to create a mask. The default value is a mask of all the channels. By default, environment creation searches for channels from most to least stable, using the first channel found on the device. When `ReleaseChannels` is provided, environment creation will only search for the channels specified in the set. Set `ChannelSearchKind` to `1` to reverse the search order so that the loader searches for the least stable build first. See `COREWEBVIEW2_RELEASE_CHANNELS` for descriptions of each channel. Environment creation fails if it is unable to find any channel from the `ReleaseChannels` installed on the device. Use `GetAvailableCoreWebView2BrowserVersionStringWithOptions` to verify which channel is used. If both a `ReleaseChannels` and `BrowserExecutableFolder` are provided, the `BrowserExecutableFolder` takes precedence. The `ReleaseChannels` property can be overridden by the corresponding registry override `ReleaseChannels` or the environment variable `WEBVIEW2_RELEASE_CHANNELS`. Set the value to a comma-separated string of integers, which map to the  values: Stable (0), Beta (1), Dev (2), and Canary (3). For example, the values "0,2" and "2,0" both indicate that the loader should only search for Dev channel and the WebView2 Runtime, using the order indicated by the `ChannelSearchKind`. Environment creation attempts to interpret each integer and treats any invalid entry as Stable channel.
+  /// Sets the `ReleaseChannels`, which is a mask of one or more
+  /// `COREWEBVIEW2_RELEASE_CHANNELS` indicating which channels environment
+  /// creation should search for. OR operation(s) can be applied to multiple
+  /// `COREWEBVIEW2_RELEASE_CHANNELS` to create a mask. The default value is a
+  /// a mask of all the channels. By default, environment creation searches for
+  /// channels from most to least stable, using the first channel found on the
+  /// device. When `ReleaseChannels` is provided, environment creation will only
+  /// search for the channels specified in the set. Set `ChannelSearchKind` to
+  /// `COREWEBVIEW2_CHANNEL_SEARCH_KIND_LEAST_STABLE` to reverse the search order
+  /// so environment creation searches for least stable build first. See
+  /// `COREWEBVIEW2_RELEASE_CHANNELS` for descriptions of each channel.
+  ///
+  /// `CreateCoreWebView2EnvironmentWithOptions` fails with
+  /// `HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)` if environment creation is unable
+  /// to find any channel from the `ReleaseChannels` installed on the device.
+  /// Use `GetAvailableCoreWebView2BrowserVersionStringWithOptions` on
+  /// `ICoreWebView2Environment` to verify which channel is used when this option
+  /// is set.
+  ///
+  /// Examples:
   /// |   ReleaseChannels   |   Channel Search Kind: Most Stable (default)   |   Channel Search Kind: Least Stable   |
   /// | --- | --- | --- |
-  /// |CoreWebView2ReleaseChannels.Beta \| CoreWebView2ReleaseChannels.Stable| WebView2 Runtime -> Beta | Beta -> WebView2 Runtime|
-  /// |CoreWebView2ReleaseChannels.Canary \| CoreWebView2ReleaseChannels.Dev \| CoreWebView2ReleaseChannels.Beta \| CoreWebView2ReleaseChannels.Stable | WebView2 Runtime -> Beta -> Dev -> Canary | Canary -> Dev -> Beta -> WebView2 Runtime |
-  /// |CoreWebView2ReleaseChannels.Canary| Canary | Canary |
-  /// |CoreWebView2ReleaseChannels.Beta \| CoreWebView2ReleaseChannels.Canary \| CoreWebView2ReleaseChannels.Stable | WebView2 Runtime -> Beta -> Canary | Canary -> Beta -> WebView2 Runtime |
+  /// |COREWEBVIEW2_RELEASE_CHANNELS_BETA \| COREWEBVIEW2_RELEASE_CHANNELS_STABLE| WebView2 Runtime -&gt; Beta | Beta -&gt; WebView2 Runtime|
+  /// |COREWEBVIEW2_RELEASE_CHANNELS_CANARY \| COREWEBVIEW2_RELEASE_CHANNELS_DEV \| COREWEBVIEW2_RELEASE_CHANNELS_BETA \| COREWEBVIEW2_RELEASE_CHANNELS_STABLE| WebView2 Runtime -&gt; Beta -&gt; Dev -&gt; Canary | Canary -&gt; Dev -&gt; Beta -&gt; WebView2 Runtime |
+  /// |COREWEBVIEW2_RELEASE_CHANNELS_CANARY| Canary | Canary |
+  /// |COREWEBVIEW2_RELEASE_CHANNELS_BETA \| COREWEBVIEW2_RELEASE_CHANNELS_CANARY \| COREWEBVIEW2_RELEASE_CHANNELS_STABLE | WebView2 Runtime -&gt; Beta -&gt; Canary | Canary -&gt; Beta -&gt; WebView2 Runtime |
+  ///
+  /// If both `BrowserExecutableFolder` and `ReleaseChannels` are provided, the
+  /// `BrowserExecutableFolder` takes precedence, regardless of whether or not the
+  /// channel of `BrowserExecutableFolder` is included in the `ReleaseChannels`.
+  /// `ReleaseChannels` can be overridden by the corresponding registry override
+  /// `ReleaseChannels` or the environment variable `WEBVIEW2_RELEASE_CHANNELS`.
+  /// Set the value to a comma-separated string of integers, which map to the
+  /// following release channel values: Stable (0), Beta (1), Dev (2), and
+  /// Canary (3). For example, the values "0,2" and "2,0" indicate that environment
+  /// creation should only search for Dev channel and the WebView2 Runtime, using the
+  /// order indicated by `ChannelSearchKind`. Environment creation attempts to
+  /// interpret each integer and treats any invalid entry as Stable channel. See
+  /// `CreateCoreWebView2EnvironmentWithOptions` for more details on overrides.
   [propput] HRESULT ReleaseChannels([in] COREWEBVIEW2_RELEASE_CHANNELS value);
 }
 
