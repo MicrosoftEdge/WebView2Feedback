@@ -534,7 +534,7 @@ namespace Microsoft.Web.WebView2.Core
         Backward, 
     };
 
-    runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfiguration {}
+runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfiguration {}
 
     /// Interface defining the find configuration.
     /// This interface provides the necessary methods and properties to configure a find operation.
@@ -545,18 +545,39 @@ namespace Microsoft.Web.WebView2.Core
     {
         /// Gets or sets the find term used for the find operation. Returns the find term.
         String FindTerm { get; set; };
+
         /// Gets or sets the direction of the find operation (forward or backward). Returns the find direction.
         CoreWebView2FindDirection FindDirection { get; set; };
+
         /// Determines if the find operation is case sensitive. Returns TRUE if the find is case sensitive, FALSE otherwise.
-        /// In text operations such as case sensitivity and word breaking, the behavior can vary by locale, which may be influenced by both the browser's UI locale and the document's language settings. The browser's UI locale         
+        /// When toggling case sensitivity, the behavior can vary by locale, which may be influenced by both the browser's UI locale and the document's language settings. The browser's UI locale         
         /// typically provides a default handling approach, while the document's language settings (e.g., specified using the HTML lang attribute) can override these defaults to apply locale-specific rules. This dual consideration 
-        /// ensures that text is processed in a manner consistent with user expectations and the linguistic context of the content
+        /// ensures that text is processed in a manner consistent with user expectations and the linguistic context of the content.
         Boolean IsCaseSensitive { get; set; };
-        // Determines if only whole words should be matched during the find operation. Returns TRUE if only whole words should be matched, FALSE otherwise.
+
+        /// Similar to case sensitivity, word matching also can vary by locale, which may be influenced by both the browser's UI locale and the document's language settings. The browser's UI locale         
+        /// typically provides a default handling approach, while the document's language settings (e.g., specified using the HTML lang attribute) can override these defaults to apply locale-specific rules. This dual consideration 
+        /// ensures that text is processed in a manner consistent with user expectations and the linguistic context of the content.
+        /// ShouldMatchWord determines if only whole words should be matched during the find operation. Returns TRUE if only whole words should be matched, FALSE otherwise.
         Boolean ShouldMatchWord { get; set; };
+        
+        /// Gets or sets the state of whether all matches are highlighted. 
+        /// Returns TRUE if all matches are highlighted, FALSE otherwise.
+        /// Note: Changes to this property take effect only when StartFind, FindNext, or FindPrevious is called. 
+        /// Preferences for the session cannot be updated unless another call to the StartFind function on the server-side is made. 
+        /// Therefore, changes will not take effect until one of these functions is called.
+        Boolean ShouldHighlightAllMatches { get; set; };
+        
+        /// Sets this property to hide the default Find UI. 
+        /// You can use this to hide the default UI so that you can show your own custom UI or programmatically interact with the Find API while showing no Find UI. 
+        /// Returns TRUE if hiding the default Find UI and FALSE if using showing the default Find UI.
+        /// Note: Changes to this property take effect only when StartFind, FindNext, or FindPrevious is called. 
+        /// Preferences for the session cannot be updated unless another call to the StartFind function on the server-side is made. 
+        /// Therefore, changes will not take effect until one of these functions is called.
+        Boolean SuppressDefaultFindDialog { get; set; };
     };
 
-    runtimeclass CoreWebView2Find : [default]ICoreWebView2Find {}
+   runtimeclass CoreWebView2Find : [default]ICoreWebView2Find {}
 
     /// Interface providing methods and properties for finding and navigating through text in the web view.
     /// This interface allows for finding text, navigation between matches, and customization of the find UI.
@@ -602,22 +623,6 @@ namespace Microsoft.Web.WebView2.Core
         /// Stops the current 'Find' operation and hides the Find bar.
         /// If called with no Find session active, it will silently do nothing.
         void StopFind();
-
-        /// Gets or sets the state of whether all matches are highlighted. 
-        /// Returns TRUE if all matches are highlighted, FALSE otherwise.
-        /// Note: Changes to this property take effect only when StartFind, FindNext, or FindPrevious is called. 
-        /// Preferences for the session cannot be updated unless another call to the StartFind function on the server-side is made. 
-        /// Therefore, changes will not take effect until one of these functions is called.
-        Boolean ShouldHighlightAllMatches { get; set; };
-        
-        /// Sets this property to hide the default Find UI. 
-        /// You can use this to hide the default UI so that you can show your own custom UI or programmatically interact with the Find API while showing no Find UI. 
-        /// Returns TRUE if hiding the default Find UI and FALSE if using showing the default Find UI.
-        /// Note: Changes to this property take effect only when StartFind, FindNext, or FindPrevious is called. 
-        /// Preferences for the session cannot be updated unless another call to the StartFind function on the server-side is made. 
-        /// Therefore, changes will not take effect until one of these functions is called.
-        Boolean SuppressDefaultFindDialog { get; set; };
-
 
         /// Retrieves the index of the currently active match in the find session. Returns the index of the currently active match, or -1 if there is no active match.
         Int32 ActiveMatchIndex { get; };
