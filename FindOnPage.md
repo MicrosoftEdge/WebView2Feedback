@@ -163,7 +163,7 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
         // you can change the SuppressDefaultDialog and ShouldHighlightAllMatches properties here.
 
         // Start the find operation with the specified configuration.
-        await webView.CoreWebView2.FindController.StartFindAsync(findConfiguration);
+        await webView.CoreWebView2.Find.StartFindAsync(findConfiguration);
 
         // End user interaction is handled via UI.
     }
@@ -198,11 +198,11 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
         };
 
         // Specify that a custom UI will be used for the find operation.
-        webView.CoreWebView2.FindController.SuppressDefaultDialog = true;
-        webView.CoreWebView2.FindController.ShouldHighlightAllMatches = true;
+        webView.CoreWebView2.Find.SuppressDefaultDialog = true;
+        webView.CoreWebView2.Find.ShouldHighlightAllMatches = true;
 
         // Start the find operation with the specified configuration.
-        await webView.CoreWebView2.FindController.StartFindAsync(findConfiguration);
+        await webView.CoreWebView2.Find.StartFindAsync(findConfiguration);
         // It's expected that the custom UI for navigating between matches (next, previous)
         // and stopping the find operation will be managed by the developer's custom code.
     }
@@ -259,7 +259,7 @@ within a WebView2 control using the `GetActiveMatchIndex` method.
 //! [GetActiveMatchIndex]
 public async Task<int> GetActiveMatchIndexAsync()
 {
-    var webViewFind = webView.CoreWebView2.FindController; // Assuming webView is your WebView2 control
+    var webViewFind = webView.CoreWebView2.Find; // Assuming webView is your WebView2 control
     var activeMatchIndex = webViewFind.ActiveMatchIndex();
     MessageBox.Show($"Active Match Index: {activeMatchIndex}", "Find Operation", MessageBoxButton.OK);
     return activeMatchIndex;
@@ -267,9 +267,9 @@ public async Task<int> GetActiveMatchIndexAsync()
 
 void ActiveMatchIndexChangedSample()
 {
-    webView.CoreWebView2.FindController.ActiveMatchIndexChanged += (object sender, EventArgs args) =>
+    webView.CoreWebView2.Find.ActiveMatchIndexChanged += (object sender, EventArgs args) =>
     {
-        int activeMatchIndex = webView.CoreWebView2.FindController.ActiveMatchIndex;
+        int activeMatchIndex = webView.CoreWebView2.Find.ActiveMatchIndex;
         // Update Custom UI based on the new active match index.
     };
 }
