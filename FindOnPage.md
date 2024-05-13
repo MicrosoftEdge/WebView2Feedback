@@ -547,7 +547,7 @@ runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfigura
         CoreWebView2FindDirection FindDirection { get; set; };
 
         /// Determines if the find operation is case sensitive. Returns TRUE if the find is case sensitive, FALSE otherwise.
-        /// When toggling case sensitivity, the behavior can vary by locale, which may be influenced by both the browser's UI locale and the document's language settings. The browser's UI locale         
+        /// The locale used to determine case sensitivity is the document's language specified by the HTML lang attribute, or if unspecified then the WebView2's UI locale.
         /// typically provides a default handling approach, while the document's language settings (e.g., specified using the HTML lang attribute) can override these defaults to apply locale-specific rules. This dual consideration 
         /// ensures that text is processed in a manner consistent with user expectations and the linguistic context of the content.
         Boolean IsCaseSensitive { get; set; };
