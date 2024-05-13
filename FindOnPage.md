@@ -496,24 +496,7 @@ interface ICoreWebView2Staging17 : IUnknown {
 
 ### CoreWebView2 Find Configuration and Direction
 
-```csharp
-namespace Microsoft.Web.WebView2.Core
-{
-    public enum CoreWebView2FindDirection
-    {
-        Forward,
-        Backward
-    }
 
-    public class CoreWebView2FindConfiguration
-    {
-        public string FindTerm { get; set; }
-        public CoreWebView2FindDirection FindDirection { get; set; }
-        public bool IsCaseSensitive { get; set; }
-        public bool ShouldMatchWord { get; set; }
-    }
-}
-```
 
 ### CoreWebView2 Find Interface
 
