@@ -385,7 +385,7 @@ interface ICoreWebView2StagingFind : IUnknown {
       [in] EventRegistrationToken token);
 
   /// Adds an event handler for the `MatchCountChanged` event.
-  /// Registers an event handler for the MatchCountChanged event. This event is raised when the total count of matches in the document changes due to a new find operation or changes in the document. The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
+  /// Registers an event handler for the MatchCountChanged event. This event is raised when the total count of matches in the document changes due to a new find operation or changes in the document.    /// The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   HRESULT add_MatchCountChanged(
       [in] ICoreWebView2StagingMatchCountChangedEventHandler* eventHandler,
