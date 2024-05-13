@@ -64,9 +64,8 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm)
     wil::com_ptr<ICoreWebView2Find> webView2Find;
     CHECK_FAILURE(webView2_17->get_Find(&webView2Find));
 
-    // Assuming you want to use the default UI, adjust as necessary.
-    CHECK_FAILURE(webView2Find->put_SuppressDefaultDialog(false)); 
-    CHECK_FAILURE(webView2Find->put_ShouldHighlightAllMatches(true));
+    // By default Find will use the default UI and highlight all matches. If you want different behavior
+    // you can change the SuppressDefaultDialog and ShouldHighlightAllMatches properties here.
 
     // Start the find operation with a callback for completion.
     CHECK_FAILURE(webView2Find->StartFind(
@@ -110,7 +109,6 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& findTerm)
 
     // Opt for using a custom UI for the find operation.
     CHECK_FAILURE(webView2Find->put_SuppressDefaultDialog(true));
-    CHECK_FAILURE(webView2find->put_ShouldHighlightAllMatches(true));
 
     // Start the find operation with callback for completion.
     CHECK_FAILURE(webView2Find->StartFind(
@@ -161,9 +159,8 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
             FindDirection = CoreWebView2FindDirection.Forward
         };
 
-        // Use the default UI provided by WebView2 for the find operation.
-        webView.CoreWebView2.FindController.SuppressDefaultDialog = false;
-        webView.CoreWebView2.FindController.ShouldHighlightAllMatches = true;
+        // By default Find will use the default UI and highlight all matches. If you want different behavior
+        // you can change the SuppressDefaultDialog and ShouldHighlightAllMatches properties here.
 
         // Start the find operation with the specified configuration.
         await webView.CoreWebView2.FindController.StartFindAsync(findConfiguration);
