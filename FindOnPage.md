@@ -607,7 +607,7 @@ runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfigura
         /// Navigates to the next match in the document.
         /// If there are no matches to find, FindNext will wrap around to the first match if the search direction is forward, 
         /// or to the last match if the search direction is backward.
-        /// If called when there is no find session active, FindPrevious will silently fail.
+        /// If called when there is no find session active, FindNext will silently fail.
         void FindNext();
         
         /// Navigates to the previous match in the document.
