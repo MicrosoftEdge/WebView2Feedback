@@ -2,9 +2,10 @@ File Type Policy API
 ===
 
 # Background
-When saving a file with original SaveFilePicker, a security alert might be
-prompted, because the browser applies the [file type policies](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-security-downloads-interruptions#file-types-requiring-a-gesture)
-to protect end users. However, in a WebView2 build App, when end users try
+When saving a file with the standard SaveFilePicker (window.showSaveFilePicker),
+the user might receive a security alert, as the second prompt to confirm the unsafe file type.
+It's because the browser applies the [file type policies](https://learn.microsoft.com/en-us/deployedge/microsoft-edge-security-downloads-interruptions#file-types-requiring-a-gesture)
+to protect end users. However, in an app that is using WebView2, when end users try
 to save a file with a certain file extension, they usually can trust the
 host App, domain and file extension. So, we provide the App developers the
 File Type Policy API to manage the file type policies dynamically.
@@ -13,17 +14,16 @@ We'd appreciate your feedback.
 
 # Description
 
-We proposed the `CoreWebView2.SaveFileSecurityCheckStarting` event. You can register
-this event to get the file path, file extension and URI source information,
-when end users try to save a file from your App. Then you can apply your own
-rules to allow save the file with, or without a default warning dialog;
+We proposed the `CoreWebView2.SaveFileSecurityCheckStarting` event. As a developer, you can register a handler on
+this event to get the file path, file extension and URI source information. Then you can apply your own
+rules to allow save the file without a default file type policy security warning UI;
 to cancel the saving; and even to create your own UI to manage runtime 
 file type policies.
 
 # Examples
 ## Win32 C++ 
 This example shows suppressing file type policy, security dialog, and 
-allow to save the file directly. It also blocks saving the exe file.
+allows saving eml files directly. It also blocks saving exe files.
 The sample code will register the event with custom rules.
 ```c++
 bool ScenarioFileTypePolicyStaging::AddCustomFileTypePolicies()
@@ -66,7 +66,7 @@ bool ScenarioFileTypePolicyStaging::AddCustomFileTypePolicies()
 
 ## .Net/ WinRT
 This example shows suppressing file type policy, security dialog, and 
-allow to save the file directly. It also blocks saving the exe file.
+allows saving eml files directly. It also blocks saving exe files.
 The sample code will register the event with custom rules.
 ```c#
 void AddCustomFileTypePoliciesExecuted(object target, ExecutedRoutedEventArgs e)
@@ -137,7 +137,7 @@ interface ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs : IUnknown 
   /// Gets the `Cancel` property.
   [propget] HRESULT Cancel([out, retval] BOOL* value);
 
-  /// Set if cancel the upcoming save/download. `TRUE` means the action 
+  /// Set whether to cancel the upcoming save/download. `TRUE` means the action 
   /// will be cancelled before validations in default policy.
   /// 
   /// The default value is `FALSE`.
@@ -152,7 +152,8 @@ interface ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs : IUnknown 
   /// "*.tar.gz" is a double extension, where the "gz" will be its
   /// final extension.
   ///
-  /// File extension usage in the API is case sensitive.
+  /// The file extension is the extension portion of the FilePath,
+  /// preserving original case.
   [propget] HRESULT FileExtension([out, retval] LPWSTR* value);
 
   /// Get the full path of file to be saved. This includes the
