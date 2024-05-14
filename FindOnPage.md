@@ -514,15 +514,15 @@ namespace Microsoft.Web.WebView2.Core
         Backward, 
     };
 
-    ///  
-    /// Interface responsible for providing access the find operation functionalities in the CoreWebView2.
-    /// 
-    // MSOWNERS: core (maxwellmyers@microsoft.com)
-    [uuid(c9a130ca-a807-549c-9d76-8e09ccee3973), object, pointer_default(unique)]
-    interface ICoreWebView2Staging17 : IUnknown {
-      /// Retrieves the find operation interface for the current web view.
-      // MSOWNERS: core (maxwellmyers@microsoft.com)
-      [propget] HRESULT Find([out, retval] ICoreWebView2StagingFind** value);
+    /// <com> 
+    /// Interface providing methods to access the find operation functionalities in the CoreWebView2.
+    /// </com>
+    [com_interface("staging=ICoreWebView2Staging17")]
+    [ms_owner("core", "maxwellmyers@microsoft.com")]
+    interface ICoreWebView2_25
+    {
+        /// Retrieves the find operation interface for the current web view.
+        CoreWebView2Find Find { get; };
     }
 
     /// Interface that provides methods related to the environment settings of CoreWebView2.
