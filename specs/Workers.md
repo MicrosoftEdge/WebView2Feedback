@@ -2,7 +2,7 @@ Workers support in WebView2
 ===
 
 # Background
-Currently, WebView2 lacks comprehensive APIs for developers to fully utilize workers, leading to increased load on the main thread, offloading to native, or forking their web app for WebView2 scenarios. To address this, the WebView2 team is introducing support for worker scenarios. This enhancement allows WebView2 users to interact with Web Workers from native apps, bypassing the JavaScript thread to boost app performance and responsiveness, or to run tasks in the background for offline support, push notifications, background sync, content updates, and more. As a part of the work, the WebView2 team is adding support for [Dedicated Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API), [Shared Workers](https://developer.mozilla.org/en-US/docs/Web/API/SharedWorker), and [Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API). While there are various types of web workers, our initial focus is on these three, with plans to broaden our support for other workers in the future.
+Currently, WebView2 lacks comprehensive APIs for developers to fully utilize workers, leading to increased load on the main thread, offloading to native, or forking your web app for WebView2 scenarios. To address this, the WebView2 team is introducing support for worker scenarios. This enhancement allows WebView2 users to interact with Web Workers from native apps, bypassing the JavaScript thread to boost app performance and responsiveness, or to run tasks in the background for offline support, push notifications, background sync, content updates, and more. As a part of the work, the WebView2 team is adding support for [Dedicated Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API), [Shared Workers](https://developer.mozilla.org/en-US/docs/Web/API/SharedWorker), and [Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API). While there are various types of web workers, our initial focus is on these three, with plans to broaden our support for other workers in the future.
 
 **What is Web Worker?**
 [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API) allow web content to execute scripts in background threads, enabling tasks to run independently of the user interface and facilitating communication between threads using message passing. Web Workers can also make network requests using fetch() or XMLHttpRequest APIs. Few examples of workers are
@@ -19,20 +19,20 @@ We propose the introduction of APIs that enable the host application to oversee 
 
 **DedicatedWorkerCreated**: This event, associated with CoreWebView2, is triggered when a web page initiates a dedicated worker. It grants access to the CoreWebView2DedicatedWorker object, which contains information such as the script URL and name. Additionally, it provides a 'destroy' event that is fired just before this object is due for destruction.
 
-**ServiceWorkerRegistered**: This event, originating from the CoreWebView2ServiceWorkerManager assicoated with CoreWebView2Profile is triggered when a service worker is successfully registered within the context of a WebView2 application for the profile. This event provides access to a CoreWebView2ServiceWorkerRegistration object, which encapsulates information about the registered service worker, such as its script URL and scope. Additionally, it enables subscription to the service worker's lifecycle events, including updates and unregistration.
+**ServiceWorkerRegistered**: This event, originating from the CoreWebView2ServiceWorkerManager associated with CoreWebView2Profile is triggered when a service worker is successfully registered within the context of a WebView2 application for the profile. This event provides access to a CoreWebView2ServiceWorkerRegistration object, which encapsulates information about the registered service worker, such as its script URL and scope. Additionally, it enables subscription to the service worker's lifecycle events, including updates and unregistration.
 
 **GetServiceWorkerRegistrations**: The GetServiceWorkerRegistrations method, part of the CoreWebViewServiceWorkerManager class, is used to retrieve all service worker registrations within the context of a WebView2 application for the profile. This method gives a collection of CoreWebView2ServiceWorkerRegistration objects, each encapsulating information about a registered service worker, such as its script URL and scope.
 
 **GetServiceWorkerRegistration**: The GetServiceWorkerRegistration method, part of the CoreWebViewServiceWorkerManager class, is used to retrieve a specific service worker registration within the context of a WebView2 application for the profile. This asynchronous method takes a scope as an argument and returns a CoreWebView2ServiceWorkerRegistration object that encapsulates information about the registered service worker with the given scope, such as its script URL. This method is useful for accessing details of a specific service worker based on its scope.
 
-**SharedWorkerCreated**: This event, originating from the CoreWebView2SharedWorkerManager assicoated with CoreWebView2Profile, is triggered when a shared worker is successfully created within the context of a WebView2 application for the profile. It grants access to the CoreWebView2SharedWorker object, which contains information such as the script URL and name. Additionally, it provides a 'destroy' event that is fired just before this object is due for destruction.
+**SharedWorkerCreated**: This event, originating from the CoreWebView2SharedWorkerManager associated with CoreWebView2Profile, is triggered when a shared worker is successfully created within the context of a WebView2 application for the profile. It grants access to the CoreWebView2SharedWorker object, which contains information such as the script URL and name. Additionally, it provides a 'destroy' event that is fired just before this object is due for destruction.
 
 **GetSharedWorkers**: The GetSharedWorkers method, part of the CoreWebViewSharedWorkerManager class, is used to retrieve all shared workers created within the context of a WebView2 application for the profile. This method gives a collection of CoreWebView2SharedWorkers objects.
 
 # Examples
 ## Dedicated Worker
 ## Monitoring the Creation/Destruction of Dedicated Workers.
-The following example demonstrates how to subscribe to the event that is triggered when a web page creates a dedicated worker. This event provides a CoreWebView2 dedicated worker object, enabling the host application to interact with it.
+The following example demonstrates how to subscribe to the event that is triggered when a web page creates a dedicated worker. This event provides a CoreWebView2DedicatedWorker object, enabling the host application to interact with it.
 
 ## .NET/WinRT
 ```c#
@@ -43,14 +43,14 @@ The following example demonstrates how to subscribe to the event that is trigger
             CoreWebView2DedicatedWorker dedicatedWorker = args.Worker;
             if(dedicatedWorker != null)
             {
-              var stringUrl = dedicatedWorker.ScriptUrl;
-              MessageBox.Show("Dedicated is created at " + stringUrl , "Dedicated Worker Message");
-
               dedicatedWorker.WorkerDestroyed += (sender, args) =>
               {
                  /*Cleanup on worker destruction*/
                  MessageBox.Show("Dedicated is destroyed" , "Dedicated Worker Message");
               };
+
+              var scriptUrl = dedicatedWorker.ScriptUrl;
+              MessageBox.Show("Dedicated is created at " + scriptUrl , "Dedicated Worker Message");
             }
         };
     }
@@ -73,25 +73,29 @@ The following example demonstrates how to subscribe to the event that is trigger
 
                   CHECK_FAILURE(args->get_Worker(&dedicatedWorker));
 
-                  wil::com_ptr<ICoreWebView2Worker> worker =
-                      dedicatedWorker.try_query<ICoreWebView2Worker>();
+                  if (dedicatedWorker)
+                  {
+                    wil::com_ptr<ICoreWebView2Worker> worker =
+                        dedicatedWorker.try_query<ICoreWebView2Worker>();
 
-                  if(worker) {
-                    wil::unique_cotaskmem_string scriptUrl;
-                    CHECK_FAILURE(worker->get_ScriptUrl(&scriptUrl));
+                    if(worker)
+                    {
+                      // Subscribe to worker destroyed event
+                      CHECK_FAILURE(worker->add_Destroyed(
+                          Callback<ICoreWebView2WorkerDestroyedEventHandler>(
+                              [this](ICoreWebView2Worker* sender, IUnknown* args) -> HRESULT
+                              {
+                                  /*Cleanup on worker destruction*/
+                                  return S_OK;
+                              })
+                              .Get(),
+                          nullptr));
 
-                    m_appWindow->AsyncMessageBox(scriptUrl.get(), L"Dedicated worker is created");
+                      wil::unique_cotaskmem_string scriptUrl;
+                      CHECK_FAILURE(worker->get_ScriptUrl(&scriptUrl));
 
-                    // Subscribe to worker destroyed event
-                    CHECK_FAILURE(worker->add_Destroyed(
-                        Callback<ICoreWebView2WorkerDestroyedEventHandler>(
-                            [this](ICoreWebView2Worker* sender, IUnknown* args) -> HRESULT
-                            {
-                                /*Cleanup on worker destruction*/
-                                return S_OK;
-                            })
-                            .Get(),
-                        nullptr));
+                      m_appWindow->AsyncMessageBox(scriptUrl.get(), L"Dedicated worker is created");
+                    }
                   }
 
                   return S_OK;
@@ -111,7 +115,7 @@ The following example demonstrates how to subscribe to the event that is trigger
     CoreWebView2ServiceWorkerManager ServiceWorkerManager_;
     void ServiceWorkerRegisteredExecuted(object target, ExecutedRoutedEventArgs e)
     {
-        if (ServiceWorkerManager_ != null)
+        if (ServiceWorkerManager_ != nullptr)
         {
             ServiceWorkerManager_ = WebViewProfile.ServiceWorkerManager;
         }
@@ -199,7 +203,7 @@ The following example demonstrates how to subscribe to the event that is trigger
                                 wil::com_ptr<ICoreWebView2Worker> worker;
                                 wil::unique_cotaskmem_string scriptUrl;
                                 std::wstringstream message;
-                                if (serviceWorker != nullptr)
+                                if (serviceWorker)
                                 {
                                     if (SUCCEEDED(
                                             serviceWorker->QueryInterface(IID_PPV_ARGS(&worker))))
@@ -291,27 +295,30 @@ The following example demonstrates how to fetch and display information about al
                     HRESULT error, ICoreWebView2ServiceWorkerRegistrationCollectionView*
                                       workerRegistrationCollection) -> HRESULT
                 {
-                    UINT32 workersCount = 0;
-                    CHECK_FAILURE(workerRegistrationCollection->get_Count(&workersCount));
+                  if(workerRegistrationCollection)
+                  {
+                      UINT32 workersCount = 0;
+                      CHECK_FAILURE(workerRegistrationCollection->get_Count(&workersCount));
 
-                    std::wstringstream message{};
-                    message << L"No of service workers registered: " << workersCount << std::endl;
+                      std::wstringstream message{};
+                      message << L"No of service workers registered: " << workersCount << std::endl;
 
-                    for (UINT32 i = 0; i < workersCount; i++)
-                    {
-                        Microsoft::WRL::ComPtr<ICoreWebView2ServiceWorkerRegistration>
-                            serviceWorkerRegistration;
-                        CHECK_FAILURE(workerRegistrationCollection->GetValueAtIndex(
-                            i, &serviceWorkerRegistration));
+                      for (UINT32 i = 0; i < workersCount; i++)
+                      {
+                          Microsoft::WRL::ComPtr<ICoreWebView2ServiceWorkerRegistration>
+                              serviceWorkerRegistration;
+                          CHECK_FAILURE(workerRegistrationCollection->GetValueAtIndex(
+                              i, &serviceWorkerRegistration));
 
-                        wil::unique_cotaskmem_string scope;
-                        CHECK_FAILURE(serviceWorkerRegistration->get_Scope(&scope));
+                          wil::unique_cotaskmem_string scope;
+                          CHECK_FAILURE(serviceWorkerRegistration->get_Scope(&scope));
 
-                        message << L"Scope: " << scope.get();
-                    }
+                          message << L"Scope: " << scope.get();
+                      }
 
-                    m_appWindow->AsyncMessageBox(
-                        std::move(message.str()), L"Registered service workers");
+                      m_appWindow->AsyncMessageBox(
+                          std::move(message.str()), L"Registered service workers");
+                  }
 
                     return S_OK;
                 })
@@ -391,40 +398,50 @@ The following example demonstrates how to obtain the service worker registration
                         ICoreWebView2ServiceWorkerRegistration* serviceWorkerRegistration)
                         -> HRESULT
                     {
-                        CHECK_FAILURE(serviceWorkerRegistration->GetServiceWorker(
-                            Callback<ICoreWebView2GetServiceWorkerCompletedHandler>(
-                                [this, &scope](
-                                    HRESULT error,
-                                    ICoreWebView2ServiceWorker* serviceWorker) -> HRESULT
-                                {
-                                    std::wstringstream message{};
+                        CHECK_FAILURE(error);
+                        if(serviceWorkerRegistration)
+                        {
+                          CHECK_FAILURE(serviceWorkerRegistration->GetServiceWorker(
+                              Callback<ICoreWebView2GetServiceWorkerCompletedHandler>(
+                                  [this, &scope](
+                                      HRESULT error,
+                                      ICoreWebView2ServiceWorker* serviceWorker) -> HRESULT
+                                  {
+                                      std::wstringstream message{};
 
-                                    if (serviceWorker != nullptr)
-                                    {
-                                        wil::com_ptr<ICoreWebView2Worker> worker;
-                                        wil::unique_cotaskmem_string scriptUrl;
-                                        if (SUCCEEDED(serviceWorker->QueryInterface(
-                                                IID_PPV_ARGS(&worker))))
-                                        {
-                                            CHECK_FAILURE(worker->get_ScriptUrl(&scriptUrl));
-                                        }
+                                      if (serviceWorker != nullptr)
+                                      {
+                                          wil::com_ptr<ICoreWebView2Worker> worker;
+                                          wil::unique_cotaskmem_string scriptUrl;
+                                          if (SUCCEEDED(serviceWorker->QueryInterface(
+                                                  IID_PPV_ARGS(&worker))))
+                                          {
+                                              CHECK_FAILURE(worker->get_ScriptUrl(&scriptUrl));
+                                          }
 
-                                        message << L"ScriptUrl: " << scriptUrl.get();
-                                        message << std::endl;
-                                    }
-                                    else
-                                    {
-                                        message << L"No service worker available for the scope: "
-                                                << scope;
-                                        message << std::endl;
-                                    }
+                                          message << L"ScriptUrl: " << scriptUrl.get();
+                                          message << std::endl;
+                                      }
+                                      else
+                                      {
+                                          message << L"No service worker available for the scope: "
+                                                  << scope;
+                                          message << std::endl;
+                                      }
 
-                                    m_appWindow->AsyncMessageBox(
-                                        std::move(message.str()), L"Service Worker");
+                                      m_appWindow->AsyncMessageBox(
+                                          std::move(message.str()), L"Service Worker");
 
-                                    return S_OK;
-                                })
-                                .Get()));
+                                      return S_OK;
+                                  })
+                                  .Get()));
+                        }
+                        else
+                        {
+                            m_appWindow->AsyncMessageBox(
+                              L"No service worker registered for the scope: " + scope,
+                              L"Service Worker");
+                        }
 
                         return S_OK;
                     })
@@ -569,31 +586,33 @@ The following example demonstrates how to fetch and display information about al
                 HRESULT error,
                 ICoreWebView2SharedWorkerCollectionView* workersCollection) -> HRESULT
             {
-                UINT32 workersCount = 0;
-                CHECK_FAILURE(workersCollection->get_Count(&workersCount));
+               if(workersCollection)
+               {
+                  UINT32 workersCount = 0;
+                  CHECK_FAILURE(workersCollection->get_Count(&workersCount));
 
-                std::wstringstream message{};
-                message << L"No of shared workers created: " << workersCount << std::endl;
+                  std::wstringstream message{};
+                  message << L"No of shared workers created: " << workersCount << std::endl;
 
-                for (UINT32 i = 0; i < workersCount; i++)
-                {
-                    Microsoft::WRL::ComPtr<ICoreWebView2SharedWorker> sharedWorker;
-                    CHECK_FAILURE(workersCollection->GetValueAtIndex(i, &sharedWorker));
+                  for (UINT32 i = 0; i < workersCount; i++)
+                  {
+                      Microsoft::WRL::ComPtr<ICoreWebView2SharedWorker> sharedWorker;
+                      CHECK_FAILURE(workersCollection->GetValueAtIndex(i, &sharedWorker));
 
-                    wil::com_ptr<ICoreWebView2Worker> worker;
-                    if (SUCCEEDED(sharedWorker->QueryInterface(IID_PPV_ARGS(&worker))))
-                    {
-                        wil::unique_cotaskmem_string scriptUrl;
-                        CHECK_FAILURE(worker->get_ScriptUrl(&scriptUrl));
+                      wil::com_ptr<ICoreWebView2Worker> worker;
+                      if (SUCCEEDED(sharedWorker->QueryInterface(IID_PPV_ARGS(&worker))))
+                      {
+                          wil::unique_cotaskmem_string scriptUrl;
+                          CHECK_FAILURE(worker->get_ScriptUrl(&scriptUrl));
 
-                        message << L"ScriptUrl: " << scriptUrl.get();
-                        message << std::endl;
-                    }
-                }
+                          message << L"ScriptUrl: " << scriptUrl.get();
+                          message << std::endl;
+                      }
+                  }
 
-                m_appWindow->AsyncMessageBox(
-                    std::move(message.str()), L"Get all shared workers");
-
+                  m_appWindow->AsyncMessageBox(
+                      std::move(message.str()), L"Get all shared workers");
+               }
                 return S_OK;
             })
             .Get()));
@@ -881,7 +900,6 @@ interface ICoreWebView2Worker : IUnknown {
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT ScriptUrl([out, retval] LPWSTR* value);
-
 
   /// Add an event handler for the `Destroyed` event that is raised when the worker object is destroyed.
   /// A worker object is destroyed when the worker script is terminated or when the `CoreWebView2Worker` object is destroyed.
