@@ -15,7 +15,7 @@ We'd appreciate your feedback.
 # Description
 
 We proposed the `CoreWebView2.SaveFileSecurityCheckStarting` event. As a developer, you can register a handler on
-this event to get the file path, file extension and URI source information. Then you can apply your own
+this event to get the file path, file extension and document origin URI information. Then you can apply your own
 rules to allow save the file without a default file type policy security warning UI;
 to cancel the saving; and even to create your own UI to manage runtime 
 file type policies.
@@ -24,7 +24,7 @@ file type policies.
 ## Win32 C++ 
 This example will register the event with two custom rules.
 - Suppressing file type policy, security dialog, and 
-allows saving ".eml" files directly; when the uri is trusted.
+allows saving ".eml" files directly; when the URI is trusted.
 - Showing customized warning UI when saving ".iso" files.
 It allows to block the saving directly.
 ```c++
@@ -32,9 +32,9 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
 {
     wil::com_ptr<ICoreWebView2> m_webview;
     EventRegistrationToken m_saveFileSecurityCheckStartingToken = {};
-    auto m_webview2_25 = m_webView.try_query<ICoreWebView2_25>();
+    auto m_webview2_23 = m_webView.try_query<ICoreWebView2_23>();
     // Register a handler for the `SaveFileSecurityCheckStarting` event.
-    m_webView2_25->add_saveFileSecurityCheckStarting(
+    m_webView2_23->add_saveFileSecurityCheckStarting(
         Callback<ICoreWebView2SaveFileSecurityCheckStartingEventHandler>(
             [this](
                 ICoreWebView2* sender,
@@ -43,9 +43,9 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
                 // Get the file extension for file to be saved.
                 wil::unique_cotaskmem_string extension;
                 CHECK_FAILURE(args->get_FileExtension(&extension));
-                // Get the uri of file to be saved.
+                // Get the document origin URI of file to be saved.
                 wil::unique_cotaskmem_string uri;
-                CHECK_FAILURE(args->get_SourceUri(&uri));
+                CHECK_FAILURE(args->get_DocumentOriginUri(&uri));
                 // Convert the file extension value to lower case for
                 // the case-insensitive comparison.
                 std::wstring extension_lower = extension.get();
@@ -54,11 +54,11 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
                     extension_lower.begin(), ::towlower);
                 // Set the `SuppressDefaultPolicy` property to skip the
                 // default file type policy checking and a possible security
-                // alert dialog for ".eml" file, when it's from a trusted uri.
+                // alert dialog for ".eml" file, when it's from a trusted URI.
                 // This will consent to save the file.
                 //
                 // 'IsTrustedUri' should be your own helper method
-                // to determine whether the uri is trusted.
+                // to determine whether the URI is trusted.
                 if (wcscmp(extension_lower.c_str(), L".eml") == 0 && IsTrustedUri(uri))
                 {
                     CHECK_FAILURE(args->put_SuppressDefaultPolicy(TRUE));
@@ -74,7 +74,7 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
                     m_appWindow->RunAsync(
                         [args = wil::make_com_ptr(args), deferral]()
                         {
-                            // Set the `Cancel` property to cancel the saving 
+                            // Set the `CancelSave` property to cancel the saving 
                             // for ".iso" file directly. Save action will be aborted.
                             //
                             // You can let end users make decision on their save
@@ -83,7 +83,7 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
                             // your helper method that retrieves result from the UI.
                             if (IsCancelledFromCustomizedWarningUI())
                             {
-                                CHECK_FAILURE(args->put_Cancel(TRUE));
+                                CHECK_FAILURE(args->put_CancelSave(TRUE));
                             }
                             CHECK_FAILURE(deferral->Complete());
                         });
@@ -98,7 +98,7 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
 ## .Net/ WinRT
 This example will register the event with two custom rules.
 - Suppressing file type policy, security dialog, and 
-allows saving ".eml" files directly; when the uri is trusted.
+allows saving ".eml" files directly; when the URI is trusted.
 - Showing customized warning UI when saving ".iso" files.
 It allows to block the saving directly.
 ```c#
@@ -108,15 +108,15 @@ void AddCustomFileTypePolicies()
     webView.CoreWebView2.SaveFileSecurityCheckStarting += (sender, args) =>
     {
         if (string.Equals(args.FileExtension, ".eml", StringComparison.OrdinalIgnoreCase)
-            && IsTrustedUri(args.SourceUri))
+            && IsTrustedUri(args.DocumentOriginUri))
         {
             // Set the `SuppressDefaultPolicy` property to skip the
             // default file type policy checking and a possible security
-            // alert dialog for ".eml" file, when it's from a trusted uri.
+            // alert dialog for ".eml" file, when it's from a trusted URI.
             // This will consent to save the file.
             //
             // 'IsTrustedUri' should be your own helper method
-            // to determine whether the uri is trusted.
+            // to determine whether the URI is trusted.
             args.SuppressDefaultPolicy = true;
         }
         if (string.Equals(args.FileExtension, ".iso", StringComparison.OrdinalIgnoreCase))
@@ -128,14 +128,14 @@ void AddCustomFileTypePolicies()
                 {
                     if (IsCancelledFromCustomizedWarningUI())
                     {
-                        // Set the `Cancel` property to cancel the saving 
+                        // Set the `CancelSave` property to cancel the saving 
                         // for ".iso" file directly. Save action will be aborted.
                         //
                         // You can let end users make decision on their save
                         // action with your customized warning UI.
                         // 'IsCancelledFromCustomizedWarningUI' should be
                         // your helper method that retrieves result from the UI.
-                        args.Cancel = true;
+                        args.CancelSave = true;
                     }
                 }
             }, null);
@@ -147,32 +147,34 @@ void AddCustomFileTypePolicies()
 # API Details
 ## Win32 C++
 ```c++
-interface ICoreWebView2 : IUnknown {
+interface ICoreWebView2_23 : ICoreWebView2_22 {
   /// Adds an event handler for the `SaveFileSecurityCheckStarting` event.
   /// If the default save file picker is used to save a file, for
   /// example, client using the File System API `showSaveFilePicker`;
   /// this event will be raised during system FileTypePolicy
   /// checking the dangerous file extension list.
-  /// 
-  /// Developers can specify their own decision on if allow this file 
-  /// type extension to be saved, or downloaded. Here are two properties
-  /// in `ICoreWebView2SaveFileSecurityCheckStartingEventArgs` to manage the 
-  /// decision, `Cancel` and `SuppressDefaultPolicy`.
+  ///
+  /// Developers can specify their own logic for determining whether
+  /// to allow a particular type of file to be saved from the document origin URI.
+  /// Developers can also determine the save decision based on other criteria.
+  /// Here are two properties in `ICoreWebView2SaveFileSecurityCheckStartingEventArgs`
+  /// to manage the decision, `CancelSave` and `SuppressDefaultPolicy`.
+  ///
   /// Table of Properties' value and result:
   /// 
-  /// | Cancel | SuppressDefaultPolicy | Result
-  /// | ------ | ------ | ---------------------  
-  /// | False  | False  | Perform the default policy check. It may show the
-  /// |        |        | security warning UI if the file extension is 
-  /// |        |        | dangerous.
-  /// | ------ | ------ | --------------------- 
-  /// | False  | True   | Skip the default policy check and the possible
-  /// |        |        | security warning. Start saving or downloading.
-  /// | ------ | ------ | --------------------- 
-  /// | True   | Any    | Skip the default policy check and the possible
-  /// |        |        | security warning. Abort save or download.
+  /// | CancelSave | SuppressDefaultPolicy | Result
+  /// | ---------- | ------ | ---------------------  
+  /// | False      | False  | Perform the default policy check. It may show the
+  /// |            |        | security warning UI if the file extension is 
+  /// |            |        | dangerous.
+  /// | ---------- | ------ | --------------------- 
+  /// | False      | True   | Skip the default policy check and the possible
+  /// |            |        | security warning. Start saving or downloading.
+  /// | ---------- | ------ | --------------------- 
+  /// | True       | Any    | Skip the default policy check and the possible
+  /// |            |        | security warning. Abort save or download.
   HRESULT add_SaveFileSecurityCheckStarting(
-      [in] ICoreWebView2StagingSaveFileSecurityCheckStartingEventHandler* eventHandler,
+      [in] ICoreWebView2SaveFileSecurityCheckStartingEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_SaveFileSecurityCheckStarting`.
@@ -182,31 +184,34 @@ interface ICoreWebView2 : IUnknown {
 
 
 /// The event args for `SaveFileSecurityCheckStarting` event.
-interface ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs : IUnknown {
-  /// Gets the `Cancel` property.
-  [propget] HRESULT Cancel([out, retval] BOOL* value);
+interface ICoreWebView2SaveFileSecurityCheckStartingEventArgs : IUnknown {
+  /// Gets the `CancelSave` property.
+  [propget] HRESULT CancelSave([out, retval] BOOL* value);
 
   /// Set whether to cancel the upcoming save/download. `TRUE` means the action 
   /// will be cancelled before validations in default policy.
   /// 
   /// The default value is `FALSE`.
-  [propput] HRESULT Cancel([in] BOOL value);
+  [propput] HRESULT CancelSave([in] BOOL value);
 
   /// Get the extension of file to be saved.
   ///
-  /// File extension can be empty, if the file name has no extension
-  /// at all.
-  ///
-  /// Only final extension without "." will be provided. For example,
-  /// "*.tar.gz" is a double extension, where the "gz" will be its
-  /// final extension.
-  ///
   /// The file extension is the extension portion of the FilePath,
   /// preserving original case.
+  ///
+  /// Only final extension with period "." will be provided. For example,
+  /// "*.tar.gz" is a double extension, where the ".gz" will be its
+  /// final extension.
+  ///
+  /// File extension can be empty, if the file name has no extension
+  /// at all.
   [propget] HRESULT FileExtension([out, retval] LPWSTR* value);
 
   /// Get the full path of file to be saved. This includes the
   /// file name and extension.
+  ///
+  /// This method doesn't provide path validation, the returned
+  /// string may longer than MAX_PATH.
   [propget] HRESULT FilePath([out, retval] LPWSTR* value);
 
   /// Gets the `SuppressDefaultPolicy` property.
@@ -218,8 +223,8 @@ interface ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs : IUnknown 
   /// The default value is `FALSE`.
   [propput] HRESULT SuppressDefaultPolicy([in] BOOL value);
 
-  /// The URI source of this file save operation.
-  [propget] HRESULT SourceUri([out, retval] LPWSTR* value);
+  /// The document origin URI of this file save operation.
+  [propget] HRESULT DocumentOriginUri([out, retval] LPWSTR* value);
 
   /// Returns an `ICoreWebView2Deferral` object. Use this operation to complete
   /// the SaveFileSecurityCheckStartingEvent.
@@ -232,11 +237,11 @@ interface ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs : IUnknown 
 }
 
 /// Receives `SaveFileSecurityCheckStarting` events.
-interface ICoreWebView2StagingSaveFileSecurityCheckStartingEventHandler : IUnknown {
+interface ICoreWebView2SaveFileSecurityCheckStartingEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2* sender,
-      [in] ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs* args);
+      [in] ICoreWebView2SaveFileSecurityCheckStartingEventArgs* args);
 }
 ```
 
@@ -250,11 +255,11 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2SaveFileSecurityCheckStartingEventArgs
     {
-        Boolean Cancel { get; set; };
+        Boolean CancelSave { get; set; };
         String FileExtension { get; };
         String FilePath { get; };
         Boolean SuppressDefaultPolicy { get; set; };
-        String SourceUri { get; };
+        String DocumentOriginUri { get; };
         Windows.Foundation.Deferral GetDeferral();
     };
 
@@ -262,7 +267,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
         
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_25")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_23")]
         {
             event Windows.Foundation.TypedEventHandler
                 <CoreWebView2, CoreWebView2SaveFileSecurityCheckStartingEventArgs> SaveFileSecurityCheckStarting;
