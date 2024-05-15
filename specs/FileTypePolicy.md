@@ -58,7 +58,7 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
                 // This will consent to save the file.
                 //
                 // 'IsTrustedUri' should be your own helper method
-                // to determine whether a uri is trusted.
+                // to determine whether the uri is trusted.
                 if (wcscmp(extension_lower.c_str(), L".eml") == 0 && IsTrustedUri(uri))
                 {
                     CHECK_FAILURE(args->put_SuppressDefaultPolicy(TRUE));
@@ -80,7 +80,7 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
                             // You can let end users make decision on their save
                             // action with your customized warning UI.
                             // 'IsCancelledFromCustomizedWarningUI' should be
-                            // your async helper method that retrieves result from the UI.
+                            // your helper method that retrieves result from the UI.
                             if (IsCancelledFromCustomizedWarningUI())
                             {
                                 CHECK_FAILURE(args->put_Cancel(TRUE));
@@ -96,31 +96,49 @@ void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
 ```
 
 ## .Net/ WinRT
-This example shows suppressing file type policy, security dialog, and 
-allows saving eml files directly. It also blocks saving exe files.
-The sample code will register the event with custom rules.
+This example will register the event with two custom rules.
+- Suppressing file type policy, security dialog, and 
+allows saving ".eml" files directly; when the uri is trusted.
+- Showing customized warning UI when saving ".iso" files.
+It allows to block the saving directly.
 ```c#
-void AddCustomFileTypePoliciesExecuted(object target, ExecutedRoutedEventArgs e)
+void AddCustomFileTypePolicies()
 {
     // Register a handler for the `SaveFileSecurityCheckStarting` event.
     webView.CoreWebView2.SaveFileSecurityCheckStarting += (sender, args) =>
     {
-        // Get the file extension for file to be saved.
-        // And create your own rules of file type policy.
-        if (args.FileExtension == "eml")
+        if (string.Equals(args.FileExtension, ".eml", StringComparison.OrdinalIgnoreCase)
+            && IsTrustedUri(args.SourceUri))
         {
             // Set the `SuppressDefaultPolicy` property to skip the
             // default file type policy checking and a possible security
-            // alert dialog for "eml" file. This will consent to
-            // save the file.
+            // alert dialog for ".eml" file, when it's from a trusted uri.
+            // This will consent to save the file.
+            //
+            // 'IsTrustedUri' should be your own helper method
+            // to determine whether the uri is trusted.
             args.SuppressDefaultPolicy = true;
         }
-        if (args.FileExtension == "exe")
+        if (string.Equals(args.FileExtension, ".iso", StringComparison.OrdinalIgnoreCase))
         {
-            // Set the `Cancel` property to cancel the saving for "exe"
-            // file directly. Save action will be aborted without any
-            // alert.
-            args.Cancel = true;
+            CoreWebView2Deferral deferral = args.GetDeferral();
+            System.Threading.SynchronizationContext.Current.Post((_) =>
+            {
+                using (deferral)
+                {
+                    if (IsCancelledFromCustomizedWarningUI())
+                    {
+                        // Set the `Cancel` property to cancel the saving 
+                        // for ".iso" file directly. Save action will be aborted.
+                        //
+                        // You can let end users make decision on their save
+                        // action with your customized warning UI.
+                        // 'IsCancelledFromCustomizedWarningUI' should be
+                        // your helper method that retrieves result from the UI.
+                        args.Cancel = true;
+                    }
+                }
+            }, null);
         }
     };
 }
