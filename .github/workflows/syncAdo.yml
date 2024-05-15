@@ -4,6 +4,10 @@ on:
   issues:
     types: [labeled, closed, reopened]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   alert:
     runs-on: ubuntu-latest
@@ -20,3 +24,15 @@ jobs:
         ado_area_path: 'Edge\Web Experience\WebView2'
         ado_tags: 'WV2_GitHub'
         ado_gh_closed_tag: 'WV2_GitHub_Closed'
+    - name: Azure login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    - name: Azure CLI script
+      uses: azure/cli@v2
+      with:
+        azcliversion: latest
+        inlineScript: |
+          az account show
