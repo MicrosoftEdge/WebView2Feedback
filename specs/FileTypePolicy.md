@@ -22,45 +22,76 @@ file type policies.
 
 # Examples
 ## Win32 C++ 
-This example shows suppressing file type policy, security dialog, and 
-allows saving eml files directly. It also blocks saving exe files.
-The sample code will register the event with custom rules.
+This example will register the event with two custom rules.
+- Suppressing file type policy, security dialog, and 
+allows saving ".eml" files directly; when the uri is trusted.
+- Showing customized warning UI when saving ".iso" files.
+It allows to block the saving directly.
 ```c++
-bool ScenarioFileTypePolicyStaging::AddCustomFileTypePolicies()
+void ScenarioFileTypePolicy::AddCustomFileTypePolicies()
 {
-    if (!m_webView2Staging25)
-        return false;
+    wil::com_ptr<ICoreWebView2> m_webview;
+    EventRegistrationToken m_saveFileSecurityCheckStartingToken = {};
+    auto m_webview2_25 = m_webView.try_query<ICoreWebView2_25>();
     // Register a handler for the `SaveFileSecurityCheckStarting` event.
-    m_webView2Staging25->add_SaveFileSecurityCheckStarting(
-        Callback<ICoreWebView2StagingSaveFileSecurityCheckStartingEventHandler>(
+    m_webView2_25->add_saveFileSecurityCheckStarting(
+        Callback<ICoreWebView2SaveFileSecurityCheckStartingEventHandler>(
             [this](
                 ICoreWebView2* sender,
-                ICoreWebView2StagingSaveFileSecurityCheckStartingEventArgs* args) -> HRESULT
+                ICoreWebView2SaveFileSecurityCheckStartingEventArgs* args) -> HRESULT
             {
                 // Get the file extension for file to be saved.
-                // And create your own rules of file type policy.
-                LPWSTR extension;
+                wil::unique_cotaskmem_string extension;
                 CHECK_FAILURE(args->get_FileExtension(&extension));
-                if (lstrcmpW(extension, L"eml") == 0)
+                // Get the uri of file to be saved.
+                wil::unique_cotaskmem_string uri;
+                CHECK_FAILURE(args->get_SourceUri(&uri));
+                // Convert the file extension value to lower case for
+                // the case-insensitive comparison.
+                std::wstring extension_lower = extension.get();
+                std::transform(
+                    extension_lower.begin(), extension_lower.end(),
+                    extension_lower.begin(), ::towlower);
+                // Set the `SuppressDefaultPolicy` property to skip the
+                // default file type policy checking and a possible security
+                // alert dialog for ".eml" file, when it's from a trusted uri.
+                // This will consent to save the file.
+                //
+                // 'IsTrustedUri' should be your own helper method
+                // to determine whether a uri is trusted.
+                if (wcscmp(extension_lower.c_str(), L".eml") == 0 && IsTrustedUri(uri))
                 {
-                    // Set the `SuppressDefaultPolicy` property to skip the
-                    // default file type policy checking and a possible security
-                    // alert dialog for "eml" file. This will consent to
-                    // save the file.
                     CHECK_FAILURE(args->put_SuppressDefaultPolicy(TRUE));
                 }
-                if (lstrcmpW(extension, L"exe") == 0)
+                // Show customized warning UI for ".iso" file with
+                // the deferral.
+                if (wcscmp(extension_lower.c_str(), L".iso") == 0)
                 {
-                    // Set the `Cancel` property to cancel the saving for "exe"
-                    // file directly. Save action will be aborted without any
-                    // alert.
-                    CHECK_FAILURE(args->put_Cancel(TRUE));
+                    wil::com_ptr<ICoreWebView2Deferral> deferral;
+                    CHECK_FAILURE(args->GetDeferral(&deferral));
+
+                    // 'm_appWindow' should be your main app window.
+                    m_appWindow->RunAsync(
+                        [args = wil::make_com_ptr(args), deferral]()
+                        {
+                            // Set the `Cancel` property to cancel the saving 
+                            // for ".iso" file directly. Save action will be aborted.
+                            //
+                            // You can let end users make decision on their save
+                            // action with your customized warning UI.
+                            // 'IsCancelledFromCustomizedWarningUI' should be
+                            // your async helper method that retrieves result from the UI.
+                            if (IsCancelledFromCustomizedWarningUI())
+                            {
+                                CHECK_FAILURE(args->put_Cancel(TRUE));
+                            }
+                            CHECK_FAILURE(deferral->Complete());
+                        });
                 }
                 return S_OK;
             })
             .Get(),
         &m_saveFileSecurityCheckStartingToken);
-    return true;
 }
 ```
 
