@@ -67,12 +67,26 @@ jobs:
               
               // Add priority-low label to GitHub issues
               const addLowPriorityLabel = async (issueNumber) => {
+                // Check if the issue already has the label
+                const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+                  issue_number: issueNumber,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo
+                });
+
+                if (labels.some(l => l.name === 'priority-low')) {
+                  console.log(`Issue #${issueNumber} already has the label`);
+                  return;
+                }  
+
+                // Add the label
                 await github.rest.issues.addLabels({
                   issue_number: issueNumber,
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   labels: ['priority-low']
                 });
+                console.log(`Added label to issue #${issueNumber}`);
               }
 
               ghIssueNumbers.forEach(async (issueNumber) => {
