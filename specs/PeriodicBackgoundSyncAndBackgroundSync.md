@@ -37,7 +37,7 @@ registered.
 **GetSyncRegistrations API**: This asynchronous call returns the 
 collection of all periodic background synchronization registrations or 
 background synchronization registrations based on the 
-`CoreWebView2ServiceWorkerSynchronizationKind` provided. We add
+`CoreWebView2ServiceWorkerSyncKind` provided. We add
 `CoreWebView2ServiceWorkerSyncRegistrationInfo` with `Tag` and 
 `MinIntervalInMilliseconds` properties to represent a synchronization registration.
 
@@ -213,7 +213,7 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
                     CHECK_FAILURE(errorCode);
                     m_appWindow->AsyncMessageBox(
                         (isSuccessful) ? L"Dispatch Periodic Sync task success"
-                                        : L"Dispatch Periodic Sync task failed",
+                                       : L"Dispatch Periodic Sync task failed",
                         L"Dispatch periodic sync task Completed");
                     return S_OK;
                 })
@@ -347,7 +347,7 @@ async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2
         var times = message.Substring(msgLength);
         IReadOnlyList<CoreWebView2ServiceWorkerSyncRegistrationInfo> registrationList =
             await SyncRegistrationManager_.GetSyncRegistrationsAsync(
-                CoreWebView2ServiceWorkerSynchronizationKind.PeriodicSync);
+                CoreWebView2ServiceWorkerSyncKind.PeriodicSync);
         int registrationCount = registrationList.Count;
         for (int i = 0; i < registrationCount; ++i)
         {
@@ -536,7 +536,7 @@ C#
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    enum CoreWebView2ServiceWorkerSynchronizationKind
+    enum CoreWebView2ServiceWorkerSyncKind
     {
         // Indicates that the synchronization is a background synchronization.
         // See [Background Synchronization](https://developer.mozilla.org/docs/Web/API/Background_Synchronization_API)
@@ -565,7 +565,7 @@ namespace Microsoft.Web.WebView2.Core
 
         event Windows.Foundation.TypedEventHandler<CoreWebView2ServiceWorkerSyncRegistrationManager, CoreWebView2ServiceWorkerSyncRegisteredEventArgs> PeriodicSyncRegistered;
 
-        Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ServiceWorkerSyncRegistrationInfo>> GetSyncRegistrationsAsync(CoreWebView2ServiceWorkerSynchronizationKind Kind);
+        Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ServiceWorkerSyncRegistrationInfo>> GetSyncRegistrationsAsync(CoreWebView2ServiceWorkerSyncKind Kind);
     }
 
     runtimeclass CoreWebView2ServiceWorkerSyncRegisteredEventArgs
