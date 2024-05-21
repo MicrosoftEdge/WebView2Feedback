@@ -252,8 +252,7 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
                         CHECK_FAILURE(registrationInfo->get_Tag(&tag));
                         UINT32 minInterval = 0;
                         CHECK_FAILURE(registrationInfo->get_MinIntervalInMilliseconds(&minInterval));
-                        int executeTime = time;
-                        for (int i = 0; i < executeTime; i++) {
+                        for (int i = 0; i < time; i++) {
                             DispatchPeriodicBackgroundSyncTask(tag.get());
                             // Wait for min_interval(ms) before triggering the periodic sync task again.
                             const auto interval = std::chrono::milliseconds(minInterval);
@@ -469,7 +468,7 @@ interface ICoreWebView2ServiceWorkerSyncRegistrationInfo : IUnknown {
   /// It represents the [Periodic Sync Tag][https://developer.mozilla.org/docs/Web/API/PeriodicSyncEvent/tag]
   /// and [Background Sync Tag][https://developer.mozilla.org/docs/Web/API/SyncEvent/tag].
   ///
-  /// The caller must free the returned string with `CoTaskMemFree`.  See
+  /// The caller must free the returned string with `CoTaskMemFree`. See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT Tag([out, retval] LPWSTR* value);
 }
