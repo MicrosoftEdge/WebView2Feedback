@@ -2,7 +2,7 @@ Critical Update Available
 ===
 
 # Background
-WebView2 often have to author ECS configuration to disable/enable certain feature flag. Once user received those payload, there is no logic to prompt users to restart and apply those payload. This API is to provide the ability to detect those critical palyload update and give developer the ability to config actions once critical payload is received.
+WebView2 developers often have to author ECS configurations to toggle feature flags. However, once these payloads are received, there is no way to restart the WebView2 and apply the payload. The purpose of this API is to detect such critical payloads and inform the developer so they may restart their app or their WebView2 or other appropriate action.
 
 # Examples
 ## WinRT and .NET   
