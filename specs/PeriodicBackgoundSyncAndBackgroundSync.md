@@ -255,7 +255,7 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
                         int executeTime = time;
                         for (int i = 0; i < executeTime; i++) {
                             DispatchPeriodicBackgroundSyncTask(tag.get());
-                            // Wait min_interval before triggering the periodic sync task again.
+                            // Wait for min_interval(ms) before triggering the periodic sync task again.
                             const auto interval = std::chrono::milliseconds(minInterval);
                             std::this_thread::sleep_for(interval);
                         }
@@ -358,6 +358,7 @@ async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2
             {   
                 for (int j = 0; j < times; ++j) {
                     await ServiceWorker_.DispatchPeriodicSyncEventAsync(tag);
+                    // Wait for min_interval(ms) before triggering the periodic sync task again.
                     System.Threading.Thread.Sleep((int)interval);
                 }
             }
