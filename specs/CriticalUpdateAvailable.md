@@ -2,7 +2,10 @@ Critical Update Available
 ===
 
 # Background
-WebView2 developers often have to author ECS configurations to toggle feature flags. However, once these payloads are received, there is no way to restart the WebView2 and apply the payload. The purpose of this API is to detect such critical payloads and inform the developer so they may restart their app or their WebView2 or other appropriate action.
+WebView2 developers often have to author ECS configurations to toggle feature flags. However, once 
+these payloads are received, there is no way to restart the WebView2 and apply the payload. The 
+purpose of this API is to detect such critical payloads and inform the developer so they may s
+restart their app or their WebView2 or other appropriate action.
 
 # Examples
 ## WinRT and .NET   
@@ -20,7 +23,9 @@ void WebView_CriticalUpdateAvaliable(object sender, object e)
 {
     System.Threading.SynchronizationContext.Current.Post((_) =>
     {
-        UpdateIfSelectedByUser();
+        // Depending on your app experience, you may or may not
+        // want to prompt user to restart the app.
+        RestartIfSelectedByUser();
     }, null);
 }
 ```
@@ -33,37 +38,9 @@ void WebView_CriticalUpdateAvaliable(object sender, object e)
         Callback<ICoreWebView2CriticalUpdateAvaliableEventHandler>(
             [this](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT
             {
-                // Don't block the event handler with a message box
-                RunAsync(
-                    [this]
-                    {
-                        std::wstring message =
-                            L"We detected there is a critical update for WebView2 runtime.";
-                        if (m_webView)
-                        {
-                            message += L"Do you want to restart the app? \n\n";
-                            message +=
-                                L"Click No if you only want to re-create the webviews. \n";
-                            message += L"Click Cancel for no action. \n";
-                        }
-                        int response = MessageBox(
-                            m_mainWindow, message.c_str(), L"Critical Update Avaliable",
-                            m_webView ? MB_YESNOCANCEL : MB_OK);
-
-                        if (response == IDYES)
-                        {
-                            RestartApp();
-                        }
-                        else if (response == IDNO)
-                        {
-                            ReinitializeWebViewWithNewBrowser();
-                        }
-                        else
-                        {
-                            // do nothing
-                        }
-                    });
-
+                // Depending on your app experience, you may or may not
+                // want to prompt user to restart the app.
+                RestartIfSelectedByUser();
                 return S_OK;
             })
             .Get(),
@@ -90,10 +67,24 @@ interface ICoreWebView2CriticalUpdateAvaliableEventHandler : IUnknown {
 
 [uuid(ef7632ec-d86e-46dd-9d59-e6ffb5c87878), object, pointer_default(unique)]
 interface ICoreWebView2Environment10 : IUnknown {
+  /// Add an event handler for the `CriticalUpdateAvaliable` event.
+  /// `CriticalUpdateAvaliable` event is raised when there is an urgent need to prompt the user 
+  /// to restart the WebView2 process to apply a particular configuration. The configuration 
+  /// is authored to include special attribute to indicate a payload as critical.
+  /// WebView2 team will author critical kill switch when there is a need to enable/disable 
+  /// certain features that’s causing WebView2 reliability or performance drop that’s impacting customers.
+  /// `CriticalUpdateAvaliable` will give developer the ability to prompt user for restart,
+  /// thus resolve in faster resolution time.
+  /// 
+  /// Critical Update is only applying payload; thus, version is not important. Simply prompt 
+  /// user to restart the app to get new payload applied.   
+  // MSOWNERS: xiaqu@microsoft.com
   HRESULT add_CriticalUpdateAvaliable(
       [in] ICoreWebView2CriticalUpdateAvaliableEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
+  /// Remove an event handler previously added with `add_CriticalUpdateAvaliable`.
+  // MSOWNERS: xiaqu@microsoft.com
   HRESULT remove_CriticalUpdateAvaliable(
       [in] EventRegistrationToken token);
 }
