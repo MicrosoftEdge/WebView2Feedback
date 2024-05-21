@@ -74,7 +74,6 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
     wil::com_ptr<ICoreWebView2ServiceWorkerManager> serviceWorkerManager;
     CHECK_FAILURE(webViewProfile3->get_ServiceWorkerManager(&serviceWorkerManager));
 
-
     CHECK_FAILURE(serviceWorkerManager->GetServiceWorkerRegistration(
         m_appWindow->GetLocalUri(L"").c_str(),
         Callback<ICoreWebView2GetServiceWorkerRegistrationCompletedHandler>(
@@ -83,6 +82,9 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
                 ICoreWebView2ServiceWorkerRegistration* serviceWorkerRegistration)
                 -> HRESULT
             {
+                CHECK_FAILURE(error);
+                // Service Worker registration could be null if target scope does not 
+                // register a service worker.
                 if (serviceWorkerRegistration)
                 {
                     serviceWorkerRegistration->QueryInterface(
@@ -93,6 +95,7 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
                             [this](
                                 HRESULT error, ICoreWebView2ServiceWorker* serviceWorker) -> HRESULT
                             {
+                                CHECK_FAILURE(error);
                                 if (serviceWorker)
                                 {
                                     serviceWorker->QueryInterface(IID_PPV_ARGS(&m_serviceWorker));
@@ -162,8 +165,8 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
             .Get()));
 
 
-    // Receive the message of dispatching all periodic sync tasks from the page, 
-    // `chrome.webview.postMessage(`DispatchAllPeriodicSyncEvents ${times}`)`.
+    // Received `chrome.webview.postMessage(`DispatchAllPeriodicSyncEvents ${times}`)` 
+    // message from the page.
     CHECK_FAILURE(m_webView->add_WebMessageReceived(
         Callback<ICoreWebView2WebMessageReceivedEventHandler>(
             [this, &sampleUri](
@@ -237,6 +240,7 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
                     ICoreWebView2ServiceWorkerSyncRegistrationInfoCollectionView*
                         collectionView) -> HRESULT
                 {
+                    CHECK_FAILURE(error);
                     UINT32 count;
                     collectionView->get_Count(&count);
                     for (UINT32 i = 0; i < count; i++)
@@ -463,6 +467,7 @@ interface ICoreWebView2ServiceWorkerSyncRegistrationInfo : IUnknown {
   ///
   /// It represents the [Periodic Sync Tag][https://developer.mozilla.org/docs/Web/API/PeriodicSyncEvent/tag]
   /// and [Background Sync Tag][https://developer.mozilla.org/docs/Web/API/SyncEvent/tag].
+  ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT Tag([out, retval] LPWSTR* value);
