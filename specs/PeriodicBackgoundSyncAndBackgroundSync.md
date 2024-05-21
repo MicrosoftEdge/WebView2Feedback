@@ -15,12 +15,16 @@ which passively run periodic background tasks based on the browser's
 heuristic, WebView2 exposes an API to give developers complete control 
 over how to run a periodic background synchronization task.
 
+This API depends on the support of the Service Worker in the WebView2, please see 
+[Add Workers management APIs](https://github.com/MicrosoftEdge/WebView2Feedback/pull/4540)
+for more information.
+
 # Description
 We propose following APIs:
 
 **SyncRegistrationManager API**: This API gives developers the ability 
 to manage the periodic background synchronizations and background sync 
-synchronizations in that service worker. 
+synchronizations in a service worker. 
 
 **PeriodicSyncRegistered API**: This API gives developers the ability 
 to subscribe to the event when a new Periodic Background synchronization 
@@ -35,28 +39,344 @@ collection of all periodic background synchronization registrations or
 background synchronization registrations based on the 
 `CoreWebView2ServiceWorkerSynchronizationKind` provided. We add
 `CoreWebView2ServiceWorkerSyncRegistrationInfo` with `Tag` and 
-`MinInterval` properties to represent a synchronization registration.
+`MinIntervalInMilliseconds` properties to represent a synchronization registration.
 
 **DispatchPeriodicSyncEvent API**: This API gives developers the ability 
 to trigger a periodic background synchronization task based on the 
 tag name. Developers can use native OS timer to implement a scheduler 
 to trigger periodic synchronization task according to their own logic.
 
+# Examples
+### C++ Sample
+```cpp
+wil::com_ptr<ICoreWebView2> m_webView;
+wil::com_ptr<ICoreWebView2ServiceWorkerSyncRegistrationManager> m_syncRegistrationManager;
+wil::com_ptr<ICoreWebView2ServiceWorkerRegistration> m_serviceWorkerRegistration;
+wil::com_ptr<ICoreWebView2ServiceWorker> m_serviceWorker;
+EventRegistrationToken m_backgroundSyncRegisteredToken = {};
+EventRegistrationToken m_periodicSyncRegisteredToken = {};
+
+static constexpr WCHAR c_samplePath[] = L"ScenarioServiceWorkerSyncRegistrationManager.html";
+
+ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrationManager(
+    AppWindow* appWindow)
+    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
+{
+    std::wstring sampleUri = m_appWindow->GetLocalUri(c_samplePath);
+
+    auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
+    CHECK_FEATURE_RETURN_EMPTY(webView2_13);
+
+    wil::com_ptr<ICoreWebView2Profile> webView2Profile;
+    CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
+    auto webViewProfile3 = webView2Profile.try_query<ICoreWebView2Profile3>();
+    CHECK_FEATURE_RETURN_EMPTY(webViewProfile3);
+    wil::com_ptr<ICoreWebView2ServiceWorkerManager> serviceWorkerManager;
+    CHECK_FAILURE(webViewProfile3->get_ServiceWorkerManager(&serviceWorkerManager));
+
+
+    CHECK_FAILURE(serviceWorkerManager->GetServiceWorkerRegistration(
+        m_appWindow->GetLocalUri(L"").c_str(),
+        Callback<ICoreWebView2GetServiceWorkerRegistrationCompletedHandler>(
+            [this](
+                HRESULT error,
+                ICoreWebView2ServiceWorkerRegistration* serviceWorkerRegistration)
+                -> HRESULT
+            {
+                if (serviceWorkerRegistration)
+                {
+                    serviceWorkerRegistration->QueryInterface(
+                        IID_PPV_ARGS(&m_serviceWorkerRegistration));
+
+                    CHECK_FAILURE(m_serviceWorkerRegistration->GetServiceWorker(
+                        Callback<ICoreWebView2GetServiceWorkerCompletedHandler>(
+                            [this](
+                                HRESULT error, ICoreWebView2ServiceWorker* serviceWorker) -> HRESULT
+                            {
+                                if (serviceWorker)
+                                {
+                                    serviceWorker->QueryInterface(IID_PPV_ARGS(&m_serviceWorker));
+                                }
+                                return S_OK;
+                            })
+                            .Get()));
+
+                    //! [SyncRegistrationManager]
+                    CHECK_FAILURE(serviceWorkerRegistration->get_SyncRegistrationManager(
+                        &m_syncRegistrationManager));
+                    //! [BackgroundSyncRegistered]
+                    CHECK_FAILURE(m_syncRegistrationManager->add_BackgroundSyncRegistered(
+                        Microsoft::WRL::Callback<
+                            ICoreWebView2SyncRegisteredEventHandler>(
+                            [this](
+                                ICoreWebView2ServiceWorkerSyncRegistrationManager*
+                                    sender,
+                                ICoreWebView2ServiceWorkerSyncRegisteredEventArgs*
+                                    args)
+                            {
+                                wil::com_ptr<
+                                    ICoreWebView2ServiceWorkerSyncRegistrationInfo>
+                                    syncRegistrationInfo;
+                                CHECK_FAILURE(
+                                    args->get_RegistrationInfo(&syncRegistrationInfo));
+                                std::wstringstream message;
+                                AppendSyncRegistrationInfo(
+                                    syncRegistrationInfo, false, message);
+                                m_appWindow->AsyncMessageBox(
+                                    message.str(), L"Background Sync");
+
+                                return S_OK;
+                            })
+                            .Get(),
+                        &m_backgroundSyncRegisteredToken));
+                    //! [BackgroundSyncRegistered]
+                    //! [PeriodicSyncRegistered]
+                    CHECK_FAILURE(m_syncRegistrationManager->add_PeriodicSyncRegistered(
+                        Microsoft::WRL::Callback<
+                            ICoreWebView2SyncRegisteredEventHandler>(
+                            [this](
+                                ICoreWebView2ServiceWorkerSyncRegistrationManager*
+                                    sender,
+                                ICoreWebView2ServiceWorkerSyncRegisteredEventArgs*
+                                    args)
+                            {
+                                wil::com_ptr<
+                                    ICoreWebView2ServiceWorkerSyncRegistrationInfo>
+                                    syncRegistrationInfo;
+                                CHECK_FAILURE(
+                                    args->get_RegistrationInfo(&syncRegistrationInfo));
+                                std::wstringstream message;
+                                AppendSyncRegistrationInfo(
+                                    syncRegistrationInfo, true, message);
+                                m_appWindow->AsyncMessageBox(
+                                    message.str(), L"Periodic Background Sync");
+                                return S_OK;
+                            })
+                            .Get(),
+                        &m_periodicSyncRegisteredToken));
+                    //! [PeriodicSyncRegistered]
+                }
+                //! [SyncRegistrationManager]
+                return S_OK;
+            })
+            .Get()));
+
+
+    // Receive the message of dispatching all periodic sync tasks from the page, 
+    // `chrome.webview.postMessage(`DispatchAllPeriodicSyncEvents ${times}`)`.
+    CHECK_FAILURE(m_webView->add_WebMessageReceived(
+        Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+            [this, &sampleUri](
+                ICoreWebView2* sender,
+                ICoreWebView2WebMessageReceivedEventArgs* args)
+                -> HRESULT
+            {
+                wil::unique_cotaskmem_string source;
+                CHECK_FAILURE(args->get_Source(&source));
+                wil::unique_cotaskmem_string webMessageAsString;
+                if (SUCCEEDED(args->TryGetWebMessageAsString(&webMessageAsString)))
+                {
+                    if (wcscmp(source.get(), sampleUri.c_str()) == 0)
+                    {
+                        std::wstring message = webMessageAsString.get();
+                        std::wstring targetString = L"DispatchAllPeriodicSyncEvents ";
+                        if (message.compare(0, targetString.size(), targetString) == 0)
+                        {
+                            std::wstring timeString = message.substr(targetString.size().c_str());
+                            DispatchAllPeriodicBackgroundSyncTasks(std::stoi(timeString));
+                        }
+                    }
+                }
+                return S_OK;
+            })
+            .Get(),
+        nullptr));
+
+    CHECK_FAILURE(m_webView->Navigate(sampleUri.c_str()));
+}
+
+void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyncTask(
+    const std::wstring& tag)
+{
+    if (m_serviceWorker)
+    {
+        // ![DispatchPeriodicSyncEvent]
+        CHECK_FAILURE(m_serviceWorker->DispatchPeriodicSyncEvent(
+            tag.c_str(),
+            Microsoft::WRL::Callback<
+                ICoreWebView2ServiceWorkerDispatchPeriodicSyncEventCompletedHandler>(
+                [this](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+                {
+                    CHECK_FAILURE(errorCode);
+                    m_appWindow->AsyncMessageBox(
+                        (isSuccessful) ? L"Dispatch Periodic Sync task success"
+                                        : L"Dispatch Periodic Sync task failed",
+                        L"Dispatch periodic sync task Completed");
+                    return S_OK;
+                })
+                .Get()));
+        // ![DispatchPeriodicSyncEvent]
+    }
+}
+
+// This method fetches all periodic synchronization tasks in the current service worker, 
+// and executes each task multiple(time) times with a specified minimum interval(min_interval) 
+// between consecutive executions.
+void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyncTasks(
+    const int time)
+{
+  if (m_syncRegistrationManager)
+    {
+        //! [GetSyncRegistrations]
+        CHECK_FAILURE(m_syncRegistrationManager->GetSyncRegistrations(
+            COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND_PERIODIC_SYNC,
+            Callback<
+                ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsCompletedHandler>(
+                [this, time](
+                    HRESULT error,
+                    ICoreWebView2ServiceWorkerSyncRegistrationInfoCollectionView*
+                        collectionView) -> HRESULT
+                {
+                    UINT32 count;
+                    collectionView->get_Count(&count);
+                    for (UINT32 i = 0; i < count; i++)
+                    {
+                        wil::com_ptr<CoreWebView2ServiceWorkerSyncRegistrationInfo>
+                            registrationInfo;
+                        CHECK_FAILURE(collectionView->GetValueAtIndex(i, &registrationInfo));
+                        wil::unique_cotaskmem_string tag;
+                        CHECK_FAILURE(registrationInfo->get_Tag(&tag));
+                        UINT32 minInterval = 0;
+                        CHECK_FAILURE(registrationInfo->get_MinIntervalInMilliseconds(&minInterval));
+                        int executeTime = time;
+                        for (int i = 0; i < executeTime; i++) {
+                            DispatchPeriodicBackgroundSyncTask(tag.get());
+                            // Wait min_interval before triggering the periodic sync task again.
+                            const auto interval = std::chrono::milliseconds(minInterval);
+                            std::this_thread::sleep_for(interval);
+                        }
+                    }
+                    return S_OK;
+                })
+                .Get()));
+        //! [GetSyncRegistrations]
+    }
+}
+
+void ScenarioServiceWorkerSyncRegistrationManager::AppendSyncRegistrationInfo(
+    wil::com_ptr<ICoreWebView2ServiceWorkerSyncRegistrationInfo> syncRegistrationInfo,
+    bool isPeriodicSync, std::wstringstream& message)
+{
+    if (syncRegistrationInfo)
+    {
+        wil::unique_cotaskmem_string tag;
+        CHECK_FAILURE(syncRegistrationInfo->get_Tag(&tag));
+        message << L" Tag: " << tag.get();
+        if (isPeriodicSync)
+        {
+            INT64 minInterval = 0;
+            CHECK_FAILURE(syncRegistrationInfo->get_MinIntervalInMilliseconds(&minInterval));
+            message << L" MinInterval: " << minInterval;
+        }
+    }
+}
+```
+### C# Sample
+```c#
+CoreWebView2ServiceWorkerSyncRegistrationManager SyncRegistrationManager_;
+CoreWebView2ServiceWorkerRegistration ServiceWorkerRegistration_;
+CoreWebView2ServiceWorker ServiceWorker_;
+async void ServiceWorkerSyncManagerExecuted(object target, ExecutedRoutedEventArgs e) 
+{
+    webView.Source = new Uri("https://appassets.example/ScenarioServiceWorkerSyncRegistrationManager.html");
+    webView.CoreWebView2.WebMessageReceived += ServiceWorkerSyncEvent_WebMessageReceived;
+
+    CoreWebView2Profile webViewProfile = webView.CoreWebView2.Profile;
+    CoreWebView2ServiceWorkerManager serviceWorkerManager = webViewProfile.ServiceWorkerManager;
+    if (serviceWorkerManager != null) 
+    {
+        ServiceWorkerRegistration_ = 
+            await serviceWorkerManager.GetServiceWorkerRegistrationAsync("https://appassets.example.com");
+        if (ServiceWorkerRegistration_ != null) 
+        {
+            SyncRegistrationManager_ = ServiceWorkerRegistration_.SyncRegistrationManager;
+            if (SyncRegistrationManager_ != null)
+            {
+                ServiceWorker_ = await ServiceWorkerRegistration_.GetServiceWorkerAsync();
+                try
+                {
+                    SyncRegistrationManager_.PeriodicSyncRegistered += (sender, args) =>
+                    {
+                        MessageBox.Show($"Periodic Sync Task Tag: {args.RegistrationInfo.Tag}, 
+                                        MinInterval: {args.RegistrationInfo.MinIntervalInMilliseconds} registered");
+                    };
+                    SyncRegistrationManager_.BackgroundSyncRegistered += (sender, args) =>
+                    {
+                        MessageBox.Show($"Background Sync Task Tag: {args.RegistrationInfo.Tag} registered");
+                    };
+                }
+                catch (NotImplementedException exception)
+                {
+                    MessageBox.Show(this, "ServiceWorkerSyncRegistrationManager Failed: " + exception.Message,
+                    "ServiceWorkerSyncRegistrationManager");
+                }
+            }
+        }
+    }
+}
+
+async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs args)
+{
+    if (args.Source != "https://appassets.example/ScenarioServiceWorkerSyncRegistrationManager.html")
+    {
+        return;
+    }
+
+    // Received `chrome.webview.postMessage(`DispatchAllPeriodicSyncEvents ${times}`)` message
+    // from the page.
+    // This method will fetch all periodic synchronization tasks in the current service worker, 
+    // and executes each task multiple(time) times with a specified minimum interval(min_interval) 
+    // between consecutive executions.
+    string message = args.TryGetWebMessageAsString();
+    if (message.Contains("DispatchPeriodicSyncEvents"))
+    {
+        int msgLength = "DispatchPeriodicSyncEvents".Length;
+        var times = message.Substring(msgLength);
+        IReadOnlyList<CoreWebView2ServiceWorkerSyncRegistrationInfo> registrationList =
+            await SyncRegistrationManager_.GetSyncRegistrationsAsync(
+                CoreWebView2ServiceWorkerSynchronizationKind.PeriodicSync);
+        int registrationCount = registrationList.Count;
+        for (int i = 0; i < registrationCount; ++i)
+        {
+            var tag = registrationList[i].Tag;
+            var interval = registrationList[i].MinIntervalInMilliseconds;
+            if (ServiceWorker_ != null) 
+            {   
+                for (int j = 0; j < times; ++j) {
+                    await ServiceWorker_.DispatchPeriodicSyncEventAsync(tag);
+                    System.Threading.Thread.Sleep((int)interval);
+                }
+            }
+        };
+    }
+}
+```
+
 # API Details
 ## C++
 ```
 /// Indicates the service worker background synchronization type.
 [v1_enum]
-typedef enum COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND {
+typedef enum COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND {
   /// Indicates that the synchronization is a background synchronization.
   /// See [Background Synchronization](https://developer.mozilla.org/docs/Web/API/Background_Synchronization_API)
   /// for more information.
-  COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND_BACKGROUND_SYNC,
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND_BACKGROUND_SYNC,
   /// Indicates that the synchronization is a periodic background synchronization.
   /// See [Periodic Background Synchronization](https://developer.mozilla.org/docs/Web/API/Web_Periodic_Background_Synchronization_API)
   /// for more information.
-  COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND_PERIODIC_SYNC,
-} COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND;
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND_PERIODIC_SYNC,
+} COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND;
 
 /// This is the ICoreWebView2ServiceWorkerRegistration interface.
 [uuid(08a80c87-d2b7-5163-bce3-4a28cfed142d), object, pointer_default(unique)]
@@ -74,6 +394,11 @@ interface ICoreWebView2ServiceWorkerRegistration : IUnknown {
 /// registration management APIs.
 interface ICoreWebView2ServiceWorkerSyncRegistrationManager : IUnknown {
   /// Add an event handler for the `BackgroundSyncRegistered` event.
+  /// 
+  /// This event is raised when a web application registers a background sync task
+  /// using the `navigator.serviceWorker.sync.register('tag')`
+  /// method. Please see the [Requesting a Background Sync](https://developer.mozilla.org/docs/Web/API/Background_Synchronization_API#requesting_a_background_sync)
+  /// for more information.
   ///
   /// \snippet ScenarioSyncRegistrationManager.cpp BackgroundSyncRegistered
   ///
@@ -87,6 +412,11 @@ interface ICoreWebView2ServiceWorkerSyncRegistrationManager : IUnknown {
 
   /// Add an event handler for the `PeriodicSyncRegistered` event.
   ///
+  /// This event is raised when a web application registers a periodic sync task
+  /// using the `navigator.serviceWorker.periodicSync.register('tag', {minInterval: 1000})`
+  /// method. Please see the [Requesting a Periodic Background Sync](https://developer.mozilla.org/docs/Web/API/Web_Periodic_Background_Synchronization_API#requesting_a_periodic_background_sync)
+  /// for more information.
+  /// 
   /// \snippet ScenarioServiceWorkerSyncRegistrationManager.cpp PeriodicSyncRegistered
   ///
   HRESULT add_PeriodicSyncRegistered(
@@ -100,7 +430,7 @@ interface ICoreWebView2ServiceWorkerSyncRegistrationManager : IUnknown {
   /// Gets all background synchronization or periodic background synchronization
   /// registrations.
   HRESULT GetSyncRegistrations(
-      [in] COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND kind
+      [in] COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND kind
       , [in] ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsCompletedHandler* handler
   );
 }
@@ -119,16 +449,20 @@ interface ICoreWebView2ServiceWorkerSyncRegisteredEventArgs : IUnknown {
 /// Provides a set of properties for a service worker synchronization registration.
 [uuid(8ab3dbf2-9207-5231-9241-167e96d8cf56), object, pointer_default(unique)]
 interface ICoreWebView2ServiceWorkerSyncRegistrationInfo : IUnknown {
-  /// The minimum interval time, in milliseconds, at which the minimum time
-  /// interval between periodic background synchronizations should occur.
-  /// You should not call `CoreWebView2ServiceWorkerSyncRegistrationManager.DispatchPeriodicSyncEventAsync`
-  /// to dispatch periodic synchronization tasks less than its minimum time interval.
-  /// This property is always returns an invalid value `-1` for the background synchronization registration.
+  /// The minimum interval time, at which the minimum time interval between periodic background
+  /// synchronizations should occur.
+  /// From the [Web Standard](https://wicg.github.io/periodic-background-sync/#periodic-sync-registration-minimum-interval), 
+  /// you're not suggested to run periodic sync tasks
+  /// `CoreWebView2ServiceWorkerSyncRegistrationManager.DispatchPeriodicSyncEventAsync`
+  /// less than the value of this property. And this property is always returns an invalid
+  /// value `-1` for the background synchronization registration.
   ///
-  [propget] HRESULT MinInterval([out, retval] INT64* value);
+  [propget] HRESULT MinIntervalInMilliseconds([out, retval] INT64* value);
 
   /// A string representing an unique identifier for the synchronization event.
   ///
+  /// It represents the [Periodic Sync Tag][https://developer.mozilla.org/docs/Web/API/PeriodicSyncEvent/tag]
+  /// and [Background Sync Tag][https://developer.mozilla.org/docs/Web/API/SyncEvent/tag].
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT Tag([out, retval] LPWSTR* value);
@@ -216,7 +550,7 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2ServiceWorker
     {
-        Windows.Foundation.IAsyncOperation<Boolean> DispatchPeriodicSyncEventAsync(String Tag);
+        Windows.Foundation.IAsyncOperation<Boolean> DispatchPeriodicSyncEventAsync(String tag);
     }
 
     runtimeclass CoreWebView2ServiceWorkerSyncRegistrationManager
@@ -236,346 +570,8 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2ServiceWorkerSyncRegistrationInfo
     {
-        Int64 MinInterval { get; };
+        Int64 MinIntervalInMilliseconds { get; };
         String Tag { get; };
-    }
-}
-```
-
-
-# Examples
-### C++ Sample
-```cpp
-static constexpr WCHAR c_samplePath[] = L"ScenarioServiceWorkerSyncRegistrationManager.html";
-
-ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrationManager(
-    AppWindow* appWindow)
-    : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
-{
-    m_sampleUri = m_appWindow->GetLocalUri(c_samplePath);
-
-    auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
-    CHECK_FEATURE_RETURN_EMPTY(webView2_13);
-
-    wil::com_ptr<ICoreWebView2Profile> webView2Profile;
-    CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
-    auto webViewProfile3 = webView2Profile.try_query<ICoreWebView2Profile3>();
-    CHECK_FEATURE_RETURN_EMPTY(webViewProfile3);
-    wil::com_ptr<ICoreWebView2ServiceWorkerManager> serviceWorkerManager;
-    CHECK_FAILURE(webViewProfile3->get_ServiceWorkerManager(&serviceWorkerManager));
-
-    if (serviceWorkerManager)
-    {
-        CHECK_FAILURE(serviceWorkerManager->GetServiceWorkerRegistration(
-            m_appWindow->GetLocalUri(L"").c_str(),
-            Callback<ICoreWebView2GetServiceWorkerRegistrationCompletedHandler>(
-                [this](
-                    HRESULT error,
-                    ICoreWebView2ServiceWorkerRegistration* serviceWorkerRegistration)
-                    -> HRESULT
-                {
-                    if (serviceWorkerRegistration)
-                    {
-                        serviceWorkerRegistration->QueryInterface(
-                            IID_PPV_ARGS(&m_serviceWorkerRegistration));
-                        //! [SyncRegistrationManager]
-                        CHECK_FAILURE(serviceWorkerRegistration->get_SyncRegistrationManager(
-                            &m_syncRegistrationManager));
-                        if (m_syncRegistrationManager)
-                        {
-                            //! [BackgroundSyncRegistered]
-                            CHECK_FAILURE(m_syncRegistrationManager->add_BackgroundSyncRegistered(
-                                Microsoft::WRL::Callback<
-                                    ICoreWebView2SyncRegisteredEventHandler>(
-                                    [this](
-                                        ICoreWebView2ServiceWorkerSyncRegistrationManager*
-                                            sender,
-                                        ICoreWebView2ServiceWorkerSyncRegisteredEventArgs*
-                                            args)
-                                    {
-                                        wil::com_ptr<
-                                            ICoreWebView2ServiceWorkerSyncRegistrationInfo>
-                                            syncRegistrationInfo;
-                                        CHECK_FAILURE(
-                                            args->get_RegistrationInfo(&syncRegistrationInfo));
-                                        std::wstringstream message;
-                                        AppendSyncRegistrationInfo(
-                                            syncRegistrationInfo, false, message);
-                                        m_appWindow->AsyncMessageBox(
-                                            message.str(), L"Background Sync");
-
-                                        return S_OK;
-                                    })
-                                    .Get(),
-                                &m_backgroundSyncRegisteredToken));
-                            //! [BackgroundSyncRegistered]
-                            //! [PeriodicSyncRegistered]
-                            CHECK_FAILURE(m_syncRegistrationManager->add_PeriodicSyncRegistered(
-                                Microsoft::WRL::Callback<
-                                    ICoreWebView2SyncRegisteredEventHandler>(
-                                    [this](
-                                        ICoreWebView2ServiceWorkerSyncRegistrationManager*
-                                            sender,
-                                        ICoreWebView2ServiceWorkerSyncRegisteredEventArgs*
-                                            args)
-                                    {
-                                        wil::com_ptr<
-                                            ICoreWebView2ServiceWorkerSyncRegistrationInfo>
-                                            syncRegistrationInfo;
-                                        CHECK_FAILURE(
-                                            args->get_RegistrationInfo(&syncRegistrationInfo));
-                                        std::wstringstream message;
-                                        AppendSyncRegistrationInfo(
-                                            syncRegistrationInfo, true, message);
-                                        m_appWindow->AsyncMessageBox(
-                                            message.str(), L"Periodic Background Sync");
-                                        return S_OK;
-                                    })
-                                    .Get(),
-                                &m_periodicSyncRegisteredToken));
-                            //! [PeriodicSyncRegistered]
-                        }
-                        //! [SyncRegistrationManager]
-                    }
-                    return S_OK;
-                })
-                .Get()));
-    }
-
-    // Receive dispatch periodic sync task request
-    CHECK_FAILURE(m_webView->add_WebMessageReceived(
-        Callback<ICoreWebView2WebMessageReceivedEventHandler>(
-            [this](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args)
-                -> HRESULT
-            {
-                wil::unique_cotaskmem_string source;
-                CHECK_FAILURE(args->get_Source(&source));
-                wil::unique_cotaskmem_string webMessageAsString;
-                if (SUCCEEDED(args->TryGetWebMessageAsString(&webMessageAsString)))
-                {
-                    if (wcscmp(source.get(), m_sampleUri.c_str()) == 0)
-                    {
-                        std::wstring message = webMessageAsString.get();
-                        if (message.compare(0, 26, L"DispatchPeriodicSyncEvent ") == 0)
-                        {
-                            DispatchPeriodicBackgroundSyncTask(message.substr(26).c_str());
-                        }
-                        else if (wcscmp(message.c_str(), L"GetPeriodicSyncRegistrations") == 0)
-                        {
-                            ShowAllSyncRegistrationInfos(COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND_PERIODIC_SYNC);
-                        }
-                        else if (
-                            wcscmp(message.c_str(), L"GetBackgroundSyncRegistrations") == 0)
-                        {
-                            ShowAllSyncRegistrationInfos(COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND_BACKGROUND_SYNC);
-                        }
-                    }
-                }
-                return S_OK;
-            })
-            .Get(),
-        nullptr));
-    
-    CHECK_FAILURE(m_webView->Navigate(m_sampleUri.c_str()));
-}
-
-void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyncTask(
-    const std::wstring& tag)
-{
-    if (m_serviceWorkerRegistration)
-    {
-        CHECK_FAILURE(m_serviceWorkerRegistration->GetServiceWorker(
-            Callback<ICoreWebView2GetServiceWorkerCompletedHandler>(
-                [this, &tag](
-                    HRESULT error, ICoreWebView2ServiceWorker* serviceWorker) -> HRESULT
-                {
-                    wil::com_ptr<ICoreWebView2Worker> worker;
-                    wil::unique_cotaskmem_string scriptUrl;
-                    std::wstringstream message;
-                    // ![DispatchPeriodicSyncEvent]
-                    if (serviceWorker != nullptr)
-                    {
-                        CHECK_FAILURE(serviceWorker->DispatchPeriodicSyncEvent(
-                            tag.c_str(),
-                            Microsoft::WRL::Callback<
-                                ICoreWebView2ServiceWorkerDispatchPeriodicSyncEventCompletedHandler>(
-                                [this](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
-                                {
-                                    CHECK_FAILURE(errorCode);
-                                    m_appWindow->AsyncMessageBox(
-                                        (isSuccessful) ? L"Dispatch Periodic Sync task success"
-                                                       : L"Dispatch Periodic Sync task failed",
-                                        L"Dispatch periodic sync task Completed");
-                                    return S_OK;
-                                })
-                                .Get()));
-                    }
-                    return S_OK;
-                    // ![DispatchPeriodicSyncEvent]
-                })
-                .Get()));
-    }
-}
-
-void ScenarioServiceWorkerSyncRegistrationManager::ShowAllSyncRegistrationInfos(
-    const COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND kind)
-{
-    if (m_syncRegistrationManager)
-    {
-        //! [GetSyncRegistrations]
-        CHECK_FAILURE(m_syncRegistrationManager->GetSyncRegistrations(
-            kind,
-            Callback<
-                ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsCompletedHandler>(
-                [this](
-                    HRESULT error,
-                    ICoreWebView2ServiceWorkerSyncRegistrationInfoCollectionView*
-                        collectionView) -> HRESULT
-                {
-                    UINT32 count;
-                    collectionView->get_Count(&count);
-                    bool isPeriodicSync =
-                        COREWEBVIEW2_SERVICE_WORKER_SYNCHRONIZATION_KIND_PERIODIC_SYNC ? true
-                                                                                       : false;
-                    for (UINT32 i = 0; i < count; i++)
-                    {
-                        wil::com_ptr<ICoreWebView2ServiceWorkerSyncRegistrationInfo>
-                            registrationInfo;
-                        CHECK_FAILURE(collectionView->GetValueAtIndex(i, &registrationInfo));
-                        std::wstringstream message;
-                        AppendSyncRegistrationInfo(registrationInfo, isPeriodicSync, message);
-                        message << L"\n";
-                        m_appWindow->AsyncMessageBox(
-                            std::move(message.str()), isPeriodicSync
-                                                          ? L"Periodic Sync Registrations"
-                                                          : L"Background Sync Registrations");
-                    }
-                    return S_OK;
-                })
-                .Get()));
-        //! [GetSyncRegistrations]
-    }
-}
-
-void ScenarioServiceWorkerSyncRegistrationManager::AppendSyncRegistrationInfo(
-    wil::com_ptr<ICoreWebView2ServiceWorkerSyncRegistrationInfo> syncRegistrationInfo,
-    bool isPeriodicSync, std::wstringstream& message)
-{
-    if (syncRegistrationInfo)
-    {
-        wil::unique_cotaskmem_string tag;
-        CHECK_FAILURE(syncRegistrationInfo->get_Tag(&tag));
-        message << L" Tag: " << tag.get();
-        if (isPeriodicSync)
-        {
-            INT64 minInterval = 0;
-            CHECK_FAILURE(syncRegistrationInfo->get_MinInterval(&minInterval));
-            message << L" MinInterval: " << minInterval;
-        }
-    }
-}
-```
-### C# Sample
-```c#
-CoreWebView2ServiceWorkerSyncRegistrationManager SyncRegistrationManager_;
-CoreWebView2ServiceWorkerRegistration ServiceWorkerRegistration_;
-async void ServiceWorkerSyncManagerExecuted(object target, ExecutedRoutedEventArgs e) 
-{
-    webView.Source = new Uri("https://appassets.example/ScenarioServiceWorkerSyncRegistrationManager.html");
-    webView.CoreWebView2.WebMessageReceived += ServiceWorkerSyncEvent_WebMessageReceived;
-
-    CoreWebView2Profile webViewProfile = webView.CoreWebView2.Profile;
-    CoreWebView2ServiceWorkerManager serviceWorkerManager = webViewProfile.ServiceWorkerManager;
-    if (serviceWorkerManager != null) 
-    {
-        ServiceWorkerRegistration_ = 
-            await serviceWorkerManager.GetServiceWorkerRegistrationAsync("https://appassets.example.com");
-        if (ServiceWorkerRegistration_ != null) 
-        {
-            SyncRegistrationManager_ = ServiceWorkerRegistration_.SyncRegistrationManager;
-            if (SyncRegistrationManager_ != null)
-            {
-                try
-                {
-                    SyncRegistrationManager_.PeriodicSyncRegistered += (sender, args) =>
-                    {
-                        MessageBox.Show($"Periodic Sync Task Tag: {args.RegistrationInfo.Tag}, 
-                                        MinInterval: {args.RegistrationInfo.MinInterval} registered");
-                    };
-                    SyncRegistrationManager_.BackgroundSyncRegistered += (sender, args) =>
-                    {
-                        MessageBox.Show($"Background Sync Task Tag: {args.RegistrationInfo.Tag} registered");
-                    };
-                }
-                catch (NotImplementedException exception)
-                {
-                    MessageBox.Show(this, "ServiceWorkerSyncRegistrationManager Failed: " + exception.Message,
-                    "ServiceWorkerSyncRegistrationManager");
-                }
-            }
-        }
-    }
-}
-
-async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs args)
-{
-    async void ShowServiceWorkerSyncRegistrations(bool isPeriodicSync) 
-    {
-        if (SyncRegistrationManager_ != null) 
-        {
-            IReadOnlyList<CoreWebView2ServiceWorkerSyncRegistrationInfo> registrationList =
-            await SyncRegistrationManager_.GetSyncRegistrationsAsync(isPeriodicSync ?
-                CoreWebView2ServiceWorkerSynchronizationKind.PeriodicSync :
-                CoreWebView2ServiceWorkerSynchronizationKind.BackgroundSync);
-        
-            int registrationCount = registrationList.Count;
-            StringBuilder messageBuilder = new StringBuilder();
-            messageBuilder.AppendLine(isPeriodicSync ?
-                "No of periodic background sync created: " :
-                "No of background sync created: ");
-            messageBuilder.Append($"{registrationCount}");
-
-            for (int i = 0; i < registrationCount; ++i)
-            {
-                var tag = registrationList[i].Tag;
-                messageBuilder.AppendLine($"Tag: {tag}");
-                if (isPeriodicSync) 
-                {
-                    var interval = registrationList[i].MinInterval;
-                    messageBuilder.Append($" MinInterval: {interval}");
-                }
-            };
-
-            MessageBox.Show(messageBuilder.ToString(), isPeriodicSync ?
-                "Periodic Background Sync Registrations" :
-                "Background Sync Registrations", MessageBoxButton.OK);
-        }
-    }
-
-    if (args.Source != "https://appassets.example/ScenarioServiceWorkerSyncRegistrationManager.html")
-    {
-        return;
-    }
-
-    string message = args.TryGetWebMessageAsString();
-    if (message.Contains("DispatchPeriodicSyncEvent"))
-    {
-        if (ServiceWorkerRegistration_ != null)
-        {
-            int msgLength = "DispatchPeriodicSyncEvent".Length;
-            var tag = message.Substring(msgLength);
-            CoreWebView2ServiceWorker serviceWorker = await ServiceWorkerRegistration_.GetServiceWorkerAsync();
-            if (serviceWorker != null)
-            {
-                await serviceWorker.DispatchPeriodicSyncEventAsync(tag);
-            }
-        }
-    } else if (message.Contains("GetPeriodicSyncRegistrations")) 
-    {
-        ShowServiceWorkerSyncRegistrations(true);
-    } else if (message.Contains("GetBackgroundSyncRegistrations")) 
-    {
-        ShowServiceWorkerSyncRegistrations(false);
     }
 }
 ```
