@@ -110,7 +110,7 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
                     //! [BackgroundSyncRegistered]
                     CHECK_FAILURE(m_syncRegistrationManager->add_BackgroundSyncRegistered(
                         Microsoft::WRL::Callback<
-                            ICoreWebView2SyncRegisteredEventHandler>(
+                            ICoreWebView2ServiceWorkerSyncRegisteredEventHandler>(
                             [this](
                                 ICoreWebView2ServiceWorkerSyncRegistrationManager*
                                     sender,
@@ -136,7 +136,7 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
                     //! [PeriodicSyncRegistered]
                     CHECK_FAILURE(m_syncRegistrationManager->add_PeriodicSyncRegistered(
                         Microsoft::WRL::Callback<
-                            ICoreWebView2SyncRegisteredEventHandler>(
+                            ICoreWebView2ServiceWorkerSyncRegisteredEventHandler>(
                             [this](
                                 ICoreWebView2ServiceWorkerSyncRegistrationManager*
                                     sender,
@@ -223,7 +223,7 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
 }
 
 // This method fetches all periodic synchronization tasks in the current service worker, 
-// and executes each task multiple(time) times with a specified minimum interval(min_interval) 
+// and executes each task multiple(time) times with a specified interval(min_interval) 
 // between consecutive executions.
 void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyncTasks(
     const int time)
@@ -252,7 +252,7 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
                         CHECK_FAILURE(registrationInfo->get_Tag(&tag));
                         UINT32 minInterval = 0;
                         CHECK_FAILURE(registrationInfo->get_MinIntervalInMilliseconds(&minInterval));
-                        for (int i = 0; i < time; i++) {
+                        for (int j = 0; j < time; j++) {
                             DispatchPeriodicBackgroundSyncTask(tag.get());
                             // Wait for min_interval(ms) before triggering the periodic sync task again.
                             const auto interval = std::chrono::milliseconds(minInterval);
@@ -344,7 +344,7 @@ async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2
     if (message.Contains("DispatchPeriodicSyncEvents"))
     {
         int msgLength = "DispatchPeriodicSyncEvents".Length;
-        var times = message.Substring(msgLength);
+        int times = int.Parse(message.Substring(msgLength));
         IReadOnlyList<CoreWebView2ServiceWorkerSyncRegistrationInfo> registrationList =
             await SyncRegistrationManager_.GetSyncRegistrationsAsync(
                 CoreWebView2ServiceWorkerSyncKind.PeriodicSync);
@@ -407,7 +407,7 @@ interface ICoreWebView2ServiceWorkerSyncRegistrationManager : IUnknown {
   /// \snippet ScenarioSyncRegistrationManager.cpp BackgroundSyncRegistered
   ///
   HRESULT add_BackgroundSyncRegistered(
-      [in] ICoreWebView2SyncRegisteredEventHandler* eventHandler,
+      [in] ICoreWebView2ServiceWorkerSyncRegisteredEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_BackgroundSyncRegistered`.
@@ -424,7 +424,7 @@ interface ICoreWebView2ServiceWorkerSyncRegistrationManager : IUnknown {
   /// \snippet ScenarioServiceWorkerSyncRegistrationManager.cpp PeriodicSyncRegistered
   ///
   HRESULT add_PeriodicSyncRegistered(
-      [in] ICoreWebView2SyncRegisteredEventHandler* eventHandler,
+      [in] ICoreWebView2ServiceWorkerSyncRegisteredEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_PeriodicSyncRegistered`.
@@ -497,7 +497,7 @@ interface ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsC
 
 /// Receives `PeriodicSyncRegistered` or `BackgroundSyncRegistered` events.
 [uuid(551ce0e3-bef4-559b-b962-d94069b7df67), object, pointer_default(unique)]
-interface ICoreWebView2SyncRegisteredEventHandler : IUnknown {
+interface ICoreWebView2ServiceWorkerSyncRegisteredEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2ServiceWorkerSyncRegistrationManager* sender,
