@@ -19,3 +19,9 @@ jobs:
           azcliversion: latest
           inlineScript: |
             az account show
+      - name: Sync to ADO
+        uses: champnic/github-actions-issue-to-work-item@testManagedIdentities
+        with:
+          ado_organization: 'microsoft'
+          ado_project: 'Edge'
+          ado_area_path: 'Edge\Web Experience\WebView2'
