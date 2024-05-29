@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   alert:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     name: Syncing to Azure DevOps
     steps:       
     - uses: champnic/github-actions-issue-to-work-item@simple-sync
