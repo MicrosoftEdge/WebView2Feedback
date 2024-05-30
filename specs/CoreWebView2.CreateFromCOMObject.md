@@ -73,7 +73,7 @@ winrt::com_ptr<ICoreWebView2> GetComICoreWebView2FromCoreWebView2(
 ## COM to WinRT
 
 ```c++
-winrt::Microsoft::Web::WebView2::Core::CoreWebView2 GetCoreWebView2FromComICoreWebView2(
+winrt::Microsoft::Web::WebView2::Core::CoreWebView2 CreateCoreWebView2FromComICoreWebView2(
     winrt::com_ptr<ICoreWebView2> coreWebView2Com)
 {
     auto factory = winrt::get_activation_factory<
