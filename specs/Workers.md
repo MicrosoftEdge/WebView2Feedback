@@ -17,7 +17,7 @@ Currently, WebView2 lacks comprehensive APIs for developers to fully utilize wor
 
 We propose the introduction of APIs that enable the host application to oversee workers. These APIs lay the groundwork for the development of additional APIs, facilitating direct interaction between the host application and the workers, and support background operations for service workers.
 
-**DedicatedWorkerCreated**: This event, associated with CoreWebView2, is triggered when a web page initiates a dedicated worker. It grants access to the CoreWebView2DedicatedWorker object, which contains information such as the script URL and name. Additionally, it provides a 'destroy' event that is fired just before this object is due for destruction.
+**DedicatedWorkerCreated**: This event, associated with CoreWebView2, is raised when a web page initiates a dedicated worker. It grants access to the CoreWebView2DedicatedWorker object, which contains information such as the script URL and name. Additionally, it provides a 'destroy' event that is fired just before this object is due for destruction.
 
 **ServiceWorkerRegistered**: This event, originating from the CoreWebView2ServiceWorkerManager associated with CoreWebView2Profile is triggered when a service worker is successfully registered within the context of a WebView2 application for the profile. This event provides access to a CoreWebView2ServiceWorkerRegistration object, which encapsulates information about the registered service worker, such as its script URL and scope. Additionally, it enables subscription to the service worker's lifecycle events, including updates and unregistration.
 
