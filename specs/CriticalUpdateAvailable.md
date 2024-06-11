@@ -76,8 +76,10 @@ interface ICoreWebView2Environment10 : IUnknown {
   /// `CriticalUpdateAvaliable` will give developer the ability to prompt user for restart,
   /// thus resolve in faster resolution time.
   /// 
-  /// Critical Update is only applying payload; thus, version is not important. Simply prompt 
-  /// user to restart the app to get new payload applied.   
+  /// Critical Update is only applying payload; thus, version is not important. But for apps 
+  /// created from the same user data folder that shared the same browser process, developers
+  /// need to make sure the WebView2 instance is closed to apply the new payload.
+  /// Developer can refer to`BrowserProcessExited`for more details.
   // MSOWNERS: xiaqu@microsoft.com
   HRESULT add_CriticalUpdateAvaliable(
       [in] ICoreWebView2CriticalUpdateAvaliableEventHandler* eventHandler,
