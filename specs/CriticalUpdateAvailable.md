@@ -15,11 +15,11 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
     if (e.IsSuccess)
     {
         // ...
-        webView.CoreWebView2.Environment.CriticalUpdateAvaliable += WebView_CriticalUpdateAvaliable;
+        webView.CoreWebView2.Environment.CriticalRestartRequired += WebView_CriticalRestartRequired;
     }
 }
 
-void WebView_CriticalUpdateAvaliable(object sender, object e)
+void WebView_CriticalRestartRequired(object sender, object e)
 {
     System.Threading.SynchronizationContext.Current.Post((_) =>
     {
@@ -34,8 +34,8 @@ void WebView_CriticalUpdateAvaliable(object sender, object e)
 ```cpp
     wil::com_ptr<ICoreWebView2Environment> m_webViewEnvironment;
     auto env10 = m_webViewEnvironment.try_query<ICoreWebView2Environment10>();
-    CHECK_FAILURE(env10->add_CriticalUpdateAvaliable(
-        Callback<ICoreWebView2CriticalUpdateAvaliableEventHandler>(
+    CHECK_FAILURE(env10->add_CriticalRestartRequired(
+        Callback<ICoreWebView2CriticalRestartRequiredEventHandler>(
             [this](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT
             {
                 // Depending on your app experience, you may or may not
@@ -56,10 +56,10 @@ See [API Details](#api-details) section below for API reference.
 
 ```IDL
 interface ICoreWebView2Environment10;
-interface ICoreWebView2CriticalUpdateAvaliableEventHandler;
+interface ICoreWebView2CriticalRestartRequiredEventHandler;
 
 [uuid(62cb67c6-b6a9-4209-8a12-72ca093b9547), object, pointer_default(unique)]
-interface ICoreWebView2CriticalUpdateAvaliableEventHandler : IUnknown {
+interface ICoreWebView2CriticalRestartRequiredEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
   /// and the `args` parameter is set to `null`.
   HRESULT Invoke([in] ICoreWebView2Environment* sender, [in] IUnknown* args);
@@ -67,13 +67,13 @@ interface ICoreWebView2CriticalUpdateAvaliableEventHandler : IUnknown {
 
 [uuid(ef7632ec-d86e-46dd-9d59-e6ffb5c87878), object, pointer_default(unique)]
 interface ICoreWebView2Environment10 : IUnknown {
-  /// Add an event handler for the `CriticalUpdateAvaliable` event.
-  /// `CriticalUpdateAvaliable` event is raised when there is an urgent need to prompt the user 
+  /// Add an event handler for the `CriticalRestartRequired` event.
+  /// `CriticalRestartRequired` event is raised when there is an urgent need to prompt the user 
   /// to restart the WebView2 process to apply a particular configuration. The configuration 
   /// is authored to include special attribute to indicate a payload as critical.
   /// WebView2 team will author critical kill switch when there is a need to enable/disable 
   /// certain features that’s causing WebView2 reliability or performance drop that’s impacting customers.
-  /// `CriticalUpdateAvaliable` will give developer the ability to prompt user for restart,
+  /// `CriticalRestartRequired` will give developer the ability to prompt user for restart,
   /// thus resolve in faster resolution time.
   /// 
   /// Critical Update is only applying payload; thus, version is not important. But for apps 
@@ -81,17 +81,17 @@ interface ICoreWebView2Environment10 : IUnknown {
   /// need to make sure the WebView2 instance is closed to apply the new payload.
   /// Developer can refer to`BrowserProcessExited`for more details.
   // MSOWNERS: xiaqu@microsoft.com
-  HRESULT add_CriticalUpdateAvaliable(
-      [in] ICoreWebView2CriticalUpdateAvaliableEventHandler* eventHandler,
+  HRESULT add_CriticalRestartRequired(
+      [in] ICoreWebView2CriticalRestartRequiredvEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Remove an event handler previously added with `add_CriticalUpdateAvaliable`.
+  /// Remove an event handler previously added with `add_CriticalRestartRequired`.
   // MSOWNERS: xiaqu@microsoft.com
-  HRESULT remove_CriticalUpdateAvaliable(
+  HRESULT remove_CriticalRestartRequired(
       [in] EventRegistrationToken token);
 }
 ```
-
+s
 ## .NET and WinRT
 
 ```c#
@@ -100,7 +100,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2Environment
     {
         // ...
-        event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> CriticalUpdateAvaliable;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> CriticalRestartRequired;
     }
 }
 ```
