@@ -4,7 +4,7 @@ Critical Update Available
 # Background
 WebView2 developers often have to author ECS configurations to toggle feature flags. However, once 
 these payloads are received, there is no way to restart the WebView2 and apply the payload. The 
-purpose of this API is to detect such critical payloads and inform the developer so they may s
+purpose of this API is to detect such critical payloads and inform the end developer so they may
 restart their app or their WebView2 or other appropriate action.
 
 # Examples
