@@ -31,6 +31,7 @@
         <!-- Crash reporting events -->
         <EventProvider Id="EventProvider-Microsoft-Windows-WindowsErrorReporting" Name="cc79cf77-70d9-4082-9b52-23f3a3e92fe4"/>
         <EventProvider Id="EventProvider-Microsoft.Windows.FaultReportingTracingGuid" Name="1377561D-9312-452C-AD13-C4A1C9C906E0"/>
+        <EventProvider Id="Edge_Crashpad" Name="94061CA0-FB42-5B87-F7F1-254B0A86F9FD"/>
 
         <!-- Process, thread, and image load events -->
         <EventProvider Id="EventProvider_Microsoft-Windows-Kernel-Process_16_0_68_1_0_0" Name="22fb2cd6-0e7b-422b-a0c7-2fad1fd0e716" NonPagedMemory="true" Stack="true" Level="0" EventKey="true">
@@ -80,6 +81,7 @@
                     <EventProviders Operation="Add">
                         <EventProviderId Value="EventProvider-Microsoft-Windows-WindowsErrorReporting"/>
                         <EventProviderId Value="EventProvider-Microsoft.Windows.FaultReportingTracingGuid"/>
+                        <EventProviderId Value="Edge_Crashpad"/>
                         <EventProviderId Value="EventProvider_Microsoft-Windows-Kernel-Process_16_0_68_1_0_0" />
                         <EventProviderId Value="Edge" />
                         <EventProviderId Value="Edge_Canary" />
