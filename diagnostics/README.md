@@ -7,3 +7,4 @@ This folder contains directions for gathering various detailed diagnostics/logs 
 - [GPU Info](gpu.md): GPU logs include details on the user's GPU and any potential graphics or rendering issues.
 - [Network Logs](network.md): Network logs include the network requests, responses, and details on any errors when loading files.
 - [Code Integrity](code_integrity.md): how to root cause STATUS_INVALID_IMAGE_HASH errors.
+- [Test in Canary](test_canary.md): how to test new WebView2 runtime changes by using Edge Canary.
