@@ -55,7 +55,7 @@ and support background operations for service workers.
 **DedicatedWorkerCreated**: This event, associated with CoreWebView2, is raised
 when a web page initiates a dedicated worker. It grants access to the
 CoreWebView2DedicatedWorker object, which contains information such as the
-script URL and name. Additionally, it provides a 'destroy' event that is raised
+script uri and name. Additionally, it provides a 'destroy' event that is raised
 just before this object is due for destruction.
 
 **ServiceWorkerRegistered**: This event, originating from the
@@ -63,7 +63,7 @@ CoreWebView2ServiceWorkerManager associated with CoreWebView2Profile is raised
 when a service worker is successfully registered within the context of a
 WebView2 application for the profile. This event provides access to a
 CoreWebView2ServiceWorkerRegistration object, which encapsulates information
-about the registered service worker, such as its script URL and scope.
+about the registered service worker, such as its script uri and scope uri.
 Additionally, it enables subscription to the service worker's lifecycle events,
 including updates and unregistration.
 
@@ -72,22 +72,22 @@ part of the CoreWebView2ServiceWorkerManager class, is used to retrieve all
 service worker registrations within the context of a WebView2 application for
 the profile. This method gives a collection of
 CoreWebView2ServiceWorkerRegistration objects, each encapsulating information
-about a registered service worker, such as its script URL and scope.
+about a registered service worker, such as its script uri and scope uri.
 
 **GetServiceWorkerRegistration**: The GetServiceWorkerRegistration method, part
 of the CoreWebView2ServiceWorkerManager class, is used to retrieve a specific
 service worker registration within the context of a WebView2 application for the
-profile. This asynchronous method takes a scope as an argument and returns a
+profile. This asynchronous method takes a scope uri as an argument and returns a
 CoreWebView2ServiceWorkerRegistration object that encapsulates information about
-the registered service worker with the given scope, such as its script URL. This
+the registered service worker with the given scope uri, such as its script uri. This
 method is useful for accessing details of a specific service worker based on its
-scope.
+scope uri.
 
 **SharedWorkerCreated**: This event, originating from the
 CoreWebView2SharedWorkerManager associated with CoreWebView2Profile, is raised
 when a shared worker is successfully created within the context of a WebView2
 application for the profile. It grants access to the CoreWebView2SharedWorker
-object, which contains information such as the script URL and name.
+object, which contains information such as the script uri and name.
 Additionally, it provides a 'destroy' event that is raised just before this
 object is due for destruction.
 
@@ -120,7 +120,7 @@ the main thread and a dedicated worker.
         // operation.
         worker.WorkerMessageReceived += (sender, args) =>
         {
-            var message = args.TryGetWebMessageAsString;
+            var message = args.TryGetWorkerMessageAsString;
             // This section of the code is dedicated to handling updates received
             // from the worker. Depending on the nature of these updates, you
             // might choose to perform various actions. For instance, you could
@@ -156,7 +156,7 @@ the main thread and a dedicated worker.
 ```
 ## Win32 C++
 ```cpp
-    void PostMessageToWorker(wil::com_ptr<ICoreWebView2StagingWorker> worker)
+    void PostMessageToWorker(wil::com_ptr<ICoreWebView2DedicatedWorker> worker)
     {
         // Inside the worker, an event listener is set up for the 'message' event.
         // When a message is received from the host application, the worker performs
@@ -164,12 +164,12 @@ the main thread and a dedicated worker.
         // to receive messages from the worker. These messages could contain
         // fetched data or any error information from the worker's fetch operation.
         CHECK_FAILURE(worker->add_WorkerMessageReceived(
-                    Callback<ICoreWebView2WorkerMessageReceivedEventHandler>(
-                        [this](ICoreWebView2Worker* sender,
-                        ICoreWebView2WorkerMessageReceivedEventArgs* args) -> HRESULT
+                    Callback<ICoreWebView2DedicatedWorkerMessageReceivedEventHandler>(
+                        [this](ICoreWebView2DedicatedWorker* sender,
+                        ICoreWebView2DedicatedWorkerMessageReceivedEventArgs* args) -> HRESULT
                         {
                             wil::unique_cotaskmem_string message;
-                            CHECK_FAILURE(args->TryGetWebMessageAsString(&message));
+                            CHECK_FAILURE(args->TryGetWorkerMessageAsString(&message));
 
                             // This section of the code is dedicated to handling
                             // updates received from the worker. Depending on the
@@ -202,20 +202,14 @@ the main thread and a dedicated worker.
                   ICoreWebView2DedicatedWorkerCreatedEventArgs* args)
               {
                   wil::com_ptr<ICoreWebView2DedicatedWorker> dedicatedWorker;
-
                   CHECK_FAILURE(args->get_Worker(&dedicatedWorker));
 
                   if (dedicatedWorker)
-                  {
-                    wil::com_ptr<ICoreWebView2Worker> worker =
-                        dedicatedWorker.try_query<ICoreWebView2Worker>();
-
-                    if(worker)
-                    {
+                  {   
                       // Subscribe to worker destroyed event
-                      CHECK_FAILURE(worker->add_Destroyed(
-                          Callback<ICoreWebView2WorkerDestroyedEventHandler>(
-                              [this](ICoreWebView2Worker* sender, IUnknown* args) -> HRESULT
+                      CHECK_FAILURE(dedicatedWorker->add_Destroyed(
+                          Callback<ICoreWebView2DedicatedWorkerDestroyedEventHandler>(
+                              [this](ICoreWebView2DedicatedWorker* sender, IUnknown* args) -> HRESULT
                               {
                                   /*Cleanup on worker destruction*/
                                   return S_OK;
@@ -230,8 +224,7 @@ the main thread and a dedicated worker.
 
                       // Send a message to the dedicated worker to offload fetch
                       // request from the host app.
-                      PostMessageToWorker(worker);
-                    }
+                      PostMessageToWorker(dedicatedWorker);
                   }
 
                   return S_OK;
@@ -260,7 +253,7 @@ WorkerMessageReceived APIs.
         // from the service worker.
         worker.WorkerMessageReceived += (sender, args) =>
         {
-            var message = args.TryGetWebMessageAsString;
+            var message = args.TryGetWorkerMessageAsString;
 
             // Process the messages received from the worker. Depending on the
             // content of these messages, you might choose to log the data for
@@ -292,24 +285,19 @@ WorkerMessageReceived APIs.
                     /*Cleanup on worker destruction*/
                 };
 
-                LogMessage("Service worker has been registered with a scope: " + serviceWorkerRegistration.Scope);
+                LogMessage("Service worker has been registered with a scope: " + serviceWorkerRegistration.ScopeUri);
 
-                CoreWebView2ServiceWorker serviceWorker = await
-                serviceWorkerRegistration.GetActiveServiceWorkerAsync();
-
-                if (serviceWorker != null)
+                serviceWorkerRegistration.ServiceWorkerActivated += async (sender, args) =>
                 {
+                    CoreWebView2ServiceWorker serviceWorker = args.ActiveServiceWorker;
                     serviceWorker.WorkerDestroyed += (sender, args) =>
                     {
-                        /*Cleanup on worker destruction*/
+                            /*Cleanup on worker destruction*/
                     };
 
-                     // Send a list of resources to the service worker to cache.
+                    // Send a list of resources to the service worker to cache.
                     PostMessageToWorker(serviceWorker);
-                }
-                else
-                {
-                   LogMessage("No active service worker available.");
+
                 }
             }
         };
@@ -318,19 +306,19 @@ WorkerMessageReceived APIs.
 ## Win32 C++
 ```cpp
 
-    void PostMessageToWorker(wil::com_ptr<ICoreWebView2StagingWorker> worker)
+    void PostMessageToWorker(wil::com_ptr<ICoreWebView2ServiceWorker> worker)
     {
         // The service worker communicates updates back to the host application,
         // such as when resource caching is complete. The host application can
         // listen for the WorkerMessageReceived event to receive these updates
         // from the service worker.
         CHECK_FAILURE(worker->add_WorkerMessageReceived(
-                            Callback<ICoreWebView2WorkerMessageReceivedEventHandler>(
-                                [this](ICoreWebView2Worker* sender,
-                                ICoreWebView2WorkerMessageReceivedEventArgs* args) -> HRESULT
+                            Callback<ICoreWebView2ServiceWorkerMessageReceivedEventHandler>(
+                                [this](ICoreWebView2ServiceWorker* sender,
+                                ICoreWebView2ServiceWorkerMessageReceivedEventArgs* args) -> HRESULT
                                 {
                                     wil::unique_cotaskmem_string message;
-                                    CHECK_FAILURE(args->TryGetWebMessageAsString(&message));
+                                    CHECK_FAILURE(args->TryGetWorkerMessageAsString(&message));
 
                                     // Process the messages received from the worker.
                                     // Depending on the content of these messages,
@@ -389,50 +377,43 @@ WorkerMessageReceived APIs.
                           .Get(),
                     nullptr));
 
-                    wil::unique_cotaskmem_string scope;
-                    CHECK_FAILURE(serviceWorkerRegistration->get_Scope(&scope));
+                    wil::unique_cotaskmem_string scopeUri;
+                    CHECK_FAILURE(serviceWorkerRegistration->get_ScopeUri(&scopeUri));
 
-                    CHECK_FAILURE(serviceWorkerRegistration->GetActiveServiceWorker(
-                        Callback<ICoreWebView2GetActiveServiceWorkerCompletedHandler>(
-                            [this, &scope](
-                                HRESULT error,
-                                ICoreWebView2ServiceWorker* serviceWorker) -> HRESULT
-                            {
-                                wil::com_ptr<ICoreWebView2Worker> worker;
-                                std::wstringstream message;
-                                if (serviceWorker)
-                                {
-                                    if (SUCCEEDED(
-                                            serviceWorker->QueryInterface(IID_PPV_ARGS(&worker))))
-                                    {
-                                        // Subscribe to worker destroyed event
-                                        CHECK_FAILURE(worker->add_Destroyed(
-                                          Callback<
-                                              ICoreWebView2WorkerDestroyedEventHandler>(
-                                              [this](
-                                                  ICoreWebView2Worker* sender,
-                                                  IUnknown* args) -> HRESULT
-                                              {
-                                                  /*Cleanup on worker destruction*/
-                                                  return S_OK;
-                                              })
-                                              .Get(),
-                                          nullptr));
+                    CHECK_FAILURE(serviceWorkerRegistration->add_ServiceWorkerActivated(
+                    Callback<ICoreWebView2ServiceWorkerActivatedEventHandler>(
+                        [this](
+                            ICoreWebView2ServiceWorkerRegistration* sender,
+                            ICoreWebView2ServiceWorkerActivatedEventArgs* args) -> HRESULT
+                        {
+                            wil::com_ptr<ICoreWebView2ServiceWorker> serviceWorker;
+                            CHECK_FAILURE(args->get_ActiveServiceWorker(&serviceWorker));
+                        
+                            std::wstringstream message;
 
-                                       // Send a list of resources to the service worker to cache.
-                                       PostMessageToWorker(worker);
-                                    }
-                                }
-                                else
-                                {
-                                  LogMessage(L"No active service worker available");
-                                }
+                             // Subscribe to worker destroyed event
+                             CHECK_FAILURE(serviceWorker->add_Destroyed(
+                                    Callback<
+                                        ICoreWebView2ServiceWorkerDestroyedEventHandler>(
+                                        [this](
+                                            ICoreWebView2ServiceWorker* sender,
+                                            IUnknown* args) -> HRESULT
+                                        {
+                                            /*Cleanup on worker destruction*/
+                                            return S_OK;
+                                        })
+                                        .Get(),
+                                    nullptr));
 
-                                return S_OK;
-                            })
-                            .Get()));
+                                // Send a list of resources to the service worker to cache.
+                                PostMessageToWorker(serviceWorker);
 
-                    LogMessage(L"Service worker has been registered with a scope:  " + std::wstring(scope.get()));
+                            return S_OK;
+                        })
+                        .Get(),
+                nullptr));
+                
+                    LogMessage(L"Service worker has been registered with a scope:  " + std::wstring(scopeUri.get()));
                   }
 
                   return S_OK;
@@ -468,9 +449,9 @@ messaging.
 
             for (int i = 0; i < registrationList.Count(); ++i)
             {
-                var scope = registrationList[i].Scope;
+                var scopeUri = registrationList[i].ScopeUri;
 
-                messageBuilder.AppendLine($"Scope: {scope}");
+                messageBuilder.AppendLine($"Scope: {scopeUri}");
             };
 
             LogMessage(messageBuilder.ToString());
@@ -510,10 +491,10 @@ messaging.
                           CHECK_FAILURE(workerRegistrationCollection->GetValueAtIndex(
                               i, &serviceWorkerRegistration));
 
-                          wil::unique_cotaskmem_string scope;
-                          CHECK_FAILURE(serviceWorkerRegistration->get_Scope(&scope));
+                          wil::unique_cotaskmem_string scopeUri;
+                          CHECK_FAILURE(serviceWorkerRegistration->get_ScopeUri(&scopeUri));
 
-                          message << L"Scope: " << scope.get();
+                          message << L"Scope: " << scopeUri.get();
                       }
 
                       LogMessage(std::wstring(message.str()));
@@ -538,7 +519,7 @@ service worker, facilitating the exchange of messages.
     {
         var dialog = new TextInputDialog(
             title: "Scope of the Service Worker Registration",
-            description: "Specify a scope to get the service worker",
+            description: "Specify a scope uri to get the service worker",
             defaultInput: "");
         if (dialog.ShowDialog() == true)
         {
@@ -553,7 +534,7 @@ service worker, facilitating the exchange of messages.
 
                 if(registration != null)
                 {
-                    CoreWebView2ServiceWorker worker = await registration.GetActiveServiceWorkerAsync();
+                    CoreWebView2ServiceWorker worker = registration.ActiveServiceWorker;
                     if(worker != null)
                     {
                         LogMessage("Service worker for scope " + dialog.Input.Text + " fetched successfully");
@@ -582,23 +563,23 @@ service worker, facilitating the exchange of messages.
         {
             CreateServiceWorkerManager();
         }
-        std::wstring scope;
+        std::wstring scopeUri;
 
         TextInputDialog dialog(
             m_appWindow->GetMainWindow(), L"Service Worker", L"Scope:",
-            L"Specify a scope to get the service worker", L"");
+            L"Specify a scope uri to get the service worker", L"");
 
         if (dialog.confirmed)
         {
-            // The 'scope' is a fully qualified URL that defines the range of URLs
+            // The 'ScopeUri' is a fully qualified URI that defines the range of URLs
             // a service worker can control. For example, if you registered a service
             // worker with a 'scope' of '/app/' for an application at https://example.com/,
-            // you should specify the full qualified URL i.e., https://example.com/app/
+            // you should specify the full qualified URI i.e., https://example.com/app/
             // when calling this method.
             CHECK_FAILURE(m_serviceWorkerManager->GetServiceWorkerRegistration(
                 dialog.input.c_str(),
                 Callback<ICoreWebView2GetServiceWorkerRegistrationCompletedHandler>(
-                    [this, &scope](
+                    [this, &scopeUri](
                         HRESULT error,
                         ICoreWebView2ServiceWorkerRegistration* serviceWorkerRegistration)
                         -> HRESULT
@@ -606,38 +587,24 @@ service worker, facilitating the exchange of messages.
                         CHECK_FAILURE(error);
                         if(serviceWorkerRegistration)
                         {
-                          CHECK_FAILURE(serviceWorkerRegistration->GetActiveServiceWorker(
-                              Callback<ICoreWebView2GetServiceWorkerCompletedHandler>(
-                                  [this, &scope](
-                                      HRESULT error,
-                                      ICoreWebView2ServiceWorker* serviceWorker) -> HRESULT
-                                  {
-                                      if (serviceWorker != nullptr)
-                                      {
-                                          wil::com_ptr<ICoreWebView2Worker> worker;
-                                          wil::unique_cotaskmem_string ScriptUri;
-                                          if (SUCCEEDED(serviceWorker->QueryInterface(
-                                                  IID_PPV_ARGS(&worker))))
-                                          {
-                                              CHECK_FAILURE(worker->get_ScriptUri(&ScriptUri));
-                                          }
+                            wil::com_ptr<ICoreWebView2ServiceWorker> serviceWorker;
+                            CHECK_FAILURE(serviceWorkerRegistration->get_ActiveServiceWorker(&serviceWorker));
+                            if (serviceWorker != nullptr)
+                            {
+                                wil::unique_cotaskmem_string ScriptUri;
+                                CHECK_FAILURE(serviceWorker->get_ScriptUri(&ScriptUri));
 
-                                          LogMessage(L"Service worker for scope " + scope + 
-                                          L" fetched successfully from the script "
-                                          + std::wstring(ScriptUri.get()));
-                                      }
-                                      else
-                                      {
-                                          LogMessage(L"No service worker available");
-                                      }
-
-                                      return S_OK;
-                                  })
-                                  .Get()));
-                        }
+                                LogMessage(L"Service worker for scope " + scopeUri + 
+                                L" fetched successfully from the script "
+                                + std::wstring(ScriptUri.get()));
+                            }
+                            else
+                            {
+                                LogMessage(L"No service worker available");
+                            }
                         else
                         {
-                            LogMessage(L"No service worker registered for the scope: " + scope);
+                            LogMessage(L"No service worker registered for the scope: " + scopeUri);
                         }
 
                         return S_OK;
@@ -663,7 +630,7 @@ upcoming PostMessage and WorkerMessageReceived APIs.
         // these updates from the shared worker.
         worker.WorkerMessageReceived += (sender, args) =>
         {
-            var message = args.TryGetWebMessageAsString;
+            var message = args.TryGetWorkerMessageAsString;
 
             // Record the updates from the WebSocket or modify the user interface
             // according to the requirements of the host application.
@@ -696,7 +663,7 @@ upcoming PostMessage and WorkerMessageReceived APIs.
                   // connection, enabling real-time updates through the PostMessage API.
                   // The shared worker establishes the WebSocket connection, receives
                   // real-time updates, and forwards these updates back to the host application.
-                  PostMessageToWorker(worker);
+                  PostMessageToWorker(sharedWorker);
                 }
             };
         }
@@ -704,18 +671,18 @@ upcoming PostMessage and WorkerMessageReceived APIs.
 ```
 ## Win32 C++
 ```cpp
-    void PostMessageToWorker(wil::com_ptr<ICoreWebView2StagingWorker> worker)
+    void PostMessageToWorker(wil::com_ptr<ICoreWebView2SharedWorker> worker)
     {
         // The shared worker communicates back to the host application with
         // updates from the WebSocket. The host application can monitor this
         // event to receive these updates from the shared worker.
         CHECK_FAILURE(worker->add_WorkerMessageReceived(
-                            Callback<ICoreWebView2WorkerMessageReceivedEventHandler>(
-                                [this](ICoreWebView2Worker* sender,
-                                ICoreWebView2WorkerMessageReceivedEventArgs* args) -> HRESULT
+                            Callback<ICoreWebView2SharedWorkerMessageReceivedEventHandler>(
+                                [this](ICoreWebView2SharedWorker* sender,
+                                ICoreWebView2SharedWorkerMessageReceivedEventArgs* args) -> HRESULT
                                 {
                                     wil::unique_cotaskmem_string message;
-                                    CHECK_FAILURE(args->TryGetWebMessageAsString(&message));
+                                    CHECK_FAILURE(args->TryGetWorkerMessageAsString(&message));
 
                                     // Record the updates from the WebSocket or
                                     // modify the user interface according to the
@@ -755,39 +722,33 @@ upcoming PostMessage and WorkerMessageReceived APIs.
 
                 if (sharedWorker)
                 {
-                    wil::com_ptr<ICoreWebView2StagingWorker> worker =
-                        sharedWorker.try_query<ICoreWebView2StagingWorker>();
+                    wil::unique_cotaskmem_string ScriptUri;
+                    CHECK_FAILURE(sharedWorker->get_ScriptUri(&ScriptUri));
 
-                    if (worker)
-                    {
-                      wil::unique_cotaskmem_string ScriptUri;
-                      CHECK_FAILURE(worker->get_ScriptUri(&ScriptUri));
-
-                      // Subscribe to worker destroyed event
-                      worker->add_Destroyed(
-                          Callback<ICoreWebView2StagingWorkerDestroyedEventHandler>(
-                              [this, &ScriptUri](
-                                  ICoreWebView2StagingWorker* sender,
-                                  IUnknown* args) -> HRESULT
-                              {
-                                  /*Cleanup on worker destruction*/
-                                  return S_OK;
-                              })
-                              .Get(),
-                          nullptr);
+                    // Subscribe to worker destroyed event
+                    sharedWorker->add_Destroyed(
+                        Callback<ICoreWebView2SharedWorkerDestroyedEventHandler>(
+                            [this, &ScriptUri](
+                                ICoreWebView2SharedWorker* sender,
+                                IUnknown* args) -> HRESULT
+                            {
+                                /*Cleanup on worker destruction*/
+                                return S_OK;
+                            })
+                            .Get(),
+                        nullptr);
 
 
-                      LogMessage(L"Shared Worker has been created with the script located at the " + std::wstring(ScriptUri.get()));
+                    LogMessage(L"Shared Worker has been created with the script located at the " + std::wstring(ScriptUri.get()));
 
-                      // The host application leverages a shared worker to sustain
-                      // a WebSocket connection, facilitating real-time updates.
-                      // The initiation of the WebSocket connection is raised by a
-                      // message from the host app to the shared worker via the
-                      // PostMessage API. The shared worker then establishes the
-                      // WebSocket connection, receives real-time updates, and
-                      // relays these updates back to the host application.
-                      PostMessageToWorker(worker);
-                    }
+                    // The host application leverages a shared worker to sustain
+                    // a WebSocket connection, facilitating real-time updates.
+                    // The initiation of the WebSocket connection is raised by a
+                    // message from the host app to the shared worker via the
+                    // PostMessage API. The shared worker then establishes the
+                    // WebSocket connection, receives real-time updates, and
+                    // relays these updates back to the host application.
+                    PostMessageToWorker(sharedWorker);
                 }
 
                 return S_OK;
@@ -826,7 +787,7 @@ CoreWebView2SharedWorker.
 
           for (int i = 0; i < workerCount; ++i)
           {
-              var stringUrl = workerList[i].ScriptUri;
+              var stringUri = workerList[i].ScriptUri;
 
               messageBuilder.AppendLine($"ScriptUri: {ScriptUri}");
           };
@@ -866,11 +827,10 @@ CoreWebView2SharedWorker.
                         Microsoft::WRL::ComPtr<ICoreWebView2SharedWorker> sharedWorker;
                         CHECK_FAILURE(workersCollection->GetValueAtIndex(i, &sharedWorker));
 
-                        wil::com_ptr<ICoreWebView2Worker> worker;
-                        if (SUCCEEDED(sharedWorker->QueryInterface(IID_PPV_ARGS(&worker))))
+                        if (sharedWorker)
                         {
                             wil::unique_cotaskmem_string ScriptUri;
-                            CHECK_FAILURE(worker->get_ScriptUri(&ScriptUri));
+                            CHECK_FAILURE(sharedWorker->get_ScriptUri(&ScriptUri));
 
                             message << L"ScriptUri: " << ScriptUri.get();
                             message << std::endl;
@@ -887,29 +847,6 @@ CoreWebView2SharedWorker.
 
 # API Details
 ```
-/// State of the service worker.
-///
-/// This corresponds to the `state` property of the `ServiceWorker` object in the DOM.
-/// See the [MDN documentation](https://developer.mozilla.org/docs/Web/API/ServiceWorker/state)
-/// for more information.
-[v1_enum]
-typedef enum COREWEBVIEW2_SERVICE_WORKER_STATE {
-  /// The service worker is new and has not been installed yet.
-  COREWEBVIEW2_SERVICE_WORKER_STATE_NEW,
-  /// The service worker is installing.
-  COREWEBVIEW2_SERVICE_WORKER_STATE_INSTALLING,
-  /// The service worker is installed. The service worker in this state is considered
-  /// a waiting worker.
-  COREWEBVIEW2_SERVICE_WORKER_STATE_INSTALLED,
-  /// The service worker is activating.
-  COREWEBVIEW2_SERVICE_WORKER_STATE_ACTIVATING,
-  /// The service worker is activated. The service worker in this state is
-  /// considered an active worker ready to handle functional events.
-  COREWEBVIEW2_SERVICE_WORKER_STATE_ACTIVATED,
-  /// The service worker is redundant.
-  COREWEBVIEW2_SERVICE_WORKER_STATE_REDUNDANT,
-} COREWEBVIEW2_SERVICE_WORKER_STATE;
-
 [uuid(29b994e5-0ac8-5430-89fa-5b4bb2091d8d), object, pointer_default(unique)]
 interface ICoreWebView2_25 : IUnknown {
   /// Subscribe to this event that gets raised when a new dedicated worker is created.
@@ -948,6 +885,43 @@ interface ICoreWebView2DedicatedWorkerCreatedEventArgs : IUnknown {
   /// The dedicated worker that was created.
   [propget] HRESULT Worker([out, retval] ICoreWebView2DedicatedWorker** value);
 }
+
+/// Receives `Destroyed` events.
+[uuid(d3066b89-9039-5ffc-b594-f936773d5bc5), object, pointer_default(unique)]
+interface ICoreWebView2DedicatedWorkerDestroyedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2DedicatedWorker* sender,
+      [in] IUnknown* args);
+}
+
+[uuid(f233edb4-d9b4-5209-9abd-b7f50089464c), object, pointer_default(unique)]
+interface ICoreWebView2DedicatedWorker : IUnknown {
+  /// A string representing the Uri of the script that the worker is executing.
+  ///
+  /// This corresponds to the `scriptURL` property of the `Worker` object in the DOM.
+  /// The `scriptURL` property returns a string representing the URL of the script that the
+  /// worker is executing. See the [MDN documentation]
+  /// (https://developer.mozilla.org/docs/Web/API/Worker/scriptURL) for more information.
+  ///
+  /// The caller must free the returned string with `CoTaskMemFree`.  See
+  /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
+  [propget] HRESULT ScriptUri([out, retval] LPWSTR* value);
+
+  /// Add an event handler for the `Destroyed` event that is raised when the
+  /// worker object is destroyed.
+  ///
+  /// A worker object is destroyed when the worker script is terminated or when
+  /// the `CoreWebView2DedicatedWorker` object is destroyed.
+  HRESULT add_Destroyed(
+      [in] ICoreWebView2DedicatedWorkerDestroyedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Removes an event handler previously added with `add_Destroyed`.
+  HRESULT remove_Destroyed(
+      [in] EventRegistrationToken token);
+}
+
 
 [uuid(ad6921d4-c416-5945-8437-2c97aeb76e6e), object, pointer_default(unique)]
 interface ICoreWebView2Profile2 : IUnknown {
@@ -1019,22 +993,22 @@ interface ICoreWebView2ServiceWorkerManager : IUnknown {
   /// If a service worker has been registered for the given scope, it gets the
   /// corresponding `CoreWebView2ServiceWorkerRegistration` object.
   ///
-  /// The `scope` parameter is a fully qualified URL that defines the range of URLs
+  /// The `scopeUri` parameter is a fully qualified URI that defines the range of URIs
   /// a service worker can control. For example, if you registered a service worker
   /// with a `scope` of '/app/' for an application at https://example.com/, you should
-  /// specify the full qualified URL i.e., https://example.com/app/ when calling this
-  /// method. If the `scope` was not specified during registration, its default value
-  /// is the base URL of the application, e.g., https://example.com/.
+  /// specify the full qualified URI i.e., https://example.com/app/ when calling this
+  /// method. If the scope was not specified during registration, its default value
+  /// is the base URI of the application, e.g., https://example.com/.
   ///
   /// This corresponds to the `getRegistration` method of the `ServiceWorkerContainer`
   /// object in the DOM which returns a Promise that resolves to a `ServiceWorkerRegistration`
   /// object. See the [MDN documentation]
   /// (https://developer.mozilla.org/docs/Web/API/ServiceWorkerContainer/getRegistration) for more information.
   ///
-  /// If scope is empty string or null, the completed handler immediately returns
+  /// If scopeUri is empty string or null, the completed handler immediately returns
   /// `E_INVALIDARG` and with a null pointer.
   HRESULT GetServiceWorkerRegistration(
-      [in] LPCWSTR scope
+      [in] LPCWSTR scopeUri
       , [in] ICoreWebView2GetServiceWorkerRegistrationCompletedHandler* handler
   );
 }
@@ -1083,14 +1057,6 @@ interface ICoreWebView2ServiceWorkerRegistrationCollectionView : IUnknown {
   HRESULT GetValueAtIndex([in] UINT32 index, [out, retval] ICoreWebView2ServiceWorkerRegistration** value);
 }
 
-/// Receives the result of the `GetServiceWorker` method.
-[uuid(bd120b47-b859-5f44-9913-0318130ffb69), object, pointer_default(unique)]
-interface ICoreWebView2GetServiceWorkerCompletedHandler : IUnknown {
-
-  /// Provides the result of the corresponding asynchronous method.
-  HRESULT Invoke([in] HRESULT errorCode, [in] ICoreWebView2ServiceWorker* result);
-}
-
 /// Receives `Destroyed` events.
 [uuid(9d79117e-4e96-5a53-9933-d7a31d0106ae), object, pointer_default(unique)]
 interface ICoreWebView2ServiceWorkerRegistrationDestroyedEventHandler : IUnknown {
@@ -1102,20 +1068,20 @@ interface ICoreWebView2ServiceWorkerRegistrationDestroyedEventHandler : IUnknown
 
 [uuid(0c0b03bd-ced2-5518-851a-3d3f71fb5c4b), object, pointer_default(unique)]
 interface ICoreWebView2ServiceWorkerRegistration : IUnknown {
-  /// The `scope` parameter is a fully qualified URL that defines the range of URLs
+  /// The `scopeUri` parameter is a fully qualified URL that defines the range of URLs
   /// a service worker can control.
   ///
-  /// By default, the `scope` is the directory where the service worker script resides.
-  /// For example, if the script is at https://example.com/sw.js, the default scope is
-  /// https://example.com/, and the service worker can control all pages under this URL.
+  /// By default, the `scopeUri` is the directory where the service worker script resides.
+  /// For example, if the script is at https://example.com/app/sw.js, the default scopeUri is
+  /// https://example.com/app/, and the service worker can control all pages under this URI.
   ///
-  /// During the registration of the service worker, the `scope` is set relative to the
-  /// application's base URL. For example, if you register a service worker with a scope
+  /// During the registration of the service worker, the scope is set relative to the
+  /// application's base URI. For example, if you register a service worker with a scope
   /// of /app/ for an application at https://example.com/, the scope is relative to the
-  /// base URL during registration.
+  /// base URI during registration.
   ///
   /// After the service worker is registered, the `scope` is stored and returned as a
-  /// fully qualified URL, such as https://example.com/app/. This URL includes the origin
+  /// fully qualified URI, such as https://example.com/app/. This URI includes the origin
   /// (scheme, host, and optionally port) and the path. If the origin or scope includes
   /// an internationalized domain name (IDN), it should be represented in punycode format.
   ///
@@ -1125,7 +1091,26 @@ interface ICoreWebView2ServiceWorkerRegistration : IUnknown {
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Scope([out, retval] LPWSTR* value);
+  [propget] HRESULT ScopeUri([out, retval] LPWSTR* value);
+
+  /// Adds an event handler for the `ServiceWorkerActivated` event.
+  /// This event is raised when a service worker is activated. A service worker is
+  /// activated when its script has been successfully registered and it is ready to
+  /// control the pages within the scope of the registration.
+  /// This event is also raised when an updated version of a service worker reaches the active state.
+  /// In such a case, the existing CoreWebView2ServiceWorker object is destroyed, and this event is
+  /// raised with a new CoreWebView2ServiceWorker object representing the updated service worker.
+  /// The active service worker is the one that receives fetch and message events for the pages it controls.
+  /// See the [Service Worker](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/active)
+  /// documentation for more information.
+  /// 
+  HRESULT add_ServiceWorkerActivated(
+      [in] ICoreWebView2ServiceWorkerActivatedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Removes an event handler previously added with `add_ServiceWorkerActivated`.
+  HRESULT remove_ServiceWorkerActivated(
+      [in] EventRegistrationToken token);
 
   /// Add an event handler for the `Destroyed` event that is raised when the worker registration is
   /// unregistered using the JS api `registration.unregister()` method or when the
@@ -1143,7 +1128,7 @@ interface ICoreWebView2ServiceWorkerRegistration : IUnknown {
 
 
   /// The active service worker that was created. If there is no active service worker,
-  /// the completed handler immediately returns `S_OK` and with a null pointer.
+  /// it returns a null pointer.
   /// The active service worker is the service worker that controls the pages within
   /// the scope of the registration. See the [Service Worker]
   /// (https://developer.mozilla.org/docs/Web/API/ServiceWorker) for more information.
@@ -1151,9 +1136,59 @@ interface ICoreWebView2ServiceWorkerRegistration : IUnknown {
   /// This corresponds to the `active` property of the `ServiceWorkerRegistration` object in the DOM.
   /// For more information, see the [MDN documentation]
   /// (https://developer.mozilla.org/docs/Web/API/ServiceWorkerRegistration/active).
-  HRESULT GetActiveServiceWorker(
-      [in] ICoreWebView2GetActiveServiceWorkerCompletedHandler* handler
-  );
+  [propget] HRESULT ActiveServiceWorker([out, retval] ICoreWebView2ServiceWorker** value);
+}
+
+/// Receives `ServiceWorkerActivated` events.
+[uuid(0f383156-1a08-52d4-81b0-a626484aac40), object, pointer_default(unique)]
+interface ICoreWebView2ServiceWorkerActivatedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2ServiceWorkerRegistration* sender,
+      [in] ICoreWebView2ServiceWorkerActivatedEventArgs* args);
+}
+
+/// Event args for the `ServiceWorkerActivated` event.
+[uuid(5685c4b6-a514-58b2-9721-b61ef4ccd9d8), object, pointer_default(unique)]
+interface ICoreWebView2ServiceWorkerActivatedEventArgs : IUnknown {
+  /// The service worker that was activated.
+  [propget] HRESULT ActiveServiceWorker([out, retval] ICoreWebView2ServiceWorker** value);
+}
+
+/// Receives `Destroyed` events.
+[uuid(f514c5e7-27f3-5dd8-aa1c-04e053177edd), object, pointer_default(unique)]
+interface ICoreWebView2ServiceWorkerDestroyedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2ServiceWorker* sender,
+      [in] IUnknown* args);
+}
+
+[uuid(de8ed42b-5128-55df-9dd0-ea1d4d706c87), object, pointer_default(unique)]
+interface ICoreWebView2ServiceWorker : IUnknown {
+  /// A string representing the Uri of the script that the worker is executing.
+  ///
+  /// This corresponds to the `scriptURL` property of the `Worker` object in the DOM.
+  /// The `scriptURL` property returns a string representing the URL of the script that the
+  /// worker is executing. See the [MDN documentation]
+  /// (https://developer.mozilla.org/docs/Web/API/Worker/scriptURL) for more information.
+  ///
+  /// The caller must free the returned string with `CoTaskMemFree`.  See
+  /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
+  [propget] HRESULT ScriptUri([out, retval] LPWSTR* value);
+
+  /// Add an event handler for the `Destroyed` event that is raised when the
+  /// worker object is destroyed.
+  ///
+  /// A worker object is destroyed when the worker script is terminated or when
+  /// the `CoreWebView2ServiceWorker` object is destroyed.
+  HRESULT add_Destroyed(
+      [in] ICoreWebView2ServiceWorkerDestroyedEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Removes an event handler previously added with `add_Destroyed`.
+  HRESULT remove_Destroyed(
+      [in] EventRegistrationToken token);
 }
 
 [uuid(9b897103-d035-551f-892e-3e8f2916d03e), object, pointer_default(unique)]
@@ -1218,8 +1253,17 @@ interface ICoreWebView2SharedWorkerCollectionView : IUnknown {
   HRESULT GetValueAtIndex([in] UINT32 index, [out, retval] ICoreWebView2SharedWorker** value);
 }
 
-[uuid(06cfc21b-56e5-59b1-b7b4-13f197d4539d), object, pointer_default(unique)]
-interface ICoreWebView2Worker : IUnknown {
+/// Receives `Destroyed` events.
+[uuid(fa58150a-5b67-5069-a82e-5606f9f61a67), object, pointer_default(unique)]
+interface ICoreWebView2SharedWorkerDestroyedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2SharedWorker* sender,
+      [in] IUnknown* args);
+}
+
+[uuid(876f8390-f9a8-5264-9677-985d8453aeab), object, pointer_default(unique)]
+interface ICoreWebView2SharedWorker : IUnknown {
   /// A string representing the Uri of the script that the worker is executing.
   ///
   /// This corresponds to the `scriptURL` property of the `Worker` object in the DOM.
@@ -1233,63 +1277,16 @@ interface ICoreWebView2Worker : IUnknown {
 
   /// Add an event handler for the `Destroyed` event that is raised when the
   /// worker object is destroyed.
+  ///
   /// A worker object is destroyed when the worker script is terminated or when
-  /// the `CoreWebView2Worker` object is destroyed.
+  /// the `CoreWebView2SharedWorker` object is destroyed.
   HRESULT add_Destroyed(
-      [in] ICoreWebView2WorkerDestroyedEventHandler* eventHandler,
+      [in] ICoreWebView2SharedWorkerDestroyedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_Destroyed`.
   HRESULT remove_Destroyed(
       [in] EventRegistrationToken token);
-}
-
-/// Receives `Destroyed` events.
-[uuid(3197df3b-4245-5fff-9427-e98118fcf657), object, pointer_default(unique)]
-interface ICoreWebView2WorkerDestroyedEventHandler : IUnknown {
-  /// Provides the event args for the corresponding event.
-  HRESULT Invoke(
-      [in] ICoreWebView2Worker* sender,
-      [in] IUnknown* args);
-}
-
-[uuid(f233edb4-d9b4-5209-9abd-b7f50089464c), object, pointer_default(unique)]
-interface ICoreWebView2DedicatedWorker : IUnknown {
-  /// A string specified when creating a dedicated worker. If it is not provided during
-  /// creation, the `Name` property will default to an empty string.
-  ///
-  /// This corresponds to the `options.name` property passed to the `Worker` constructor in the DOM.
-  /// For more information, see the [MDN documentation]
-  /// (https://developer.mozilla.org/docs/Web/API/Worker/Worker).
-  ///
-  /// The caller must free the returned string with `CoTaskMemFree`.  See
-  /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Name([out, retval] LPWSTR* value);
-}
-
-
-[uuid(de8ed42b-5128-55df-9dd0-ea1d4d706c87), object, pointer_default(unique)]
-interface ICoreWebView2ServiceWorker : IUnknown {
-  /// The state of the service worker. A service worker can be in new, installing,
-  /// installed, activating, activated, or redundant.
-  ///
-  /// This corresponds to the `state` property of the `ServiceWorker` object in the DOM.
-  /// See the [MDN documentation](https://developer.mozilla.org/docs/Web/API/ServiceWorker/state)
-  /// for more information.
-  [propget] HRESULT State([out, retval] COREWEBVIEW2_SERVICE_WORKER_STATE* value);
-}
-
-[uuid(876f8390-f9a8-5264-9677-985d8453aeab), object, pointer_default(unique)]
-interface ICoreWebView2SharedWorker : IUnknown {
-  /// A string specified when creating a shared worker.
-  ///
-  /// This corresponds to the `options.name` property passed to the `Worker` constructor in the DOM.
-  /// For more information, see the [MDN documentation]
-  /// (https://developer.mozilla.org/docs/Web/API/Worker/Worker).
-  ///
-  /// The caller must free the returned string with `CoTaskMemFree`.  See
-  /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
-  [propget] HRESULT Name([out, retval] LPWSTR* value);
 }
 ```
 
@@ -1319,22 +1316,10 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2DedicatedWorker
     {
-        String Name { get; };
-
         String ScriptUri { get; };
 
         event Windows.Foundation.TypedEventHandler<CoreWebView2DedicatedWorker, IInspectable> Destroyed;
     }
-
-    enum CoreWebView2ServiceWorkerState
-    {
-        New = 0,
-        Installing = 1,
-        Installed = 2,
-        Activating = 3,
-        Activated = 4,
-        Redundant = 5,
-    };
 
     [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile9")]
     {
@@ -1349,7 +1334,7 @@ namespace Microsoft.Web.WebView2.Core
 
         Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ServiceWorkerRegistration>> GetServiceWorkerRegistrationsAsync();
 
-        Windows.Foundation.IAsyncOperation<CoreWebView2ServiceWorkerRegistration> GetServiceWorkerRegistrationAsync(String Scope);
+        Windows.Foundation.IAsyncOperation<CoreWebView2ServiceWorkerRegistration> GetServiceWorkerRegistrationAsync(String ScopeUri);
     }
 
     runtimeclass CoreWebView2ServiceWorkerRegisteredEventArgs
@@ -1359,11 +1344,18 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2ServiceWorkerRegistration
     {
-        String Scope { get; };
+        String ScopeUri { get; };
 
         event Windows.Foundation.TypedEventHandler<CoreWebView2ServiceWorkerRegistration, IInspectable> Destroyed;
 
-        Windows.Foundation.IAsyncOperation<CoreWebView2ServiceWorker> GetActiveServiceWorkerAsync();
+        CoreWebView2ServiceWorker ActiveServiceWorker { get; };
+
+        event Windows.Foundation.TypedEventHandler<CoreWebView2ServiceWorkerRegistration, CoreWebView2ServiceWorkerActivatedEventArgs> ServiceWorkerActivated;
+    }
+
+    runtime CoreWebView2ServiceWorkerActivatedEventArgs
+    {
+        CoreWebView2ServiceWorker ActiveServiceWorker { get; };
     }
 
     runtimeclass CoreWebView2ServiceWorker
@@ -1389,8 +1381,6 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2SharedWorker
     {
-        String Name { get; };
-
         String ScriptUri { get; };
 
         event Windows.Foundation.TypedEventHandler<CoreWebView2SharedWorker, IInspectable> Destroyed;
