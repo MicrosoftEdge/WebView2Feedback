@@ -4,7 +4,6 @@ Enhanced Security Mode
 # Background
 The WebView2 team has been asked for an API to toggle the Enhanced Security Mode (ESM) feature, control levels of ESM, and also to manage ESM enforce and bypass lists.
 
-We are proposing 4 APIs:
 We are proposing 4 APIs as follows: 
 
 `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled` - this API allows developers to enable/disable ESM. The default value is false. When this property is set to true, the level of ESM is controlled by the `CoreWebView2Profile.PreferredEnhancedSecurityModeLevel` property. 
