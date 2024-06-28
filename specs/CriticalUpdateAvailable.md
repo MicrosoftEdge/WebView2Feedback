@@ -21,17 +21,15 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_CriticalRestartRequired(object sender, object e)
 {
-    System.Threading.SynchronizationContext.Current.Post((_) =>
-    {
-        // Depending on your app experience, you may or may not
-        // want to prompt user to restart the app.
-        RestartIfSelectedByUser();
-    }, null);
+    // Depending on your app experience, you may or may not
+    // want to prompt user to restart the app.
+    RestartIfSelectedByUser();
 }
 ```
 
 ## Win32 C++
 ```cpp
+void CoreWebView2InitializationCompleted() {
     wil::com_ptr<ICoreWebView2Environment> m_webViewEnvironment;
     auto env10 = m_webViewEnvironment.try_query<ICoreWebView2Environment10>();
     CHECK_FAILURE(env10->add_CriticalRestartRequired(
@@ -45,6 +43,7 @@ void WebView_CriticalRestartRequired(object sender, object e)
             })
             .Get(),
         nullptr));
+}
 ```
 
 # API Notes
