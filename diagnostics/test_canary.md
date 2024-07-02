@@ -8,6 +8,6 @@ The latest runtime changes are first shipped in the WebView2 runtime in the Edge
 3. Restart your application, and you should be able to see that your application picks up the latest runtime. 
 
 To remove the registry key added, run the following:  
-`REG DELETE HKCU\Software\Policies\Microsoft\Edge\WebView2\ChannelSearchKind`
+`REG DELETE HKCU\Software\Policies\Microsoft\Edge\WebView2\ChannelSearchKind /v <your_app.exe>`
 
 For more information, read the documentation on [Test upcoming APIs and features](https://learn.microsoft.com/en-us/microsoft-edge/webview2/how-to/set-preview-channel)
