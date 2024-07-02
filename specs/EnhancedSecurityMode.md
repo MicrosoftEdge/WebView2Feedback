@@ -2,21 +2,38 @@ Enhanced Security Mode
 ===
 
 # Background
-The WebView2 team has been asked for an API to toggle the Enhanced Security Mode (ESM) feature, control levels of ESM, and also to manage ESM enforce and bypass lists.
+The WebView2 team has been asked for an API to toggle the Enhanced Security Mode (ESM) feature, 
+control levels of ESM, and also to manage ESM enforce and bypass lists.
 
 We are proposing 4 APIs as follows: 
 
-`CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled` - this API allows developers to enable/disable ESM. The default value is false. When this property is set to true, the level of ESM is controlled by the `CoreWebView2Profile.PreferredEnhancedSecurityModeLevel` property. 
+`CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled` - this API allows developers to 
+enable/disable ESM. The default value is false. When this property is set to true, the level of 
+ESM is controlled by the `CoreWebView2Profile.PreferredEnhancedSecurityModeLevel` property. 
 
-`CoreWebView2Profile.PreferredEnhancedSecurityModeLevel` - this API allows developers to control levels of ESM for WebView2 which are associated with a profile and persisted in the user data folder. However, the level is not respected if ESM is disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. That means, when developers set the property when ESM is disabled, it will be updated and persisted, but will not take effect until the feature is enabled. We will offer 2 levels: Off and Strict. 
+`CoreWebView2Profile.PreferredEnhancedSecurityModeLevel` - this API allows developers to control 
+levels of ESM for WebView2 which are associated with a profile and persisted in the user data folder. 
+However, the level is not respected if ESM is disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. 
+That means, when developers set the property when ESM is disabled, it will be updated and persisted, 
+but will not take effect until the feature is enabled. We will offer 2 levels: Off and Strict. 
 
 For reference, in the screenshot below, this API sets the levels of ESM as a WebView2 API.
 
 ![image](https://github.com/MicrosoftEdge/WebView2Feedback/assets/82386753/35977716-e46c-4257-82da-906b0c6f833e)
 
-`CoreWebView2Profile.EnhancedSecurityModeBypassList` - this API allows developers to view and add a URI filter from the ESM bypass list. If a site is in the bypass list, the ESM level for the site will always be set to Off when a user navigates to it, regardless of the value of `CoreWebView2Profile.PreferredEnhancedSecurityModeLevel`. However, this is not respected if ESM is disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. That means, when developers set the property when ESM is disabled, it will be updated and persisted, but will not take effect until the feature is enabled.  
+`CoreWebView2Profile.EnhancedSecurityModeBypassList` - this API allows developers to view and add a 
+URI filter from the ESM bypass list. If a site is in the bypass list, the ESM level for the site 
+will always be set to Off when a user navigates to it, regardless of the value of 
+`CoreWebView2Profile.PreferredEnhancedSecurityModeLevel`. However, this is not respected if ESM is 
+disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. That means, when developers 
+set the property when ESM is disabled, it will be updated and persisted, but will not take effect 
+until the feature is enabled.  
 
-`CoreWebView2Profile.EnhancedSecurityModeEnforceList` - this API allows developers to view and add a URI filter from the ESM enforce list. If a site is in the enforce list, the ESM level for the site will always be set to Strict when a user navigates to it, regardless of the value of `CoreWebView2Profile.PreferredEnhancedSecurityModeLevel`. However, similar to the allow list, this is not respected if ESM is disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. 
+`CoreWebView2Profile.EnhancedSecurityModeEnforceList` - this API allows developers to view and add a 
+URI filter from the ESM enforce list. If a site is in the enforce list, the ESM level for the site will 
+always be set to Strict when a user navigates to it, regardless of the value of 
+`CoreWebView2Profile.PreferredEnhancedSecurityModeLevel`. However, similar to the allow list, this is not 
+respected if ESM is disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. 
 
 For reference, in the screenshot below, this API allows you to manage the Enforce and Bypass List of ESM as a WebView2API.
 ![image](https://github.com/MicrosoftEdge/WebView2Feedback/assets/82386753/98085785-bfae-4de0-bb39-c85e85913e1f)
@@ -296,9 +313,9 @@ void SettingsComponent::SetEnhancedSecurityModeEnforceList()
 [v1_enum]
 typedef enum COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL {
   /// Enhanced security mode is turned off.
-  COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL_NONE,
+  COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL_OFF,
   /// The most restrictive level. This adds an extra layer of protection 
-  /// on all sites--familiar or unfamiliar.
+  /// on all sites.
   /// 
   /// Not recommended for most users as it requires some level of configuration
   /// to complete daily tasks and can cause slowdowns.
@@ -420,22 +437,9 @@ interface ICoreWebView2StagingProfile2 : IUnknown {
 ```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2Settings
-    {
-        // ...
-
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Settings5")]
-        {
-            Boolean IsPinchZoomEnabled { get; set; };
-        }
-    }
-}
-
-namespace Microsoft.Web.WebView2.Core
-{
     enum CoreWebView2EnhancedSecurityModeLevel
     {
-        None = 0,
+        Off = 0,
         Strict = 1,
     };
 
