@@ -41,13 +41,13 @@ For reference, in the screenshot below, this API allows you to manage the Enforc
 # Examples
 ## IsEnhancedSecurityModeEnabled
 ```c#
-Create WebView Environment with option that disable Enhanced Security Mode feature.
+Create WebView Environment with option that enables the Enhanced Security Mode feature.
 
 void CreateEnvironmentWithOption()
 {
     CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
-    // Disable IsEnhancedSecurityModeEnabled by default to reduce impact on performance
-    options.IsEnhancedSecurityModeEnabled = false;
+    // if we want to increase security, we can enable Enhanced Security Mode 
+    options.IsEnhancedSecurityModeEnabled = true;
     CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
 }
 ```
@@ -58,8 +58,8 @@ void AppWindow::InitializeWebView()
     Microsoft::WRL::ComPtr<ICoreWebView2StagingEnvironmentOptions9> optionsStaging9;
     if (options.As(&optionsStaging9) == S_OK)
     {
-        CHECK_FAILURE(optionsStaging9->put_IsEnhancedSecurityModeEnabled(
-        m_EnhancedSecurityModeEnabled ? TRUE : FALSE));
+        // if we want to increase security, we can enable Enhanced Security Mode
+        CHECK_FAILURE(optionsStaging9->put_EnableTrackingPrevention(TRUE));
     }
     // ... other option properties
 
@@ -341,7 +341,8 @@ interface ICoreWebView2StagingEnvironmentOptions9 : IUnknown {
   [propput] HRESULT IsEnhancedSecurityModeEnabled([in] BOOL value);
 }
 
-/// This is an extension of the ICoreWebView2StagingProfile interface to control levels, allowlist, and denylist of enhanced security mode.
+/// This is an extension of the ICoreWebView2StagingProfile interface to control levels, allowlist, and denylist
+/// of enhanced security mode.
 /// 
 [uuid(d5b781db-0a75-5f9c-85b1-40fa814fcea7), object, pointer_default(unique)]
 interface ICoreWebView2StagingProfile2 : IUnknown {
@@ -374,8 +375,9 @@ interface ICoreWebView2StagingProfile2 : IUnknown {
   /// 
   /// This means that if a site is in the bypass list, the ESM level for that site will always be set to Off, regardless of 
   /// the value of PreferredEnhancedSecurityModeLevel. However, this is not respected if 
-  /// ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled is set to false. This means that when you update the list
-  /// when ESM is disabled, it will be updated and persisted, but will not take effect until the feature is enabled. 
+  /// ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled is set to false. This means that when
+  /// you update the list when ESM is disabled, it will be updated and persisted, but will not take effect until the
+  /// feature is enabled. 
   /// 
   /// See ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled for more details.
   /// 
@@ -410,14 +412,15 @@ interface ICoreWebView2StagingProfile2 : IUnknown {
   /// with a profile. This property would apply to the context of the profile. That is, all
   /// WebView2s sharing the same profile will be affected. The value is also persisted in the user data folder.
   /// 
-  /// This means that if a site is in the enforce list, the ESM level for that site will always be set to Strict, regardless of 
-  /// the value of PreferredEnhancedSecurityModeLevel. However, this is not respected if 
-  /// ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled is set to false. This means that when you update the list
-  /// when ESM is disabled, it will be updated and persisted, but will not take effect until the feature is enabled. 
+  /// This means that if a site is in the enforce list, the ESM level for that site will always be set to Strict,
+  /// regardless of the value of PreferredEnhancedSecurityModeLevel. However, this is not respected if 
+  /// ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled is set to false. This means that when you
+  /// update the list when ESM is disabled, it will be updated and persisted, but will not take effect until the feature
+  /// is enabled. 
   /// See ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled for more details.
   /// 
-  /// The enforce list takes precedence over any other list. That is, if a site URL is both in the enforce and bypass list, its ESM level will
-  /// be set to Strict.
+  /// The enforce list takes precedence over any other list. That is, if a site URL is both in the enforce and bypass
+  /// list, its ESM level will be set to Strict.
   /// 
   /// 
   HRESULT GetEnhancedSecurityModeEnforceList(
@@ -462,10 +465,8 @@ namespace Microsoft.Web.WebView2.Core
         {
             // ICoreWebView2Profile9 members
             CoreWebView2EnhancedSecurityModeLevel PreferredEnhancedSecurityModeLevel { get; set; };
-            void GetEnhancedSecurityModeBypassList(out UInt32 listCounts, out String[] uriFilters);
-            void SetEnhancedSecurityModeBypassList(UInt32 listCounts, String[] uriFilters);
-            void GetEnhancedSecurityModeEnforceList(out UInt32 listCounts, out String[] uriFilters);
-            void SetEnhancedSecurityModeEnforceList(UInt32 listCounts, String[] uriFilters);
+            List<string> EnhancedSecurityModeBypassList { get; };
+            List<string> EnhancedSecurityModeEnforceList { get; };  
         }
     }
 }
