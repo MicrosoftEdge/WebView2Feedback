@@ -81,7 +81,7 @@ interface ICoreWebView2Environment10 : IUnknown {
   /// browser process exits. See `BrowserProcessExited` for more details.
   // MSOWNERS: xiaqu@microsoft.com
   HRESULT add_CriticalRestartRequired(
-      [in] ICoreWebView2CriticalRestartRequiredvEventHandler* eventHandler,
+      [in] ICoreWebView2CriticalRestartRequiredEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Remove an event handler previously added with `add_CriticalRestartRequired`.
