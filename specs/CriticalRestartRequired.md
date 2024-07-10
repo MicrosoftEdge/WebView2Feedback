@@ -20,7 +20,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
     }
 }
 
-void WebView_CriticalRestartRequired(object sender, object e)
+void WebView_CriticalRestartRequired(CoreWebView2Environment sender, object e)
 {
     // Depending on your app experience, you may or may not
     // want to prompt user to restart the app.
