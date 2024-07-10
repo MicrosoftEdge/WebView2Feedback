@@ -34,14 +34,13 @@ task is registered.
 to subscribe to the event when a new Background synchronization task is 
 registered.
 
-**GetPeriodicSyncRegistrations API**: This asynchronous call returns 
-the collection of all periodic background synchronization registrations.
-We add `CoreWebView2ServiceWorkerSyncRegistrationInfo` with `Tag` and 
+**GetSyncRegistrations API**: This asynchronous call returns the 
+collection of all periodic background synchronization registrations or 
+background synchronization registrations based on the 
+`CoreWebView2ServiceWorkerSyncKind` provided. We add
+`CoreWebView2ServiceWorkerSyncRegistrationInfo` with `Tag` and 
 `MinIntervalInMilliseconds` properties to represent a synchronization 
 registration.
-
-**GetBackgroundSyncRegistrations API**: This asynchronous call returns 
-the collection of all background synchronization registrations.
 
 **DispatchPeriodicSyncEvent API**: This API gives developers the ability 
 to trigger a periodic background synchronization task based on the 
@@ -210,11 +209,12 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
             tag.c_str(),
             Microsoft::WRL::Callback<
                 ICoreWebView2ServiceWorkerDispatchPeriodicSyncEventCompletedHandler>(
-                [this](HRESULT errorCode, BOOL isSuccessful) -> HRESULT
+                [this](HRESULT errorCode, COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS status) -> HRESULT
                 {
                     CHECK_FAILURE(errorCode);
                     m_appWindow->AsyncMessageBox(
-                        (isSuccessful) ? L"Dispatch Periodic Sync task success"
+                        (COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_SUCCEEDED == status) 
+                                       ? L"Dispatch Periodic Sync task success"
                                        : L"Dispatch Periodic Sync task failed",
                         L"Dispatch periodic sync task Completed");
                     return S_OK;
@@ -232,8 +232,9 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
 {
   if (m_syncRegistrationManager)
     {
-        //! [GetPeriodicSyncRegistrations]
-        CHECK_FAILURE(m_syncRegistrationManager->GetPeriodicSyncRegistrations(
+        //! [GetSyncRegistrations]
+        CHECK_FAILURE(m_syncRegistrationManager->GetSyncRegistrations(
+            COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND_PERIODIC_SYNC,
             Callback<
                 ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsCompletedHandler>(
                 [this, time](
@@ -263,7 +264,7 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
                     return S_OK;
                 })
                 .Get()));
-        //! [GetPeriodicSyncRegistrations]
+        //! [GetSyncRegistrations]
     }
 }
 
@@ -347,7 +348,8 @@ async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2
         int msgLength = "DispatchPeriodicSyncEvents".Length;
         int times = int.Parse(message.Substring(msgLength));
         IReadOnlyList<CoreWebView2ServiceWorkerSyncRegistrationInfo> registrationList =
-            await SyncRegistrationManager_.GetPeriodicSyncRegistrationsAsync();
+            await SyncRegistrationManager_.GetSyncRegistrationsAsync(
+                CoreWebView2ServiceWorkerSyncKind.PeriodicSync);
         int registrationCount = registrationList.Count;
         for (int i = 0; i < registrationCount; ++i)
         {
@@ -369,6 +371,38 @@ async void ServiceWorkerSyncEvent_WebMessageReceived(object sender, CoreWebView2
 # API Details
 ## C++
 ```
+/// Indicates the service worker background synchronization type.
+[v1_enum]
+typedef enum COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND {
+  /// Indicates that the synchronization is a background synchronization.
+  /// See [Background Synchronization](https://developer.mozilla.org/docs/Web/API/Background_Synchronization_API)
+  /// for more information.
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND_BACKGROUND_SYNC,
+  /// Indicates that the synchronization is a periodic background synchronization.
+  /// See [Periodic Background Synchronization](https://developer.mozilla.org/docs/Web/API/Web_Periodic_Background_Synchronization_API)
+  /// for more information.
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND_PERIODIC_SYNC,
+} COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND;
+
+/// Indicates the status for the service worker dispatch periodic sync
+/// task operation.
+[v1_enum]
+typedef enum COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS {
+  /// Indicates that the operation is succeeded.
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_SUCCEEDED,
+  /// Indicates that the operation is failed.
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_OTHER_ERROR,
+  /// Indicates that the is failed for [ExtendableEvent.waitUntil()](https:/-/developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil)
+  /// method's parameter promise is rejected.
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_REJECTED,
+  /// Indicates that the operation is failed for [ExtendableEvent.waitUntil()](https:/-/developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil)
+  /// method's parameter promise is timeout.
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_TIMEOUT,
+  /// Indicates that the dispatch periodic task operation is failed for
+  /// for tag is not existed.
+  COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_TAG_NOT_EXISTED,
+} COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS;
+
 /// This is the ICoreWebView2ServiceWorkerRegistration interface.
 [uuid(08a80c87-d2b7-5163-bce3-4a28cfed142d), object, pointer_default(unique)]
 interface ICoreWebView2ServiceWorkerRegistration : IUnknown {
@@ -418,13 +452,12 @@ interface ICoreWebView2ServiceWorkerSyncRegistrationManager : IUnknown {
   HRESULT remove_PeriodicSyncRegistered(
       [in] EventRegistrationToken token);
 
-  /// Gets all background synchronization registrations.
-  HRESULT GetBackgroundSyncRegistrations(
-      [in] ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsCompletedHandler* handler);
-
-  /// Gets all periodic synchronization registrations.
-  HRESULT GetPeriodicSyncRegistrations(
-      [in] ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsCompletedHandler* handler);
+  /// Gets all background synchronization or periodic background synchronization
+  /// registrations.
+  HRESULT GetSyncRegistrations(
+      [in] COREWEBVIEW2_SERVICE_WORKER_SYNC_KIND kind
+      , [in] ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsCompletedHandler* handler
+  );
 }
 
 /// Event args for the `PeriodicSyncRegistered` event or the `BackgroundSyncRegistered` event.
@@ -516,7 +549,7 @@ interface ICoreWebView2ServiceWorker : IUnknown {
 [uuid(86815a3e-ebc8-58b0-84ce-069d15d67d38), object, pointer_default(unique)]
 interface ICoreWebView2ServiceWorkerDispatchPeriodicSyncEventCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
-  HRESULT Invoke([in] HRESULT errorCode, [in] BOOL result);
+  HRESULT Invoke([in] HRESULT errorCode, [in] COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS status);
 }
 ```
 
@@ -524,6 +557,35 @@ C#
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
+    enum CoreWebView2ServiceWorkerSyncKind
+    {
+        // Indicates that the synchronization is a background synchronization.
+        // See [Background Synchronization](https://developer.mozilla.org/docs/Web/API/Background_Synchronization_API)
+        // for more information.
+        BackgroundSync = 0,
+        // Indicates that the synchronization is a periodic background synchronization.
+        // See [Periodic Background Synchronization](https://developer.mozilla.org/docs/Web/API/Web_Periodic_Background_Synchronization_API)
+        // for more information.
+        PeriodicSync = 1,
+    };
+
+    enum CoreWebView2ServiceWorkerSyncOperationStatus 
+    {
+        /// Indicates that the operation is succeeded.
+        Succeeded = 0,
+        /// Indicates that the operation is failed.
+        OtherError = 1,
+        /// Indicates that the is failed for [ExtendableEvent.waitUntil()](https://developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil)
+        /// method's parameter promise is rejected.
+        Rejected = 2,
+        /// Indicates that the operation is failed for [ExtendableEvent.waitUntil()](https://developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil)
+        /// method's parameter promise is timeout.
+        Timeout = 3,
+        /// Indicates that the dispatch periodic task operation is failed for
+        /// for tag is not existed.
+        TagNotExisted = 4,
+    };
+    
     runtimeclass CoreWebView2ServiceWorkerRegistration
     {
         CoreWebView2ServiceWorkerSyncRegistrationManager SyncRegistrationManager { get; };
@@ -531,7 +593,7 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2ServiceWorker
     {
-        Windows.Foundation.IAsyncOperation<Boolean> DispatchPeriodicSyncEventAsync(String tag);
+        Windows.Foundation.IAsyncOperation<CoreWebView2ServiceWorkerSyncOperationStatus> DispatchPeriodicSyncEventAsync(String tag);
     }
 
     runtimeclass CoreWebView2ServiceWorkerSyncRegistrationManager
@@ -541,9 +603,7 @@ namespace Microsoft.Web.WebView2.Core
 
         event Windows.Foundation.TypedEventHandler<CoreWebView2ServiceWorkerSyncRegistrationManager, CoreWebView2ServiceWorkerSyncRegisteredEventArgs> PeriodicSyncRegistered;
 
-        Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ServiceWorkerSyncRegistrationInfo>> GetPeriodicSyncRegistrationsAsync();
-
-        Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ServiceWorkerSyncRegistrationInfo>> GetBackgroundSyncRegistrationsAsync();
+        Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ServiceWorkerSyncRegistrationInfo>> GetSyncRegistrationsAsync(CoreWebView2ServiceWorkerSyncKind Kind);
     }
 
     runtimeclass CoreWebView2ServiceWorkerSyncRegisteredEventArgs
