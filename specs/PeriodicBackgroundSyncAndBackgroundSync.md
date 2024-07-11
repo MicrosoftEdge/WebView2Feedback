@@ -90,21 +90,8 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
                 {
                     serviceWorkerRegistration->QueryInterface(
                         IID_PPV_ARGS(&m_serviceWorkerRegistration));
-
-                    CHECK_FAILURE(m_serviceWorkerRegistration->GetServiceWorker(
-                        Callback<ICoreWebView2GetServiceWorkerCompletedHandler>(
-                            [this](
-                                HRESULT error, ICoreWebView2ServiceWorker* serviceWorker) -> HRESULT
-                            {
-                                CHECK_FAILURE(error);
-                                if (serviceWorker)
-                                {
-                                    serviceWorker->QueryInterface(IID_PPV_ARGS(&m_serviceWorker));
-                                }
-                                return S_OK;
-                            })
-                            .Get()));
-
+                    
+                    CHECK_FAILURE(serviceWorkerRegistration->get_ActiveServiceWorker(&m_serviceWorker));
                     //! [SyncRegistrationManager]
                     CHECK_FAILURE(serviceWorkerRegistration->get_SyncRegistrationManager(
                         &m_syncRegistrationManager));
