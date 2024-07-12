@@ -2,8 +2,9 @@ Workers support in WebView2
 ===
 
 # Background
-Currently, WebView2 lacks comprehensive APIs for developers to fully utilize
-workers, leading to increased load on the main thread, offloading to native, or
+Currently, although workers can be used in web content in WebView2, WebView2
+lacks comprehensive WebView2 APIs for developers to fully utilize workers,
+leading to increased load on the main thread, offloading to native, or
 forking your web app for WebView2 scenarios. To address this, the WebView2 team
 is introducing support for worker scenarios. This enhancement allows WebView2
 users to interact with Web Workers from native apps, bypassing the JavaScript
@@ -96,6 +97,18 @@ CoreWebViewSharedWorkerManager class, is used to retrieve all shared workers
 created within the context of a WebView2 application for the profile. This
 method gives a collection of CoreWebView2SharedWorkers objects.
 
+# Background
+This API specification provides a basic overview, including fundamental concepts
+and introduces management APIs for interaction.
+Please note that while this specification does not add new APIs, future API
+specifications will introduce additional features for workers.
+
+Stay tuned for updates to this spec and look out for new API specs that will
+expand on the capabilities of workers. 
+
+See work in progress Workers API specs
+ - [API Spec for SW Background Sync](https://github.com/MicrosoftEdge/WebView2Feedback/blob/api-periodic-sync-and-background-sync-draft/specs/PeriodicBackgoundSyncAndBackgroundSync.md)
+
 # Examples
 ## Dedicated Worker
 ## Monitoring the Creation/Destruction of Dedicated Workers.
@@ -130,7 +143,7 @@ the main thread and a dedicated worker.
 
         // You can dispatch a message to the worker with the URL you want to
         // fetch data from the host app.
-        worker.PostMessage("{type: 'FETCH_URL',url: 'https://example.com/data.json'");
+        worker.PostMessage("{ MyMessage: { type: 'FETCH_URL',url: 'https://example.com/data.json' }");
     }
 
     void DedicatedWorkerCreatedExecuted(object target, ExecutedRoutedEventArgs e)
@@ -149,7 +162,7 @@ the main thread and a dedicated worker.
                 LogMessage("Dedicated Worker has been created with the script located at the " + scriptUri);
 
                 // Send a message to the dedicated worker to offload fetch request from the host app.
-                dedicatedWorker.PostMessage(dedicatedWorker);
+                dedicatedWorker.PostMessageToWorker(dedicatedWorker);
             }
         };
     }
@@ -186,7 +199,7 @@ the main thread and a dedicated worker.
 
         // You can dispatch a message to the worker with the URL you want to fetch data from
         // the host app.
-        CHECK_FAILURE(worker->PostMessage("{type: 'FETCH_URL',url: 'https://example.com/data.json'"));
+        CHECK_FAILURE(worker->PostMessage("{ MyMessage: {type: 'FETCH_URL',url: 'https://example.com/data.json' }"));
     }
 
     ScenarioDedicatedWorker::ScenarioDedicatedWorker(AppWindow* appWindow)
@@ -265,7 +278,7 @@ WorkerMessageReceived APIs.
         // The host application is sending a message to the worker to cache certain
         // resources. The message is a JSON string that specifies the type of the
         // message and the payload of the message.
-        worker.PostMessage("{\"type\": \"CACHE_URLS\", \"payload\": [\"/styles/main.css\", \"/scripts/main.js\", \"/images/logo.png\"]}");
+        worker.PostMessage("{ MyMessage: { \"type\": \"CACHE_URLS\", \"payload\": [\"/styles/main.css\", \"/scripts/main.js\", \"/images/logo.png\"]} }");
     }
 
     CoreWebView2ServiceWorkerManager ServiceWorkerManager_;
@@ -335,7 +348,7 @@ WorkerMessageReceived APIs.
         // The host application is sending a message to the worker to cache certain
         // resources. The message is a JSON string that specifies the type of the
         // message and the payload of the message.
-        CHECK_FAILURE(worker->PostMessage(L"{\"type\": \"CACHE_URLS\", \"payload\": [\"/styles/main.css\", \"/scripts/main.js\", \"/images/logo.png\"]}"));
+        CHECK_FAILURE(worker->PostMessage(L"{ MyMessage: {\"type\": \"CACHE_URLS\", \"payload\": [\"/styles/main.css\", \"/scripts/main.js\", \"/images/logo.png\"]} }"));
     }
 
     void ScenarioServiceWorkerManager::CreateServiceWorkerManager()
@@ -637,7 +650,7 @@ upcoming PostMessage and WorkerMessageReceived APIs.
         };
 
         // Initiate the WebSocket connection by sending a message to the shared worker.
-        worker.PostMessage("{\"type\": \"INITIATE_WEBSOCKET_CONNECTION\", \"payload\": \"wss://example.com\"}");
+        worker.PostMessage("{ MyMessage: {\"type\": \"INITIATE_WEBSOCKET_CONNECTION\", \"payload\": \"wss://example.com\"} }");
     }
 
     CoreWebView2SharedWorkerManager SharedWorkerManager_;
@@ -694,7 +707,7 @@ upcoming PostMessage and WorkerMessageReceived APIs.
 
 
         // Initiate the WebSocket connection by sending a message to the shared worker.
-        CHECK_FAILURE(worker->PostMessage(L"{\"type\": \"INITIATE_WEBSOCKET_CONNECTION\", \"payload\": \"wss://example.com\"}"));
+        CHECK_FAILURE(worker->PostMessage(L"{ MyMessage: {\"type\": \"INITIATE_WEBSOCKET_CONNECTION\", \"payload\": \"wss://example.com\"} }"));
     }
 
     void ScenarioSharedWorkerManager::GetSharedWorkerManager()
