@@ -186,6 +186,21 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
     CHECK_FAILURE(m_webView->Navigate(sampleUri.c_str()));
 }
 
+std::wstring SyncOperationKindToString(COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS type)
+{
+    switch (type)
+    {
+    case COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_SUCCEEDED:
+        return L"Succeeded";
+    case COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_REJECTED:
+        return L"Javascript promise rejected";
+    case COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_TIMEOUT:
+        return L"Javascript promise timeout";
+    default:
+        return L"Unknown";
+    }
+}
+
 void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyncTask(
     const std::wstring& tag)
 {
@@ -196,14 +211,23 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
             tag.c_str(),
             Microsoft::WRL::Callback<
                 ICoreWebView2ServiceWorkerDispatchPeriodicSyncEventCompletedHandler>(
-                [this](HRESULT errorCode, COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS status) -> HRESULT
+                [this](
+                    HRESULT errorCode,
+                    COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS status)
+                    -> HRESULT
                 {
                     CHECK_FAILURE(errorCode);
+                    std::wstring status_string =
+                        SyncOperationKindToString(status);
+                    std::wstring message = L"Dispatch Periodic Sync task ";
+                    if (COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_SUCCEEDED !=
+                        status)
+                    {
+                        message += L"failed with ";
+                    }
+                    message += status_string;
                     m_appWindow->AsyncMessageBox(
-                        (COREWEBVIEW2_SERVICE_WORKER_SYNC_OPERATION_STATUS_SUCCEEDED == status) 
-                                       ? L"Dispatch Periodic Sync task success"
-                                       : L"Dispatch Periodic Sync task failed",
-                        L"Dispatch periodic sync task Completed");
+                        message, L"Dispatch periodic sync task Completed");
                     return S_OK;
                 })
                 .Get()));
@@ -211,13 +235,13 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
     }
 }
 
-// This method fetches all periodic synchronization tasks in the current service worker, 
-// and executes each task multiple(time) times with a specified interval(min_interval) 
+// This method fetches all periodic synchronization tasks in the current service worker,
+// and executes each task multiple(time) times with a specified interval(min_interval)
 // between consecutive executions.
 void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyncTasks(
     const int time)
 {
-  if (m_syncRegistrationManager)
+    if (m_syncRegistrationManager)
     {
         //! [GetSyncRegistrations]
         CHECK_FAILURE(m_syncRegistrationManager->GetSyncRegistrations(
@@ -225,9 +249,8 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
             Callback<
                 ICoreWebView2ServiceWorkerSyncRegistrationManagerGetSyncRegistrationsCompletedHandler>(
                 [this, time](
-                    HRESULT error,
-                    ICoreWebView2ServiceWorkerSyncRegistrationInfoCollectionView*
-                        collectionView) -> HRESULT
+                    HRESULT error, ICoreWebView2ServiceWorkerSyncRegistrationInfoCollectionView*
+                                       collectionView) -> HRESULT
                 {
                     CHECK_FAILURE(error);
                     UINT32 count;
@@ -240,10 +263,13 @@ void ScenarioServiceWorkerSyncRegistrationManager::DispatchPeriodicBackgroundSyn
                         wil::unique_cotaskmem_string tag;
                         CHECK_FAILURE(registrationInfo->get_Tag(&tag));
                         UINT32 minInterval = 0;
-                        CHECK_FAILURE(registrationInfo->get_MinIntervalInMilliseconds(&minInterval));
-                        for (int j = 0; j < time; j++) {
+                        CHECK_FAILURE(
+                            registrationInfo->get_MinIntervalInMilliseconds(&minInterval));
+                        for (int j = 0; j < time; j++)
+                        {
                             DispatchPeriodicBackgroundSyncTask(tag.get());
-                            // Wait for min_interval(ms) before triggering the periodic sync task again.
+                            // Wait for min_interval(ms) before triggering the periodic sync
+                            // task again.
                             const auto interval = std::chrono::milliseconds(minInterval);
                             std::this_thread::sleep_for(interval);
                         }
@@ -562,7 +588,7 @@ namespace Microsoft.Web.WebView2.Core
         Succeeded = 0,
         /// Indicates that the operation is failed.
         OtherError = 1,
-        /// Indicates that the is failed for [ExtendableEvent.waitUntil()](https://developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil)
+        /// Indicates that the operation is failed for [ExtendableEvent.waitUntil()](https://developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil)
         /// method's parameter promise is rejected.
         Rejected = 2,
         /// Indicates that the operation is failed for [ExtendableEvent.waitUntil()](https://developer.mozilla.org/en-US/docs/Web/API/ExtendableEvent/waitUntil)
