@@ -152,15 +152,13 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
             })
             .Get()));
 
-
-    // Received `chrome.webview.postMessage(`DispatchAllPeriodicSyncEvents ${times}`)` 
+    // Received `chrome.webview.postMessage(`DispatchAllPeriodicSyncEvents ${times}`)`
     // message from the page.
     CHECK_FAILURE(m_webView->add_WebMessageReceived(
         Callback<ICoreWebView2WebMessageReceivedEventHandler>(
             [this, &sampleUri](
                 ICoreWebView2* sender,
-                ICoreWebView2WebMessageReceivedEventArgs* args)
-                -> HRESULT
+                ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
             {
                 wil::unique_cotaskmem_string source;
                 CHECK_FAILURE(args->get_Source(&source));
@@ -173,7 +171,8 @@ ScenarioServiceWorkerSyncRegistrationManager::ScenarioServiceWorkerSyncRegistrat
                         std::wstring targetString = L"DispatchAllPeriodicSyncEvents ";
                         if (message.compare(0, targetString.size(), targetString) == 0)
                         {
-                            std::wstring timeString = message.substr(targetString.size().c_str());
+                            std::wstring timeString =
+                                message.substr(targetString.size().c_str());
                             DispatchAllPeriodicBackgroundSyncTasks(std::stoi(timeString));
                         }
                     }
