@@ -10,6 +10,17 @@ completion, match count changes, and match index changes.
 
 ## Examples
 
+### Default UI:
+
+#### Without filter options
+![image](https://github.com/user-attachments/assets/a71ba66b-8402-4e9d-a2fa-9437fce4a118)
+
+
+
+#### With filter options
+![image](https://github.com/user-attachments/assets/9817353b-e758-4b55-8c13-81fd036ec22a)
+
+
 
 #### Description
 
