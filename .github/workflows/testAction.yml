@@ -20,7 +20,7 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     - name: Sync to ADO
-      uses: champnic/github-actions-issue-to-work-item@simple-sync
+      uses: champnic/github-actions-issue-to-work-item@simple-sync-azurecli
       env:
         github_token: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"
       with:
