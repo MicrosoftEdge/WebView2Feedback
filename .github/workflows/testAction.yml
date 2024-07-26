@@ -1,8 +1,9 @@
 name: Run test action
 
 on:
-  issues:
-    types: [labeled, closed, reopened]
+  workflow_dispatch
+  # issues:
+  #  types: [labeled, closed, reopened]
 
 permissions:
   id-token: write
