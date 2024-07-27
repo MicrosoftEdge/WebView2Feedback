@@ -28,7 +28,7 @@ jobs:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    - uses: champnic/Porpoise@azurecli
+    - uses: champnic/Porpoise@main
       env:
         GH_PAT: '${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}'
         GH_OWNER: 'MicrosoftEdge'
