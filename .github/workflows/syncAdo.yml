@@ -1,4 +1,4 @@
-name: Sync Issue to Azure DevOps work item
+name: Sync ADO Issue
 
 on:
   issues:
@@ -22,8 +22,7 @@ jobs:
     - name: Sync to ADO
       uses: champnic/github-actions-issue-to-work-item@simple-sync-azurecli
       env:
-        github_token: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"  
-        ado_token: '${{ secrets.ADO_PERSONAL_ACCESS_TOKEN }}'
+        github_token: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"
       with:
         label: 'tracked'
         ado_organization: 'microsoft'
