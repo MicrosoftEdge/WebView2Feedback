@@ -1,4 +1,4 @@
-name: Score issues in sync'd Azure DevOps work items
+name: Score Issue
 
 on:
   # On issue changes and issue comments, the action will update the
@@ -14,10 +14,20 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   metrics:
-    runs-on: ubuntu-latest
-    steps:       
+    runs-on: windows-latest
+    steps:
+    - name: Azure login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     - uses: champnic/Porpoise@main
       env:
         GH_PAT: '${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}'
