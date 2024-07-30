@@ -45,10 +45,6 @@ wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfigurat
     CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
     CHECK_FAILURE(findConfiguration->put_FindTerm(findTerm.c_str()));
 
-    // Query for the ICoreWebView2_17 interface to access the Find feature.
-    auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
-    CHECK_FEATURE_RETURN(webView2_17);
-
     return findConfiguration;
 }
 ```
