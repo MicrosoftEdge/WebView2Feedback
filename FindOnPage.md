@@ -24,7 +24,7 @@ completion, match count changes, and match index changes.
 
 #### Description
 
-To initiate a find operation in a WebView2 control, use the `StartFind` method.
+To initiate a find operation in a WebView2 control, use the `StartFindAsync` method.
 This method allows setting the find term and find parameters via the
 `ICoreWebView2FindConfiguration` interface. Only one find session can be active per
 webview environment. Starting another with the same configuration will adjust
