@@ -4,7 +4,7 @@
 
 The WebView2Find API offers methods and events for text finding and navigation
 within a WebView2 control. It enables developers to programmatically initiate find
-operations, navigate find results, suppress default UI, and customize find configurations
+operations, navigate find results, suppress default UI, and customize find options
 like query and find direction. It also tracks the status of operations, indicating
 completion, match count changes, and match index changes.
 
@@ -26,34 +26,34 @@ completion, match count changes, and match index changes.
 
 To initiate a find operation in a WebView2 control, use the `StartFindAsync` method.
 This method allows setting the find term and find parameters via the
-`ICoreWebView2FindConfiguration` interface. Only one find session can be active per
-webview environment. Starting another with the same configuration will adjust
+`ICoreWebView2FindOptions` interface. Only one find session can be active per
+webview environment. Starting another with the same option will adjust
 the active match index based on the selected Find Direction.
-### Create/Specify a Find Configuration
+### Create/Specify a Find Option
 #### WIN32 C++
 
 ```cpp
 
-wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfiguration(const std::wstring& findTerm)
+wil::com_ptr<ICoreWebView2FindOptions> AppWindow::InitializeFindOptions(const std::wstring& findTerm)
 {
     // Query for the ICoreWebView2Environment5 interface.
     auto webView2Environment5 = m_webViewEnvironment.try_query<ICoreWebView2Environment5>();
     CHECK_FEATURE_RETURN(webView2Environment5);
 
-    // Initialize find configuration/settings
-    wil::com_ptr<ICoreWebView2FindConfiguration> findConfiguration;
-    CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
-    CHECK_FAILURE(findConfiguration->put_FindTerm(findTerm.c_str()));
+    // Initialize find options
+    wil::com_ptr<ICoreWebView2FindOptions> find_options;
+    CHECK_FAILURE(webView2Environment5->CreateFindOptions(&find_options));
+    CHECK_FAILURE(find_options->put_FindTerm(findTerm.c_str()));
 
-    return findConfiguration;
+    return find_options;
 }
 ```
 
 ```cpp
 bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm) 
 {
-    auto findConfiguration = InitializeFindConfiguration(findTerm);
-    if (!findConfiguration)
+    auto find_options = InitializeFindOptions(findTerm);
+    if (!find_options)
     {
         return false;
     }
@@ -70,7 +70,7 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm)
 
     // Start the find operation with a callback for completion.
     CHECK_FAILURE(webView2Find->StartFind(
-        findConfiguration.get(),
+        find_options.get(),
         Callback<ICoreWebView2FindOperationCompletedHandler>(
             [this](HRESULT result, BOOL status) -> HRESULT
             {
@@ -93,8 +93,8 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm)
 ```cpp
 bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& findTerm)
 {
-    auto findConfiguration = InitializeFindConfiguration(findTerm);
-    if (!findConfiguration)
+    auto find_options = InitializeFindOptions(findTerm);
+    if (!find_options)
     {
         return false;
     }
@@ -111,7 +111,7 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& findTerm)
 
     // Start the find operation with callback for completion.
     CHECK_FAILURE(webView2Find->StartFind(
-        findConfiguration.get(),
+        find_options.get(),
         Callback<ICoreWebView2FindOperationCompletedHandler>(
             [this](HRESULT result, BOOL status) -> HRESULT
             {
@@ -147,8 +147,8 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
             throw new InvalidOperationException("WebView2 is not initialized.");
         }
 
-        // Initialize the find configuration with specified settings.
-        var findConfiguration = new CoreWebView2FindConfiguration
+        // Initialize the find options with specified settings.
+        var find_options = new CoreWebView2FindOptions
         {
             FindTerm = findTerm
         };
@@ -156,8 +156,8 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
         // By default Find will use the default UI and highlight all matches. If you want different behavior
         // you can change the SuppressDefaultDialog and ShouldHighlightAllMatches properties here.
 
-        // Start the find operation with the specified configuration.
-        await webView.CoreWebView2.Find.StartFindAsync(findConfiguration);
+        // Start the find operation with the specified options.
+        await webView.CoreWebView2.Find.StartFindAsync(find_options);
 
         // End user interaction is handled via UI.
     }
@@ -180,8 +180,8 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
             throw new InvalidOperationException("WebView2 is not initialized.");
         }
 
-        // Initialize the find configuration with specified settings.
-        var findConfiguration = new CoreWebView2FindConfiguration
+        // Initialize the find options.
+        var find_options = new CoreWebView2FindOptions
         {
             FindTerm = findTerm
         };
@@ -190,8 +190,8 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
         webView.CoreWebView2.Find.SuppressDefaultDialog = true;
         webView.CoreWebView2.Find.ShouldHighlightAllMatches = true;
 
-        // Start the find operation with the specified configuration.
-        await webView.CoreWebView2.Find.StartFindAsync(findConfiguration);
+        // Start the find operation with the specified options.
+        await webView.CoreWebView2.Find.StartFindAsync(find_options);
         // It's expected that the custom UI for navigating between matches (next, previous)
         // and stopping the find operation will be managed by the developer's custom code.
     }
@@ -275,16 +275,16 @@ typedef enum COREWEBVIEW2_FIND_DIRECTION {
 
 
 /// Interface that provides methods related to the environment settings of CoreWebView2.
-/// This interface allows for the creation of new find configuration objects.
+/// This interface allows for the creation of new find options objects.
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(f10bddd3-bb59-5d5b-8748-8a1a53f65d0c), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironment5 : IUnknown {
-  /// Creates a new instance of a FindConfiguration object.
-  /// This configuration object can be used to define parameters for a find operation.
-  /// Returns the newly created FindConfiguration object.
+  /// Creates a new instance of a FindOptions object.
+  /// This options object can be used to define parameters for a find operation.
+  /// Returns the newly created FindOptions object.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
-  HRESULT CreateFindConfiguration(
-      [out, retval] ICoreWebView2StagingFindConfiguration** value
+  HRESULT CreateFindOptions(
+      [out, retval] ICoreWebView2StagingFindOptions** value
   );
 
 
@@ -378,14 +378,14 @@ interface ICoreWebView2StagingFind : IUnknown {
       [in] EventRegistrationToken token);
 
 
-  /// Initiates a find using the specified configuration.
+  /// Initiates a find using the specified find option.
   /// Displays the Find bar and starts the find operation. If a find session was already ongoing, it will be stopped and replaced with this new instance.
-  /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the configuration object after initiation won't affect the ongoing find session.
-  /// To change the ongoing find session, StartFind must be called again with a new or modified configuration object.
+  /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the find options object after initiation won't affect the ongoing find session.
+  /// To change the ongoing find session, Start must be called again with a new or modified find options object.
   /// This method is primarily designed for HTML document queries.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   HRESULT StartFind(
-      [in] ICoreWebView2StagingFindConfiguration* configuration
+      [in] ICoreWebView2StagingFindOptions* options
       , [in] ICoreWebView2StagingFindStartFindCompletedHandler* handler
   );
 
@@ -409,11 +409,11 @@ interface ICoreWebView2StagingFind : IUnknown {
 
 
 
-/// Interface defining the find configuration.
+/// Interface defining the find options.
 /// This interface provides the necessary methods and properties to configure a find operation.
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(52a04b23-acc8-5659-aa2f-26dbe9faafde), object, pointer_default(unique)]
-interface ICoreWebView2StagingFindConfiguration : IUnknown {
+interface ICoreWebView2StagingFindOptions : IUnknown {
   /// Gets the `FindDirection` property.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   [propget] HRESULT FindDirection([out, retval] COREWEBVIEW2_FIND_DIRECTION* value);
@@ -476,7 +476,7 @@ interface ICoreWebView2Staging17 : IUnknown {
 ```
 
 
-### Setting Up Find Configuration with MIDL3
+### Setting Up Find Options with MIDL3
 
 ### CoreWebView2 Find Configuration and Direction
 
@@ -510,25 +510,25 @@ namespace Microsoft.Web.WebView2.Core
     }
 
     /// Interface that provides methods related to the environment settings of CoreWebView2.
-    /// This interface allows for the creation of new find configuration objects.
+    /// This interface allows for the creation of new find options objects.
     [com_interface("staging=ICoreWebView2StagingEnvironment5")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     interface ICoreWebView2Environment15
     {
-        /// Creates a new instance of a CoreWebView2FindConfiguration object.
-        /// This configuration object can be used to define parameters for a find operation.
-        /// Returns the newly created FindConfiguration object.
-        CoreWebView2FindConfiguration CreateFindConfiguration();
+        /// Creates a new instance of a CoreWebView2FindOptions object.
+        /// This find options object can be used to define parameters for a find operation.
+        /// Returns the newly created FindOptions object.
+        CoreWebView2FindOptions CreateFindOptions();
     };
 
-runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfiguration {}
+runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
 
-    /// Interface defining the find configuration.
+    /// Interface defining the find options.
     /// This interface provides the necessary methods and properties to configure a find operation.
-    [com_interface("staging=ICoreWebView2StagingFindConfiguration")]
+    [com_interface("staging=ICoreWebView2StagingFindOptions")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     [availability("staging")]
-    interface ICoreWebView2FindConfiguration 
+    interface ICoreWebView2FindOptions 
     {
         /// Gets or sets the find term used for the find operation. Returns the find term.
         String FindTerm { get; set; };
@@ -574,10 +574,10 @@ runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfigura
     interface ICoreWebView2Find 
     {
         [completed_handler("")]
-        /// Initiates a find using the specified configuration asynchronously.
+        /// Initiates a find using the specified options asynchronously.
         /// Displays the Find bar and starts the find operation. If a find session was already ongoing, it will be stopped and replaced with this new instance.
-        /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the configuration object after initiation won't affect the ongoing find session.
-        /// To change the ongoing find session, StartFindAsync must be called again with a new or modified configuration object.
+        /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the find options object after initiation won't affect the ongoing find session.
+        /// To change the ongoing find session, StartFindAsync must be called again with a new or modified find options object.
         /// StartFind supports, HTML, PDF, and TXT document queries. In general this api is designed for text based find sessions.
         //// If you start a find session programmatically on another file format that doesnt have text fields, the find session will try to execute but will fail to find any matches. (It will silently fail)
         /// Note: The asynchronous action completes when the UI has been displayed with the find term in the UI bar, and the matches have populated on the counter on the find bar. 
@@ -591,7 +591,7 @@ runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfigura
         /// regardless of the previous active match. This behavior indicates that changing the find query initiates a 
         /// completely new find session, rather than continuing from the previous match index. This distinction is essential 
         /// to understand when utilizing the StartFind method for navigating through text matches.
-        Windows.Foundation.IAsyncAction StartFindAsync(CoreWebView2FindConfiguration configuration);
+        Windows.Foundation.IAsyncAction StartFindAsync(CoreWebView2FindOptions options);
 
 
         /// Navigates to the next match in the document.
@@ -643,6 +643,6 @@ runtimeclass CoreWebView2FindConfiguration : [default]ICoreWebView2FindConfigura
 This API specification focuses on providing developers with the necessary information 
 to integrate text finding and navigation functionalities into WebView2 applications. 
 It emphasizes the usage of interfaces such as `ICoreWebView2Find` and 
-`ICoreWebView2FindConfiguration` to perform find operations effectively. 
+`ICoreWebView2FindOptions` to perform find operations effectively. 
 
 
