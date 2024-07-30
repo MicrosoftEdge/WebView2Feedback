@@ -34,7 +34,6 @@ the active match index based on the selected Find Direction.
 
 ```cpp
 
-//! [InitializeFindConfiguration]
 wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfiguration(const std::wstring& findTerm)
 {
     // Query for the ICoreWebView2Environment5 interface.
@@ -52,11 +51,9 @@ wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfigurat
 
     return findConfiguration;
 }
-//! [InitializeFindConfiguration]
 ```
 
 ```cpp
-//! [ExecuteFindWithDefaultUI]
 bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm) 
 {
     auto findConfiguration = InitializeFindConfiguration(findTerm);
@@ -95,11 +92,9 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm)
     // End user interaction is handled via UI.
     return true;
 }
-//! [ExecuteFindWithDefaultUI]
 ```
 
 ```cpp
-//! [ExecuteFindWithCustomUI]
 bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& findTerm)
 {
     auto findConfiguration = InitializeFindConfiguration(findTerm);
@@ -143,11 +138,9 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& findTerm)
 
     return true;
 }
-//! [ExecuteFindWithCustomUI]
 ```
 #### .NET C#
 ```csharp
-//! [ConfigureAndExecuteFindWithDefaultUI]
 async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
 {
     try
@@ -178,11 +171,9 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
         Console.WriteLine($"An error occurred: {ex.Message}");
     }
 }
-//! [ConfigureAndExecuteFindWithDefaultUI]
 ```
 
 ```csharp
-//! [ConfigureAndExecuteFindWithCustomUI]
 async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
 {
     try
@@ -214,7 +205,6 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
         Console.WriteLine($"An error occurred: {ex.Message}");
     }
 }
-//! [ConfigureAndExecuteFindWithCustomUI]
 ```
 
 ### Retrieve the Index of the Active Match
@@ -225,7 +215,6 @@ within a WebView2 control using the `GetActiveMatchIndex` method.
     
     
 ```cpp
-    //! [GetActiveMatchIndex]
     bool AppWindow::GetActiveMatchIndex()
     {
         auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
@@ -243,7 +232,6 @@ within a WebView2 control using the `GetActiveMatchIndex` method.
     
         return true;
     }
-    //! [GetActiveMatchIndex]
 
     // Register ActiveMatchIndexChanged event handler
     m_webView->add_ActiveMatchIndexChanged(
@@ -258,7 +246,6 @@ within a WebView2 control using the `GetActiveMatchIndex` method.
 ```
 #### .NET C#
 ```csharp
-//! [GetActiveMatchIndex]
 public async Task<int> GetActiveMatchIndexAsync()
 {
     var webViewFind = webView.CoreWebView2.Find; // Assuming webView is your WebView2 control
@@ -275,7 +262,6 @@ void ActiveMatchIndexChangedSample()
         // Update Custom UI based on the new active match index.
     };
 }
-//! [GetActiveMatchIndex]
 ```
 
 ## API Details
