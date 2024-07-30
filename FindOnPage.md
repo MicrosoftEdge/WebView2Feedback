@@ -45,9 +45,6 @@ wil::com_ptr<ICoreWebView2FindConfiguration> AppWindow::InitializeFindConfigurat
     wil::com_ptr<ICoreWebView2FindConfiguration> findConfiguration;
     CHECK_FAILURE(webView2Environment5->CreateFindConfiguration(&findConfiguration));
     CHECK_FAILURE(findConfiguration->put_FindTerm(findTerm.c_str()));
-    CHECK_FAILURE(findConfiguration->put_IsCaseSensitive(false));
-    CHECK_FAILURE(findConfiguration->put_ShouldMatchWord(false));
-    CHECK_FAILURE(findConfiguration->put_FindDirection(COREWEBVIEW2_FIND_DIRECTION_FORWARD));
 
     // Query for the ICoreWebView2_17 interface to access the Find feature.
     auto webView2_17 = m_webView.try_query<ICoreWebView2_17>();
@@ -164,10 +161,7 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
         // Initialize the find configuration with specified settings.
         var findConfiguration = new CoreWebView2FindConfiguration
         {
-            FindTerm = findTerm,
-            IsCaseSensitive = false,
-            ShouldMatchWord = false,
-            FindDirection = CoreWebView2FindDirection.Forward
+            FindTerm = findTerm
         };
 
         // By default Find will use the default UI and highlight all matches. If you want different behavior
@@ -202,10 +196,7 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
         // Initialize the find configuration with specified settings.
         var findConfiguration = new CoreWebView2FindConfiguration
         {
-            FindTerm = findTerm,
-            IsCaseSensitive = false,
-            ShouldMatchWord = false,
-            FindDirection = CoreWebView2FindDirection.Forward
+            FindTerm = findTerm
         };
 
         // Specify that a custom UI will be used for the find operation.
