@@ -207,7 +207,7 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
     
 #### Description
 Developers can retrieve the index of the currently active match 
-within a WebView2 control using the `GetActiveMatchIndex` method.
+within a WebView2 control using the `ActiveMatchIndex` property.
     
     
 ```cpp
