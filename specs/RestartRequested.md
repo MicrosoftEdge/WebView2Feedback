@@ -140,7 +140,7 @@ namespace Microsoft.Web.WebView2.Core
         Critical = 1,
     };
 
-    runtimeclass ICoreWebView2RestartRequestedEventArgs
+    runtimeclass CoreWebView2RestartRequestedEventArgs
     {
         CoreWebView2RestartRequestedPriority Priority { get; };
     }
