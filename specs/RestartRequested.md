@@ -102,7 +102,7 @@ interface ICoreWebView2RestartRequestedEventHandler : IUnknown {
 /// Event args for the `RestartRequested` event.
 [uuid(6dbfe971-a69e-4338-9b6e-b0ec9f12424f), object, pointer_default(unique)]
 interface ICoreWebView2RestartRequestedEventArgs : IUnknown {
-  /// Get the restart requested priority level.
+  /// Get the restart requested priority.
   [propget] HRESULT Priority([out, retval] COREWEBVIEW2_RESTART_REQUESTED_PRIORITY* value);
 }
 
@@ -111,20 +111,6 @@ interface ICoreWebView2Environment10 : IUnknown {
   /// Add an event handler for the `RestartRequested` event.
   /// `RestartRequested` event is raised when there is a need to restart WebView2 process
   /// in order to apply certain beneifical updates.
-  /// Those updates can be the following cases:
-  /// 1. New runtime version available.
-  /// 2. Older runtime version available (downgradge due to severe bug).
-  /// 3. Features being enabled/disabled that causing WebView2 reliability or performance 
-  ///    to drop dramatically. 
-  /// 
-  /// `RestartRequested` is raised base on priority level. `RestartPriorityLevel` is used
-  /// to determine the urgences on rasing such event.
-  /// `COREWEBVIEW2_RESTART_PRIORITY_LEVEL_BEST_EFFORT`:
-  ///   - Event rasied only on new runtime version available.
-  ///   - Developer can notify user to restart on normal cadence.
-  /// `COREWEBVIEW2_RESTART_PRIORITY_LEVEL_CRITICAL`: 
-  ///   - Event raised for downgraded runtime version and feature enabled/disabled.
-  ///   - Developer should notify user to restart as soon as possible. 
   /// 
   /// `RestartRequested` gives developers the awareness of these necessary WebView2 restarts,
   /// allowing developers to resolve issues faster than waiting for end users to restart the app.
@@ -149,7 +135,7 @@ s
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    enum CoreWebView2RestartPriorityLevel
+    enum CoreWebView2RestartRequestedPriority
     {
         BestEffort = 0,
         Critical = 1,
@@ -158,10 +144,7 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2Environment
     {
         // ...
-        event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> RestartRequested;
-
-        // Set restart priority level
-        CoreWebView2RestartPriorityLevel RestartPriorityLevel { get; set; };
+        event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, CoreWebView2RestartRequestedEventArgs> RestartRequested;
     }
 }
 ```
