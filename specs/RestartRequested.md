@@ -1,12 +1,11 @@
-Critical Update Available
+Restart Requested
 ===
 
 # Background
-As WebView2 developers, we often have to author ECS (experimentation and configuration service - 
-used to perform A/B testing or remotely disable features) configurations to toggle feature flags. 
-However, once these payloads are received, there is no way to restart the WebView2 and apply the
-payload. The purpose of this API is to detect such critical payloads and inform the end developer
-so they may restart their app or their WebView2 or other appropriate action.
+There are often times when WebView2 need to be restarted to apply certain update, the purpose of 
+this API is to detect whether a restart is requested from WebView2 base on different priority levels.
+WebView2 developers can listen to this event for version update, version downgrade or important
+feature flag update to determine the need to prompt user for restart to apply those updates.
 
 # Examples
 ## WinRT and .NET   
@@ -60,6 +59,16 @@ See [API Details](#api-details) section below for API reference.
 interface ICoreWebView2Environment10;
 interface ICoreWebView2RestartRequestedEventHandler;
 
+/// The restart prioirty level can be set by the `RestartPriorityLevel` property.
+/// The default value is `COREWEBVIEW2_RESTART_PRIORITY_LEVEL_BEST_EFFORT`.
+[v1_enum]
+typedef enum COREWEBVIEW2_RESTART_PRIORITY_LEVEL {
+  /// Dveloper should prompt user to restart on best effort.
+  COREWEBVIEW2_RESTART_PRIORITY_LEVEL_BEST_EFFORT,
+  /// Developer should prompt user to restart as soon as possible. 
+  COREWEBVIEW2_RESTART_PRIORITY_LEVEL_CRITICAL,
+} COREWEBVIEW2_RESTART_PRIORITY_LEVEL;
+
 [uuid(62cb67c6-b6a9-4209-8a12-72ca093b9547), object, pointer_default(unique)]
 interface ICoreWebView2RestartRequestedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.  No event args exist
@@ -70,14 +79,26 @@ interface ICoreWebView2RestartRequestedEventHandler : IUnknown {
 [uuid(ef7632ec-d86e-46dd-9d59-e6ffb5c87878), object, pointer_default(unique)]
 interface ICoreWebView2Environment10 : IUnknown {
   /// Add an event handler for the `RestartRequested` event.
-  /// `RestartRequested` event is raised when there is an urgent need to 
-  /// restart the WebView2 process in order to enable or disable 
-  /// features that are causing WebView2 reliability or performance to drop critically.
-  /// `RestartRequested` gives you the awareness of these necessary WebView2 restarts,
-  /// allowing you to resolve issues faster than waiting for your end users to restart the app.
-  /// Depending on your app you may want to prompt your end users in some way to give
-  /// them a chance to save their state before you restart the WebView2.
+  /// `RestartRequested` event is raised when there is a need to restart WebView2 process
+  /// in order to apply certain beneifical updates.
+  /// Those updates can be the following cases:
+  /// 1. New runtime version available.
+  /// 2. Older runtime version available (downgradge due to severe bug).
+  /// 3. Features being enabled/disabled that causing WebView2 reliability or performance 
+  ///    to drop dramatically. 
   /// 
+  /// `RestartRequested` is raised base on priority level. `RestartPriorityLevel` is used
+  /// to determine the urgences on rasing such event.
+  /// `COREWEBVIEW2_RESTART_PRIORITY_LEVEL_BEST_EFFORT`:
+  ///   - Event rasied only on new runtime version available.
+  ///   - Developer can notify user to restart on normal cadence.
+  /// `COREWEBVIEW2_RESTART_PRIORITY_LEVEL_CRITICAL`: 
+  ///   - Event raised for downgraded runtime version and feature enabled/disabled.
+  ///   - Developer should notify user to restart as soon as possible. 
+  /// 
+  /// `RestartRequested` gives developers the awareness of these necessary WebView2 restarts,
+  /// allowing developers to resolve issues faster than waiting for end users to restart the app.
+  /// Developer might want to give end users the ability to save their state before restarting.
   /// For apps with multiple processes that host WebView2s that share the same user data folder you
   /// need to make sure all WebView2 instances are closed and the associated WebView2 Runtime
   /// browser process exits. See `BrowserProcessExited` for more details.
@@ -90,6 +111,17 @@ interface ICoreWebView2Environment10 : IUnknown {
   // MSOWNERS: xiaqu@microsoft.com
   HRESULT remove_RestartRequested(
       [in] EventRegistrationToken token);
+
+  /// Get the restart priority level.
+  // MSOWNERS: xiaqu@microsoft.com
+  [propget] HRESULT RestartPriorityLevel(
+      [out, retval] COREWEBVIEW2_RESTART_PRIORITY_LEVEL* value);
+
+  /// Set the restart priority level. 
+  /// The default value is `COREWEBVIEW2_RESTART_PRIORITY_LEVEL_BEST_EFFORT`.
+  // MSOWNERS: xiaqu@microsoft.com
+  [propput] HRESULT RestartPriorityLevel(
+      [in] COREWEBVIEW2_RESTART_PRIORITY_LEVEL value);
 }
 ```
 s
@@ -98,10 +130,19 @@ s
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
+    enum RestartPriorityLevel
+    {
+        BestEffort = 0,
+        Critical = 1,
+    };
+
     runtimeclass CoreWebView2Environment
     {
         // ...
         event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> RestartRequested;
+
+        // Set restart priority level
+        RestartPriorityLevel RestartPriorityLevel { get; set; };
     }
 }
 ```
