@@ -8,7 +8,28 @@ WebView2 developers can listen to this event for version update, version downgra
 feature flag update to determine the need to prompt user for restart to apply those updates.
 
 # Examples
-## WinRT and .NET   
+## WinRT and .NET
+### Scenario 1: Normal Priority
+```c#
+void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
+{
+    if (e.IsSuccess)
+    {
+        // ...
+        webView.CoreWebView2.Environment.RestartPriorityLevel = CoreWebView2RestartPriorityLevel.BestEffort;
+        webView.CoreWebView2.Environment.RestartRequested += WebView_RestartRequested;
+    }
+}
+
+void WebView_RestartRequested(CoreWebView2Environment sender, object e)
+{
+    // Depending on your app experience, you can let user
+    // to restart on normal cadence.
+    RemainderToRestartForUpdate();
+}
+```
+
+### Scenario 2: High Priority
 ```c#
 void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2InitializationCompletedEventArgs e)
 {
@@ -22,13 +43,35 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_RestartRequested(CoreWebView2Environment sender, object e)
 {
-    // Depending on your app experience, you may or may not
-    // want to prompt user to restart the app.
+    // With ciritical priority, you should prompt user to save their current state and restart the app.
     RestartIfSelectedByUser();
 }
 ```
 
 ## Win32 C++
+### Scenario 1: Normal Priority
+```cpp
+wil::com_ptr<ICoreWebView2Environment> m_webViewEnvironment;
+void CoreWebView2InitializationCompleted() {
+    auto env10 = m_webViewEnvironment.try_query<ICoreWebView2Environment10>();
+    if (env10) {
+        CHECK_FAILURE(env10->put_RestartPriorityLevel(COREWEBVIEW2_RESTART_PRIORITY_LEVEL_BEST_EFFORT));
+        CHECK_FAILURE(env10->add_RestartRequested(
+            Callback<ICoreWebView2RestartRequestedEventHandler>(
+                [this](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT
+                {
+                    // Depending on your app experience, you can let user
+                    // to restart on normal cadence.
+                    RemainderToRestartForUpdate();
+                    return S_OK;
+                })
+                .Get(),
+            nullptr));
+    }
+}
+```
+
+### Scenario 2: High Priority
 ```cpp
 wil::com_ptr<ICoreWebView2Environment> m_webViewEnvironment;
 void CoreWebView2InitializationCompleted() {
@@ -39,8 +82,8 @@ void CoreWebView2InitializationCompleted() {
             Callback<ICoreWebView2RestartRequestedEventHandler>(
                 [this](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT
                 {
-                    // Depending on your app experience, you may or may not
-                    // want to prompt user to restart the app.
+                    // With ciritical priority, you should prompt user
+                    // to save their current state and restart the app.
                     RestartIfSelectedByUser();
                     return S_OK;
                 })
