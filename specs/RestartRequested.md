@@ -46,7 +46,6 @@ void CoreWebView2InitializationCompleted() {
             Callback<ICoreWebView2RestartRequestedEventHandler>(
                 [this](ICoreWebView2Environment* sender, ICoreWebView2RestartRequestedEventArgs* args) -> HRESULT
                 {
-                    
                     COREWEBVIEW2_RESTART_REQUESTED_PRIORITY priority;
                     CHECK_FAILURE(args->(get_Priority(&priority)));
                     if (priority == COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_BEST_EFFORT) 
