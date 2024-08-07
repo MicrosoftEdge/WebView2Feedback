@@ -15,6 +15,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
     if (e.IsSuccess)
     {
         // ...
+        webView.CoreWebView2.Environment.RestartPriorityLevel = CoreWebView2RestartPriorityLevel.Critical;
         webView.CoreWebView2.Environment.RestartRequested += WebView_RestartRequested;
     }
 }
@@ -33,6 +34,7 @@ wil::com_ptr<ICoreWebView2Environment> m_webViewEnvironment;
 void CoreWebView2InitializationCompleted() {
     auto env10 = m_webViewEnvironment.try_query<ICoreWebView2Environment10>();
     if (env10) {
+        CHECK_FAILURE(env10->put_RestartPriorityLevel(COREWEBVIEW2_RESTART_PRIORITY_LEVEL_CRITICAL));
         CHECK_FAILURE(env10->add_RestartRequested(
             Callback<ICoreWebView2RestartRequestedEventHandler>(
                 [this](ICoreWebView2Environment* sender, IUnknown* args) -> HRESULT
@@ -66,7 +68,7 @@ typedef enum COREWEBVIEW2_RESTART_PRIORITY_LEVEL {
   /// Dveloper should prompt user to restart on best effort.
   COREWEBVIEW2_RESTART_PRIORITY_LEVEL_BEST_EFFORT,
   /// Developer should prompt user to restart as soon as possible. 
-  COREWEBVIEW2_RESTART_PRIORITY_LEVEL_CRITICAL,
+  c,
 } COREWEBVIEW2_RESTART_PRIORITY_LEVEL;
 
 [uuid(62cb67c6-b6a9-4209-8a12-72ca093b9547), object, pointer_default(unique)]
@@ -130,7 +132,7 @@ s
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    enum RestartPriorityLevel
+    enum CoreWebView2RestartPriorityLevel
     {
         BestEffort = 0,
         Critical = 1,
@@ -142,7 +144,7 @@ namespace Microsoft.Web.WebView2.Core
         event Windows.Foundation.TypedEventHandler<CoreWebView2Environment, Object> RestartRequested;
 
         // Set restart priority level
-        RestartPriorityLevel RestartPriorityLevel { get; set; };
+        CoreWebView2RestartPriorityLevel RestartPriorityLevel { get; set; };
     }
 }
 ```
