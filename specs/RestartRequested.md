@@ -23,7 +23,7 @@ void WebView_RestartRequested(CoreWebView2Environment sender, CoreWebView2Restar
 {
     if (e.Priority == RestartRequestedPriority.BestEffort) 
     {
-        // Depending on your app experience, you should remaind user
+        // Depending on your app experience, you should remind user
         // to restart on normal cadence.
         RemainderToRestartForUpdate();
     }
@@ -50,7 +50,7 @@ void CoreWebView2InitializationCompleted() {
                     CHECK_FAILURE(args->(get_Priority(&priority)));
                     if (priority == COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_BEST_EFFORT) 
                     {
-                        // Depending on your app experience, you should remaind user
+                        // Depending on your app experience, you should remind user
                         // to restart on normal cadence.
                         RemainderToRestartForUpdate();
                     }
@@ -84,7 +84,7 @@ interface ICoreWebView2RestartRequestedEventArgs;
 /// `ICoreWebView2RestartRequestedEventArgs` interface.
 [v1_enum]
 typedef enum COREWEBVIEW2_RESTART_REQUESTED_PRIORITY {
-  /// Developer should remaind user to restart.
+  /// Developer should remind user to restart.
   COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_BEST_EFFORT,
   /// Developer should prompt user to restart as soon as possible. 
   COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_CRITICAL,
