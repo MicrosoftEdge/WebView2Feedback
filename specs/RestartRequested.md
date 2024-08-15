@@ -25,7 +25,7 @@ void WebView_RestartRequested(CoreWebView2Environment sender, CoreWebView2Restar
     {
         // Depending on your app experience, you should remind the user
         // to restart on normal cadence.
-        RemainderToRestartForUpdate();
+        RemindToRestartForUpdate();
     }
     else
     {
