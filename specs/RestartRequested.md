@@ -30,7 +30,7 @@ void WebView_RestartRequested(CoreWebView2Environment sender, CoreWebView2Restar
     else
     {
         // Depending on your app experience, you should prompt
-        // user to save their current state and restart.
+        // the user to save their current state and restart or otherwise more urgently restart the WebView2.
         RestartIfSelectedByUser();
     }
 }
