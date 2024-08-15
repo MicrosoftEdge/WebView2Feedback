@@ -2,7 +2,7 @@ Restart Requested
 ===
 
 # Background
-There are often times when WebView2 need to be restarted to apply certain update, the purpose of 
+There are often times when WebView2 needs to be restarted to apply certain updates or change configuration. The purpose of this API is to detect whether such a restart is requested and to provide the urgency of the restart. WebView2 developers can listen to this event for version updates, version downgrades, or important configuration changes to determine if they need to prompt the user for a restart to apply those updates.
 this API is to detect whether a restart is requested from WebView2 base on different priority levels.
 WebView2 developers can listen to this event for version update, version downgrade or important
 feature flag update to determine the need to prompt user for restart to apply those updates.
