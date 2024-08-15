@@ -23,7 +23,7 @@ void WebView_RestartRequested(CoreWebView2Environment sender, CoreWebView2Restar
 {
     if (e.Priority == RestartRequestedPriority.BestEffort) 
     {
-        // Depending on your app experience, you should remind user
+        // Depending on your app experience, you should remind the user
         // to restart on normal cadence.
         RemainderToRestartForUpdate();
     }
