@@ -56,7 +56,7 @@ void CoreWebView2InitializationCompleted() {
                     {
                         // Depending on your app experience, you should remind user
                         // to restart on normal cadence.
-                        RemainderToRestartForUpdate();
+                        RemindToRestartForUpdate();
                     }
                     else
                     {
