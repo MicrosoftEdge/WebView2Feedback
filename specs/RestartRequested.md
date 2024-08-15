@@ -2,8 +2,12 @@ Restart Requested
 ===
 
 # Background
-There are often times when WebView2 needs to be restarted to apply certain updates or change configuration. The purpose of this API is to detect whether such a restart is requested and to provide the urgency of the restart. WebView2 developers can listen to this event for version updates, version downgrades, or important configuration changes to determine if they need to prompt the user for a restart to apply those updates.
-this API is to detect whether a restart is requested from WebView2 base on different priority levels.
+There are often times when WebView2 needs to be restarted to apply certain updates or change 
+configuration. The purpose of this API is to detect whether such a restart is requested and 
+to provide the urgency of the restart. WebView2 developers can listen to this event for version 
+updates, version downgrades, or important configuration changes to determine if they need to 
+prompt the user for a restart to apply those updates.
+This API is to detect whether a restart is requested from WebView2 base on different priority levels.
 WebView2 developers can listen to this event for version update, version downgrade or important
 feature flag update to determine the need to prompt user for restart to apply those updates.
 
@@ -21,7 +25,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_RestartRequested(CoreWebView2Environment sender, CoreWebView2RestartRequestedEventArgs e)
 {
-    if (e.Priority == RestartRequestedPriority.BestEffort) 
+    if (e.Priority == RestartRequestedPriority.Normal) 
     {
         // Depending on your app experience, you should remind the user
         // to restart on normal cadence.
@@ -48,7 +52,7 @@ void CoreWebView2InitializationCompleted() {
                 {
                     COREWEBVIEW2_RESTART_REQUESTED_PRIORITY priority;
                     CHECK_FAILURE(args->(get_Priority(&priority)));
-                    if (priority == COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_BEST_EFFORT) 
+                    if (priority == COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_NORMAL) 
                     {
                         // Depending on your app experience, you should remind user
                         // to restart on normal cadence.
@@ -85,9 +89,9 @@ interface ICoreWebView2RestartRequestedEventArgs;
 [v1_enum]
 typedef enum COREWEBVIEW2_RESTART_REQUESTED_PRIORITY {
   /// Developer should remind user to restart.
-  COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_BEST_EFFORT,
+  COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_NORMAL,
   /// Developer should prompt user to restart as soon as possible. 
-  COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_CRITICAL,
+  COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_HIGH,
 } COREWEBVIEW2_RESTART_REQUESTED_PRIORITY;
 
 [uuid(62cb67c6-b6a9-4209-8a12-72ca093b9547), object, pointer_default(unique)]
@@ -136,8 +140,8 @@ namespace Microsoft.Web.WebView2.Core
 {
     enum CoreWebView2RestartRequestedPriority
     {
-        BestEffort = 0,
-        Critical = 1,
+        Normal = 0,
+        High = 1,
     };
 
     runtimeclass CoreWebView2RestartRequestedEventArgs
