@@ -51,7 +51,7 @@ void CoreWebView2InitializationCompleted() {
                 [this](ICoreWebView2Environment* sender, ICoreWebView2RestartRequestedEventArgs* args) -> HRESULT
                 {
                     COREWEBVIEW2_RESTART_REQUESTED_PRIORITY priority;
-                    CHECK_FAILURE(args->(get_Priority(&priority)));
+                    CHECK_FAILURE(args->get_Priority(&priority));
                     if (priority == COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_NORMAL) 
                     {
                         // Depending on your app experience, you should remind user
