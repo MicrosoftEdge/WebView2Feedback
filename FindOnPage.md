@@ -550,7 +550,7 @@ runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
         
         /// Gets or sets the state of whether all matches are highlighted. 
         /// Returns TRUE if all matches are highlighted, FALSE otherwise.
-        /// Note: Changes to this property take effect only when StartFind, FindNext, or FindPrevious is called. 
+        /// Note: Changes to this property take effect only when StartFind is called. 
         /// Preferences for the session cannot be updated unless another call to the StartFind function on the server-side is made. 
         /// Therefore, changes will not take effect until one of these functions is called.
         Boolean ShouldHighlightAllMatches { get; set; };
