@@ -242,7 +242,7 @@ within a WebView2 control using the `ActiveMatchIndex` property.
 ```
 #### .NET C#
 ```csharp
-public async Task<int> GetActiveMatchIndexAsync()
+public Task<int> GetActiveMatchIndex()
 {
     var webViewFind = webView.CoreWebView2.Find; // Assuming webView is your WebView2 control
     var activeMatchIndex = webViewFind.ActiveMatchIndex();
