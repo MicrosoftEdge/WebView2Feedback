@@ -317,7 +317,7 @@ interface ICoreWebView2FindMatchCountChangedEventHandler : IUnknown {
 }
 
 
-/// Interface providing methods and properties for finding and navigating through text in the web view.
+/// Interface providing methods and properties for finding and navigating through text in the WebView2.
 /// This interface allows for finding text, navigation between matches, and customization of the Find UI.
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(9c494a0a-c5d8-5fee-b7e6-4926d8d7b391), object, pointer_default(unique)]
@@ -466,7 +466,7 @@ interface ICoreWebView2FindOptions : IUnknown {
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(c9a130ca-a807-549c-9d76-8e09ccee3973), object, pointer_default(unique)]
 interface ICoreWebView2_17 : IUnknown {
-  /// Retrieves the Find operation interface for the current web view.
+  /// Retrieves the Find operation interface for the current WebView2.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   [propget] HRESULT Find([out, retval] ICoreWebView2Find** value);
 
@@ -505,7 +505,7 @@ namespace Microsoft.Web.WebView2.Core
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     interface ICoreWebView2_25
     {
-        /// Retrieves the Find operation interface for the current web view.
+        /// Retrieves the Find operation interface for the current WebView2.
         CoreWebView2Find Find { get; };
     }
 
@@ -566,7 +566,7 @@ runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
 
    runtimeclass CoreWebView2Find : [default]ICoreWebView2Find {}
 
-    /// Interface providing methods and properties for finding and navigating through text in the web view.
+    /// Interface providing methods and properties for finding and navigating through text in the WebView2.
     /// This interface allows for finding text, navigation between matches, and customization of the Find UI.
     [com_interface("staging=ICoreWebView2StagingFind")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
