@@ -278,13 +278,13 @@ typedef enum COREWEBVIEW2_FIND_DIRECTION {
 /// This interface allows for the creation of new Find options objects.
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(f10bddd3-bb59-5d5b-8748-8a1a53f65d0c), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironment5 : IUnknown {
+interface ICoreWebView2Environment5 : IUnknown {
   /// Creates a new instance of a FindOptions object.
   /// This options object can be used to define parameters for a Find operation.
   /// Returns the newly created FindOptions object.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   HRESULT CreateFindOptions(
-      [out, retval] ICoreWebView2StagingFindOptions** value
+      [out, retval] ICoreWebView2FindOptions** value
   );
 
 
@@ -293,7 +293,7 @@ interface ICoreWebView2StagingEnvironment5 : IUnknown {
 
 /// Receives the result of the `StartFind` method.
 [uuid(7c20f8b0-c14e-5135-a099-6c9d11d59dd1), object, pointer_default(unique)]
-interface ICoreWebView2StagingFindStartFindCompletedHandler : IUnknown {
+interface ICoreWebView2indStartFindCompletedHandler : IUnknown {
 
   /// Provides the result of the corresponding asynchronous method.
   HRESULT Invoke([in] HRESULT errorCode);
@@ -301,18 +301,18 @@ interface ICoreWebView2StagingFindStartFindCompletedHandler : IUnknown {
 
 /// Receives `FindActiveMatchIndexChanged` events.
 [uuid(8d3422bf-66df-5bae-9916-71fd23d5bef6), object, pointer_default(unique)]
-interface ICoreWebView2StagingFindActiveMatchIndexChangedEventHandler : IUnknown {
+interface ICoreWebView2FindActiveMatchIndexChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
-      [in] ICoreWebView2StagingFind* sender,
+      [in] ICoreWebView2Find* sender,
       [in] IUnknown* args);
 }
 /// Receives `FindMatchCountChanged` events.
 [uuid(cecb8e8f-b6c8-55c3-98b1-68fd1e2b9eea), object, pointer_default(unique)]
-interface ICoreWebView2StagingFindMatchCountChangedEventHandler : IUnknown {
+interface ICoreWebView2FindMatchCountChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
-      [in] ICoreWebView2StagingFind* sender,
+      [in] ICoreWebView2Find* sender,
       [in] IUnknown* args);
 }
 
@@ -321,7 +321,7 @@ interface ICoreWebView2StagingFindMatchCountChangedEventHandler : IUnknown {
 /// This interface allows for finding text, navigation between matches, and customization of the Find UI.
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(9c494a0a-c5d8-5fee-b7e6-4926d8d7b391), object, pointer_default(unique)]
-interface ICoreWebView2StagingFind : IUnknown {
+interface ICoreWebView2Find : IUnknown {
   /// Retrieves the index of the currently active match in the Find session. Returns the index of the currently active match, or -1 if there is no active match.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   [propget] HRESULT ActiveMatchIndex([out, retval] UINT32* value);
@@ -357,7 +357,7 @@ interface ICoreWebView2StagingFind : IUnknown {
   /// Registers an event handler for the ActiveMatchIndexChanged event. This event is raised when the index of the currently active match changes. This can happen when the user navigates to a different match or when the active match is changed programmatically. The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   HRESULT add_ActiveMatchIndexChanged(
-      [in] ICoreWebView2StagingActiveMatchIndexChangedEventHandler* eventHandler,
+      [in] ICoreWebView2ActiveMatchIndexChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_ActiveMatchIndexChanged`.
@@ -369,7 +369,7 @@ interface ICoreWebView2StagingFind : IUnknown {
   /// Registers an event handler for the MatchCountChanged event. This event is raised when the total count of matches in the document changes due to a new Find operation or changes in the document.    /// The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   HRESULT add_MatchCountChanged(
-      [in] ICoreWebView2StagingMatchCountChangedEventHandler* eventHandler,
+      [in] ICoreWebView2MatchCountChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_MatchCountChanged`.
@@ -385,8 +385,8 @@ interface ICoreWebView2StagingFind : IUnknown {
   /// This method is primarily designed for HTML document queries.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   HRESULT StartFind(
-      [in] ICoreWebView2StagingFindOptions* options
-      , [in] ICoreWebView2StagingFindStartFindCompletedHandler* handler
+      [in] ICoreWebView2FindOptions* options
+      , [in] ICoreWebView2FindStartFindCompletedHandler* handler
   );
 
   /// Navigates to the next match in the document.
@@ -413,7 +413,7 @@ interface ICoreWebView2StagingFind : IUnknown {
 /// This interface provides the necessary methods and properties to configure a Find operation.
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(52a04b23-acc8-5659-aa2f-26dbe9faafde), object, pointer_default(unique)]
-interface ICoreWebView2StagingFindOptions : IUnknown {
+interface ICoreWebView2FindOptions : IUnknown {
   /// Gets the `FindDirection` property.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
   [propget] HRESULT FindDirection([out, retval] COREWEBVIEW2_FIND_DIRECTION* value);
@@ -465,10 +465,10 @@ interface ICoreWebView2StagingFindOptions : IUnknown {
 /// 
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(c9a130ca-a807-549c-9d76-8e09ccee3973), object, pointer_default(unique)]
-interface ICoreWebView2Staging17 : IUnknown {
+interface ICoreWebView2_17 : IUnknown {
   /// Retrieves the Find operation interface for the current web view.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
-  [propget] HRESULT Find([out, retval] ICoreWebView2StagingFind** value);
+  [propget] HRESULT Find([out, retval] ICoreWebView2Find** value);
 
 
 
@@ -501,7 +501,7 @@ namespace Microsoft.Web.WebView2.Core
     /// <com> 
     /// Interface providing methods to access the Find operation functionalities in the CoreWebView2.
     /// </com>
-    [com_interface("staging=ICoreWebView2Staging17")]
+    [com_interface("staging=ICoreWebView2_17")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     interface ICoreWebView2_25
     {
@@ -511,7 +511,7 @@ namespace Microsoft.Web.WebView2.Core
 
     /// Interface that provides methods related to the environment settings of CoreWebView2.
     /// This interface allows for the creation of new Find options objects.
-    [com_interface("staging=ICoreWebView2StagingEnvironment5")]
+    [com_interface("staging=ICoreWebView2Environment5")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     interface ICoreWebView2Environment15
     {
@@ -525,7 +525,7 @@ runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
 
     /// Interface defining the Find options.
     /// This interface provides the necessary methods and properties to configure a Find operation.
-    [com_interface("staging=ICoreWebView2StagingFindOptions")]
+    [com_interface("staging=ICoreWebView2FindOptions")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     [availability("staging")]
     interface ICoreWebView2FindOptions 
