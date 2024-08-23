@@ -24,7 +24,7 @@ completion, match count changes, and match index changes.
 
 #### Description
 
-To initiate a Find operation in a WebView2 control, use the `StartFindAsync` method.
+To initiate a Find operation in a WebView2 control, use the `StartAsync` method.
 This method allows setting the Find term and Find parameters via the
 `ICoreWebView2FindOptions` interface. Only one Find session can be active per
 WebView2 environment. Starting another with the same option will adjust
@@ -157,7 +157,7 @@ async Task ConfigureAndExecuteFindWithDefaultUIAsync(string findTerm)
         // you can change the SuppressDefaultDialog and ShouldHighlightAllMatches properties here.
 
         // Start the Find operation with the specified options.
-        await webView.CoreWebView2.Find.StartFindAsync(find_options);
+        await webView.CoreWebView2.Find.StartAsync(find_options);
 
         // End user interaction is handled via UI.
     }
@@ -191,7 +191,7 @@ async Task ConfigureAndExecuteFindWithCustomUIAsync(string findTerm)
         webView.CoreWebView2.Find.ShouldHighlightAllMatches = true;
 
         // Start the Find operation with the specified options.
-        await webView.CoreWebView2.Find.StartFindAsync(find_options);
+        await webView.CoreWebView2.Find.StartAsync(find_options);
         // It's expected that the custom UI for navigating between matches (next, previous)
         // and stopping the Find operation will be managed by the developer's custom code.
     }
@@ -574,15 +574,15 @@ runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
     interface ICoreWebView2Find 
     {
         [completed_handler("")]
-        /// Initiates a Find using the specified options asynchronously.
+        /// Initiates a Find session using the specified options asynchronously.
         /// Displays the Find bar and starts the Find operation. If a Find session was already ongoing, it will be stopped and replaced with this new instance.
         /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the Find options object after initiation won't affect the ongoing Find session.
-        /// To change the ongoing Find session, StartFindAsync must be called again with a new or modified Find options object.
-        /// StartFind supports, HTML, PDF, and TXT document queries. In general this api is designed for text based Find sessions.
-        //// If you start a Find session programmatically on another file format that doesnt have text fields, the Find session will try to execute but will fail to Find any matches. Specifically, it will show the find UI but not find any matches. 
-        /// Note: The asynchronous action completes when the UI has been displayed with the Find term in the UI bar, and the matches have populated on the counter on the Find bar. 
+        /// To change the ongoing Find session, StartAsync must be called again with a new or modified Find options object.
+        /// StartAsync supports, HTML, PDF, and TXT document queries. In general this api is designed for text based Find sessions.
+        //// If you start a Find session programmatically on another file format that doesnt have text fields, the Find session will show the find UI but not find any matches. 
+        /// StartAsync Completion: The asynchronous action completes when the UI has been displayed with the Find term in the UI bar, and the matches have populated on the counter on the Find bar. 
         /// There may be a slight latency between the UI display and the matches populating in the counter. 
-        /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after StartFindAsync has completed, otherwise they will have their default values (-1 for both).
+        /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after StartAsync has completed, otherwise they will have their default values (-1 for ActiveMatchIndex and 0 for TotalMatchCount).
         /// When initiating a Find session while another session is in progress, the behavior of 
         /// the active match index depends on the direction set for the Find operation (forward or backward).
         /// However, calling StartFind again during an ongoing Find operation does not resume from the point 
@@ -591,7 +591,7 @@ runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
         /// regardless of the previous active match. This behavior indicates that changing the Find query initiates a 
         /// completely new Find session, rather than continuing from the previous match index. This distinction is essential 
         /// to understand when utilizing the StartFind method for navigating through text matches.
-        Windows.Foundation.IAsyncAction StartFindAsync(CoreWebView2FindOptions options);
+        Windows.Foundation.IAsyncAction StartAsync(CoreWebView2FindOptions options);
 
 
         /// Navigates to the next match in the document.
