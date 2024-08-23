@@ -22,7 +22,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_RestartRequested(CoreWebView2Environment sender, CoreWebView2RestartRequestedEventArgs e)
 {
-    if (e.Priority == RestartRequestedPriority.Normal) 
+    if (e.Priority == CoreWebView2RestartRequestedPriority.Normal) 
     {
         // Depending on your app experience, you should remind the user
         // to restart on normal cadence.
