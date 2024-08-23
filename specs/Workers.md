@@ -1019,10 +1019,12 @@ interface ICoreWebView2ServiceWorkerManager : IUnknown {
   /// resources in a very granular fashion to give you complete control
   /// over how app behaves in certain situations.
   ///
-  /// Service workers essentially act as proxy servers that sit between web applications,
-  /// the browser, and the network (when available).
-  /// Unlike Shared Workers, which have their own separate global scope, Service
-  ///Workers have no DOM access and run in a different context.
+  /// Service workers essentially act as proxy servers that sit between web
+  /// applications, the browser, and the network (when available). They run in
+  /// a different context from the web page, which means they have no direct access
+  /// to the DOM. Unlike dedicated and shared workers, which may have direct access to a
+  /// global scope shared with other scripts, service workers operate in isolation
+  /// from the DOM, ensuring a more secure and controlled environment.
   ///
   /// This event is raised when a web application registers a service worker using the
   /// `navigator.serviceWorker.register("/sw.js")` method. See the
