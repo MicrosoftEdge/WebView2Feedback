@@ -22,7 +22,7 @@ void WebView_CoreWebView2InitializationCompleted(object sender, CoreWebView2Init
 
 void WebView_RestartRequested(CoreWebView2Environment sender, CoreWebView2RestartRequestedEventArgs e)
 {
-    if (e.Priority == CoreWebView2RestartRequestedPriority.Normal) 
+    if (e.Priority <= CoreWebView2RestartRequestedPriority.Normal) 
     {
         // Depending on your app experience, you should remind the user
         // to restart on normal cadence.
@@ -49,7 +49,7 @@ void CoreWebView2InitializationCompleted() {
                 {
                     COREWEBVIEW2_RESTART_REQUESTED_PRIORITY priority;
                     CHECK_FAILURE(args->get_Priority(&priority));
-                    if (priority == COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_NORMAL) 
+                    if (priority <= COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_NORMAL) 
                     {
                         // Depending on your app experience, you should remind user
                         // to restart on normal cadence.
@@ -86,9 +86,9 @@ interface ICoreWebView2RestartRequestedEventArgs;
 [v1_enum]
 typedef enum COREWEBVIEW2_RESTART_REQUESTED_PRIORITY {
   /// Developer should remind user to restart.
-  COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_NORMAL,
+  COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_NORMAL = 1000,
   /// Developer should prompt user to restart as soon as possible. 
-  COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_HIGH,
+  COREWEBVIEW2_RESTART_REQUESTED_PRIORITY_HIGH = 2000,
 } COREWEBVIEW2_RESTART_REQUESTED_PRIORITY;
 
 [uuid(62cb67c6-b6a9-4209-8a12-72ca093b9547), object, pointer_default(unique)]
