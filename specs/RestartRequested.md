@@ -137,8 +137,8 @@ namespace Microsoft.Web.WebView2.Core
 {
     enum CoreWebView2RestartRequestedPriority
     {
-        Normal = 0,
-        High = 1,
+        Normal = 1000,
+        High = 2000,
     };
 
     runtimeclass CoreWebView2RestartRequestedEventArgs
