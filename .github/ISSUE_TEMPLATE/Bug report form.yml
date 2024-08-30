@@ -25,6 +25,7 @@ body:
        - Blocking. My app's basic functions are not working due to this issue.
        - Important. My app's user experience is significantly compromised.
        - Moderate. My app's user experience is affected, but still usable.
+       - Low. My app is not very affected, or this only affects development.
   validations:
       required: true
 - id: runtime-channel
