@@ -18,6 +18,7 @@ There are four places where WV2's updater will write important details about any
 1. `C:\ProgramData\Microsoft\EdgeUpdate\Log\MicrosoftEdgeUpdate.log`
 2. `%localappdata%\Temp\MicrosoftEdgeUpdate.log`
 3. `%temp%\msedge_installer.log`
-3. `%systemroot%\Temp\msedge_installer.log`
+4. `%systemroot%\Temp\msedge_installer.log`
+5. `%systemroot%\SystemTemp\msedge_installer.log`
 
 Once you have these files, share them with the WV2 developer who is helping you.
