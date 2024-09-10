@@ -44,6 +44,7 @@ If you were to instead do this with the regular WebView2 control, the Label woul
         </Grid>
     </DockPanel>
 ```
+![image](https://github.com/user-attachments/assets/023ad943-dca5-4f5e-a3f4-52258b35a6cd)
 
 
 # API Details
