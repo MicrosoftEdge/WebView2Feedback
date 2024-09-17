@@ -72,6 +72,11 @@ there may be lower framerates compared to the standard WebView2 control, and DRM
 Reference documentation is very similar to the existing WPF control and can be found here:
 https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.wpf.webview2compositioncontrol?view=webview2-dotnet-1.0.2783-prerelease#remarks
 
+The main differences are that:
+1. WebView2 inherits from [HwndHost]([url](https://learn.microsoft.com/en-us/dotnet/api/system.windows.interop.hwndhost?view=windowsdesktop-8.0)),
+whereas WebView2CompositionControl inherits from Control and [IKeyboardInputSite]([url](https://learn.microsoft.com/en-us/dotnet/api/system.windows.interop.ikeyboardinputsink?view=windowsdesktop-8.0)), which makes some of the protected overriden methods differ. In particular, WebView2 overrides HwndHost.BuildWindowCore, HwndHost.DestroyWindowCore, and HwndHost.TabIntoCore. WebView2CompositionControl overrides the IKeyboardInputSite properties/methods.
+2. WebView2 uses windowed HWND hosting and the CoreWebView2Controller, whereas WebView2CompositionControl uses visual hosting and the CoreWebView2CompositionController. As such the WebView2CompositionControl needs to handle and forward appropriate input to the composition controller, instead of input going directly to the WebView2 HWNDs. To do this it overrides an extra set of input events, such as OnMouseDown/Up/Move/Wheel/DoubleClick, and OnTouchDown/Up/Move.
+
 Full public/protected API:
 ```cs
 /// <summary>
