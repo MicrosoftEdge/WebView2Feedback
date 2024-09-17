@@ -66,9 +66,16 @@ We chose the name "WebView2CompositionControl" because it matches our naming con
 for visual hosting WebView2, which uses the CoreWebView2CompositionController instead
 of the CoreWebView2Controller.
 
+Due to using a GraphicsCaptureSession to create a screen capture of the underlying browser processes,
+there may be lower framerates compared to the standard WebView2 control, and DRM videos will be unable to play.
+
+Reference documentation is very similar to the existing WPF control and can be found here:
+https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.wpf.webview2compositioncontrol?view=webview2-dotnet-1.0.2783-prerelease#remarks
+
 # Appendix
 At a high level, the WebView2CompositionControl instantiates a CoreWebView2 in much the same way as
 the regular WebView2 control, but connects to it and controls it using the CoreWebView2CompositionController
 instead of the CoreWebView2Controller. The composition controller is given a WinComp visual to draw into,
 and this visual is used to create a GraphicsCaptureSession. When frames from this capture session are
 captured they are they rendered into a WPF Image element that's part of the control.
+
