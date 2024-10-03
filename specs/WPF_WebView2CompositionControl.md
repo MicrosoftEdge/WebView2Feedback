@@ -54,7 +54,7 @@ on top and hide any WPF elements in the same location, even if you try to specif
 to be above the WebView2 control (using visual tree order or the z-index property, for example). To
 solve this issue you should use the WebView2CompositionControl. 
 
-The WebView2CompositionControl is a drop-in replacement
+The Microsoft.Web.WebView2.Wpf.WebView2CompositionControl is a drop-in replacement
 for the standard WPF WebView2 control - both the WebView2 control and the WebView2CompositionControl
 implement the [Microsoft.Web.WebView2.Wpf.IWebView2](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.wpf.iwebview2?view=webview2-dotnet-1.0.2739.15)
 interface, as well as derive from FrameworkElement (`FrameworkElement -> HwndHost -> WebView2`, and
@@ -79,6 +79,9 @@ whereas WebView2CompositionControl inherits from Control and [IKeyboardInputSite
 
 Full public/protected API:
 ```cs
+
+namespace Microsoft.Web.WebView2.Wpf {
+
 /// <summary>
 /// Visual hosting version of the WebView2 control.
 /// </summary>
