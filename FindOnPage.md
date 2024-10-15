@@ -5,7 +5,7 @@
 The WebView2Find API offers methods and events for text finding and navigation
 within a WebView2 control. It enables developers to programmatically initiate Find
 operations, navigate Find results, suppress default UI, and customize Find options
-like query and Find direction. It also tracks the status of operations, indicating
+like find query. It also tracks the status of operations, indicating
 completion, match count changes, and match index changes.
 
 ## Examples
@@ -27,8 +27,7 @@ completion, match count changes, and match index changes.
 To initiate a Find operation in a WebView2 control, use the `StartAsync` method.
 This method allows setting the Find term and Find parameters via the
 `ICoreWebView2FindOptions` interface. Only one Find session can be active per
-WebView2 environment. Starting another with the same option will adjust
-the active match index based on the selected Find Direction.
+WebView2 environment.
 ### Create/Specify a Find Option
 #### WIN32 C++
 
@@ -263,16 +262,6 @@ void ActiveMatchIndexChangedSample()
 ## API Details
 ```cpp
 
-/// Specifies the direction of Find Parameters.
-// MSOWNERS: core (maxwellmyers@microsoft.com)
-[v1_enum]
-typedef enum COREWEBVIEW2_FIND_DIRECTION {
-  /// Specifies a forward Find in the document.
-  COREWEBVIEW2_FIND_DIRECTION_FORWARD,
-  /// Specifies a backwards Find in the document.
-  COREWEBVIEW2_FIND_DIRECTION_BACKWARD,
-} COREWEBVIEW2_FIND_DIRECTION;
-
 
 /// Interface that provides methods related to the environment settings of CoreWebView2.
 /// This interface allows for the creation of new Find options objects.
@@ -414,16 +403,6 @@ interface ICoreWebView2Find : IUnknown {
 // MSOWNERS: core (maxwellmyers@microsoft.com)
 [uuid(52a04b23-acc8-5659-aa2f-26dbe9faafde), object, pointer_default(unique)]
 interface ICoreWebView2FindOptions : IUnknown {
-  /// Gets the `FindDirection` property.
-  // MSOWNERS: core (maxwellmyers@microsoft.com)
-  [propget] HRESULT FindDirection([out, retval] COREWEBVIEW2_FIND_DIRECTION* value);
-
-
-  /// 
-  // MSOWNERS: core (maxwellmyers@microsoft.com)
-  [propput] HRESULT FindDirection([in] COREWEBVIEW2_FIND_DIRECTION value);
-
-
   /// Gets the `FindTerm` property.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
@@ -478,7 +457,7 @@ interface ICoreWebView2_17 : IUnknown {
 
 ### Setting Up Find Options with MIDL3
 
-### CoreWebView2 Find Configuration and Direction
+### CoreWebView2 Find Configuration
 
 
 
@@ -487,17 +466,6 @@ interface ICoreWebView2_17 : IUnknown {
 ```csharp
 namespace Microsoft.Web.WebView2.Core
 {
-    /// Specifies the direction of Find Parameters.
-    [ms_owner("core", "maxwellmyers@microsoft.com")]
-    [availability("staging")]
-    enum CoreWebView2FindDirection
-    {
-        /// Specifies a forward Find in the document.
-        Forward, 
-        /// Specifies a backwards Find in the document.
-        Backward, 
-    };
-
     /// <com> 
     /// Interface providing methods to access the Find operation functionalities in the CoreWebView2.
     /// </com>
@@ -532,9 +500,6 @@ runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
     {
         /// Gets or sets the Find term used for the Find operation. Returns the Find term.
         String FindTerm { get; set; };
-
-        /// Gets or sets the direction of the Find operation (forward or backward). Returns the Find direction.
-        CoreWebView2FindDirection FindDirection { get; set; };
 
         /// Determines if the Find operation is case sensitive. Returns TRUE if the Find is case sensitive, FALSE otherwise.
         /// The locale used to determine case sensitivity is the document's language specified by the HTML lang attribute. If unspecified then the WebView2's UI locale
@@ -583,8 +548,6 @@ runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
         /// StartAsync Completion: The asynchronous action completes when the UI has been displayed with the Find term in the UI bar, and the matches have populated on the counter on the Find bar. 
         /// There may be a slight latency between the UI display and the matches populating in the counter. 
         /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after StartAsync has completed, otherwise they will have their default values (-1 for ActiveMatchIndex and 0 for TotalMatchCount).
-        /// When initiating a Find session while another session is in progress, the behavior of 
-        /// the active match index depends on the direction set for the Find operation (forward or backward).
         /// However, calling StartFind again during an ongoing Find operation does not resume from the point 
         /// of the current active match. For example, given the text "1 1 A 1 1" and initiating a Find session for "A",
         /// then starting another Find session for "1", it will start searching from the beginning of the document, 
@@ -595,14 +558,12 @@ runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
 
 
         /// Navigates to the next match in the document.
-        /// If there are no matches to Find, FindNext will wrap around to the first match if the search direction is forward, 
-        /// or to the last match if the search direction is backward.
+        /// If there are no matches to Find, FindNext will wrap around to the first match.
         /// If called when there is no Find session active, FindNext will silently fail.
         void FindNext();
         
         /// Navigates to the previous match in the document.
-        /// If there are no matches to Find, FindPrevious will wrap around to the last match if the search direction is forward, 
-        /// or to the first match if the search direction is backward.
+        /// If there are no matches to Find, FindPrevious will wrap around to the last match. 
         /// If called when there is no Find session active, FindPrevious will silently fail.
         void FindPrevious();
 
