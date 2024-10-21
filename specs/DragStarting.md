@@ -7,8 +7,10 @@ The WebView2 team has been asked to provide a way to override the default drag d
 # Examples
 ## DragStarting
 Users can use `add_DragStarting` on the CompositionController to add an event handler
-that is invoked when drag is starting. They can use the event args to start their own
-drag or they can just set `Handled` to `FALSE` to ignore the drag.
+that is invoked when drag is starting. They can use the the event args to start their own
+drag. Notably the `Deferral` can be used to execute any async drag logic and call back into
+the WebView at a later time. The `Handled` property lets the WebView2 know whether to
+exercise its own drag logic or not.
 
 ```C++
 CHECK_FAILURE(m_compControllerStaging->add_DragStarting(
