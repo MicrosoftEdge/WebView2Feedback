@@ -2,77 +2,76 @@ DragStarting
 ===
 
 # Background
-The WebView2 team has been asked to provide a way to override the default drag drop behavior when running in visual hosting mode. This event allows you to know when a drag is initiated in WebView2 and provides the state necessary to override the default WebView2 drag operation with your own logic.
+The WebView2 team has been asked to provide a way to override the default drag
+drop behavior when running in visual hosting mode. This event allows you to know
+when a drag is initiated in WebView2 and provides the state necessary to override
+the default WebView2 drag operation with your own logic.
 
 # Examples
 ## DragStarting
-Users can use `add_DragStarting` on the CompositionController to add an event handler
-that is invoked when drag is starting. They can use the the event args to start their own
-drag. Notably the `Deferral` can be used to execute any async drag logic and call back into
-the WebView at a later time. The `Handled` property lets the WebView2 know whether to
-exercise its own drag logic or not.
+Users can use `add_DragStarting` on the CompositionController to add an event
+handler that is invoked when drag is starting. They can use the the event args
+to start their own drag. Notably the `Deferral` can be used to execute any async
+drag logic and call back into the WebView at a later time. The `Handled`
+property lets the WebView2 know whether to exercise its own drag logic or not.
 
 ```C++
-CHECK_FAILURE(m_compControllerStaging->add_DragStarting(
-  Callback<ICoreWebView2StagingDragStartingEventHandler>(
-      [this](ICoreWebView2CompositionController* sender, ICoreWebView2StagingDragStartingEventArgs* args)
+// Using DragStarting to simply make a synchronous DoDragDrop call instead of
+// having WebView2 do it.
+CHECK_FAILURE(m_compController5->add_DragStarting(
+  Callback<ICoreWebView2DragStartingEventHandler>(
+      [this](ICoreWebView2CompositionController5* sender,
+            ICoreWebView2DragStartingEventArgs* args)
       {
-          if (m_dragOverrideMode != DragOverrideMode::OVERRIDE)
-          {
-              // If the event is marked handled, WebView2 will not execute its drag logic.
-              args->put_Handled(m_dragOverrideMode == DragOverrideMode::NOOP);
-              return S_OK;
-          }
-
-          COREWEBVIEW2_DRAG_EFFECTS allowedEffects;
-          POINT dragPosition;
+          COREWEBVIEW2_DRAG_EFFECTS allowedEffects =
+              COREWEBVIEW2_DRAG_EFFECTS_NONE;
+          POINT dragPosition = {0, 0};
           wil::com_ptr<IDataObject> dragData;
-          wil::com_ptr<ICoreWebView2Deferral> deferral;
 
-          args->get_DragAllowedOperations(&allowedEffects);
-          args->get_DragPosition(&dragPosition);
-          args->get_DragData(&dragData);
-          args->GetDeferral(&deferral);
-
-          HRESULT hr = S_OK;
-          if (!m_oleInitialized)
-          {
-              hr = OleInitialize(nullptr);
-              if (SUCCEEDED(hr))
-              {
-                  m_oleInitialized = true;
-              }
-          }
+          CHECK_FAILURE(args->get_AllowedOperations(&allowedEffects));
+          CHECK_FAILURE(args->get_Position(&dragPosition));
+          CHECK_FAILURE(args->get_Data(&dragData));
 
           if (!m_dropSource)
           {
               m_dropSource = Make<ScenarioDragDropOverrideDropSource>();
           }
 
-          if (SUCCEEDED(hr))
+          DWORD effect;
+          DWORD okEffects = DROPEFFECT_NONE;
+          if (allowedEffects & COREWEBVIEW2_DRAG_EFFECTS_COPY)
           {
-              DWORD effect;
-              DWORD okEffects = DROPEFFECT_NONE;
-              if (allowedEffects & COREWEBVIEW2_DRAG_EFFECTS_COPY)
-              {
-                  okEffects |= DROPEFFECT_COPY;
-              }
-              if (allowedEffects & COREWEBVIEW2_DRAG_EFFECTS_MOVE)
-              {
-                  okEffects |= DROPEFFECT_MOVE;
-              }
-              if (allowedEffects & COREWEBVIEW2_DRAG_EFFECTS_LINK)
-              {
-                  okEffects |= DROPEFFECT_LINK;
-              }
-
-              hr = DoDragDrop(dragData.get(), m_dropSource.get(), okEffects, &effect);
+              okEffects |= DROPEFFECT_COPY;
+          }
+          if (allowedEffects & COREWEBVIEW2_DRAG_EFFECTS_MOVE)
+          {
+              okEffects |= DROPEFFECT_MOVE;
+          }
+          if (allowedEffects & COREWEBVIEW2_DRAG_EFFECTS_LINK)
+          {
+              okEffects |= DROPEFFECT_LINK;
           }
 
-          deferral->Complete();
-          args->put_Handled(TRUE);
+          HRESULT hr = DoDragDrop(
+              dragData.get(), m_dropSource.get(), okEffects, &effect);
+
+          args->put_Handled(SUCCEEDED(hr));
 
           return hr;
+      })
+      .Get(),
+  &m_dragStartingToken));
+
+// Using DragStarting to no-op a drag operation.
+CHECK_FAILURE(m_compController5->add_DragStarting(
+  Callback<ICoreWebView2DragStartingEventHandler>(
+      [this](ICoreWebView2CompositionController5* sender,
+            ICoreWebView2DragStartingEventArgs* args)
+      {
+        // If the event is marked handled, WebView2 will not execute its
+        // drag logic.
+        args->put_Handled(m_dragOverrideMode == DragOverrideMode::NOOP);
+        return S_OK;
       })
       .Get(),
   &m_dragStartingToken));
@@ -80,7 +79,10 @@ CHECK_FAILURE(m_compControllerStaging->add_DragStarting(
 
 # API Details
 ```C++
-/// Flags enum that represents the effects that a given WebView2 drag drop operation can have.
+/// Flags enum that represents the effects that a given WebView2 drag drop
+/// operation can have. The values of this enum align with the ole DROPEFFECT
+/// constant with the exception of DROPEFFECT_SCROLL which is only relevant for
+/// drop and therefore unsupported.
 [v1_enum]
 typedef enum COREWEBVIEW2_DRAG_EFFECTS {
   /// Drag operation supports no effect.
@@ -96,16 +98,18 @@ cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(COREWEBVIEW2_DRAG_EFFECTS)")
 
 /// Event args for the `DragStarting` event.
 [uuid(edb6b243-334f-59d0-b3b3-de87dd401adc), object, pointer_default(unique)]
-interface ICoreWebView2StagingDragStartingEventArgs : IUnknown {
+interface ICoreWebView2DragStartingEventArgs : IUnknown {
   /// The operations this drag data supports.
-  [propget] HRESULT DragAllowedOperations([out, retval] COREWEBVIEW2_DRAG_EFFECTS* value);
+  [propget] HRESULT AllowedOperations(
+      [out, retval] COREWEBVIEW2_DRAG_EFFECTS* value);
 
 
   /// The data being dragged.
-  [propget] HRESULT DragData([out, retval] IDataObject** value);
+  [propget] HRESULT Data([out, retval] IDataObject** value);
 
-  /// The position at which drag was detected.
-  [propget] HRESULT DragPosition([out, retval] POINT* value);
+  /// The position at which drag was detected. This position is given in
+  /// screen pixel coordinates as opposed to WebView2 relative coordinates.
+  [propget] HRESULT Position([out, retval] POINT* value);
 
 
   /// Gets the `Handled` property.
@@ -134,24 +138,25 @@ interface ICoreWebView2StagingDragStartingEventArgs : IUnknown {
 
 /// Receives `DragStarting` events.
 [uuid(3b149321-83c3-5d1f-b03f-a42899bc1c15), object, pointer_default(unique)]
-interface ICoreWebView2StagingDragStartingEventHandler : IUnknown {
+interface ICoreWebView2DragStartingEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
-      [in] ICoreWebView2CompositionController* sender,
-      [in] ICoreWebView2StagingDragStartingEventArgs* args);
+      [in] ICoreWebView2CompositionController5* sender,
+      [in] ICoreWebView2DragStartingEventArgs* args);
 }
 
 /// A continuation of the ICoreWebView2CompositionController4 interface.
 /// This interface includes an API which exposes the DragStarting event.
 [uuid(975d6824-6a02-5e98-ab7c-e4679d5357f4), object, pointer_default(unique)]
-interface ICoreWebView2StagingCompositionController : IUnknown {
-  /// Adds an event handler for the `DragStarting` event.
+interface ICoreWebView2CompositionController5 : IUnknown {
   /// Adds an event handler for the `DragStarting` event.  `DragStarting` is
   /// raised when the WebView2 detects a drag started within the WebView2.
-  /// This event can be used to override WebView2's default drag starting
-  /// logic.
+  /// WebView2's default drag behavior is to synchronously call DoDragDrop when
+  /// it detects drag. This event's args expose the data WebView2 uses to call
+  /// DoDragDrop to allow users to implement their own drag logic and override
+  /// WebView2's.
   HRESULT add_DragStarting(
-      [in] ICoreWebView2StagingDragStartingEventHandler* eventHandler,
+      [in] ICoreWebView2DragStartingEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_DragStarting`.
@@ -162,14 +167,16 @@ interface ICoreWebView2StagingCompositionController : IUnknown {
 }
 ```
 ```c# (but really MIDL3)
+namespace Microoft.Web.WebView2 {
     runtimeclass CoreWebView2DragStartingEventArgs
     {
 
-        Windows.ApplicationModel.DataTransfer.DataPackageOperation DragAllowedOperations { get; };
+        Windows.ApplicationModel.DataTransfer.DataPackageOperation
+            AllowedOperations { get; };
 
-        Windows.ApplicationModel.DataTransfer.DataPackage DragData { get; };
+        Windows.ApplicationModel.DataTransfer.DataPackage Data { get; };
 
-        Windows.Foundation.Point DragPosition { get; };
+        Windows.Foundation.Point Position { get; };
 
         Boolean Handled { get; set; };
 
@@ -183,14 +190,15 @@ interface ICoreWebView2StagingCompositionController : IUnknown {
     runtimeclass CoreWebView2CompositionController : CoreWebView2Controller
     {
       // ...
-      [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingCompositionController")]
+      [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2CompositionController5")]
       {
-
-          event Windows.Foundation.TypedEventHandler<CoreWebView2CompositionController, CoreWebView2DragStartingEventArgs> DragStarting;
-
+          event Windows.Foundation.TypedEventHandler<
+              CoreWebView2CompositionController,
+              CoreWebView2DragStartingEventArgs> DragStarting;
 
 
       }
       // ...
     }
+}
 ```
