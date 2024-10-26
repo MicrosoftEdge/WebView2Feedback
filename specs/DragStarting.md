@@ -7,6 +7,12 @@ drop behavior when running in visual hosting mode. This event allows you to know
 when a drag is initiated in WebView2 and provides the state necessary to override
 the default WebView2 drag operation with your own logic.
 
+## Note about .NET/WinRT projection
+The work to project this API to .NET and WinRT are yet to be completed. Overall
+usage of this API is expected to be uncommon. There are no known public asks for
+this. Further, this API is exposed on the CompositionController which is very
+rarely used in .NET apps.
+
 # Examples
 ## DragStarting
 Users can use `add_DragStarting` on the CompositionController to add an event
@@ -136,6 +142,49 @@ interface ICoreWebView2DragStartingEventArgs : IUnknown {
 
 }
 
+/// Interop interface for the CoreWebView2DragStartingEventArgs WinRT object to
+/// allow WinRT end developers to be able to access the COM interface arguments.
+/// This interface is implemented by the
+/// Microsoft.Web.WebView2.Core.CoreWebView2DragStartingEventArgs runtime class.
+[uuid(7a4daef9-1701-463f-992d-2136460cf76e), object, pointer_default(unique)]
+interface ICoreWebView2StagingDragStartingEventArgsInterop : IUnknown {
+  /// The operations this drag data supports.
+  [propget] HRESULT AllowedOperations(
+      [out, retval] COREWEBVIEW2_DRAG_EFFECTS* value);
+
+
+  /// The data being dragged.
+  [propget] HRESULT Data([out, retval] IDataObject** value);
+
+  /// The position at which drag was detected. This position is given in
+  /// screen pixel coordinates as opposed to WebView2 relative coordinates.
+  [propget] HRESULT Position([out, retval] POINT* value);
+
+
+  /// Gets the `Handled` property.
+  [propget] HRESULT Handled([out, retval] BOOL* value);
+
+
+  /// Indicates whether this event has been handled by the app.  If the
+  /// app handles this event, WebView2 will not initiate drag drop.  If
+  /// the app does not handle the event, WebView2 will initiate its own
+  /// drag drop logic.
+  [propput] HRESULT Handled([in] BOOL value);
+
+
+
+  /// Returns an `ICoreWebView2Deferral` object. Use this operation to complete
+  /// the CoreWebView2DragStartingEventArgs.
+  ///
+  /// Until the deferral is completed, subsequent attempts to initiate drag
+  /// in the WebView2 will fail and if the cursor was changed as part of
+  /// drag it will not restore.
+  HRESULT GetDeferral(
+      [out, retval] ICoreWebView2Deferral** value);
+
+
+}
+
 /// Receives `DragStarting` events.
 [uuid(3b149321-83c3-5d1f-b03f-a42899bc1c15), object, pointer_default(unique)]
 interface ICoreWebView2DragStartingEventHandler : IUnknown {
@@ -164,41 +213,5 @@ interface ICoreWebView2CompositionController5 : IUnknown {
       [in] EventRegistrationToken token);
 
 
-}
-```
-```c# (but really MIDL3)
-namespace Microoft.Web.WebView2 {
-    runtimeclass CoreWebView2DragStartingEventArgs
-    {
-
-        Windows.ApplicationModel.DataTransfer.DataPackageOperation
-            AllowedOperations { get; };
-
-        Windows.ApplicationModel.DataTransfer.DataPackage Data { get; };
-
-        Windows.Foundation.Point Position { get; };
-
-        Boolean Handled { get; set; };
-
-
-        Windows.Foundation.Deferral GetDeferral();
-
-
-
-    }
-
-    runtimeclass CoreWebView2CompositionController : CoreWebView2Controller
-    {
-      // ...
-      [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2CompositionController5")]
-      {
-          event Windows.Foundation.TypedEventHandler<
-              CoreWebView2CompositionController,
-              CoreWebView2DragStartingEventArgs> DragStarting;
-
-
-      }
-      // ...
-    }
 }
 ```
