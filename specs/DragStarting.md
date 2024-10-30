@@ -21,6 +21,7 @@ to start their own drag. Notably the `Deferral` can be used to execute any async
 drag logic and call back into the WebView at a later time. The `Handled`
 property lets the WebView2 know whether to exercise its own drag logic or not.
 
+## Override drag and drop
 ```C++
 // Using DragStarting to simply make a synchronous DoDragDrop call instead of
 // having WebView2 do it.
@@ -67,7 +68,10 @@ CHECK_FAILURE(m_compController5->add_DragStarting(
       })
       .Get(),
   &m_dragStartingToken));
+```
 
+## Disable drag and drop
+```C++
 // Using DragStarting to no-op a drag operation.
 CHECK_FAILURE(m_compController5->add_DragStarting(
   Callback<ICoreWebView2DragStartingEventHandler>(
@@ -76,7 +80,7 @@ CHECK_FAILURE(m_compController5->add_DragStarting(
       {
         // If the event is marked handled, WebView2 will not execute its
         // drag logic.
-        args->put_Handled(m_dragOverrideMode == DragOverrideMode::NOOP);
+        args->put_Handled(TRUE);
         return S_OK;
       })
       .Get(),
@@ -125,7 +129,7 @@ interface ICoreWebView2DragStartingEventArgs : IUnknown {
   /// Indicates whether this event has been handled by the app.  If the
   /// app handles this event, WebView2 will not initiate drag drop.  If
   /// the app does not handle the event, WebView2 will initiate its own
-  /// drag drop logic.
+  /// drag drop logic. The default value is FALSE.
   [propput] HRESULT Handled([in] BOOL value);
 
 
