@@ -142,49 +142,6 @@ interface ICoreWebView2DragStartingEventArgs : IUnknown {
 
 }
 
-/// Interop interface for the CoreWebView2DragStartingEventArgs WinRT object to
-/// allow WinRT end developers to be able to access the COM interface arguments.
-/// This interface is implemented by the
-/// Microsoft.Web.WebView2.Core.CoreWebView2DragStartingEventArgs runtime class.
-[uuid(7a4daef9-1701-463f-992d-2136460cf76e), object, pointer_default(unique)]
-interface ICoreWebView2StagingDragStartingEventArgsInterop : IUnknown {
-  /// The operations this drag data supports.
-  [propget] HRESULT AllowedOperations(
-      [out, retval] COREWEBVIEW2_DRAG_EFFECTS* value);
-
-
-  /// The data being dragged.
-  [propget] HRESULT Data([out, retval] IDataObject** value);
-
-  /// The position at which drag was detected. This position is given in
-  /// screen pixel coordinates as opposed to WebView2 relative coordinates.
-  [propget] HRESULT Position([out, retval] POINT* value);
-
-
-  /// Gets the `Handled` property.
-  [propget] HRESULT Handled([out, retval] BOOL* value);
-
-
-  /// Indicates whether this event has been handled by the app.  If the
-  /// app handles this event, WebView2 will not initiate drag drop.  If
-  /// the app does not handle the event, WebView2 will initiate its own
-  /// drag drop logic.
-  [propput] HRESULT Handled([in] BOOL value);
-
-
-
-  /// Returns an `ICoreWebView2Deferral` object. Use this operation to complete
-  /// the CoreWebView2DragStartingEventArgs.
-  ///
-  /// Until the deferral is completed, subsequent attempts to initiate drag
-  /// in the WebView2 will fail and if the cursor was changed as part of
-  /// drag it will not restore.
-  HRESULT GetDeferral(
-      [out, retval] ICoreWebView2Deferral** value);
-
-
-}
-
 /// Receives `DragStarting` events.
 [uuid(3b149321-83c3-5d1f-b03f-a42899bc1c15), object, pointer_default(unique)]
 interface ICoreWebView2DragStartingEventHandler : IUnknown {
@@ -206,6 +163,27 @@ interface ICoreWebView2CompositionController5 : IUnknown {
   /// WebView2's.
   HRESULT add_DragStarting(
       [in] ICoreWebView2DragStartingEventHandler* eventHandler,
+      [out] EventRegistrationToken* token);
+
+  /// Removes an event handler previously added with `add_DragStarting`.
+  HRESULT remove_DragStarting(
+      [in] EventRegistrationToken token);
+
+
+}
+
+/// Interop interface for the CoreWebView2CompositionController WinRT object to
+/// allow WinRT end developers to be able to access the COM interface arguments.
+/// This interface is implemented by the
+/// Microsoft.Web.WebView2.Core.CoreWebView2CompositionController runtime class.
+[uuid(7a4daef9-1701-463f-992d-2136460cf76e), object, pointer_default(unique)]
+interface ICoreWebView2StagingCompositionControllerInterop : IUnknown {
+  /// Adds an event handler for the `DragStarting` event.  `DragStarting` is
+  /// raised when the WebView2 detects a drag started within the WebView2.
+  /// This event can be used to override WebView2's default drag starting
+  /// logic.
+  HRESULT add_DragStarting(
+      [in] ICoreWebView2StagingDragStartingEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_DragStarting`.
