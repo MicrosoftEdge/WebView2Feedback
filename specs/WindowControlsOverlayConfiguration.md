@@ -113,7 +113,7 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
   ///will automatically calculate a foreground and hover color that will
   /// provide you the best contrast while maintaining accessibility.
   /// Defaults to #f3f3f3
-  [propput] HRESULT TitleBarColor([in] COREWEBVIEW2_COLOR value);
+  [propput] HRESULT TitleBarBackgroundColor([in] COREWEBVIEW2_COLOR value);
 }
 ```
 
