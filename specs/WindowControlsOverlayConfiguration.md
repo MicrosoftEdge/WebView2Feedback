@@ -6,10 +6,15 @@ This API allows you to enable and configure the Webview2 Window Controls Overlay
 The Overlay is a region on the top right/left of the webview window which contains 
 the caption buttons (minimize, maximize, restore, close). Enabing the Overlay allows
 for custom app title bars rendered completely inside the webview window.
-The overlay Settings lives on the controller object.
 
 This API is designed to be used in addition with the other non-client region APIs 
 and features. These include `app-region: drag`, and `IsNonClientRegionSupportEnabled`.
+
+# Conceptual pages (How To)
+Here is a concept doc on the window controls overlay: https://wicg.github.io/window-controls-overlay/#concepts. 
+This was written for the PWA counterpart  for this feature. From the perspective of
+HTML & Javascript layers, everything there applies in Webview2 as well.
+
 # Examples
 
 ## Win32 C++
@@ -27,15 +32,19 @@ AppWindow::AppWindow() {
 
 void  AppWindow::OnCreateWebview2ControllerCompleted(HRESULT hr, ICoreWebview2Controller* controller) 
 {
-    wil::com_ptr<ICoreWebView2Controller5> controller5;
-    CHECK_FAILURE(controller->QueryInterface(&controller5));
 
-    wil::com_ptr<ICoreWebView2WindowControlsOverlaySettings> wco_config;
-    CHECK_FAILURE(controller5->get_WindowControlsOverlaySettings(&wco_config));
+    wil::com_ptr<ICoreWebView2> coreWebView2;
+    CHECK_FAILURE(m_controller->get_CoreWebView2(&coreWebView2));
 
-    wco_config->put_IsEnabled(true);
+    wil::com_ptr<ICoreWebView2> coreWebView2_28;
+    CHECK_FAILURE(coreWebView2->QueryInterface(&coreWebView2_28));
+
+    wil::com_ptr<ICoreWebView2WindowControlsOverlaySettings> windowControlsOverlaySettings;
+    CHECK_FAILURE(coreWebView2_28->get_WindowControlsOverlaySettings(&wco_config));
+
+    CHECK_FAILURE(wco_config->put_IsEnabled(true));
     COREWEBVIEW2_COLOR color {1, 0, 0, 225};
-    wco_config->put_TitleBarColor(color);
+    CHECK_FAILURE(wco_config->put_TitleBarBackgroundColor(color));
 }
 ```
 ## .NET C#
@@ -47,7 +56,7 @@ public MainWindow()
     InitializeComponent();
     m_AppWindow.TitleBar.ExtendsContentIntoTitleBar = true;
 
-    CoreWebView2WindowControlsOverlaySettings config = _coreWebView2Controller.WindowControlsOverlaySettings;
+    CoreWebView2WindowControlsOverlaySettings config = Webview2.CoreWebivew2.WindowControlsOverlaySettings;
     config.IsEnabled = true; 
     config.color = Color.FromARGB(0, 0, 255);
 }
@@ -61,7 +70,7 @@ public MainWindow()
 /// initialization errors appropriately. Provide your users with a way to close the window
 /// or restart the App.
 [uuid(101e36ca-7f75-5105-b9be-fea2ba61a2fd), object, pointer_default(unique)]
-interface ICoreWebView2Controller5 : IUnknown {
+interface ICoreWebView2_28 : IUnknown {
   /// Gets the `WindowControlsOverlaySettings` object.
   [propget] HRESULT WindowControlsOverlaySettings([out, retval] ICoreWebView2WindowControlsOverlaySettings** value);
 }
@@ -74,7 +83,10 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
 
 
   /// The `Height` property in raw screen pixels, allows you to set the height of the overlay and
-  /// title bar area. Defaults to 48px. 
+  /// title bar area. Defaults to 48px. There is no minimum height restriction for this API,
+  /// so it is up to the developer to make sure that the height of your window controls overlay
+  /// is enough that users can see and interact with it. We recommend using GetSystemMetrics(SM_CYCAPTION)
+  // as you minimum height.
   /// 
   [propput] HRESULT Height([in] UINT32 value);
 
@@ -97,7 +109,8 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
   /// 
   /// The Overlay buttons will sit on top of the HTML content, and will prevent mouse interactions
   /// with any elements directly below it, so you should avoid placing content there. 
-  /// To that end, there are four CSS environment vairables defined to help you 
+  /// To that end, there are four [CSS environment vairables](https://developer.mozilla.org/en-US/docs/Web/API/Window_Controls_Overlay_API#css_environment_variables) 
+  /// titlebar-area-x, titlebar-area-y, titlebar-area-width defined to help you 
   /// get the dimensions of the available titlebar area to the left of the overlay.
   /// Similarly the navigator object wil contain a [WindowControlsOverlay property](https://developer.mozilla.org/en-US/docs/Web/API/WindowControlsOverlay)
   /// which can be used to get the titlebar area as a rect, and listen for changes
@@ -105,14 +118,14 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
   ///
   [propput] HRESULT IsEnabled([in] BOOL value);
 
-  /// Gets the `TitleBarColor` property.
-  [propget] HRESULT TitleBarColor([out, retval] COREWEBVIEW2_COLOR* value);
+  /// Gets the `TitleBarBackgroundColor` property.
+  [propget] HRESULT TitleBarBackgroundColor([out, retval] COREWEBVIEW2_COLOR* value);
 
-  /// The `TitleBarColor` property allows you to set a background color
+  /// The `TitleBarBackgroundColor` property allows you to set a background color
   /// for the overlay. Based on the background color you choose, Webview2 
   ///will automatically calculate a foreground and hover color that will
   /// provide you the best contrast while maintaining accessibility.
-  /// Defaults to #f3f3f3
+  /// Defaults to #f3f3f3. This API supports transparency.
   [propput] HRESULT TitleBarBackgroundColor([in] COREWEBVIEW2_COLOR value);
 }
 ```
@@ -121,9 +134,9 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2Controller
+    runtimeclass CoreWebView2
     {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Controller")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_28")]
         {
             CoreWebView2WindowControlsOverlaySettings WindowControlsOverlaySettings { get; };
         }
@@ -135,8 +148,9 @@ namespace Microsoft.Web.WebView2.Core
         {
             Boolean IsEnabled { get; set; };
             UInt32 Height { get; set; };
-            Windows.UI.Color TitleBarColor { get; set; }
+            Windows.UI.Color TitleBarBackgroundColor { get; set; }
         }
     }
 }
 ```
+
