@@ -58,7 +58,7 @@ public MainWindow()
 ```cpp
 /// Controller API used to configure the window controls overlay.
 /// To provide your app users with the best experience, it is important to handle webview 
-/// initialization errors appropriatly. Provide your users with a way to close the window
+/// initialization errors appropriately. Provide your users with a way to close the window
 /// or restart the App.
 [uuid(101e36ca-7f75-5105-b9be-fea2ba61a2fd), object, pointer_default(unique)]
 interface ICoreWebView2Controller5 : IUnknown {
