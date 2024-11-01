@@ -135,7 +135,7 @@ namespace Microsoft.Web.WebView2.Core
         {
             Boolean IsEnabled { get; set; };
             UInt32 Height { get; set; };
-            System.Drawing.Color TitleBarColor { get; set; }
+            Windows.UI.Color TitleBarColor { get; set; }
         }
     }
 }
