@@ -5,7 +5,7 @@ WebView2 Window Controls
 This API allows you to enable and configure the Webview2 Window Controls Overlay.
 The Overlay is a region on the top right/left of the webview window which contains 
 the caption buttons (minimize, maximize, restore, close). Enabing the Overlay allows
-for custom app title bars rendered completly inside the webview window.
+for custom app title bars rendered completely inside the webview window.
 The overlay Settings lives on the controller object.
 
 This API is designed to be used in addition with the other non-client region APIs 
