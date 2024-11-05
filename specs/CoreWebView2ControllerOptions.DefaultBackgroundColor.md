@@ -27,26 +27,27 @@ applies the color too late.
 ```cpp
  HRESULT AppWindow::CreateControllerWithOptions()
 {
-    wil::com_ptr<ICoreWebView2ControllerOptions4> options4;
+    wil::com_ptr<ICoreWebView2ControllerOptions> options;
     HRESULT hr = m_environment->CreateCoreWebView2ControllerOptions(&options);
 
     if (hr == E_INVALIDARG)
     {
+        ShowFailure(hr, L"Invalid profile name.");
         return S_OK;
     }
 
     wil::com_ptr<ICoreWebView2ControllerOptions4> options4;
-    auto result = options->QueryInterface(IID_PPV_ARGS(&stagingOptions));
+    auto result = options->QueryInterface(IID_PPV_ARGS(&options4));
 
     if (SUCCEEDED(result))
     {
-        COREWEBVIEW2_COLOR wvColor{255, 223, 225, 225};
-        stagingOptions->put_DefaultBackgroundColor(wvColor);
+        COREWEBVIEW2_COLOR wvColor{255, 85, 0, 225};
+        options4->put_DefaultBackgroundColor(wvColor);
     }
 
     m_environment->CreateCoreWebView2Controller(
         m_mainWindow,
-        SUCCEEDED(result) ? stagingOptions.Get() : options.Get(),
+        SUCCEEDED(result) ? options4.Get() : options.Get(),
         Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
             this, &AppWindow::OnCreateCoreWebView2ControllerCompleted).Get());
     
@@ -69,7 +70,7 @@ private void SetDefaultBackgroundColor()
 {
     CoreWebView2Environment environment = CoreWebView2Environment.CreateAsync();
     CoreWebView2ControllerOptions options = environment.CreateCoreWebView2ControllerOptions();
-    options.DefaultBackgroundColor = Color.FromArgb(0, 0, 255);
+    options.DefaultBackgroundColor = Color.FromArgb(255, 85, 0, 255);
     WebView2.EnsureCoreWebView2Async(environment, options);  
 }
 
