@@ -30,12 +30,10 @@ CHECK_FAILURE(m_compController5->add_DragStarting(
       [this](ICoreWebView2CompositionController5* sender,
             ICoreWebView2DragStartingEventArgs* args)
       {
-          DWORD allowedEffects = COREWEBVIEW2_DROP_EFFECTS_NONE;
-          POINT dragPosition = {0, 0};
+          DWORD okEffects = COREWEBVIEW2_DROP_EFFECTS_NONE;
           wil::com_ptr<IDataObject> dragData;
 
-          CHECK_FAILURE(args->get_AllowedDropEffects(&allowedEffects));
-          CHECK_FAILURE(args->get_Position(&dragPosition));
+          CHECK_FAILURE(args->get_AllowedDropEffects(&okEffects));
           CHECK_FAILURE(args->get_Data(&dragData));
 
           // This member refers to an implementation of IDropSource. It is an
@@ -46,9 +44,9 @@ CHECK_FAILURE(m_compController5->add_DragStarting(
               m_dropSource = Make<ScenarioDragDropOverrideDropSource>();
           }
 
+          DWORD effect = DROPEFFECT_NONE;
           HRESULT hr = DoDragDrop(
-              dragData.get(), m_dropSource.get(), allowedEffects, &effect);
-
+              dragData.get(), m_dropSource.get(), okEffects, &effect);
           args->put_Handled(SUCCEEDED(hr));
 
           return hr;
@@ -76,25 +74,16 @@ CHECK_FAILURE(m_compController5->add_DragStarting(
 
 # API Details
 ```C++
-/// DWORD constants that represent the effects that a given WebView2 drag drop
-/// operation can have. The values of this enum align with the
-/// [OLE DROPEFFECT constant](https://learn.microsoft.com/en-us/windows/win32/com/dropeffect-constants)
-/// with the exception of DROPEFFECT_SCROLL which is unused in WebView2 drag
-/// drop scenarios.
-const DWORD COREWEBVIEW2_DROP_EFFECTS_NONE = 0;
-const DWORD COREWEBVIEW2_DROP_EFFECTS_COPY = 1;
-const DWORD COREWEBVIEW2_DROP_EFFECTS_MOVE = 2;
-const DWORD COREWEBVIEW2_DROP_EFFECTS_LINK = 4;
-
 /// Event args for the `DragStarting` event.
 [uuid(edb6b243-334f-59d0-b3b3-de87dd401adc), object, pointer_default(unique)]
 interface ICoreWebView2DragStartingEventArgs : IUnknown {
-  /// The operations this drag data supports.
+  /// The [OLE DROPEFFECT](https://learn.microsoft.com/en-us/windows/win32/com/dropeffect-constants)
+  /// values this drag data supports.
   [propget] HRESULT AllowedDropEffects(
       [out, retval] COREWEBVIEW2_DROP_EFFECTS* value);
 
 
-  /// The data being dragged.
+  /// The data to be dragged.
   [propget] HRESULT Data([out, retval] IDataObject** value);
 
   /// The position at which drag was detected given in WebView2 relative
