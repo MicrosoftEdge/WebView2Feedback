@@ -243,7 +243,7 @@ interface ICoreWebView2Frame7 : IUnknown {
   /// Use `ICoreWebView2Frame.add_Destroyed` to listen for when this
   /// iframe goes away.
   /// 
-  /// \snippet ScenarioWebViewEventMonitor.cpp FrameCreated1
+  /// \snippet ScenarioWebViewEventMonitor.cpp FrameCreated
   HRESULT add_FrameCreated(
       [in] ICoreWebView2FrameNestedFrameCreatedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
