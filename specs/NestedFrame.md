@@ -4,7 +4,7 @@ CoreWebView2Frame.FrameCreated API
 # Background
 At present, WebView2 enables developers to track only first-level
 iframes, which are the direct child iframes of the main frame.
-However, we're noticing WebView2 customers want to manage nested
+However, we see that WebView2 customers want to manage nested
 iframes, such as recording the navigation history for a nested
 iframe. To address this, we will introduce the
 `CoreWebView2Frame.FrameCreated` API. This new API will allow
@@ -13,12 +13,14 @@ giving them access to all properties, methods, and events of
 [CoreWebView2Frame](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2frame)
 for the nested iframe.
 
-To prevent unnecessary performance overhead, WebView2 does not track
-any nested iframes by default. It only tracks a nested iframe if its
-parent iframe(`CoreWebView2Frame`) has subscribed to the 
-`CoreWebView2Frame.FrameCreated` API. Therefore, WebView2 developers
-have the flexibility to choose whether they want to track specific
-branches of the iframe tree or all WebView2 iframes.
+To prevent unnecessary performance implication, WebView2 does
+not track any nested iframes by default. It only tracks a nested
+iframe if its parent iframe(`CoreWebView2Frame`) has subscribed
+to the `CoreWebView2Frame.FrameCreated` API. For a page with
+multi-level iframes, developers can choose to track only the
+main page and first-level iframes (the default behavior), a
+partial WebView2 frames tree with specific iframes of interest,
+or the full WebView2 frames tree.
 
 # Examples
 ### C++ Sample
@@ -182,7 +184,7 @@ void HandleChildFrameCreated(object sender, CoreWebView2FrameCreatedEventArgs ar
     CoreWebView2Frame childFrame = args.Frame;
     string name = String.IsNullOrEmpty(childFrame.Name) ? "none" : childFrame.Name;
     MessageBox.Show(this, "Id: " + childFrame.FrameId + " name: " + name, "Child frame created", MessageBoxButton.OK);
-    // Make a recursive call to track all nested webview2 frames events.
+    // Make a recursive call to track all nested webview frames events.
     childFrame.FrameCreated += HandleChildFrameCreated;
     childFrame.NavigationStarting += HandleChildFrameNavigationStarting;
     childFrame.ContentLoading += HandleChildFrameContentLoading;
