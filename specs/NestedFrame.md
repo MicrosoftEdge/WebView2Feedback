@@ -2,31 +2,28 @@ CoreWebView2Frame.FrameCreated API
 ===
 
 # Background
-At present, WebView2 enables developers to track only
-first-level iframes, which are the direct child frames
-of the main frame. However, we're noticing WebView2
-customers want to manage nested iframes, such as
-recording the navigation history for a nested iframe.
-To address this, we will introduce the
+At present, WebView2 enables developers to track only first-level
+iframes, which are the direct child iframes of the main frame.
+However, we're noticing WebView2 customers want to manage nested
+iframes, such as recording the navigation history for a nested
+iframe. To address this, we will introduce the
 `CoreWebView2Frame.FrameCreated` API. This new API will allow
-developers to subscribe to the event when a nested WebView frame
-is created, giving them access to all properties, methods, and
-events of [CoreWebView2Frame](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2frame)
-for the nested WebView frame.
+developers to subscribe to the nested iframe creation event,
+giving them access to all properties, methods, and events of
+[CoreWebView2Frame](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2frame)
+for the nested iframe.
 
-To prevent unnecessary performance overhead, WebView2
-does not track any nested WebView frames by default.
-It only tracks a webview2 frame if its parent webview2
-frame has subscribed to the `CoreWebView2Frame.FrameCreated`
-API. Therefore, WebView2 developers have the flexibility
-to choose whether they want to track specific branches of
-the frame tree or all webview2 frames.
+To prevent unnecessary performance overhead, WebView2 does not track
+any nested iframes by default. It only tracks a nested iframe if its
+parent iframe(`CoreWebView2Frame`) has subscribed to the 
+`CoreWebView2Frame.FrameCreated` API. Therefore, WebView2 developers
+have the flexibility to choose whether they want to track specific
+branches of the iframe tree or all WebView2 iframes.
 
 # Examples
 ### C++ Sample
 ```cpp
 EventRegistrationToken m_frameCreatedToken = {};
-
 void PostFrameCreatedEventMessage(wil::com_ptr<ICoreWebView2Frame> webviewFrame);
 
 void ScenarioWebViewEventMonitor::InitializeEventView(ICoreWebView2* webviewEventView)
@@ -243,7 +240,7 @@ interface ICoreWebView2Frame7 : IUnknown {
   /// Use `ICoreWebView2Frame.add_Destroyed` to listen for when this
   /// iframe goes away.
   /// 
-  /// \snippet ScenarioWebViewEventMonitor.cpp FrameCreated
+  /// \snippet ScenarioWebViewEventMonitor.cpp AddFrameCreated
   HRESULT add_FrameCreated(
       [in] ICoreWebView2FrameNestedFrameCreatedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
