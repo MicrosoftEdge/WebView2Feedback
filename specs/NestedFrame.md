@@ -200,7 +200,7 @@ raised from the first-level iframe.
 ### `CoreWebView2.ProcessFailed`
 With the support of tracking nested iframes, the processes
 which support these nested iframes will be also tracked by
-[ProcessFailed](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2.processfailed)
+[ProcessFailed](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2.processfailed).
 As we only track processes running tracked iframes, existing
 developers will not receive any process failed events specific
 to nested iframes as they haven't subscribe to the 
