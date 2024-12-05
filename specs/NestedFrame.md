@@ -170,8 +170,8 @@ namespace Microsoft.Web.WebView2.Core
 In the current case of nested iframes, the [PermissionRequested](https://learn.microsoft.com/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame#permissionrequested)
 and [ScreenCaptureStarting](https://learn.microsoft.com/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2frame#screencapturestarting)
 events will be raised from the top-level iframe. With the support
-of tracking nested iframes, this request can be handled directly
-by the nested iframe. Therefore, we now raise these requests to
+of tracking nested iframes, we can now handle these requests directly
+within the nested iframe. Specifically, these requests are raised to
 the nearest tracked frame, which is the `CoreWebView2Frame` closest
 to the frame that initiates the request (from bottom to top).
 ```
@@ -196,6 +196,14 @@ to current `PermissionRequested` developers, as they haven't
 subscribe to the `CoreWebView2Frame.FrameCreated` event.
 Therefore, requests originating from iframes will still be
 raised from the first-level iframe.
+
+If the `PermissionRequested` event is not handled in the current
+tracked frame, the request will propagate to its parent
+`CoreWebView2Frame`, or to `CoreWebView2` if the parent frame
+is the main frame. For example, if frame D is tracked but does
+not handle the request, the request will bubble up to frame C.
+If frame C handles the request, it will not propagate further
+to its parent frame B.
 
 ### `CoreWebView2.ProcessFailed`
 With the support of tracking nested iframes, the processes
