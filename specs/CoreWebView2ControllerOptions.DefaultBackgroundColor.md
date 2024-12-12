@@ -86,7 +86,7 @@ private void SetDefaultBackgroundColor()
 /// It is encouraged to transition away from the environment variable and use this API solution to apply the property.
 
 [uuid(df9cb70b-8d87-5bca-ae4b-6f23285e8d94), object, pointer_default(unique)]
-interface ICoreWebView2ControllerOptions4 : IUnknown {
+interface ICoreWebView2ControllerOptions4 : ICoreWebView2ControllerOptions3 {
   
   /// This API allows users to initialize the `DefaultBackgroundColor` early,
   /// preventing a white flash that can happen while WebView2 is loading when
