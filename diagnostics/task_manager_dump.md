@@ -6,7 +6,7 @@ Normally, crash dumps are gathered automatically and available in the app's user
 3. Sort by the "Name" column.
 4. Scroll to find "msedgewebview2.exe"
 5. To find the right msedgewebview2.exe, you can use a combination of:
-    1. The "Package name" column, which will represent the application using WebView2.
+    1. The "Package name" column, which will represent the application using WebView2. (you might need to right-click the column headers and check the box for "Package name")
     2. The "Description" column, which will describe which of WebView2's processes it is. (you might need to make Task Manager very wide to see this one, you can drag to re-arrange the columns if needed)
     
     For example, if you're asked to get a crash dump of "Outlook's Manager process", you'll want the process that has "Outlook" as its Package name, and "WebView2 Manager" for its Description.
