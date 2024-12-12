@@ -45,7 +45,7 @@ applies the color too late.
         options4->put_DefaultBackgroundColor(wvColor);
     }
 
-    m_environment->CreateCoreWebView2Controller(
+    m_environment->CreateCoreWebView2ControllerWithOptions(
         m_mainWindow,
         SUCCEEDED(result) ? options4.Get() : options.Get(),
         Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
