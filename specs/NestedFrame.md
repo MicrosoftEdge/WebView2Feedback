@@ -13,100 +13,236 @@ giving them access to all properties, methods, and events of
 [CoreWebView2Frame](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2frame)
 for the nested iframe.
 
-To prevent unnecessary performance implication, WebView2 does
-not track any nested iframes by default. It only tracks a nested
-iframe if its parent iframe (`CoreWebView2Frame`) has subscribed
-to the `CoreWebView2Frame.FrameCreated` API. For a page with
-multi-level iframes, developers can choose to track only the
-main page and first-level iframes (the default behavior), a
-partial WebView2 frames tree with specific iframes of interest,
-or the full WebView2 frames tree.
+With the new API, developers can manage iframe tracking on a page
+contains multiple levels of iframes. They can choose track only the
+main page and first-level iframes (the default behavior), a partial
+WebView2 frames tree with specific iframes of interest, or the full
+WebView2 frames tree.
 
 # Examples
+## Track partial WebView2 Frames Tree
 ### C++ Sample
-```cpp
+```cpp 
 wil::com_ptr<ICoreWebView2> m_webview;
-std::map<int, std::vector<std::wstring>> m_frame_navigation_urls;
-// In this example, a WebView2 application wants to manage the 
-// navigation of third-party content residing in second-level iframes
+std::map<UINT32, std::vector<std::wstring>> m_frame_navigation_urls;
+// In this example, we present a scenario where a WebView2 application wants to
+// manage the navigation of third-party content residing in second-level iframes
 // (Main frame -> First-level frame -> Second-level third-party frames).
-HRESULT RecordThirdPartyFrameNavigation() {
+void TrackThirdPartyFrameNavigations()
+{
     auto webview2_4 = m_webView.try_query<ICoreWebView2_4>();
-    // Track the first-level webview frame.
-    webview2_4->add_FrameCreated(
+    if (webview2_4)
+    {
+        webview2_4->add_FrameCreated(
             Callback<ICoreWebView2FrameCreatedEventHandler>(
-                [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args)
-                    -> HRESULT {
+                [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args) 
+                noexcept -> HRESULT
+                {
                     // [AddFrameCreated]
                     wil::com_ptr<ICoreWebView2Frame> webviewFrame;
                     CHECK_FAILURE(args->get_Frame(&webviewFrame));
+
                     // Track nested (second-level) webview frame.
                     auto frame7 = webviewFrame.try_query<ICoreWebView2Frame7>();
-                    frame7->add_FrameCreated(
-                        Callback<ICoreWebView2FrameChildFrameCreatedEventHandler>(
-                            [this](
-                                ICoreWebView2Frame* sender,
-                                ICoreWebView2FrameCreatedEventArgs* args) -> HRESULT
-                            {
-                                wil::com_ptr<ICoreWebView2Frame> webviewFrame;
-                                CHECK_FAILURE(args->get_Frame(&webviewFrame));
-                                wil::com_ptr<ICoreWebView2Frame2> frame2 = 
-                                    webviewFrame.try_query<ICoreWebView2Frame2>();
-                                if (frame2)
+                    if (frame7)
+                    {
+                        frame7->add_FrameCreated(
+                            Callback<ICoreWebView2FrameChildFrameCreatedEventHandler>(
+                                [this](
+                                    ICoreWebView2Frame* sender,
+                                    ICoreWebView2FrameCreatedEventArgs* args) noexcept
+                                -> HRESULT
                                 {
-                                    // Subscribe to nested (second-level) webview frame navigation 
-                                    // starting event.
-                                    frame2->add_NavigationStarting(
-                                        Callback<ICoreWebView2FrameNavigationStartingEventHandler>(
-                                            [this](
-                                                ICoreWebView2Frame* sender,
-                                                ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT {
-                                                // Manage the navigation, e.g. cancel the 
-                                                // navigation if it's on block list.
-                                                UINT32 frameId = 0;
-                                                auto frame5 = wil::com_ptr<ICoreWebView2Frame>(sender)
-                                                                .try_query<ICoreWebView2Frame5>();
-                                                CHECK_FAILURE(frame5->get_FrameId(&frameId));
-                                                wil::unique_cotaskmem_string uri;
-                                                CHECK_FAILURE(args->get_Uri(&uri));
-                                                // Log the navigation history per frame Id.
-                                                m_frame_navigation_urls[(int)frameId].push_back(uri.get());
-                                                return S_OK;
-                                            })
-                                            .Get(),
-                                        nullptr);
-                                }
-                                return S_OK;
-                            })
-                            .Get(),
-                        nullptr);
+                                    wil::com_ptr<ICoreWebView2Frame> webviewFrame;
+                                    CHECK_FAILURE(args->get_Frame(&webviewFrame));
+
+                                    wil::com_ptr<ICoreWebView2Frame2> frame2 =
+                                        webviewFrame.try_query<ICoreWebView2Frame2>();
+                                    if (frame2)
+                                    {
+                                        // Subscribe to nested (second-level) webview frame
+                                        // navigation starting event.
+                                        frame2->add_NavigationStarting(
+                                            Callback<
+                                                ICoreWebView2FrameNavigationStartingEventHandler>(
+                                                [this](
+                                                    ICoreWebView2Frame* sender,
+                                                    ICoreWebView2NavigationStartingEventArgs* args) 
+                                                    noexcept -> HRESULT
+                                                {
+                                                    // Manage the navigation, e.g. cancel the
+                                                    // navigation if it's on block list.
+
+                                                    UINT32 frameId = 0;
+                                                    auto frame5 =
+                                                        wil::try_query<ICoreWebView2Frame5>(sender);
+                                                    if (frame5)
+                                                    {
+                                                        CHECK_FAILURE(
+                                                            frame5->get_FrameId(&frameId));
+                                                    }
+                                                    wil::unique_cotaskmem_string uri;
+                                                    CHECK_FAILURE(args->get_Uri(&uri));
+
+                                                    // Log the navigation history per frame Id.
+                                                    m_frame_navigation_urls[frameId].push_back(uri.get());
+                                                    return S_OK;
+                                                })
+                                                .Get(),
+                                            nullptr);
+                                    }
+                                    return S_OK;
+                                })
+                                .Get(),
+                            nullptr);
+                    }
                     // [AddFrameCreated]
                     return S_OK;
                 })
                 .Get(),
-        nullptr);
+            nullptr);
+    }
 }
+
 ```
 ### C# Sample
 ```c#
 var _frameNavigationUrls = new Dictionary<UINT32, List<string>>();
-// In this example, a WebView2 application wants to manage the 
-// navigation of third-party content residing in second-level iframes
+// In this example, we present a scenario where a WebView2 application wants to
+// manage the navigation of third-party content residing in second-level iframes
 // (Main frame -> First-level frame -> second-level third-party frames).
-void RecordThirdPartyFrameNavigation() {
+void TrackThirdPartyFrameNavigations()
+{
     webView.CoreWebView2.FrameCreated += (sender, args) =>
     {
         // Track nested (second-level) webview frame.
         args.Frame.FrameCreated += (frameCreatedSender, frameCreatedArgs) => 
         {
             CoreWebView2Frame childFrame = frameCreatedArgs.Frame;
-            childFrame.NavigationStarting += HandleChildFrameNavigationStarting;
-        }
+            childFrame.NavigationStarting += OnFrameNavigationStarting;
+        };
+    };
+}
+
+void OnFrameNavigationStarting(object sender, 
+    CoreWebView2NavigationStartingEventArgs args)
+{
+    // Manage the navigation, e.g. cancel the navigation 
+    // if it's on block list.
+    CoreWebView2Frame frame = (CoreWebView2Frame)sender;
+    if (!_frameNavigationUrls.ContainsKey(frame.FrameId))
+    {
+        _frameNavigationUrls[frame.FrameId] = new List<string>();
+    }
+    // Log the navigation history per frame Id. 
+    _frameNavigationUrls[frame.FrameId].Add(args.Uri);
+}
+```
+
+## Track entire WebView2 Frames Tree
+### C++ Sample
+```C++ 
+wil::com_ptr<ICoreWebView2> m_webview;
+std::map<UINT32, std::vector<std::wstring>> m_frame_navigation_urls;
+void OnFrameCreated(wil::com_ptr<ICoreWebView2Frame> webviewFrame);
+// In this example, we present a scenario where a WebView2 application
+// wants to manage the navigation in all iframes.
+void TrackAllFrameNavigations()
+{
+    auto webview2_4 = m_webview.try_query<ICoreWebView2_4>();
+    if (webview2_4)
+    {
+        webview2_4->add_FrameCreated(
+            Callback<ICoreWebView2FrameCreatedEventHandler>(
+                [this](ICoreWebView2* sender, ICoreWebView2FrameCreatedEventArgs* args) 
+                noexcept -> HRESULT
+                {
+                    wil::com_ptr<ICoreWebView2Frame> webviewFrame;
+                    CHECK_FAILURE(args->get_Frame(&webviewFrame));
+                    // Track first-level webview frame.
+                    OnFrameCreated(webviewFrame);
+                    return S_OK;
+                })
+                .Get(),
+            nullptr);
     }
 }
 
-void HandleChildFrameNavigationStarting(object sender, 
-    CoreWebView2NavigationStartingEventArgs args)
+void OnFrameCreated(wil::com_ptr<ICoreWebView2Frame> webviewFrame)
+{
+    auto frame7 = webviewFrame.try_query<ICoreWebView2Frame7>();
+    if (frame7)
+    {
+        //! [AddFrameCreated]
+        frame7->add_FrameCreated(
+            Callback<ICoreWebView2FrameChildFrameCreatedEventHandler>(
+                [this](
+                    ICoreWebView2Frame* sender,
+                    ICoreWebView2FrameCreatedEventArgs* args) noexcept -> HRESULT
+                {
+                    wil::com_ptr<ICoreWebView2Frame> webviewFrame;
+                    CHECK_FAILURE(args->get_Frame(&webviewFrame));
+                    // Make a recursive call to track all nested
+                    // webview frame.
+                    OnFrameCreated(webviewFrame);
+                    return S_OK;
+                })
+                .Get(),
+            nullptr);
+        //! [AddFrameCreated]
+    }
+
+    // Subscribe to webview frame navigation starting event.
+    wil::com_ptr<ICoreWebView2Frame2> frame2 = webviewFrame.try_query<ICoreWebView2Frame2>();
+    if (frame2)
+    {
+        frame2->add_NavigationStarting(
+            Callback<ICoreWebView2FrameNavigationStartingEventHandler>(
+                [this](
+                    ICoreWebView2Frame* sender,
+                    ICoreWebView2NavigationStartingEventArgs* args) noexcept -> HRESULT
+                {
+                    // Manage the navigation, e.g. cancel the
+                    // navigation if it's on block list.
+
+                    UINT32 frameId = 0;
+                    auto frame5 = wil::try_query<ICoreWebView2Frame5>(sender);
+                    if (frame5)
+                    {
+                        CHECK_FAILURE(frame5->get_FrameId(&frameId));
+                    }
+                    wil::unique_cotaskmem_string uri;
+                    CHECK_FAILURE(args->get_Uri(&uri));
+
+                    // Log the navigation history per frame Id.
+                    m_frame_navigation_urls[frameId].push_back(uri.get());
+                    return S_OK;
+                })
+                .Get(),
+            nullptr);
+    }
+}
+```
+
+### C# Sample
+```C# 
+var _frameNavigationUrls = new Dictionary<UINT32, List<string>>();
+// In this example, we present a scenario where a WebView2 application
+// wants to manage the navigation in all iframes.
+void TrackAllFrameNavigations(object target, ExecutedRoutedEventArgs e)
+{
+    webView.CoreWebView2.FrameCreated += OnFrameCreated;
+}
+
+void OnFrameCreated(object sender, CoreWebView2FrameCreatedEventArgs args)
+{
+    CoreWebView2Frame childFrame = args.Frame;
+    // Make a recursive call to track all nested webview frames event.
+    childFrame.FrameCreated += OnFrameCreated;
+    childFrame.NavigationStarting += OnFrameNavigationStarting;
+}
+
+void OnFrameNavigationStarting(object sender, CoreWebView2NavigationStartingEventArgs args)
 {
     // Manage the navigation, e.g. cancel the navigation 
     // if it's on block list.
@@ -186,16 +322,17 @@ to the frame that initiates the request (from bottom to top).
 ```
 Suppose there's a `PermissionRequest` comes from D.
 * If D is a tracked frame (`CoreWebView2Frame`), then D is the
-closet tracked frame from which the request will be raised from.
+closest tracked frame from which the request will be raised from.
 * If D is not being tracked, and C is a tracked frame. Then C
-is the closet tracked frame from which the request will be
+is the closest tracked frame from which the request will be
 raised from.
-* If neither C nor D is tracked, then B is the closet tracked
+* If neither C nor D is tracked, then B is the closest tracked
 frame from which the request will be raised. This case applies
 to current `PermissionRequested` developers, as they haven't
-subscribe to the `CoreWebView2Frame.FrameCreated` event.
-Therefore, requests originating from iframes will still be
-raised from the first-level iframe.
+subscribed to the `CoreWebView2Frame.FrameCreated` event.
+Consequently, there is no change in behavior, and requests
+originating from iframes will continue to be raised from the
+first-level iframe.
 
 If the `PermissionRequested` event is not handled in the current
 tracked frame, the request will propagate to its parent
@@ -211,5 +348,5 @@ which support these nested iframes will be also tracked by
 [ProcessFailed](https://learn.microsoft.com/dotnet/api/microsoft.web.webview2.core.corewebview2.processfailed).
 As we only track processes running tracked iframes, existing
 developers will not receive any process failed events specific
-to nested iframes as they haven't subscribe to the 
+to nested iframes as they haven't subscribed to the
 `CoreWebView2Frame.FrameCreated` event.
