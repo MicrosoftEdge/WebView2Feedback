@@ -47,7 +47,7 @@ applies the color too late.
 
     m_environment->CreateCoreWebView2ControllerWithOptions(
         m_mainWindow,
-        SUCCEEDED(result) ? options4.Get() : options.Get(),
+        options.Get(),
         Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
             this, &AppWindow::OnCreateCoreWebView2ControllerCompleted).Get());
     
@@ -66,12 +66,14 @@ public MainWindow()
     SetDefaultBackgroundColor();
 }
 
-private void SetDefaultBackgroundColor()
+private async Task
+SetDefaultBackgroundColor()
 {
-    CoreWebView2Environment environment = CoreWebView2Environment.CreateAsync();
+    CoreWebView2Environment environment = await
+    CoreWebView2Environment.CreateAsync();
     CoreWebView2ControllerOptions options = environment.CreateCoreWebView2ControllerOptions();
     options.DefaultBackgroundColor = Color.FromArgb(255, 85, 0, 255);
-    WebView2.EnsureCoreWebView2Async(environment, options);  
+    await WebView2.EnsureCoreWebView2Async(environment, options);  
 }
 
 ```
@@ -82,18 +84,19 @@ private void SetDefaultBackgroundColor()
 
 ## Win32 C++
  ```cpp
-/// This interface extends the ICoreWebView2ControllerOptions interface to expose the DefaultBackgroundColor property.
-/// It is encouraged to transition away from the environment variable and use this API solution to apply the property.
+/// This interface extends the ICoreWebView2ControllerOptions interface to expose 
+/// DefaultBackgroundColor property. It is encouraged to transition away from the 
+/// environment variable and use this API solution to apply the property.
 
 [uuid(df9cb70b-8d87-5bca-ae4b-6f23285e8d94), object, pointer_default(unique)]
 interface ICoreWebView2ControllerOptions4 : ICoreWebView2ControllerOptions3 {
   
   /// This API allows users to initialize the `DefaultBackgroundColor` early,
-  /// preventing a white flash that can happen while WebView2 is loading when
+  /// preventing a white flash that can occur while WebView2 is loading when
   /// the background color is set to something other than white. With early
   /// initialization, the color remains consistent from the start. After
   /// initialization, `ICoreWebView2Controller2::get_DefaultBackgroundColor`
-  /// will return the value set using this API. 
+  /// will return the value set using this API.
   ///
   /// The `DefaultBackgroundColor` is the color that renders underneath all web
   /// content. This means WebView renders this color when there is no web 
@@ -101,10 +104,10 @@ interface ICoreWebView2ControllerOptions4 : ICoreWebView2ControllerOptions3 {
   /// the `DefaultBackgroundColor` property to render the background.
   /// By default, this color is set to white.
   ///
-  /// Currently this API only supports opaque colors and transparency. It will
-  /// fail for colors with alpha values that don't equal 0 or 255 ie. translucent
-  /// colors are not supported. When WebView2 is set to have a transparent background, 
-  /// it renders the content of the parent window behind it.
+  /// This API only supports opaque colors and full transparency. It will
+  /// fail for colors with alpha values that don't equal 0 or 255.
+  /// When WebView2 is set to be fully transparent, it does not render a background,
+  /// allowing the content from windows behind it to be visible.
 
   [propget] HRESULT DefaultBackgroundColor([out, retval] COREWEBVIEW2_COLOR* value);
   [propput] HRESULT DefaultBackgroundColor([in] COREWEBVIEW2_COLOR value);
