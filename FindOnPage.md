@@ -489,106 +489,108 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2FindOptions CreateFindOptions();
     };
 
-runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
+    runtimeclass CoreWebView2FindOptions : [default]ICoreWebView2FindOptions {}
 
-    /// Interface defining the Find options.
-    /// This interface provides the necessary methods and properties to configure a Find operation.
-    [com_interface("staging=ICoreWebView2FindOptions")]
+    /// Interface defining the find options.
+    /// This interface provides the necessary methods and properties to configure a find session.
+    [com_interface("experimental=ICoreWebView2ExperimentalFindOptions")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
-    [availability("staging")]
-    interface ICoreWebView2FindOptions 
+    [availability("experimental")]
+    interface ICoreWebView2FindOptions
     {
-        /// Gets or sets the Find term used for the Find operation. Returns the Find term.
+        /// Gets or sets the word or phrase to be searched in the current page.
+        /// You can set `FindTerm` to any text you want to find on the page. 
+        /// This will take effect the next time you call the `StartAsync()` method.
         String FindTerm { get; set; };
 
-        /// Determines if the Find operation is case sensitive. Returns TRUE if the Find is case sensitive, FALSE otherwise.
-        /// The locale used to determine case sensitivity is the document's language specified by the HTML lang attribute. If unspecified then the WebView2's UI locale
-        /// typically provides a default handling approach, while the document's language settings (e.g., specified using the HTML lang attribute) can override these defaults to apply locale-specific rules. This dual consideration 
+        /// Determines if the find session is case sensitive. Returns TRUE if the find is case sensitive, FALSE otherwise.
+        /// When toggling case sensitivity, the behavior can vary by locale, which may be influenced by both the browser's UI locale and the document's language settings. The browser's UI locale
+        /// typically provides a default handling approach, while the document's language settings (e.g., specified using the HTML lang attribute) can override these defaults to apply locale-specific rules. This dual consideration
         /// ensures that text is processed in a manner consistent with user expectations and the linguistic context of the content.
         Boolean IsCaseSensitive { get; set; };
 
-        /// Similar to case sensitivity, word matching also can vary by locale, which may be influenced by both the browser's UI locale and the document's language settings. The browser's UI locale         
-        /// typically provides a default handling approach, while the document's language settings (e.g., specified using the HTML lang attribute) can override these defaults to apply locale-specific rules. This dual consideration 
+        /// Similar to case sensitivity, word matching also can vary by locale, which may be influenced by both the browser's UI locale and the document's language settings. The browser's UI locale
+        /// typically provides a default handling approach, while the document's language settings (e.g., specified using the HTML lang attribute) can override these defaults to apply locale-specific rules. This dual consideration
         /// ensures that text is processed in a manner consistent with user expectations and the linguistic context of the content.
-        /// ShouldMatchWord determines if only whole words should be matched during the Find operation. Returns TRUE if only whole words should be matched, FALSE otherwise.
+        /// ShouldMatchWord determines if only whole words should be matched during the find session. Returns TRUE if only whole words should be matched, FALSE otherwise.
         Boolean ShouldMatchWord { get; set; };
-        
-        /// Gets or sets the state of whether all matches are highlighted. 
+
+        /// Gets or sets the state of whether all matches are highlighted.
         /// Returns TRUE if all matches are highlighted, FALSE otherwise.
-        /// Note: Changes to this property take effect only when StartFind is called. 
-        /// Preferences for the session cannot be updated unless another call to the StartFind function on the server-side is made. 
+        /// Note: Changes to this property take effect only when StartAsync, FindNext, or FindPrevious is called.
+        /// Preferences for the session cannot be updated unless another call to the StartAsync function on the server-side is made.
         /// Therefore, changes will not take effect until one of these functions is called.
         Boolean ShouldHighlightAllMatches { get; set; };
-        
-        /// Sets this property to hide the default Find UI. 
-        /// You can use this to hide the default UI so that you can show your own custom UI or programmatically interact with the Find API while showing no Find UI. 
+
+        /// Sets this property to hide the default Find UI.
+        /// You can use this to hide the default UI so that you can show your own custom UI or programmatically interact with the Find API while showing no Find UI.
         /// Returns TRUE if hiding the default Find UI and FALSE if using showing the default Find UI.
-        /// Note: Changes to this property take effect only when StartFind, FindNext, or FindPrevious is called. 
-        /// Preferences for the session cannot be updated unless another call to the StartFind function on the server-side is made. 
+        /// Note: Changes to this property take effect only when StartAsync, FindNext, or FindPrevious is called.
+        /// Preferences for the session cannot be updated unless another call to the StartAsync function on the server-side is made.
         /// Therefore, changes will not take effect until one of these functions is called.
         Boolean SuppressDefaultFindDialog { get; set; };
     };
-
+    
    runtimeclass CoreWebView2Find : [default]ICoreWebView2Find {}
 
-    /// Interface providing methods and properties for finding and navigating through text in the WebView2.
-    /// This interface allows for finding text, navigation between matches, and customization of the Find UI.
-    [com_interface("staging=ICoreWebView2StagingFind")]
+    /// Interface providing methods and properties for finding and navigating through text in the web view.
+    /// This interface allows for finding text, navigation between matches, and customization of the find UI.
+    [com_interface("experimental=ICoreWebView2ExperimentalFind")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
-    [availability("staging")]
-    interface ICoreWebView2Find 
+    [availability("experimental")]
+    interface ICoreWebView2Find
     {
-        [completed_handler("")]
-        /// Initiates a Find session using the specified options asynchronously.
-        /// Displays the Find bar and starts the Find operation. If a Find session was already ongoing, it will be stopped and replaced with this new instance.
-        /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the Find options object after initiation won't affect the ongoing Find session.
-        /// To change the ongoing Find session, StartAsync must be called again with a new or modified Find options object.
-        /// StartAsync supports, HTML, PDF, and TXT document queries. In general this api is designed for text based Find sessions.
-        //// If you start a Find session programmatically on another file format that doesnt have text fields, the Find session will show the find UI but not find any matches. 
-        /// StartAsync Completion: The asynchronous action completes when the UI has been displayed with the Find term in the UI bar, and the matches have populated on the counter on the Find bar. 
-        /// There may be a slight latency between the UI display and the matches populating in the counter. 
-        /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after StartAsync has completed, otherwise they will have their default values (-1 for ActiveMatchIndex and 0 for TotalMatchCount).
-        /// However, calling StartFind again during an ongoing Find operation does not resume from the point 
-        /// of the current active match. For example, given the text "1 1 A 1 1" and initiating a Find session for "A",
-        /// then starting another Find session for "1", it will start searching from the beginning of the document, 
-        /// regardless of the previous active match. This behavior indicates that changing the Find query initiates a 
-        /// completely new Find session, rather than continuing from the previous match index. This distinction is essential 
-        /// to understand when utilizing the StartFind method for navigating through text matches.
+        /// Initiates a find using the specified find options asynchronously.
+        /// Displays the Find bar and starts the find session. If a find session was already ongoing, it will be stopped and replaced with this new instance.
+        /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the FindOptions object after initiation won't affect the ongoing find session.
+        /// To change the ongoing find session, StartAsync must be called again with a new or modified FindOptions object.
+        /// StartAsync supports HTML and TXT document queries. In general, this API is designed for text-based find sessions.
+        /// If you start a find session programmatically on another file format that doesn't have text fields, the find session will try to execute but will fail to find any matches. (It will silently fail)
+        /// Note: The asynchronous action completes when the UI has been displayed with the find term in the UI bar, and the matches have populated on the counter on the find bar.
+        /// There may be a slight latency between the UI display and the matches populating in the counter.
+        /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after StartAsync has completed; otherwise, they will have their default values (-1 for active match index and 0 for match count).
+        /// To start a new find session (beginning the search from the first match), call `Stop` before invoking `StartAsync`.
+        /// If `StartAsync` is called consecutively with the same options and without calling `Stop`, the find session
+        /// will continue from the current position in the existing session.
+        /// Calling `StartAsync` without altering its parameters will behave either as `FindNext` or `FindPrevious`, depending on the most recent search action performed.
+        /// StartAsync will default to forward if neither have been called.
+        /// However, calling Start again during an ongoing find session does not resume from the point
+        /// of the current active match. For example, given the text "1 1 A 1 1" and initiating a find session for "A",
+        /// then starting another find session for "1", it will start searching from the beginning of the document,
+        /// regardless of the previous active match. This behavior indicates that changing the find query initiates a
+        /// completely new find session, rather than continuing from the previous match index.
         Windows.Foundation.IAsyncAction StartAsync(CoreWebView2FindOptions options);
 
-
         /// Navigates to the next match in the document.
-        /// If there are no matches to Find, FindNext will wrap around to the first match.
-        /// If called when there is no Find session active, FindNext will silently fail.
+        /// If there are no matches to find, FindNext will wrap around to the first match's index.
+        /// If called when there is no find session active, FindPrevious will silently fail.
         void FindNext();
-        
+
         /// Navigates to the previous match in the document.
-        /// If there are no matches to Find, FindPrevious will wrap around to the last match. 
-        /// If called when there is no Find session active, FindPrevious will silently fail.
+        /// If there are no matches to find, FindPrevious will wrap around to the last match's index.
+        /// If called when there is no find session active, FindPrevious will silently fail.
         void FindPrevious();
 
-
-        /// Stops the current 'Find' operation and hides the Find bar.
+        /// Stops the current 'Find' session and hides the Find bar.
         /// If called with no Find session active, it will silently do nothing.
-        void StopFind();
+        void Stop();
 
-        /// Retrieves the index of the currently active match in the Find session. Returns the index of the currently active match, or -1 if there is no active match.
+        /// Retrieves the index of the currently active match in the find session. Returns the index of the currently active match, or -1 if there is no active match.
+        /// The index starts at 1 for the first match.
         Int32 ActiveMatchIndex { get; };
 
-        /// Gets the total count of matches found in the current document based on the last Find sessions criteria. Returns the total count of matches.
+        /// Gets the total count of matches found in the current document based on the last find sessions criteria. Returns the total count of matches.
         Int32 MatchCount { get; };
-        
-        /// Registers an event handler for the MatchCountChanged event. 
-        /// This event is raised when the total count of matches in the document changes due to a new Find operation or changes in the document. 
+
+        /// Registers an event handler for the MatchCountChanged event.
+        /// This event is raised when the total count of matches in the document changes due to a new find session or changes in the document.
         /// The parameter is the event handler to be added. Returns a token representing the added event handler. This token can be used to unregister the event handler.
-        [event_handler("", "", "")]
         event Windows.Foundation.TypedEventHandler<CoreWebView2Find, Object> MatchCountChanged;
 
         /// Registers an event handler for the ActiveMatchIndexChanged event. This event is raised when the index of the currently active match changes.
-        /// This can happen when the user navigates to a different match or when the active match is changed programmatically. 
-        /// The parameter is the event handler to be added. Returns a token representing the added event handler. 
+        /// This can happen when the user navigates to a different match or when the active match is changed programmatically.
+        /// The parameter is the event handler to be added. Returns a token representing the added event handler.
         /// This token can be used to unregister the event handler.
-        [event_handler("", "", "")]
         event Windows.Foundation.TypedEventHandler<CoreWebView2Find, Object> ActiveMatchIndexChanged;
     };
     
