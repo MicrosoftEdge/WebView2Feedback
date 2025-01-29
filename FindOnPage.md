@@ -467,18 +467,18 @@ interface ICoreWebView2_17 : IUnknown {
 namespace Microsoft.Web.WebView2.Core
 {
     /// <com> 
-    /// Interface providing methods to access the Find operation functionalities in the CoreWebView2.
+    /// Interface providing methods to access the find session functionalities in the CoreWebView2.
     /// </com>
     [com_interface("staging=ICoreWebView2_17")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     interface ICoreWebView2_25
     {
-        /// Retrieves the Find operation interface for the current WebView2.
+        /// Retrieves the find session interface for the current web view.
         CoreWebView2Find Find { get; };
     }
 
     /// Interface that provides methods related to the environment settings of CoreWebView2.
-    /// This interface allows for the creation of new Find options objects.
+    /// This interface allows for the creation of new `FindOptions` objects.
     [com_interface("staging=ICoreWebView2Environment5")]
     [ms_owner("core", "maxwellmyers@microsoft.com")]
     interface ICoreWebView2Environment15
@@ -500,7 +500,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         /// Gets or sets the word or phrase to be searched in the current page.
         /// You can set `FindTerm` to any text you want to find on the page. 
-        /// This will take effect the next time you call the `StartAsync()` method.
+        /// This will take effect the next time you call the `Start()` method.
         String FindTerm { get; set; };
 
         /// Determines if the find session is case sensitive. Returns TRUE if the find is case sensitive, FALSE otherwise.
@@ -517,16 +517,16 @@ namespace Microsoft.Web.WebView2.Core
 
         /// Gets or sets the state of whether all matches are highlighted.
         /// Returns TRUE if all matches are highlighted, FALSE otherwise.
-        /// Note: Changes to this property take effect only when StartAsync, FindNext, or FindPrevious is called.
-        /// Preferences for the session cannot be updated unless another call to the StartAsync function on the server-side is made.
+        /// Note: Changes to this property take effect only when Start, FindNext, or FindPrevious is called.
+        /// Preferences for the session cannot be updated unless another call to the Start function on the server-side is made.
         /// Therefore, changes will not take effect until one of these functions is called.
         Boolean ShouldHighlightAllMatches { get; set; };
 
         /// Sets this property to hide the default Find UI.
         /// You can use this to hide the default UI so that you can show your own custom UI or programmatically interact with the Find API while showing no Find UI.
         /// Returns TRUE if hiding the default Find UI and FALSE if using showing the default Find UI.
-        /// Note: Changes to this property take effect only when StartAsync, FindNext, or FindPrevious is called.
-        /// Preferences for the session cannot be updated unless another call to the StartAsync function on the server-side is made.
+        /// Note: Changes to this property take effect only when Start, FindNext, or FindPrevious is called.
+        /// Preferences for the session cannot be updated unless another call to the Start function on the server-side is made.
         /// Therefore, changes will not take effect until one of these functions is called.
         Boolean SuppressDefaultFindDialog { get; set; };
     };
@@ -543,17 +543,17 @@ namespace Microsoft.Web.WebView2.Core
         /// Initiates a find using the specified find options asynchronously.
         /// Displays the Find bar and starts the find session. If a find session was already ongoing, it will be stopped and replaced with this new instance.
         /// If called with an empty string, the Find bar is displayed but no finding occurs. Changing the FindOptions object after initiation won't affect the ongoing find session.
-        /// To change the ongoing find session, StartAsync must be called again with a new or modified FindOptions object.
-        /// StartAsync supports HTML and TXT document queries. In general, this API is designed for text-based find sessions.
+        /// To change the ongoing find session, Start must be called again with a new or modified FindOptions object.
+        /// Start supports HTML and TXT document queries. In general, this API is designed for text-based find sessions.
         /// If you start a find session programmatically on another file format that doesn't have text fields, the find session will try to execute but will fail to find any matches. (It will silently fail)
         /// Note: The asynchronous action completes when the UI has been displayed with the find term in the UI bar, and the matches have populated on the counter on the find bar.
         /// There may be a slight latency between the UI display and the matches populating in the counter.
-        /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after StartAsync has completed; otherwise, they will have their default values (-1 for active match index and 0 for match count).
-        /// To start a new find session (beginning the search from the first match), call `Stop` before invoking `StartAsync`.
-        /// If `StartAsync` is called consecutively with the same options and without calling `Stop`, the find session
+        /// The MatchCountChanged and ActiveMatchIndexChanged events are only raised after Start has completed; otherwise, they will have their default values (-1 for active match index and 0 for match count).
+        /// To start a new find session (beginning the search from the first match), call `Stop` before invoking `Start`.
+        /// If `Start` is called consecutively with the same options and without calling `Stop`, the find session
         /// will continue from the current position in the existing session.
-        /// Calling `StartAsync` without altering its parameters will behave either as `FindNext` or `FindPrevious`, depending on the most recent search action performed.
-        /// StartAsync will default to forward if neither have been called.
+        /// Calling `Start` without altering its parameters will behave either as `FindNext` or `FindPrevious`, depending on the most recent search action performed.
+        /// Start will default to forward if neither have been called.
         /// However, calling Start again during an ongoing find session does not resume from the point
         /// of the current active match. For example, given the text "1 1 A 1 1" and initiating a find session for "A",
         /// then starting another find session for "1", it will start searching from the beginning of the document,
