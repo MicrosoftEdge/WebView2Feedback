@@ -112,7 +112,7 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
   /// To that end, there are four [CSS environment vairables](https://developer.mozilla.org/en-US/docs/Web/API/Window_Controls_Overlay_API#css_environment_variables) 
   /// titlebar-area-x, titlebar-area-y, titlebar-area-width defined to help you 
   /// get the dimensions of the available titlebar area to the left of the overlay.
-  /// Similarly the navigator object wil contain a [WindowControlsOverlay property](https://developer.mozilla.org/en-US/docs/Web/API/WindowControlsOverlay)
+  /// Similarly the navigator object will contain a [WindowControlsOverlay property](https://developer.mozilla.org/en-US/docs/Web/API/WindowControlsOverlay)
   /// which can be used to get the titlebar area as a rect, and listen for changes
   /// to the size of that area.
   ///
