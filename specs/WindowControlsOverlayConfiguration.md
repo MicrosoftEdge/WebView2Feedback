@@ -58,7 +58,7 @@ public MainWindow()
 
     CoreWebView2WindowControlsOverlaySettings config = Webview2.CoreWebivew2.WindowControlsOverlaySettings;
     config.IsEnabled = true; 
-    config.color = Color.FromARGB(0, 0, 255);
+    config.Color = Color.FromARGB(0, 0, 255);
 }
 ```
 
