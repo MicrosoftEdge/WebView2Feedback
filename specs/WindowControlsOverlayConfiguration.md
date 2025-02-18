@@ -56,7 +56,7 @@ public MainWindow()
     InitializeComponent();
     m_AppWindow.TitleBar.ExtendsContentIntoTitleBar = true;
 
-    CoreWebView2WindowControlsOverlaySettings config = Webview2.CoreWebivew2.WindowControlsOverlaySettings;
+    CoreWebView2WindowControlsOverlaySettings config = Webview2.CoreWebView2.WindowControlsOverlaySettings;
     config.IsEnabled = true; 
     config.Color = Color.FromARGB(0, 0, 255);
 }
