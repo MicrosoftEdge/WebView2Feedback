@@ -86,7 +86,7 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
   /// title bar area. Defaults to 48px. There is no minimum height restriction for this API,
   /// so it is up to the developer to make sure that the height of your window controls overlay
   /// is enough that users can see and interact with it. We recommend using GetSystemMetrics(SM_CYCAPTION)
-  // as you minimum height.
+  // as your minimum height.
   /// 
   [propput] HRESULT Height([in] UINT32 value);
 
