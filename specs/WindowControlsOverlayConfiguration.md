@@ -107,7 +107,7 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
   /// you can utilize the [IsNonClientRegionSupportEnabled](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2settings9?view=webview2-1.0.2739.15)
   /// API to enable draggable regions for your custom title bar.
   /// 
-  /// The Overlay buttons will sit on top of the HTML content, and will prevent mouse interactions
+  /// The Overlay buttons will cover the HTML content, and will prevent mouse interactions
   /// with any elements directly below it, so you should avoid placing content there. 
   /// To that end, there are four [CSS environment vairables](https://developer.mozilla.org/en-US/docs/Web/API/Window_Controls_Overlay_API#css_environment_variables) 
   /// titlebar-area-x, titlebar-area-y, titlebar-area-width defined to help you 
