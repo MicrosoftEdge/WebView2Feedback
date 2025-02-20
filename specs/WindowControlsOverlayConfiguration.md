@@ -39,8 +39,8 @@ void  AppWindow::OnCreateWebview2ControllerCompleted(HRESULT hr, ICoreWebview2Co
     wil::com_ptr<ICoreWebView2> coreWebView2_28;
     CHECK_FAILURE(coreWebView2->QueryInterface(&coreWebView2_28));
 
-    wil::com_ptr<ICoreWebView2WindowControlsOverlaySettings> windowControlsOverlay;
-    CHECK_FAILURE(coreWebView2_28->get_WindowControlsOverlaySettings(&windowControlsOverlay));
+    wil::com_ptr<ICoreWebView2WindowControlsOverlay> windowControlsOverlay;
+    CHECK_FAILURE(coreWebView2_28->get_WindowControlsOverlay(&windowControlsOverlay));
 
     CHECK_FAILURE(windowControlsOverlay->put_IsEnabled(true));
     COREWEBVIEW2_COLOR color {1, 0, 0, 225};
@@ -56,7 +56,7 @@ public MainWindow()
     InitializeComponent();
     m_AppWindow.TitleBar.ExtendsContentIntoTitleBar = true;
 
-    CoreWebView2WindowControlsOverlaySettings config = Webview2.CoreWebView2.WindowControlsOverlaySettings;
+    CoreWebView2WindowControlsOverlay config = Webview2.CoreWebView2.WindowControlsOverlay;
     config.IsEnabled = true; 
     config.Color = Color.FromARGB(0, 0, 255);
 }
@@ -71,13 +71,13 @@ public MainWindow()
 /// or restart the App.
 [uuid(101e36ca-7f75-5105-b9be-fea2ba61a2fd), object, pointer_default(unique)]
 interface ICoreWebView2_28 : IUnknown {
-  /// Gets the `WindowControlsOverlaySettings` object.
-  [propget] HRESULT WindowControlsOverlaySettings([out, retval] ICoreWebView2WindowControlsOverlaySettings** value);
+  /// Gets the `WindowControlsOverlay` object.
+  [propget] HRESULT WindowControlsOverlay([out, retval] ICoreWebView2WindowControlsOverlay** value);
 }
 
-/// This is the ICoreWebView2WindowControlsOverlaySettings
+/// This is the ICoreWebView2WindowControlsOverlay
 [uuid(c9f7378b-8dbb-5445-bacb-08a3fdf032f0), object, pointer_default(unique)]
-interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
+interface ICoreWebView2WindowControlsOverlay : IUnknown {
     /// Gets the `Height` property.
   [propget] HRESULT Height([out, retval] UINT32* value);
 
@@ -137,13 +137,13 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_28")]
         {
-            CoreWebView2WindowControlsOverlaySettings WindowControlsOverlaySettings { get; };
+            CoreWebView2WindowControlsOverlay WindowControlsOverlay { get; };
         }
     }
 
-    runtimeclass CoreWebView2WindowControlsOverlaySettings
+    runtimeclass CoreWebView2WindowControlsOverlay
     {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2WindowControlsOverlaySettings")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2WindowControlsOverlay")]
         {
             Boolean IsEnabled { get; set; };
             UInt32 Height { get; set; };
