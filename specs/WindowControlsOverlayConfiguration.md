@@ -44,7 +44,7 @@ void  AppWindow::OnCreateWebview2ControllerCompleted(HRESULT hr, ICoreWebview2Co
 
     CHECK_FAILURE(windowControlsOverlay->put_IsEnabled(true));
     COREWEBVIEW2_COLOR color {1, 0, 0, 225};
-    CHECK_FAILURE(windowControlsOverlay->put_TitleBarBackgroundColor(color));
+    CHECK_FAILURE(windowControlsOverlay->put_BackgroundColor(color));
 }
 ```
 ## .NET C#
@@ -118,15 +118,15 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
   ///
   [propput] HRESULT IsEnabled([in] BOOL value);
 
-  /// Gets the `TitleBarBackgroundColor` property.
-  [propget] HRESULT TitleBarBackgroundColor([out, retval] COREWEBVIEW2_COLOR* value);
+  /// Gets the `BackgroundColor` property.
+  [propget] HRESULT BackgroundColor([out, retval] COREWEBVIEW2_COLOR* value);
 
-  /// The `TitleBarBackgroundColor` property allows you to set a background color
+  /// The `BackgroundColor` property allows you to set a background color
   /// for the overlay. Based on the background color you choose, Webview2 
   /// will automatically calculate a foreground and hover color that will
   /// provide you the best contrast while maintaining accessibility.
   /// Defaults to #f3f3f3. This API supports transparency.
-  [propput] HRESULT TitleBarBackgroundColor([in] COREWEBVIEW2_COLOR value);
+  [propput] HRESULT BackgroundColor([in] COREWEBVIEW2_COLOR value);
 }
 ```
 
@@ -148,7 +148,7 @@ namespace Microsoft.Web.WebView2.Core
         {
             Boolean IsEnabled { get; set; };
             UInt32 Height { get; set; };
-            Windows.UI.Color TitleBarBackgroundColor { get; set; }
+            Windows.UI.Color BackgroundColor { get; set; }
         }
     }
 }
