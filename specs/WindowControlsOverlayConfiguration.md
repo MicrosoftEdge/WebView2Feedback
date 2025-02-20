@@ -123,8 +123,7 @@ interface ICoreWebView2WindowControlsOverlaySettings : IUnknown {
 
   /// The `BackgroundColor` property allows you to set a background color
   /// for the overlay. Based on the background color you choose, Webview2 
-  /// will automatically calculate a foreground and hover color that will
-  /// provide you the best contrast while maintaining accessibility.
+  /// will automatically calculate a foreground and hover color.
   /// Defaults to #f3f3f3. This API supports transparency.
   [propput] HRESULT BackgroundColor([in] COREWEBVIEW2_COLOR value);
 }
