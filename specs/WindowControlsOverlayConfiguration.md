@@ -42,7 +42,7 @@ void  AppWindow::OnCreateWebview2ControllerCompleted(HRESULT hr, ICoreWebview2Co
     wil::com_ptr<ICoreWebView2WindowControlsOverlay> windowControlsOverlay;
     CHECK_FAILURE(coreWebView2_28->get_WindowControlsOverlay(&windowControlsOverlay));
 
-    CHECK_FAILURE(windowControlsOverlay->put_IsEnabled(true));
+    CHECK_FAILURE(windowControlsOverlay->put_IsVisible(true));
     COREWEBVIEW2_COLOR color {1, 0, 0, 225};
     CHECK_FAILURE(windowControlsOverlay->put_BackgroundColor(color));
 }
@@ -57,7 +57,7 @@ public MainWindow()
     m_AppWindow.TitleBar.ExtendsContentIntoTitleBar = true;
 
     CoreWebView2WindowControlsOverlay config = Webview2.CoreWebView2.WindowControlsOverlay;
-    config.IsEnabled = true; 
+    config.IsVisible = true; 
     config.Color = Color.FromARGB(0, 0, 255);
 }
 ```
@@ -91,11 +91,11 @@ interface ICoreWebView2WindowControlsOverlay : IUnknown {
   [propput] HRESULT Height([in] UINT32 value);
 
 
-  /// Gets the `IsEnabled` property.
-  [propget] HRESULT IsEnabled([out, retval] BOOL* value);
+  /// Gets the `IsVisible` property.
+  [propget] HRESULT IsVisible([out, retval] BOOL* value);
 
 
-  /// The `IsEnabled` property allows you to opt in to using
+  /// The `IsVisible` property allows you to opt in to using
   /// the WebView2 window controls overlay. Defaults to `FALSE`.
   /// 
   /// When this property is `TRUE`, WebView2 will draw its own minimize, maximize,
@@ -116,7 +116,7 @@ interface ICoreWebView2WindowControlsOverlay : IUnknown {
   /// which can be used to get the titlebar area as a rect, and listen for changes
   /// to the size of that area.
   ///
-  [propput] HRESULT IsEnabled([in] BOOL value);
+  [propput] HRESULT IsVisible([in] BOOL value);
 
   /// Gets the `BackgroundColor` property.
   [propget] HRESULT BackgroundColor([out, retval] COREWEBVIEW2_COLOR* value);
@@ -145,7 +145,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2WindowControlsOverlay")]
         {
-            Boolean IsEnabled { get; set; };
+            Boolean IsVisible { get; set; };
             UInt32 Height { get; set; };
             Windows.UI.Color BackgroundColor { get; set; }
         }
