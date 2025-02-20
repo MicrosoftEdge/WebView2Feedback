@@ -39,12 +39,12 @@ void  AppWindow::OnCreateWebview2ControllerCompleted(HRESULT hr, ICoreWebview2Co
     wil::com_ptr<ICoreWebView2> coreWebView2_28;
     CHECK_FAILURE(coreWebView2->QueryInterface(&coreWebView2_28));
 
-    wil::com_ptr<ICoreWebView2WindowControlsOverlaySettings> windowControlsOverlaySettings;
-    CHECK_FAILURE(coreWebView2_28->get_WindowControlsOverlaySettings(&wco_config));
+    wil::com_ptr<ICoreWebView2WindowControlsOverlaySettings> windowControlsOverlay;
+    CHECK_FAILURE(coreWebView2_28->get_WindowControlsOverlaySettings(&windowControlsOverlay));
 
-    CHECK_FAILURE(wco_config->put_IsEnabled(true));
+    CHECK_FAILURE(windowControlsOverlay->put_IsEnabled(true));
     COREWEBVIEW2_COLOR color {1, 0, 0, 225};
-    CHECK_FAILURE(wco_config->put_TitleBarBackgroundColor(color));
+    CHECK_FAILURE(windowControlsOverlay->put_TitleBarBackgroundColor(color));
 }
 ```
 ## .NET C#
