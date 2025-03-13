@@ -25,7 +25,7 @@ message event of `self.chrome.webview`. This can be used to communicate using
 simple strings rather than JSON objects.
 
 **WebMessageReceived**: This event gives Host app the ability to receive
-message sent from worker using `self.chrome.webview`.
+message sent from worker using `self.chrome.webview.postMessage`.
 
 # Examples
 ## Dedicated Worker
@@ -39,8 +39,8 @@ if (window.Worker) {
 
 ### dedicated_worker.js
 ```JS
-self.chrome.webview.addEventListener('message', e => {
-  let result;
+//! [chromeWebView]
+self.chrome.webview.addEventListener('message', (e) => {
   const first = e.data.first;
   const second = e.data.second;
   switch (e.data.command) {
@@ -57,6 +57,11 @@ self.chrome.webview.addEventListener('message', e => {
       break;
     }
     case 'DIV': {
+      if (second === 0) {
+        result = 'Error: Division by zero';
+        break;
+      }
+
       result = first / second;
       break;
     }
@@ -64,9 +69,9 @@ self.chrome.webview.addEventListener('message', e => {
       result = 'Failed to process the command';
     }
   }
-
   self.chrome.webview.postMessage('Result: ' + result.toString());
 });
+//! [chromeWebView]
 ```
 
 ### C++ Sample
@@ -74,21 +79,23 @@ self.chrome.webview.addEventListener('message', e => {
 using namespace Microsoft::WRL;
 
 AppWindow* m_appWindow;
-wil::com_ptr<ICoreWebView2Staging26> m_webView2Staging_26;
+wil::com_ptr<ICoreWebView226> m_webView2_26;
+EventRegistrationToken m_dedicatedWorkerCreatedToken = {};
 
-ScenarioDedicatedWorker(AppWindow* appWindow) : m_appWindow(appWindow)
+ScenarioDedicatedWorkerPostMessage::ScenarioDedicatedWorkerPostMessage(AppWindow* appWindow)
+    : m_appWindow(appWindow)
 {
     //! [DedicatedWorkerCreated]
-    m_appWindow->GetWebView()->QueryInterface(IID_PPV_ARGS(&m_webView2Staging_26));
-    CHECK_FEATURE_RETURN_EMPTY(m_webView2Staging_26);
+    m_appWindow->GetWebView()->QueryInterface(IID_PPV_ARGS(&m_webView2_26));
+    CHECK_FEATURE_RETURN_EMPTY(m_webView2_26);
 
-    CHECK_FAILURE(m_webView2Staging_26->add_DedicatedWorkerCreated(
-        Callback<ICoreWebView2StagingDedicatedWorkerCreatedEventHandler>(
+    CHECK_FAILURE(m_webView2_26->add_DedicatedWorkerCreated(
+        Callback<ICoreWebView2DedicatedWorkerCreatedEventHandler>(
             [this](
                 ICoreWebView2* sender,
-                ICoreWebView2StagingDedicatedWorkerCreatedEventArgs* args)
+                ICoreWebView2DedicatedWorkerCreatedEventArgs* args)
             {
-                wil::com_ptr<ICoreWebView2StagingDedicatedWorker> dedicatedWorker;
+                wil::com_ptr<ICoreWebView2DedicatedWorker> dedicatedWorker;
                 CHECK_FAILURE(args->get_Worker(&dedicatedWorker));
 
                 wil::unique_cotaskmem_string scriptUri;
@@ -103,33 +110,42 @@ ScenarioDedicatedWorker(AppWindow* appWindow) : m_appWindow(appWindow)
                 return S_OK;
             })
             .Get(),
-        nullptr));
+        &m_dedicatedWorkerCreatedToken));
     //! [DedicatedWorkerCreated]
 }
 
-void SetupEventsOnDedicatedWorker(
-    wil::com_ptr<ICoreWebView2StagingDedicatedWorker> dedicatedWorker)
+void ScenarioDedicatedWorkerPostMessage::SetupEventsOnDedicatedWorker(
+    wil::com_ptr<ICoreWebView2DedicatedWorker> dedicatedWorker)
 {
-    CHECK_FAILURE(dedicatedWorker->add_WebMessageReceived(
-        Callback<ICoreWebView2StagingDedicatedWorkerWebMessageReceivedEventHandler>(
+    //! [WebMessageReceived]
+    dedicatedWorker->add_WebMessageReceived(
+        Callback<ICoreWebView2DedicatedWorkerWebMessageReceivedEventHandler>(
             [this](
-                ICoreWebView2StagingDedicatedWorker* sender,
+                ICoreWebView2DedicatedWorker* sender,
                 ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
             {
+                wil::unique_cotaskmem_string scriptUri;
+                CHECK_FAILURE(args->get_Source(&scriptUri));
+
                 wil::unique_cotaskmem_string messageRaw;
                 CHECK_FAILURE(args->TryGetWebMessageAsString(&messageRaw));
-                std::wstring message = messageRaw.get();
+                std::wstring messageFromWorker = messageRaw.get();
 
-                m_appWindow->AsyncMessageBox(message, L"Message from Dedicated Worker");
+                std::wstringstream message{};
+                message << L"Dedicated Worker: " << std::endl << scriptUri.get() << std::endl;
+                message << std::endl;
+                message << L"Message: " << std::endl << messageFromWorker << std::endl;
+                m_appWindow->AsyncMessageBox(message.str(), L"Message from Dedicated Worker");
 
                 return S_OK;
             })
             .Get(),
-        nullptr));
+        nullptr);
+    //! [WebMessageReceived]
 }
 
-void ComputeWithDedicatedWorker(
-    wil::com_ptr<ICoreWebView2StagingDedicatedWorker> dedicatedWorker)
+void ScenarioDedicatedWorkerPostMessage::ComputeWithDedicatedWorker(
+    wil::com_ptr<ICoreWebView2DedicatedWorker> dedicatedWorker)
 {
     TextInputDialog dialog(
         m_appWindow->GetMainWindow(), L"Post Web Message JSON", L"Web message JSON",
@@ -137,38 +153,45 @@ void ComputeWithDedicatedWorker(
     // Ex: {"command":"ADD","first":2,"second":3}
     if (dialog.confirmed)
     {
+        //! [PostWebMessageAsJson]
         dedicatedWorker->PostWebMessageAsJson(dialog.input.c_str());
+        //! [PostWebMessageAsJson]
     }
 }
 ```
 
 ### .NET/WinRT
 ```c#
-void DedicatedWorkerCreatedExecuted(object target, ExecutedRoutedEventArgs e)
+void DedicatedWorkerPostMessageExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    RegisterForDedicatedWorkerCreated();
+    _iWebView2.CoreWebView2.DedicatedWorkerCreated +=
+        DedicatedWorker_PostMessage_DedicatedWorkerCreated;
 }
 
-void RegisterForDedicatedWorkerCreated()
+void DedicatedWorker_PostMessage_DedicatedWorkerCreated(object sender,
+        CoreWebView2DedicatedWorkerCreatedEventArgs args)
 {
-    webView.CoreWebView2.DedicatedWorkerCreated += (sender, args) =>
-    {
-        CoreWebView2DedicatedWorker dedicatedWorker = args.Worker;
-        MessageBox.Show("Dedicated worker is created" , "Dedicated Worker Message");
-        SetupEventsOnDedicatedWorker(dedicatedWorker);
-        ComputeWithDedicatedWorker(dedicatedWorker);
-    };
+    CoreWebView2DedicatedWorker dedicatedWorker = args.Worker;
+    MessageBox.Show("Dedicated worker is created" , "Dedicated Worker Message");
+    DedicatedWorker_PostMessage_SetupEventsOnDedicatedWorker(dedicatedWorker);
+    DedicatedWorker_PostMessage_ComputeWithDedicatedWorker(dedicatedWorker);
 }
 
-void SetupEventsOnDedicatedWorker(CoreWebView2DedicatedWorker dedicatedWorker)
+void DedicatedWorker_PostMessage_SetupEventsOnDedicatedWorker(
+        CoreWebView2DedicatedWorker dedicatedWorker)
 {
     dedicatedWorker.WebMessageReceived += (sender, args) =>
     {
-        MessageBox.Show(args.TryGetWebMessageAsString(), "Message from Dedicated Worker");
+        StringBuilder messageBuilder = new StringBuilder();
+        messageBuilder.AppendLine($"Dedicated Worker: \n{args.Source} ");
+        messageBuilder.AppendLine($"\nMessage: \n{args.TryGetWebMessageAsString()} ");
+        MessageBox.Show(messageBuilder.ToString(), "Message from Dedicated Worker",
+                        MessageBoxButton.OK);
     };
 }
 
-void ComputeWithDedicatedWorker(CoreWebView2DedicatedWorker dedicatedWorker)
+void DedicatedWorker_PostMessage_ComputeWithDedicatedWorker(
+        CoreWebView2DedicatedWorker dedicatedWorker)
 {
     var dialog = new TextInputDialog(
         title: "Post Web Message JSON",
@@ -193,6 +216,8 @@ if ("serviceWorker" in navigator) {
 ```
 ### sw.js
 ```JS
+'use strict';
+
 const CACHE_NAME = 'sw_post_message_cache';
 const CACHE_LIST = ['style.css'];
 
@@ -201,6 +226,10 @@ const cacheFirst = async (request) => {
   const responseFromCache = await caches.match(request);
   if (responseFromCache) {
     console.log('Cache hit for request: ', request.url);
+    // Notify the app about the cache hit.
+    //! [chromeWebView]
+    self.chrome.webview.postMessage('Cache hit for resource: ' + request.url);
+    //! [chromeWebView]
     return responseFromCache;
   }
 
@@ -211,15 +240,11 @@ const cacheFirst = async (request) => {
     const cache = await caches.open(CACHE_NAME);
     console.log('Cache new resource: ', request.url);
     await cache.put(request, responseFromNetwork.clone());
-
-    // Notify the app about the new cached resource.
-    self.chrome.webview.postMessage('Cached new resource: ' + request.url);
-
     return responseFromNetwork;
   } catch (error) {
     return new Response('Network error happened', {
       status: 408,
-      headers: {'Content-Type': 'text/plain'},
+      headers: { 'Content-Type': 'text/plain' },
     });
   }
 };
@@ -228,27 +253,35 @@ const addToCache = async (url) => {
   console.log('Add to cache: ', url);
   const cache = await caches.open(CACHE_NAME);
   cache.add(url);
+  //! [chromeWebView]
+  chrome.webview.postMessage('Added to cache: ' + url);
+  //! [chromeWebView]
 };
 
-self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_NAME)
-                      .then(cache => cache.addAll(CACHE_LIST))
-                      .then(self.skipWaiting()));
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(CACHE_LIST))
+      .then(self.skipWaiting())
+  );
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', (event) => {
   event.respondWith(cacheFirst(event.request));
 });
 
-self.chrome.webview.addEventListener('message', e => {
-  if (e.data.command === 'ADD_TO_CACHE') {
-    addToCache(e.data.url);
+//! [chromeWebView]
+self.chrome.webview.addEventListener('message', (event) => {
+  if (event.data.command === 'ADD_TO_CACHE') {
+    addToCache(event.data.url);
   }
 });
+//! [chromeWebView]
 ```
 
 ### C++ Sample
@@ -257,16 +290,17 @@ using namespace Microsoft::WRL;
 
 AppWindow* m_appWindow;
 wil::com_ptr<ICoreWebView2> m_webView;
-wil::com_ptr<ICoreWebView2StagingServiceWorkerManager> m_serviceWorkerManager;
+wil::com_ptr<ICoreWebView2ServiceWorkerManager> m_serviceWorkerManager;
+EventRegistrationToken m_serviceWorkerRegisteredToken = {};
 
-ScenarioServiceWorkerManager(AppWindow* appWindow)
+ScenarioServiceWorkerPostMessage::ScenarioServiceWorkerPostMessage(AppWindow* appWindow)
     : m_appWindow(appWindow), m_webView(appWindow->GetWebView())
 {
     CreateServiceWorkerManager();
     SetupEventsOnWebview();
 }
 
-void CreateServiceWorkerManager()
+void ScenarioServiceWorkerPostMessage::CreateServiceWorkerManager()
 {
     //! [ServiceWorkerManager]
     auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
@@ -274,13 +308,13 @@ void CreateServiceWorkerManager()
 
     wil::com_ptr<ICoreWebView2Profile> webView2Profile;
     CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
-    auto webViewStagingProfile3 = webView2Profile.try_query<ICoreWebView2StagingProfile3>();
-    CHECK_FEATURE_RETURN_EMPTY(webViewStagingProfile3);
-    CHECK_FAILURE(webViewStagingProfile3->get_ServiceWorkerManager(&m_serviceWorkerManager));
+    auto webViewProfile3 = webView2Profile.try_query<ICoreWebView2Profile3>();
+    CHECK_FEATURE_RETURN_EMPTY(webViewProfile3);
+    CHECK_FAILURE(webViewProfile3->get_ServiceWorkerManager(&m_serviceWorkerManager));
     //! [ServiceWorkerManager]
 }
 
-void SetupEventsOnWebview()
+void ScenarioServiceWorkerPostMessage::SetupEventsOnWebview()
 {
     if (!m_serviceWorkerManager)
     {
@@ -289,12 +323,12 @@ void SetupEventsOnWebview()
 
     //! [ServiceWorkerRegistered]
     CHECK_FAILURE(m_serviceWorkerManager->add_ServiceWorkerRegistered(
-        Callback<ICoreWebView2StagingServiceWorkerRegisteredEventHandler>(
+        Callback<ICoreWebView2ServiceWorkerRegisteredEventHandler>(
             [this](
-                ICoreWebView2StagingServiceWorkerManager* sender,
-                ICoreWebView2StagingServiceWorkerRegisteredEventArgs* args)
+                ICoreWebView2ServiceWorkerManager* sender,
+                ICoreWebView2ServiceWorkerRegisteredEventArgs* args)
             {
-                wil::com_ptr<ICoreWebView2StagingServiceWorkerRegistration>
+                wil::com_ptr<ICoreWebView2ServiceWorkerRegistration>
                     serviceWorkerRegistration;
                 CHECK_FAILURE(args->get_ServiceWorkerRegistration(&serviceWorkerRegistration));
 
@@ -304,7 +338,7 @@ void SetupEventsOnWebview()
                     CHECK_FAILURE(serviceWorkerRegistration->get_ScopeUri(&scopeUri));
                     std::wstring scopeUriStr(scopeUri.get());
 
-                    wil::com_ptr<ICoreWebView2StagingServiceWorker> serviceWorker;
+                    wil::com_ptr<ICoreWebView2ServiceWorker> serviceWorker;
                     CHECK_FAILURE(
                         serviceWorkerRegistration->get_ActiveServiceWorker(&serviceWorker));
 
@@ -316,13 +350,13 @@ void SetupEventsOnWebview()
                     else
                     {
                         CHECK_FAILURE(serviceWorkerRegistration->add_ServiceWorkerActivated(
-                            Callback<ICoreWebView2StagingServiceWorkerActivatedEventHandler>(
+                            Callback<ICoreWebView2ServiceWorkerActivatedEventHandler>(
                                 [this](
-                                    ICoreWebView2StagingServiceWorkerRegistration* sender,
-                                    ICoreWebView2StagingServiceWorkerActivatedEventArgs* args)
+                                    ICoreWebView2ServiceWorkerRegistration* sender,
+                                    ICoreWebView2ServiceWorkerActivatedEventArgs* args)
                                     -> HRESULT
                                 {
-                                    wil::com_ptr<ICoreWebView2StagingServiceWorker>
+                                    wil::com_ptr<ICoreWebView2ServiceWorker>
                                         serviceWorker;
                                     CHECK_FAILURE(
                                         args->get_ActiveServiceWorker(&serviceWorker));
@@ -342,85 +376,99 @@ void SetupEventsOnWebview()
                 return S_OK;
             })
             .Get(),
-        nullptr));
+        &m_serviceWorkerRegisteredToken));
     //! [ServiceWorkerRegistered]
 }
 
-void SetupEventsOnServiceWorker(
-    wil::com_ptr<ICoreWebView2StagingServiceWorker> serviceWorker)
+void ScenarioServiceWorkerPostMessage::SetupEventsOnServiceWorker(
+    wil::com_ptr<ICoreWebView2ServiceWorker> serviceWorker)
 {
-    CHECK_FAILURE(serviceWorker->add_WebMessageReceived(
-        Callback<ICoreWebView2StagingServiceWorkerWebMessageReceivedEventHandler>(
+    //! [WebMessageReceived]
+    serviceWorker->add_WebMessageReceived(
+        Callback<ICoreWebView2ServiceWorkerWebMessageReceivedEventHandler>(
             [this](
-                ICoreWebView2StagingServiceWorker* sender,
+                ICoreWebView2ServiceWorker* sender,
                 ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
             {
+                wil::unique_cotaskmem_string scriptUri;
+                CHECK_FAILURE(args->get_Source(&scriptUri));
+
                 wil::unique_cotaskmem_string messageRaw;
                 CHECK_FAILURE(args->TryGetWebMessageAsString(&messageRaw));
-                std::wstring message = messageRaw.get();
+                std::wstring messageFromWorker = messageRaw.get();
 
-                m_appWindow->AsyncMessageBox(message, L"Message from Service Worker");
+                std::wstringstream message{};
+                message << L"Service Worker: " << std::endl << scriptUri.get() << std::endl;
+                message << std::endl;
+                message << L"Message: " << std::endl << messageFromWorker << std::endl;
+                m_appWindow->AsyncMessageBox(message.str(), L"Message from Service Worker");
 
                 return S_OK;
             })
             .Get(),
-        nullptr));
+        nullptr);
+    //! [WebMessageReceived]
 }
 
-void AddToCache(
-    std::wstring url, wil::com_ptr<ICoreWebView2StagingServiceWorker> serviceWorker)
+void ScenarioServiceWorkerPostMessage::AddToCache(
+    std::wstring url, wil::com_ptr<ICoreWebView2ServiceWorker> serviceWorker)
 {
     std::wstring msg = L"{\"command\":\"ADD_TO_CACHE\",\"url\":\"" + url + L"\"}";
+    //! [PostWebMessageAsJson]
     serviceWorker->PostWebMessageAsJson(msg.c_str());
+    //! [PostWebMessageAsJson]
 }
 ```
 
 ### .NET/WinRT
 ```c#
-CoreWebView2ServiceWorkerManager ServiceWorkerManager_;
-void ServiceWorkerRegisteredExecuted(object target, ExecutedRoutedEventArgs e)
+CoreWebView2ServiceWorkerManager PostMessage_ServiceWorkerManager_;
+
+void ServiceWorkerPostMessageExecuted(object target, ExecutedRoutedEventArgs e)
 {
-    RegisterForServiceWorkerRegistered();
+    PostMessage_ServiceWorkerManager_ = WebViewProfile.ServiceWorkerManager;
+
+    PostMessage_ServiceWorkerManager_.ServiceWorkerRegistered +=
+        ServiceWorker_PostMessage_ServiceWorkerRegistered;
 }
 
-void RegisterForServiceWorkerRegistered()
+void ServiceWorker_PostMessage_ServiceWorkerRegistered(object sender,
+        CoreWebView2ServiceWorkerRegisteredEventArgs args)
 {
-    if (ServiceWorkerManager_ == null)
+    CoreWebView2ServiceWorkerRegistration serviceWorkerRegistration =
+        args.ServiceWorkerRegistration;
+    MessageBox.Show("Service worker is registered for " + serviceWorkerRegistration.ScopeUri,
+                    "Service Worker Registration Message");
+
+    CoreWebView2ServiceWorker serviceWorker = serviceWorkerRegistration.ActiveServiceWorker;
+    if (serviceWorker != null)
     {
-        ServiceWorkerManager_ = WebViewProfile.ServiceWorkerManager;
+        ServiceWorker_PostMessage_SetupEventsOnServiceWorker(serviceWorker);
+        ServiceWorker_PostMessage_AddToCache(serviceWorker, "img.jpg");
     }
-
-    ServiceWorkerManager_.ServiceWorkerRegistered += (sender, args) =>
+    else
     {
-        CoreWebView2ServiceWorkerRegistration serviceWorkerRegistration = args.ServiceWorkerRegistration;
-        MessageBox.Show("Service worker is registered for " + serviceWorkerRegistration.ScopeUri, "Service Worker Registration Message");
-
-        CoreWebView2ServiceWorker serviceWorker = serviceWorkerRegistration.ActiveServiceWorker;
-        if (serviceWorker != null)
+        serviceWorkerRegistration.ServiceWorkerActivated += (sender1, args1) =>
         {
-            SetupEventsOnServiceWorker(serviceWorker);
-            AddToCache(serviceWorker, "img.jpg");
-        }
-        else
-        {
-            serviceWorkerRegistration.ServiceWorkerActivated += (sender1, args1) =>
-            {
-                SetupEventsOnServiceWorker(serviceWorker);
-                AddToCache(serviceWorker, "img.jpg");
-            };
-        }
-    };
+            ServiceWorker_PostMessage_SetupEventsOnServiceWorker(serviceWorker);
+            ServiceWorker_PostMessage_AddToCache(serviceWorker, "img.jpg");
+        };
+    }
 }
 
-void SetupEventsOnServiceWorker(CoreWebView2ServiceWorker serviceWorker)
+void ServiceWorker_PostMessage_SetupEventsOnServiceWorker(CoreWebView2ServiceWorker serviceWorker)
 {
     serviceWorker.WebMessageReceived += (sender, args) =>
     {
-        MessageBox.Show(args.TryGetWebMessageAsString(), "Message from Service Worker");
+        StringBuilder messageBuilder = new StringBuilder();
+        messageBuilder.AppendLine($"Service Worker: \n{args.Source} ");
+        messageBuilder.AppendLine($"\nMessage: \n{args.TryGetWebMessageAsString()} ");
+        MessageBox.Show(messageBuilder.ToString(), "Message from Service Worker",
+                        MessageBoxButton.OK);
     };
 }
 
-void AddToCache(CoreWebView2ServiceWorker serviceWorker, string url)
+void ServiceWorker_PostMessage_AddToCache(CoreWebView2ServiceWorker serviceWorker, string url)
 {
     string msg = "{\"command\":\"ADD_TO_CACHE\",\"url\":\"" + url + "\"}";
     serviceWorker.PostWebMessageAsJson(msg);
@@ -432,15 +480,15 @@ void AddToCache(CoreWebView2ServiceWorker serviceWorker, string url)
 ```
 /// Receives `WebMessageReceived` events.
 [uuid(b366218b-0bb8-58a3-ac33-f40a2235366e), object, pointer_default(unique)]
-interface ICoreWebView2StagingDedicatedWorkerWebMessageReceivedEventHandler : IUnknown {
+interface ICoreWebView2DedicatedWorkerWebMessageReceivedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
-      [in] ICoreWebView2StagingDedicatedWorker* sender,
+      [in] ICoreWebView2DedicatedWorker* sender,
       [in] ICoreWebView2WebMessageReceivedEventArgs* args);
 }
 
 [uuid(66833876-edba-5a60-8508-7da64504a9d2), object, pointer_default(unique)]
-interface ICoreWebView2StagingDedicatedWorker : IUnknown {
+interface ICoreWebView2DedicatedWorker : IUnknown {
   /// Adds an event handler for the `WebMessageReceived` event.
   /// Add an event handler for the `WebMessageReceived` event.
   /// `WebMessageReceived` can be subscribed to, when the
@@ -453,7 +501,7 @@ interface ICoreWebView2StagingDedicatedWorker : IUnknown {
   /// If the worker calls `postMessage` multiple times, the corresponding
   /// `WebMessageReceived` events are guaranteed to be fired in the same order.
   HRESULT add_WebMessageReceived(
-      [in] ICoreWebView2StagingDedicatedWorkerWebMessageReceivedEventHandler* eventHandler,
+      [in] ICoreWebView2DedicatedWorkerWebMessageReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_WebMessageReceived`.
@@ -493,15 +541,15 @@ interface ICoreWebView2StagingDedicatedWorker : IUnknown {
 
 /// Receives `WebMessageReceived` events.
 [uuid(8765d114-94f4-5d90-b833-b0c8cc05a4dc), object, pointer_default(unique)]
-interface ICoreWebView2StagingServiceWorkerWebMessageReceivedEventHandler : IUnknown {
+interface ICoreWebView2ServiceWorkerWebMessageReceivedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
-      [in] ICoreWebView2StagingServiceWorker* sender,
+      [in] ICoreWebView2ServiceWorker* sender,
       [in] ICoreWebView2WebMessageReceivedEventArgs* args);
 }
 
 [uuid(f115648d-56e3-5570-8d69-be999e769fd8), object, pointer_default(unique)]
-interface ICoreWebView2StagingServiceWorker : IUnknown {
+interface ICoreWebView2ServiceWorker : IUnknown {
   /// Adds an event handler for the `WebMessageReceived` event.
   /// Add an event handler for the `WebMessageReceived` event.
   /// `WebMessageReceived` is fired, when the
@@ -514,7 +562,7 @@ interface ICoreWebView2StagingServiceWorker : IUnknown {
   /// If the worker calls `postMessage` multiple times, the corresponding
   /// `WebMessageReceived` events are guaranteed to be fired in the same order.
   HRESULT add_WebMessageReceived(
-      [in] ICoreWebView2StagingServiceWorkerWebMessageReceivedEventHandler* eventHandler,
+      [in] ICoreWebView2ServiceWorkerWebMessageReceivedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_WebMessageReceived`.
@@ -525,8 +573,8 @@ interface ICoreWebView2StagingServiceWorker : IUnknown {
   /// The worker receives the message by subscribing to the message event of the
   /// `self.chrome.webview` of the worker.
   /// 
-  /// self.chrome.webview.addEventListener(â€˜messageâ€™, handler)
-  /// self.chrome.webview.removeEventListener(â€˜messageâ€™, handler)
+  /// self.chrome.webview.addEventListener('message', handler)
+  /// self.chrome.webview.removeEventListener('message', handler)
   /// 
   /// The event args is an instance of `MessageEvent`. The
   /// `ICoreWebView2Settings::IsWebMessageEnabled` setting must be `TRUE` or
@@ -558,7 +606,8 @@ namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2DedicatedWorker
     {
-        event Windows.Foundation.TypedEventHandler<CoreWebView2DedicatedWorker, CoreWebView2WebMessageReceivedEventArgs> WebMessageReceived;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2DedicatedWorker,
+            CoreWebView2WebMessageReceivedEventArgs> WebMessageReceived;
 
         void PostWebMessageAsJson(String messageAsJson);
 
@@ -567,7 +616,8 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2ServiceWorker
     {
-        event Windows.Foundation.TypedEventHandler<CoreWebView2ServiceWorker, CoreWebView2WebMessageReceivedEventArgs> WebMessageReceived;
+        event Windows.Foundation.TypedEventHandler<CoreWebView2ServiceWorker,
+            CoreWebView2WebMessageReceivedEventArgs> WebMessageReceived;
 
         void PostWebMessageAsJson(String messageAsJson);
 
