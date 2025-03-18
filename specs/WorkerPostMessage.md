@@ -629,14 +629,14 @@ namespace Microsoft.Web.WebView2.Core
 ## JavaScript
 ```JS
 interface WorkerGlobalScope {
-	chrome: Chrome;
+    chrome: Chrome;
 }
 
 interface Chrome {
     /**
      * Makes the JavaScript APIs in WebView2 available to the worker.
      */
-	webview: WebView;
+    webview: WebView;
 }
 
 /**
