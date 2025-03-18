@@ -625,3 +625,58 @@ namespace Microsoft.Web.WebView2.Core
     }
 }
 ```
+
+## JavaScript
+```JS
+interface WorkerGlobalScope {
+	chrome: Chrome;
+}
+
+interface Chrome {
+    /**
+     * Makes the JavaScript APIs in WebView2 available to the worker.
+     */
+	webview: WebView;
+}
+
+/**
+ * `self.chrome.webview` is the interface to access the WebView2-specific APIs
+ * that are available to the worker running within WebView2 Runtime.
+ */
+interface WebView extends EventTarget {
+    /**
+     * When the worker calls `postMessage`, the `message` parameter is converted
+     * to JSON and is posted asynchronously to the WebView2 host process.
+     * This will result in either the
+     * `ICoreWebView2DedicatedWorker.WebMessageReceived` event or the
+     * `ICoreWebView2ServiceWorker.WebMessageReceived` event being raised,
+     * depending on if `postMessage` is called from the dedicated worker or
+     * service worker.
+     * @param message The message to send to the WebView2 host. This can be any
+     *    object that can be serialized to JSON.
+     */
+    postMessage(message: any) : void;
+
+    /**
+     * The standard `EventTarget.addEventListener` method. Use it to subscribe
+     * to the `message` event.
+     * The `message` event receives messages posted from the WebView2 host via
+     * `PostWebMessageAsJson` or `PostWebMessageAsString`.
+     *
+     * @param type The name of the event to subscribe to.
+     */
+    addEventListener(type: string,
+                     listener: EventListenerOrEventListenerObject,
+                     options?: boolean | AddEventListenerOptions): void;
+    /**
+     * The standard `EventTarget.removeEventListener` method. Use it to
+     * unsubscribe to the `message` event.
+     *
+     * @param type The name of the event to unsubscribe from.
+     */
+
+    removeEventListener(type: string,
+                        listener: EventListenerOrEventListenerObject,
+                        options?: boolean | EventListenerOptions): void;
+}
+```
