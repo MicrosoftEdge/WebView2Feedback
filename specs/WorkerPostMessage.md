@@ -3,12 +3,14 @@ Post message support for Dedicated and Service Workers
 
 # Background
 Currently, if developers want to post a message to or from a worker, they must
-first post a message to the main thread and then post a message to the worker
-from the main thread. This leads to increased load on the main thread.
+first post a message to the JS main thread and then post a message to the worker
+from the JS main thread. This leads to increased load on the JS main thread.
+i.e., the current flow is as below,
+ICoreWebView2.PostWebMessage -> DOM window (JS main thread) -> worker
 
 The WebView2 team is introducing APIs that allow messages to be posted directly
 from the Host app to dedicated and service workers, and vice versa. This
-eliminates the need for the main thread to act as an intermediary, thereby
+eliminates the need for the JS main thread to act as an intermediary, thereby
 improving app performance and responsiveness.
 
 # Description
@@ -112,6 +114,8 @@ ScenarioDedicatedWorkerPostMessage::ScenarioDedicatedWorkerPostMessage(AppWindow
             .Get(),
         &m_dedicatedWorkerCreatedToken));
     //! [DedicatedWorkerCreated]
+
+    // Navigate to a page that has dedicated worker.
 }
 
 void ScenarioDedicatedWorkerPostMessage::SetupEventsOnDedicatedWorker(
@@ -147,25 +151,44 @@ void ScenarioDedicatedWorkerPostMessage::SetupEventsOnDedicatedWorker(
 void ScenarioDedicatedWorkerPostMessage::ComputeWithDedicatedWorker(
     wil::com_ptr<ICoreWebView2DedicatedWorker> dedicatedWorker)
 {
-    TextInputDialog dialog(
-        m_appWindow->GetMainWindow(), L"Post Web Message JSON", L"Web message JSON",
-        L"Enter the web message as JSON.");
-    // Ex: {"command":"ADD","first":2,"second":3}
-    if (dialog.confirmed)
-    {
-        //! [PostWebMessageAsJson]
-        dedicatedWorker->PostWebMessageAsJson(dialog.input.c_str());
-        //! [PostWebMessageAsJson]
-    }
+    // Do not block from event handler
+    m_appWindow->RunAsync(
+        [this, dedicatedWorker]
+        {
+            TextInputDialog dialog(
+                m_appWindow->GetMainWindow(), L"Post Web Message JSON", L"Web message JSON",
+                L"Enter the web message as JSON.");
+            // Ex: {"command":"ADD","first":2,"second":3}
+            if (dialog.confirmed)
+            {
+                //! [PostWebMessageAsJson]
+                dedicatedWorker->PostWebMessageAsJson(dialog.input.c_str());
+                //! [PostWebMessageAsJson]
+            }
+        });
 }
 ```
 
 ### .NET/WinRT
 ```c#
+private string _dedicatedWorkerPostMessageStr;
+
 void DedicatedWorkerPostMessageExecuted(object target, ExecutedRoutedEventArgs e)
 {
     _iWebView2.CoreWebView2.DedicatedWorkerCreated +=
         DedicatedWorker_PostMessage_DedicatedWorkerCreated;
+
+    var dialog = new TextInputDialog(
+        title: "Post Web Message JSON",
+        description: "Enter the web message as JSON.",
+        defaultInput: "{\"command\":\"ADD\",\"first\":2,\"second\":3}");
+    // Ex: {"command":"MUL","first":2,"second":3}
+    if (dialog.ShowDialog() == true)
+    {
+        _dedicatedWorkerPostMessageStr = dialog.Input.Text;
+    }
+
+    // Navigate to a page that has dedicated worker.
 }
 
 void DedicatedWorker_PostMessage_DedicatedWorkerCreated(object sender,
@@ -193,15 +216,7 @@ void DedicatedWorker_PostMessage_SetupEventsOnDedicatedWorker(
 void DedicatedWorker_PostMessage_ComputeWithDedicatedWorker(
         CoreWebView2DedicatedWorker dedicatedWorker)
 {
-    var dialog = new TextInputDialog(
-        title: "Post Web Message JSON",
-        description: "Enter the web message as JSON.",
-        defaultInput: "");
-    // Ex: {"command":"MUL","first":2,"second":3}
-    if (dialog.ShowDialog() == true)
-    {
-        dedicatedWorker.PostWebMessageAsJson(dialog.Input.Text);
-    }
+    dedicatedWorker.PostWebMessageAsJson(_dedicatedWorkerPostMessageStr);
 }
 ```
 
@@ -523,8 +538,10 @@ interface ICoreWebView2DedicatedWorker : IUnknown {
   /// The message is delivered asynchronously
   /// If the worker is terminated or destroyed before the message is posted,
   /// the message is discarded.
+  /// See also the equivalent methods: `ICoreWebView2::PostWebMessageAsJson` and
+  /// `ICoreWebView2Frame::PostWebMessageAsJson`
   HRESULT PostWebMessageAsJson(
-      [in] LPCWSTR messageAsJson
+      [in] LPCWSTR webMessageAsJson
   );
 
   /// Posts a message that is a simple string rather than a string
@@ -533,9 +550,12 @@ interface ICoreWebView2DedicatedWorker : IUnknown {
   /// arg of the worker's `self.chrome.webview` message is a string with the same
   /// value as `messageAsString`.  Use this instead of
   /// `PostWebMessageAsJson` if you want to communicate using simple strings
-  /// rather than JSON objects.
+  /// rather than JSON objects. Please see `PostWebMessageAsJson` for additional
+  /// information.
+  /// See also the equivalent methods: `ICoreWebView2::PostWebMessageAsString`
+  /// and `ICoreWebView2Frame::PostWebMessageAsString`
   HRESULT PostWebMessageAsString(
-      [in] LPCWSTR messageAsString
+      [in] LPCWSTR webMessageAsString
   );
 }
 
@@ -583,19 +603,24 @@ interface ICoreWebView2ServiceWorker : IUnknown {
   /// The message is delivered asynchronously
   /// If the worker is terminated or destroyed before the message is posted,
   /// the message is discarded.
+  /// See also the equivalent methods: `ICoreWebView2::PostWebMessageAsJson` and
+  /// `ICoreWebView2Frame::PostWebMessageAsJson`
   HRESULT PostWebMessageAsJson(
-      [in] LPCWSTR messageAsJson
+      [in] LPCWSTR webMessageAsJson
   );
 
   /// Posts a message that is a simple string rather than a string
   /// representation of a JSON object.  This behaves exactly the same
   /// manner as `PostWebMessageAsJson`, but the `data` property of the event
   /// arg of the worker's `self.chrome.webview` message is a string with the same
-  /// value as `messageAsString`.  Use this instead of
+  /// value as `webMessageAsString`.  Use this instead of
   /// `PostWebMessageAsJson` if you want to communicate using simple strings
-  /// rather than JSON objects.
+  /// rather than JSON objects. Please see `PostWebMessageAsJson` for additional
+  /// information.
+  /// See also the equivalent methods: `ICoreWebView2::PostWebMessageAsString`
+  /// and `ICoreWebView2Frame::PostWebMessageAsString`
   HRESULT PostWebMessageAsString(
-      [in] LPCWSTR messageAsString
+      [in] LPCWSTR webMessageAsString
   );
 }
 ```
@@ -609,9 +634,9 @@ namespace Microsoft.Web.WebView2.Core
         event Windows.Foundation.TypedEventHandler<CoreWebView2DedicatedWorker,
             CoreWebView2WebMessageReceivedEventArgs> WebMessageReceived;
 
-        void PostWebMessageAsJson(String messageAsJson);
+        void PostWebMessageAsJson(String webMessageAsJson);
 
-        void PostWebMessageAsString(String messageAsString);
+        void PostWebMessageAsString(String webMessageAsString);
     }
 
     runtimeclass CoreWebView2ServiceWorker
@@ -619,9 +644,9 @@ namespace Microsoft.Web.WebView2.Core
         event Windows.Foundation.TypedEventHandler<CoreWebView2ServiceWorker,
             CoreWebView2WebMessageReceivedEventArgs> WebMessageReceived;
 
-        void PostWebMessageAsJson(String messageAsJson);
+        void PostWebMessageAsJson(String webMessageAsJson);
 
-        void PostWebMessageAsString(String messageAsString);
+        void PostWebMessageAsString(String webMessageAsString);
     }
 }
 ```
