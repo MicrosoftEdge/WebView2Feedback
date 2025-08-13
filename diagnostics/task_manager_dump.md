@@ -1,5 +1,5 @@
-# Crash Dump from Task Manager
-Normally, crash dumps are gathered automatically and available in the app's user data folder (see [Crash Dumps](crash.md)). In some cases, a user might need to manually gather a crash dump, normally for unresponsive processes. To do so:
+# Memory Dump from Task Manager
+In some cases, a user might need to manually gather a memory dump, normally for unresponsive processes. To do so:
 
 1. Open Task Manager (Ctrl+Shift+Esc).
 2. Click "Details" on the left menu.
