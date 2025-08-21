@@ -7,7 +7,7 @@ This folder provides step-by-step instructions for collecting detailed diagnosti
 | [ETW Trace](etw.md)                 | Event Tracing for Windows logs detailed system and WebView2 activity.   | **Preferred log for most WebView2 issues.** Used to analyze system state and WebView2 behavior before/during issues. |
 | [Memory Dumps (Task Manager)](task_manager_dump.md)| Manual memory capture for unresponsive processes.                      | Helpful when WebView2 hangs or becomes non-responsive.                   |
 | [Installer Logs](install.md)            | Logs errors encountered during WebView2 runtime installation or updates.| Diagnose installation failures or update issues.                         |
-| [GPU Info](gpu.md)                  | Provides details about  the GPU and rendering pipeline.                  | Useful for troubleshooting graphics-related problems.                    |
+| [GPU Info](gpu.md)                  | Provides details about the GPU and rendering pipeline.                  | Useful for troubleshooting graphics-related problems.                    |
 | [Network Logs](network.md)              | Records network requests, responses, and errors.                        | Diagnose issues with loading resources or connectivity failures.         |
 | [Code Integrity](code_integrity.md)            | Identifies root causes of `STATUS_INVALID_IMAGE_HASH` errors.           | Used when encountering image hash validation failures.                   |
 | [Test in Canary](test_canary.md)            | Allows testing of WebView2 runtime changes using Edge Canary builds.    | Preview and validate fixes or features before stable release.            |
