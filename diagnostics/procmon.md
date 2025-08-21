@@ -21,6 +21,6 @@ Procmon logs help quickly identify issues like missing files, registry errors, o
 
 7.	After applying the filters, start capturing the log by clicking the **Capture button**.
 
-8.	After your repro, again click the **Capture button** to stop the capturing and then using the save button, save the logs as .PML file to any location.
+8.	After your repro, again click the **Capture button** to stop the capturing and then using the save button, save the logs as a .PML file to any location.
 
 9.	Compress these logs and share the zip file.
