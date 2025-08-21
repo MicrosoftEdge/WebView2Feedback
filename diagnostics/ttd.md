@@ -66,6 +66,9 @@ For more details on the ttd and to capture other processes, refer to [Microsoft 
 
 - If the Details view does not show **Command Line** column, right click on any column and select **Select Columns**. Now add **Command Line** column to the view.
 
-- Search for the msedgewebview2.exe process and find the process which contains the  “--embedded-browser-webview=1 --webview-exe-name={`app-exe-name`}” argument. Get the PID of the process.
+- Search for the msedgewebview2.exe process and find the process which contains the “--embedded-browser-webview=1 --webview-exe-name={`app-exe-name`}” argument. Get the PID of the process.
 
-![pid-taskbar](resources/pid-taskbar.png)
+
+**Image showing Browser Process for ms-teams.exe's webview2.**
+
+   ![pid-taskbar](resources/pid-taskbar.png)

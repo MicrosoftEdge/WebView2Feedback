@@ -9,7 +9,7 @@ Procmon logs help quickly identify issues like missing files, registry errors, o
 
 1.	Download Procmon from [Microsoft Learn](https://learn.microsoft.com/en-us/sysinternals/downloads/procmon).
 
-2.	Extract the zip file  and copy **Procmon.exe** ( or **Procmon64.exe** for 64-bit systems) to the target machine.
+2.	Extract the zip file and copy **Procmon.exe** (or **Procmon64.exe** for 64-bit systems) to the target machine.
 
 3.	Launch **Procmon.exe** and accept the license agreement.
 
