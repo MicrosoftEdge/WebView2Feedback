@@ -55,7 +55,7 @@ For renderer process or any sandboxed process, it’s important to use the `--no
 4. **Monitor and reproduce** - The TTD control window will appear. Reproduce your scenario and click "Tracing Off" when complete.
 5. **Security cleanup** - Remove the `--no-sandbox` argument after collecting the trace to restore normal security.
  
-In both the cases, *.out* and *.run* files will be saved to the specified location (or in the same folder from where you are running your commands if you haven't specified anything). 
+In both cases, *.out* and *.run* files will be saved to the specified location (or in the same folder from where you are running your commands if you haven't specified anything). 
 
 For more details on the ttd and to capture other processes, refer to [Microsoft Learn](https://learn.microsoft.com/en-us/windows-hardware/drivers/debuggercmds/time-travel-debugging-ttd-exe-command-line-util)
 
