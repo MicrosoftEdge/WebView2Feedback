@@ -17,7 +17,7 @@ Procmon logs help quickly identify issues like missing files, registry errors, o
 
 5.	Stop the capture by clicking the **Capture button** (or **File > Capture Events**).
 
-6.	Before capturing the logs, one can add also filters like process id, process name, etc. using the **Filter button**. 
+6.	Before capturing the logs, one can also add filters like process id, process name, etc. using the **Filter button**. 
 
 7.	After applying the filters, start capturing the log by clicking the **Capture button**.
 
