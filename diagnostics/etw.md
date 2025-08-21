@@ -1,9 +1,13 @@
 # Gathering an ETW Trace
 [Event Tracing for Windows (ETW)](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/event-tracing-for-windows)traces include detailed events on system state and the activities WV2 was doing before and when an issue occurs.
 
-This repo has a WV2 recording profile - [WebView2_CPU.wprp](resources/WebView2_CPU.wprp) that includes the events that we find most useful.
+This repo has two WebView2 recording profiles:
 
-ETW traces can get fairly large, so try to keep the amount of extra time spent when recording as small as possible. If you need a longer trace, ask the WV2 developer that you're working with if `WebView2.wprp` will suffice (it gathers less data).
+1. **[WebView2_CPU.wprp](resources/WebView2_CPU.wprp) [Recommended]**: This is the default recording profile that captures most of the useful events for diagnosing WebView2 issues, including CPU sampling data. Use this profile for most scenarios.
+
+2. **[WebView2.wprp](resources/WebView2.wprp)**: This profile is recommended when you need to capture longer scenarios and the size of the ETW traces becomes too large. It excludes some data (like CPU sampling data) to produce smaller trace files.
+
+ETW traces can get fairly large, so try to keep the recording time as short as possible while still capturing the issue. If you need a longer trace, ask the WebView2 developer you're working with if `WebView2.wprp` will suffice.
 
 1. Close Edge and any other apps using WV2 to make the trace more clear. Common apps using WV2 may include `widgets.exe`, `msteams.exe`, and Microsoft Office products.
 2. Download [WebView2_CPU.wprp](resources/WebView2_CPU.wprp) from this repo.
