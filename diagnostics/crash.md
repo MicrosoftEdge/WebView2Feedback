@@ -11,4 +11,4 @@ By default the user data folder is created in the app's folder by default with a
 
 If you do not have crash dumps - please navigate your webview2 control to `edge://crashes` to see if there are new reports. Copy necessary data to Clipboard and share with us.
 
-![crashes](crashes.png)
+![crashes](resources/crashes.png)
