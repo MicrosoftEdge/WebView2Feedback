@@ -9,7 +9,7 @@ and exit code -1073740760 or STATUS_INVALID_IMAGE_HASH.
 
 Users may see error page in the WebView2:
 
-![Compatibility problem](compatibility_problem.png)
+![Compatibility problem](resources/compatibility_problem.png)
 
 ## Update antimalware software
 Starting versions 118 and 119 the options to disable Code Integrity in WebView2 are deprecated and the guard is always on.

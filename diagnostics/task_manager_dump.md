@@ -1,10 +1,10 @@
-# Crash Dump from Task Manager
-Normally, crash dumps are gathered automatically and available in the app's user data folder (see [Crash Dumps](crash.md)). In some cases, a user might need to manually gather a crash dump, normally for unresponsive processes. To do so:
+# Memory Dump from Task Manager
+In some cases, a user might need to manually gather a memory dump, normally for unresponsive processes. To do so:
 
 1. Open Task Manager (Ctrl+Shift+Esc).
 2. Click "Details" on the left menu.
 3. Sort by the "Name" column.
-4. Scroll to find "msedgewebview2.exe"
+4. Search for "msedgewebview2.exe" in the search box.
 5. To find the right msedgewebview2.exe, you can use a combination of:
     1. The "Package name" column, which will represent the application using WebView2. (you might need to right-click the column headers, choose "select columns" and check the box for "Package name")
     2. The "Description" column, which will describe which of WebView2's processes it is. (you might need to make Task Manager very wide to see this one, you can drag to re-arrange the columns if needed)
