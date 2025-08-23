@@ -1,7 +1,6 @@
 # WebView2Find API
 
-## Background
-
+## Overview
 The WebView2Find API offers methods and events for text finding and navigation
 within a WebView2 control. It enables developers to programmatically initiate Find
 operations, navigate Find results, suppress default UI, and customize Find options
@@ -23,14 +22,17 @@ completion, match count changes, and match index changes.
 
 
 #### Description
+> Only one session is active per WebView2 and it is created or replaced when you call Start or StartAsync.  
 
-To initiate a Find operation in a WebView2 control, use the `StartAsync` method.
-This method allows setting the Find term and Find parameters via the
-`ICoreWebView2FindOptions` interface. Only one Find session can be active per
-WebView2 environment.
-### Create/Specify a Find Option
+To start finding you must call `Start` (C++) or `StartAsync` (.NET).  
+Creating `FindOptions` only prepares settings.  
+The session is created or replaced when you call Start.  
+
+### Start a Find Session
+To create or replace the active find session:
+#### Step 1. Create `FindOptions`
+You configure the term and flags here. Creating options alone does not start finding.
 #### WIN32 C++
-
 ```cpp
 
 wil::com_ptr<ICoreWebView2FindOptions> AppWindow::InitializeFindOptions(const std::wstring& findTerm)
@@ -43,11 +45,12 @@ wil::com_ptr<ICoreWebView2FindOptions> AppWindow::InitializeFindOptions(const st
     wil::com_ptr<ICoreWebView2FindOptions> find_options;
     CHECK_FAILURE(webView2Environment5->CreateFindOptions(&find_options));
     CHECK_FAILURE(find_options->put_FindTerm(findTerm.c_str()));
-
+    // Optional: IsCaseSensitive, ShouldMatchWord, ShouldHighlightAllMatches, SuppressDefaultFindDialog
     return find_options;
 }
 ```
-
+#### Step 2. Start the session
+`Start` shows the Find bar (unless suppressed) and creates the session. It replaces any existing session.
 ```cpp
 bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm) 
 {
@@ -68,10 +71,10 @@ bool AppWindow::ConfigureAndExecuteFind(const std::wstring& findTerm)
     // you can change the SuppressDefaultDialog and ShouldHighlightAllMatches properties here.
 
     // Start the Find operation with a callback for completion.
-    CHECK_FAILURE(webView2Find->StartFind(
+    CHECK_FAILURE(webView2Find->Start(
         find_options.get(),
         Callback<ICoreWebView2FindOperationCompletedHandler>(
-            [this](HRESULT result, BOOL status) -> HRESULT
+            [this](HRESULT result) -> HRESULT
             {
                 if (SUCCEEDED(result))
                 {
@@ -109,12 +112,12 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& findTerm)
     CHECK_FAILURE(webView2Find->put_SuppressDefaultDialog(true));
 
     // Start the Find operation with callback for completion.
-    CHECK_FAILURE(webView2Find->StartFind(
+    CHECK_FAILURE(webView2Find->Start(
         find_options.get(),
         Callback<ICoreWebView2FindOperationCompletedHandler>(
-            [this](HRESULT result, BOOL status) -> HRESULT
+            [this](HRESULT result) -> HRESULT
             {
-                if (SUCCEEDED(result) && status)
+                if (SUCCEEDED(result))
                 {
                     // Optionally update UI elements here upon successful Find operation.
                 }
@@ -126,9 +129,9 @@ bool AppWindow::ExecuteFindWithCustomUI(const std::wstring& findTerm)
             }).Get()));
 
     // Note: In this example, navigation through Find results (FindNext/FindPrevious)
-    // and stopping the Find operation (StopFind) are assumed to be handled by
+    // and stopping the Find operation (Stop) are assumed to be handled by
     // custom UI elements and user interaction, not directly in code here.
-    // User could then connect functions such as FindNext, FindPrevious, and StopFind
+    // User could then connect functions such as FindNext, FindPrevious, and Stop
     // to corresponding custom UI elements.
 
     return true;
@@ -244,7 +247,7 @@ within a WebView2 control using the `ActiveMatchIndex` property.
 public Task<int> GetActiveMatchIndex()
 {
     var webViewFind = webView.CoreWebView2.Find; // Assuming webView is your WebView2 control
-    var activeMatchIndex = webViewFind.ActiveMatchIndex();
+    var activeMatchIndex = webViewFind.ActiveMatchIndex; // 1-based, -1 if none
     MessageBox.Show($"Active Match Index: {activeMatchIndex}", "Find Operation", MessageBoxButton.OK);
     return activeMatchIndex;
 }
@@ -280,9 +283,9 @@ interface ICoreWebView2Environment5 : IUnknown {
 }
 
 
-/// Receives the result of the `StartFind` method.
+/// Receives the result of the `Start` method.
 [uuid(7c20f8b0-c14e-5135-a099-6c9d11d59dd1), object, pointer_default(unique)]
-interface ICoreWebView2indStartFindCompletedHandler : IUnknown {
+interface ICoreWebView2FindStartFindCompletedHandler : IUnknown {
 
   /// Provides the result of the corresponding asynchronous method.
   HRESULT Invoke([in] HRESULT errorCode);
@@ -373,7 +376,7 @@ interface ICoreWebView2Find : IUnknown {
   /// To change the ongoing Find session, Start must be called again with a new or modified Find options object.
   /// This method is primarily designed for HTML document queries.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
-  HRESULT StartFind(
+  HRESULT Start(
       [in] ICoreWebView2FindOptions* options
       , [in] ICoreWebView2FindStartFindCompletedHandler* handler
   );
@@ -390,7 +393,7 @@ interface ICoreWebView2Find : IUnknown {
 
   /// Stops the current 'Find' operation and hides the Find bar.
   // MSOWNERS: core (maxwellmyers@microsoft.com)
-  HRESULT StopFind(
+  HRESULT Stop(
   );
 
 
@@ -455,11 +458,21 @@ interface ICoreWebView2_17 : IUnknown {
 ```
 
 
+
+## Troubleshooting
+- Completion Handler build error: the completed handler takes `HRESULT` only.
+- Options changed but nothing happened: call `FindNext`, `FindPrevious`, or `Start` again.
+- No matches on non-text content: WebView2Find queries text. Binary or embedded viewers may not support programmatic navigation. PDF supports first index and total only.
+
+# Appendix
+
+This API specification focuses on providing developers with the necessary information 
+to integrate text finding and navigation functionalities into WebView2 applications. 
+It emphasizes the usage of interfaces such as `ICoreWebView2Find` and 
+`ICoreWebView2FindOptions` to perform Find operations effectively. 
+
+> Appendix reference: MIDL3 signatures for completeness. Most developers can skip this.
 ### Setting Up Find Options with MIDL3
-
-### CoreWebView2 Find Configuration
-
-
 
 ### CoreWebView2 Find Interface
 
@@ -600,12 +613,5 @@ namespace Microsoft.Web.WebView2.Core
     }
     }
 ```
-
-# Appendix
-
-This API specification focuses on providing developers with the necessary information 
-to integrate text finding and navigation functionalities into WebView2 applications. 
-It emphasizes the usage of interfaces such as `ICoreWebView2Find` and 
-`ICoreWebView2FindOptions` to perform Find operations effectively. 
 
 
