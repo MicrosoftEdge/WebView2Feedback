@@ -98,6 +98,107 @@ The core features of this proposal are as follows:
 •	Sensitivity labels are cleared when navigating away from the current WebView.
 
 # Examples
+
+## Setting Up an Allowlist
+
+Configure the PageInteractionRestrictionManager allowlist to enable DLP functionality on trusted domains.
+
+```c#
+// Configure allowlist for trusted company domains
+var allowlist = new List<string>
+{
+    "https://intranet.company.com",
+    "https://*.company.com",           // Wildcard for all company subdomains
+    "https://trusted-partner.com",
+    "https://secure.vendor.net"
+};
+
+// Set the allowlist on the profile
+await webView2Control.CoreWebView2.Profile.SetPageInteractionRestrictionManagerAllowlistAsync(allowlist);
+
+MessageBox.Show($"Allowlist configured with {allowlist.Count} domains");
+```
+
+```cpp
+void ConfigureAllowlist()
+{
+    // Get the WebView2 profile
+    wil::com_ptr<ICoreWebView2Profile> profile;
+    CHECK_FAILURE(m_webView->get_Profile(&profile));
+
+    auto stagingProfile3 = profile.try_query<ICoreWebView2StagingProfile3>();
+    if (stagingProfile3) {
+        // Create allowlist with trusted domains
+        std::vector<std::wstring> allowlist = {
+            L"https://intranet.company.com",
+            L"https://*.company.com",
+            L"https://trusted-partner.com"
+        };
+        
+        // Convert to LPCWSTR array for COM interface
+        std::vector<LPCWSTR> items;
+        for (const auto& url : allowlist) {
+            items.push_back(url.c_str());
+        }
+        
+        // Get environment to create string collection
+        wil::com_ptr<ICoreWebView2Environment> environment;
+        CHECK_FAILURE(m_webView->get_Environment(&environment));
+        
+        auto stagingEnvironment15 = environment.try_query<ICoreWebView2StagingEnvironment15>();
+        if (stagingEnvironment15) {
+            wil::com_ptr<ICoreWebView2StringCollection> stringCollection;
+            CHECK_FAILURE(stagingEnvironment15->CreateStringCollection(
+                static_cast<UINT32>(items.size()), 
+                items.data(), 
+                &stringCollection));
+            
+            // Apply the allowlist
+            CHECK_FAILURE(stagingProfile3->SetPageInteractionRestrictionManagerAllowlist(
+                stringCollection.get()));
+        }
+    }
+}
+```
+
+## Retrieving Current Allowlist
+
+```c#
+// Get current allowlist
+var currentAllowlist = await webView2Control.CoreWebView2.Profile.GetPageInteractionRestrictionManagerAllowlistAsync();
+
+Console.WriteLine($"Current allowlist contains {currentAllowlist.Count} entries:");
+foreach (var url in currentAllowlist)
+{
+    Console.WriteLine($"  • {url}");
+}
+```
+
+```cpp
+void GetCurrentAllowlist()
+{
+    auto stagingProfile3 = m_profile.try_query<ICoreWebView2StagingProfile3>();
+    if (stagingProfile3) {
+        CHECK_FAILURE(stagingProfile3->GetPageInteractionRestrictionManagerAllowlist(
+            Callback<ICoreWebView2StagingGetPageInteractionRestrictionManagerAllowlistCompletedHandler>(
+                [](HRESULT result, ICoreWebView2StringCollection* allowlist) -> HRESULT {
+                    if (SUCCEEDED(result) && allowlist) {
+                        UINT count = 0;
+                        CHECK_FAILURE(allowlist->get_Count(&count));
+                        
+                        wprintf(L"Current allowlist contains %u entries:\n", count);
+                        for (UINT i = 0; i < count; ++i) {
+                            wil::unique_cotaskmem_string item;
+                            CHECK_FAILURE(allowlist->GetValueAtIndex(i, &item));
+                            wprintf(L"  • %s\n", item.get());
+                        }
+                    }
+                    return S_OK;
+                }).Get()));
+    }
+}
+```
+
 <!-- TEMPLATE
     Use this section to explain the features of the API, showing
     example code with each description in both C# (for our WinRT API or .NET API) and
@@ -169,8 +270,65 @@ The core features of this proposal are as follows:
     ```
 
 -->
-
 # API Details
+
+```
+[uuid(764ffcc6-b341-5307-8ca4-58face289427), object, pointer_default(unique)]
+interface ICoreWebView2StagingEnvironment15 : IUnknown {
+    /// Create an ICoreWebView2StringCollection from an array of strings.
+    /// This provides a convenient way to create string collections for use
+    /// with WebView2 APIs that require ICoreWebView2StringCollection objects.
+    HRESULT CreateStringCollection(
+        [in] UINT32 count,
+        [in] LPCWSTR* items,
+        [out, retval] ICoreWebView2StringCollection** value);
+}
+```
+
+```
+[uuid(25b0fd91-f2e8-5c54-92f4-f74751b1fa0e), object, pointer_default(unique)]
+interface ICoreWebView2StagingProfile3 : IUnknown {
+    /// Get the current PageInteractionRestrictionManager allowlist.
+    /// The allowlist contains URL patterns that are exempt from page interaction restrictions.
+    HRESULT GetPageInteractionRestrictionManagerAllowlist(
+        [in] ICoreWebView2StagingGetPageInteractionRestrictionManagerAllowlistCompletedHandler* handler);
+    
+    /// Set the PageInteractionRestrictionManager allowlist.
+    /// URL patterns in this allowlist will be exempt from page interaction restrictions
+    /// imposed by DLP policies. Pass an empty collection to clear the allowlist.
+    HRESULT SetPageInteractionRestrictionManagerAllowlist(
+        [in] ICoreWebView2StringCollection* allow_list);
+}
+```
+
+```
+[uuid(ac924e9c-1639-586b-a402-1b81e6309d8a), object, pointer_default(unique)]
+interface ICoreWebView2StagingGetPageInteractionRestrictionManagerAllowlistCompletedHandler : IUnknown {
+    /// Provides the result of the GetPageInteractionRestrictionManagerAllowlist operation.
+    HRESULT Invoke([in] HRESULT errorCode, [in] ICoreWebView2StringCollection* result);
+}
+```
+
+```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    public partial class CoreWebView2Profile
+    {
+        /// <summary>
+        /// Get the current PageInteractionRestrictionManager allowlist.
+        /// </summary>
+        /// <returns>A collection of URL patterns that are exempt from page interaction restrictions.</returns>
+        public async Task<IReadOnlyList<string>> GetPageInteractionRestrictionManagerAllowlistAsync();
+        
+        /// <summary>
+        /// Set the PageInteractionRestrictionManager allowlist.
+        /// </summary>
+        /// <param name="allowList">Collection of URL patterns to exempt from page interaction restrictions.
+        /// Pass an empty collection to clear the allowlist.</param>
+        public void SetPageInteractionRestrictionManagerAllowlist(IReadOnlyList<string> allowList);
+    }
+}
+```
 <!-- TEMPLATE
     The exact API, in IDL format for our COM API and
     in MIDL3 format (https://learn.microsoft.com/uwp/midl-3/)
