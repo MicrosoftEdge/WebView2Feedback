@@ -1,4 +1,3 @@
-<!-- 
     Before submitting, delete all "<!-- TEMPLATE" marked comments in this file,
     and the following quote banner:
 -->
@@ -58,7 +57,7 @@ Sensitivity label support for Webview2
     do not get copied into any official documentation, they're just an aid
     to reading this spec. If you find useful information in the background
     or appendix consider moving it to documentation.
-    
+
     If you're modifying an existing API, included a link here to the
     existing page(s) or spec documentation.
 
@@ -67,7 +66,7 @@ Sensitivity label support for Webview2
 
     For example, this is a place to provide a brief explanation of some dependent
     area, just explanation enough to understand this new API, rather than telling
-    the reader "go read 100 pages of background information posted at ...". 
+    the reader "go read 100 pages of background information posted at ...".
 -->
 Web pages may contain content with sensitive information. Such information can be identified using data loss protection methods. The purpose of this API is to provide sensitivity label information, communicated by web pages through the Page Interaction Restriction Manager (see details here), to the host application. This enables the host application to be informed of the presence of sensitive content.
 
@@ -90,7 +89,7 @@ _(This is conceptual documentation that will go to learn.microsoft.com "how to" 
     lean towards including text in the API documentation below instead of in this conceptual
     section.
 -->
-We propose introducing a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to domains explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified domains. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
+We propose introducing a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to URLs explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified URLs. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
 The core features of this proposal are as follows:
 •	Configure the allowlist filter for Page Interaction Restriction Manager at the profile level.
 •	After setup, the manager is available on allowlisted pages. Content can send sensitivity labels to the platform via the API.
@@ -104,19 +103,19 @@ The core features of this proposal are as follows:
 Configure the PageInteractionRestrictionManager allowlist to enable DLP functionality on trusted domains.
 
 ```c#
-// Configure allowlist for trusted company domains
+// Configure allowlist for trusted company URLs
 var allowlist = new List<string>
 {
-    "https://intranet.company.com",
-    "https://*.company.com",           // Wildcard for all company subdomains
-    "https://trusted-partner.com",
-    "https://secure.vendor.net"
+    "https://intranet.company.com/*",
+    "https://*.company.com/*",           // Wildcard for all company subdomains
+    "https://trusted-partner.com/*",
+    "https://secure.vendor.net/*"
 };
 
 // Set the allowlist on the profile
-await webView2Control.CoreWebView2.Profile.SetPageInteractionRestrictionManagerAllowlistAsync(allowlist);
+webView2Control.CoreWebView2.Profile.SetPageInteractionRestrictionManagerAllowlist(allowlist);
 
-MessageBox.Show($"Allowlist configured with {allowlist.Count} domains");
+MessageBox.Show($"Allowlist configured with {allowlist.Count} URLs");
 ```
 
 ```cpp
@@ -128,31 +127,31 @@ void ConfigureAllowlist()
 
     auto stagingProfile3 = profile.try_query<ICoreWebView2StagingProfile3>();
     if (stagingProfile3) {
-        // Create allowlist with trusted domains
+        // Create allowlist with trusted URLs
         std::vector<std::wstring> allowlist = {
-            L"https://intranet.company.com",
-            L"https://*.company.com",
-            L"https://trusted-partner.com"
+            L"https://intranet.company.com/*",
+            L"https://*.company.com/*",
+            L"https://trusted-partner.com/*"
         };
-        
+
         // Convert to LPCWSTR array for COM interface
         std::vector<LPCWSTR> items;
         for (const auto& url : allowlist) {
             items.push_back(url.c_str());
         }
-        
+
         // Get environment to create string collection
         wil::com_ptr<ICoreWebView2Environment> environment;
         CHECK_FAILURE(m_webView->get_Environment(&environment));
-        
+
         auto stagingEnvironment15 = environment.try_query<ICoreWebView2StagingEnvironment15>();
         if (stagingEnvironment15) {
             wil::com_ptr<ICoreWebView2StringCollection> stringCollection;
             CHECK_FAILURE(stagingEnvironment15->CreateStringCollection(
-                static_cast<UINT32>(items.size()), 
-                items.data(), 
+                static_cast<UINT32>(items.size()),
+                items.data(),
                 &stringCollection));
-            
+
             // Apply the allowlist
             CHECK_FAILURE(stagingProfile3->SetPageInteractionRestrictionManagerAllowlist(
                 stringCollection.get()));
@@ -165,7 +164,7 @@ void ConfigureAllowlist()
 
 ```c#
 // Get current allowlist
-var currentAllowlist = await webView2Control.CoreWebView2.Profile.GetPageInteractionRestrictionManagerAllowlistAsync();
+var currentAllowlist = await webView2Control.CoreWebView2.Profile.GetPageInteractionRestrictionManagerAllowlist();
 
 Console.WriteLine($"Current allowlist contains {currentAllowlist.Count} entries:");
 foreach (var url in currentAllowlist)
@@ -185,7 +184,7 @@ void GetCurrentAllowlist()
                     if (SUCCEEDED(result) && allowlist) {
                         UINT count = 0;
                         CHECK_FAILURE(allowlist->get_Count(&count));
-                        
+
                         wprintf(L"Current allowlist contains %u entries:\n", count);
                         for (UINT i = 0; i < count; ++i) {
                             wil::unique_cotaskmem_string item;
@@ -208,7 +207,7 @@ void GetCurrentAllowlist()
     include that and consider including it in its own HTML or JS sample code.
 
     As an example of this section, see the Examples section for the Custom Downloads
-    APIs (https://github.com/MicrosoftEdge/WebView2Feedback/blob/master/specs/CustomDownload.md). 
+    APIs (https://github.com/MicrosoftEdge/WebView2Feedback/blob/master/specs/CustomDownload.md).
 
     The general format is:
 
@@ -224,7 +223,7 @@ void GetCurrentAllowlist()
         show.SomeMembers = AndWhyItMight(be, interesting)
     }
     ```
-    
+
     ```cpp
     void SampleClass::SampleMethod()
     {
@@ -252,7 +251,7 @@ void GetCurrentAllowlist()
         show.SomeMembers = AndWhyItMight(be, interesting)
     }
     ```
-    
+
     ```cpp
     void SampleClass::SampleMethod()
     {
@@ -292,7 +291,7 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
     /// The allowlist contains URL patterns that are exempt from page interaction restrictions.
     HRESULT GetPageInteractionRestrictionManagerAllowlist(
         [in] ICoreWebView2StagingGetPageInteractionRestrictionManagerAllowlistCompletedHandler* handler);
-    
+
     /// Set the PageInteractionRestrictionManager allowlist.
     /// URL patterns in this allowlist will be exempt from page interaction restrictions
     /// imposed by DLP policies. Pass an empty collection to clear the allowlist.
@@ -318,8 +317,8 @@ namespace Microsoft.Web.WebView2.Core
         /// Get the current PageInteractionRestrictionManager allowlist.
         /// </summary>
         /// <returns>A collection of URL patterns that are exempt from page interaction restrictions.</returns>
-        public async Task<IReadOnlyList<string>> GetPageInteractionRestrictionManagerAllowlistAsync();
-        
+        public async Task<IReadOnlyList<string>> GetPageInteractionRestrictionManagerAllowlist();
+
         /// <summary>
         /// Set the PageInteractionRestrictionManager allowlist.
         /// </summary>
@@ -345,11 +344,11 @@ namespace Microsoft.Web.WebView2.Core
     use ```c# instead even when writing MIDL3.)
 
     Example:
-    
+
 ```
 [uuid(B625A89E-368F-43F5-BCBA-39AA6234CCF8), object, pointer_default(unique)]
 interface ICoreWebView2Settings4 : ICoreWebView2Settings3 {
-  /// The IsPinchZoomEnabled property enables or disables the ability of 
+  /// The IsPinchZoomEnabled property enables or disables the ability of
   /// the end user to use a pinching motion on touch input enabled devices
   /// to scale the web content in the WebView2. It defaults to TRUE.
   /// When set to FALSE, the end user cannot pinch zoom.
@@ -412,7 +411,7 @@ interface HostObjectsOptions {
 <!-- TEMPLATE
   Anything else that you want to write down about implementation notes and for posterity,
   but that isn't necessary to understand the purpose and usage of the API.
-  
+
   This or the Background section are a good place to describe alternative designs
   and why they were rejected, any relevant implementation details, or links to other
   resources.
