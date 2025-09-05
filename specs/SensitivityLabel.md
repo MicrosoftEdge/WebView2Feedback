@@ -113,7 +113,7 @@ var allowlist = new List<string>
 };
 
 // Set the allowlist on the profile
-webView2Control.CoreWebView2.Profile.SetPageInteractionRestrictionManagerAllowlist(allowlist);
+webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist = allowlist;
 
 MessageBox.Show($"Allowlist configured with {allowlist.Count} URLs");
 ```
@@ -153,7 +153,7 @@ void ConfigureAllowlist()
                 &stringCollection));
 
             // Apply the allowlist
-            CHECK_FAILURE(stagingProfile3->SetPageInteractionRestrictionManagerAllowlist(
+            CHECK_FAILURE(stagingProfile3->put_PageInteractionRestrictionManagerAllowlist(
                 stringCollection.get()));
         }
     }
@@ -164,7 +164,7 @@ void ConfigureAllowlist()
 
 ```c#
 // Get current allowlist
-var currentAllowlist = await webView2Control.CoreWebView2.Profile.GetPageInteractionRestrictionManagerAllowlist();
+var currentAllowlist = webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist;
 
 Console.WriteLine($"Current allowlist contains {currentAllowlist.Count} entries:");
 foreach (var url in currentAllowlist)
@@ -178,22 +178,20 @@ void GetCurrentAllowlist()
 {
     auto stagingProfile3 = m_profile.try_query<ICoreWebView2StagingProfile3>();
     if (stagingProfile3) {
-        CHECK_FAILURE(stagingProfile3->GetPageInteractionRestrictionManagerAllowlist(
-            Callback<ICoreWebView2StagingGetPageInteractionRestrictionManagerAllowlistCompletedHandler>(
-                [](HRESULT result, ICoreWebView2StringCollection* allowlist) -> HRESULT {
-                    if (SUCCEEDED(result) && allowlist) {
-                        UINT count = 0;
-                        CHECK_FAILURE(allowlist->get_Count(&count));
+        wil::com_ptr<ICoreWebView2StringCollection> allowlist;
+        HRESULT hr = stagingProfile3->get_PageInteractionRestrictionManagerAllowlist(&allowlist);
 
-                        wprintf(L"Current allowlist contains %u entries:\n", count);
-                        for (UINT i = 0; i < count; ++i) {
-                            wil::unique_cotaskmem_string item;
-                            CHECK_FAILURE(allowlist->GetValueAtIndex(i, &item));
-                            wprintf(L"  • %s\n", item.get());
-                        }
-                    }
-                    return S_OK;
-                }).Get()));
+        if (SUCCEEDED(hr) && allowlist) {
+            UINT count = 0;
+            CHECK_FAILURE(allowlist->get_Count(&count));
+
+            wprintf(L"Current allowlist contains %u entries:\n", count);
+            for (UINT i = 0; i < count; ++i) {
+                wil::unique_cotaskmem_string item;
+                CHECK_FAILURE(allowlist->GetValueAtIndex(i, &item));
+                wprintf(L"  • %s\n", item.get());
+            }
+        }
     }
 }
 ```
@@ -285,26 +283,13 @@ interface ICoreWebView2StagingEnvironment15 : IUnknown {
 ```
 
 ```
-[uuid(25b0fd91-f2e8-5c54-92f4-f74751b1fa0e), object, pointer_default(unique)]
+[uuid(7b0ade48-e6a9-5038-b7f7-496ad426d907), object, pointer_default(unique)]
 interface ICoreWebView2StagingProfile3 : IUnknown {
-    /// Get the current PageInteractionRestrictionManager allowlist.
-    /// The allowlist contains URL patterns that are exempt from page interaction restrictions.
-    HRESULT GetPageInteractionRestrictionManagerAllowlist(
-        [in] ICoreWebView2StagingGetPageInteractionRestrictionManagerAllowlistCompletedHandler* handler);
+    /// Gets the `PageInteractionRestrictionManagerAllowlist` property.
+    [propget] HRESULT PageInteractionRestrictionManagerAllowlist([out, retval] ICoreWebView2StringCollection** value);
 
-    /// Set the PageInteractionRestrictionManager allowlist.
-    /// URL patterns in this allowlist will be exempt from page interaction restrictions
-    /// imposed by DLP policies. Pass an empty collection to clear the allowlist.
-    HRESULT SetPageInteractionRestrictionManagerAllowlist(
-        [in] ICoreWebView2StringCollection* allow_list);
-}
-```
-
-```
-[uuid(ac924e9c-1639-586b-a402-1b81e6309d8a), object, pointer_default(unique)]
-interface ICoreWebView2StagingGetPageInteractionRestrictionManagerAllowlistCompletedHandler : IUnknown {
-    /// Provides the result of the GetPageInteractionRestrictionManagerAllowlist operation.
-    HRESULT Invoke([in] HRESULT errorCode, [in] ICoreWebView2StringCollection* result);
+    /// Sets the `PageInteractionRestrictionManagerAllowlist` property.
+    [propput] HRESULT PageInteractionRestrictionManagerAllowlist([in] ICoreWebView2StringCollection* value);
 }
 ```
 
@@ -314,17 +299,11 @@ namespace Microsoft.Web.WebView2.Core
     public partial class CoreWebView2Profile
     {
         /// <summary>
-        /// Get the current PageInteractionRestrictionManager allowlist.
+        /// Gets or sets the PageInteractionRestrictionManager allowlist.
         /// </summary>
-        /// <returns>A collection of URL patterns that are exempt from page interaction restrictions.</returns>
-        public async Task<IReadOnlyList<string>> GetPageInteractionRestrictionManagerAllowlist();
-
-        /// <summary>
-        /// Set the PageInteractionRestrictionManager allowlist.
-        /// </summary>
-        /// <param name="allowList">Collection of URL patterns to exempt from page interaction restrictions.
-        /// Pass an empty collection to clear the allowlist.</param>
-        public void SetPageInteractionRestrictionManagerAllowlist(IReadOnlyList<string> allowList);
+        /// <value>A collection of URL patterns that are exempt from page interaction restrictions.
+        /// Pass an empty collection to clear the allowlist.</value>
+        public IReadOnlyList<string> PageInteractionRestrictionManagerAllowlist { get; set; }
     }
 }
 ```
