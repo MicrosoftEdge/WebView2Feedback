@@ -7,6 +7,7 @@ Web pages may contain content with sensitive information. Such information can b
 # Description
 
 We propose introducing a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to domains explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified domains. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
+
 The core features of this proposal are as follows:
 * Configure the allowlist filter for Page Interaction Restriction Manager at the profile level.
 * After setup, the manager is available on allowlisted pages. Content can send sensitivity labels to the platform via the API.
