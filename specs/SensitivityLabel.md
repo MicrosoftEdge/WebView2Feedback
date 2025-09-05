@@ -4,6 +4,11 @@ Sensitivity label support for Webview2
 # Background
 Web pages may contain content with sensitive information. Such information can be identified using data loss protection methods. The purpose of this API is to provide sensitivity label information, communicated by web pages through the [Page Interaction Restriction Manager](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md), to the host application. This enables the host application to be informed of the presence of sensitive content.
 
+## Note about .NET/WinRT projection
+The work to project this API to .NET and WinRT are yet to be completed. Overall
+usage of this API is expected to be uncommon. There are no known asks for
+this. 
+
 # Description
 
 We propose introducing a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to domains explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified domains. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
@@ -19,22 +24,6 @@ The core features of this proposal are as follows:
 ## Setting Up an Allowlist
 
 Configure the PageInteractionRestrictionManager allowlist to enable DLP functionality on trusted domains.
-
-```c#
-// Configure allowlist for trusted company URLs
-var allowlist = new List<string>
-{
-    "https://intranet.company.com/*",
-    "https://*.company.com/*",           // Wildcard for all company subdomains
-    "https://trusted-partner.com/*",
-    "https://secure.vendor.net/*"
-};
-
-// Set the allowlist on the profile
-webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist = allowlist;
-
-MessageBox.Show($"Allowlist configured with {allowlist.Count} URLs");
-```
 
 ```cpp
 void ConfigureAllowlist()
@@ -79,17 +68,6 @@ void ConfigureAllowlist()
 ```
 
 ## Retrieving Current Allowlist
-
-```c#
-// Get current allowlist
-var currentAllowlist = webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist;
-
-Console.WriteLine($"Current allowlist contains {currentAllowlist.Count} entries:");
-foreach (var url in currentAllowlist)
-{
-    Console.WriteLine($"  • {url}");
-}
-```
 
 ```cpp
 void GetCurrentAllowlist()
@@ -254,20 +232,6 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
 }
 ```
 
-```c#
-namespace Microsoft.Web.WebView2.Core
-{
-    public partial class CoreWebView2Profile
-    {
-        /// <summary>
-        /// Gets or sets the PageInteractionRestrictionManager allowlist.
-        /// </summary>
-        /// <value>A collection of URL patterns that are exempt from page interaction restrictions.
-        /// Pass an empty collection to clear the allowlist.</value>
-        public IReadOnlyList<string> PageInteractionRestrictionManagerAllowlist { get; set; }
-    }
-}
-```
 ## Sensitivity label change event
 ```
 /// Enum for sensitivity label State.
