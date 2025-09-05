@@ -2,16 +2,16 @@ Sensitivity label support for Webview2
 ===
 
 # Background
-Web pages may contain content with sensitive information. Such information can be identified using data loss protection methods. The purpose of this API is to provide sensitivity label information, communicated by web pages through the Page Interaction Restriction Manager (see details here), to the host application. This enables the host application to be informed of the presence of sensitive content.
+Web pages may contain content with sensitive information. Such information can be identified using data loss protection methods. The purpose of this API is to provide sensitivity label information, communicated by web pages through the [Page Interaction Restriction Manager](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md), to the host application. This enables the host application to be informed of the presence of sensitive content.
 
 # Description
 
-We propose introducing a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to URLs explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified URLs. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
+We propose introducing a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to domains explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified domains. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
 The core features of this proposal are as follows:
-•	Configure the allowlist filter for Page Interaction Restriction Manager at the profile level.
-•	After setup, the manager is available on allowlisted pages. Content can send sensitivity labels to the platform via the API.
-•	When a label changes, an event notifies the platform of all labels on that page.
-•	Sensitivity labels are cleared when navigating away from the current WebView.
+* Configure the allowlist filter for Page Interaction Restriction Manager at the profile level.
+* After setup, the manager is available on allowlisted pages. Content can send sensitivity labels to the platform via the API.
+* When a label changes, an event notifies the platform of all labels on that page.
+* Sensitivity labels are cleared when navigating away from the current WebView.
 
 # Examples
 
