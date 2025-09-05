@@ -10,8 +10,8 @@ We propose introducing a SensitivityLabelChanged event to the CoreWebView2 objec
 
 The core features of this proposal are as follows:
 * Configure the allowlist filter for Page Interaction Restriction Manager at the profile level.
-* After setup, the manager is available on allowlisted pages. Content can send sensitivity labels to the platform via the API.
-* When a label changes, an event notifies the platform of all labels on that page.
+* After the setup, the `Page Interaction Restriction Manager` is available on allowlisted pages. Content can send sensitivity labels to the platform via the API.
+* When a label changes, an event is raised by WebView2 to hosted app with all the labels on that page.
 * Sensitivity labels are cleared when navigating away from the current WebView.
 
 # Examples
@@ -134,11 +134,6 @@ void RegisterForSensitivityLabelChange()
             COREWEBVIEW2_SENSITIVITY_LABEL_STATE sensitivityState;
             CHECK_FAILURE(args->get_SensitivityState(&sensitivityState));
 
-            if (sensitivityState == COREWEBVIEW2_SENSITIVITY_LABEL_STATE_NONE ||
-                sensitivityState == COREWEBVIEW2_SENSITIVITY_LABEL_STATE_UNDETERMINED)
-            {
-                labelsString = L"<no labels>";
-            }
             switch (sensitivityState)
             {
               case COREWEBVIEW2_SENSITIVITY_LABEL_STATE_UNDETERMINED:
@@ -285,7 +280,9 @@ typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_STATE {
   /// There are allow listed pages in the WebView2 and the sensitivity label is determined.
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_DETERMINED,
 } COREWEBVIEW2_SENSITIVITY_LABEL_STATE;
+```
 
+```
 /// Enum for sensitivity label types.
 [v1_enum]
 typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_TYPE {
@@ -294,7 +291,9 @@ typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_TYPE {
   /// Microsoft Information Protection label.
   COREWEBVIEW2_SENSITIVITY_LABEL_TYPE_MIP,
 } COREWEBVIEW2_SENSITIVITY_LABEL_TYPE;
+```
 
+```
 /// Base interface for all sensitivity label types.
 [uuid(9112ece5-d54d-5d16-a595-275ae574c287), object, pointer_default(unique)]
 interface ICoreWebView2StagingSensitivityLabel : IUnknown {
@@ -304,8 +303,9 @@ interface ICoreWebView2StagingSensitivityLabel : IUnknown {
 
 
 }
+```
 
-
+```
 /// Interface for MIP Sensitivity Label with label ID and organization ID.
 [uuid(1a562888-3031-5375-b8c5-8afd573e79c8), object, pointer_default(unique)]
 interface ICoreWebView2StagingMipSensitivityLabel : IUnknown {
@@ -323,7 +323,9 @@ interface ICoreWebView2StagingMipSensitivityLabel : IUnknown {
   [propget] HRESULT OrganizationId([out, retval] LPWSTR* value);
 
 }
+```
 
+```
 /// A collection of ICoreWebView2StagingSensitivityLabel.
 [uuid(2cb85219-0878-5f38-b7e9-769fab6ff887), object, pointer_default(unique)]
 interface ICoreWebView2StagingSensitivityLabelCollectionView : IUnknown {
@@ -333,8 +335,9 @@ interface ICoreWebView2StagingSensitivityLabelCollectionView : IUnknown {
   /// Gets the element at the given index.
   HRESULT GetValueAtIndex([in] UINT32 index, [out, retval] ICoreWebView2StagingSensitivityLabel** value);
 }
+```
 
-
+```
 /// Event args for the `SensitivityLabelChanged` event.
 [uuid(36de2060-e013-5b03-939b-117d08d0abd5), object, pointer_default(unique)]
 interface ICoreWebView2StagingSensitivityLabelEventArgs : IUnknown {
@@ -346,7 +349,20 @@ interface ICoreWebView2StagingSensitivityLabelEventArgs : IUnknown {
   [propget] HRESULT SensitivityState([out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_STATE* value);
 
 }
+```
 
+```
+/// Receives `SensitivityLabelChanged` events.
+[uuid(927a011d-bbf3-546b-ba28-1fc0ef4c1f4a), object, pointer_default(unique)]
+interface ICoreWebView2StagingSensitivityLabelChangedEventHandler : IUnknown {
+  /// Provides the event args for the corresponding event.
+  HRESULT Invoke(
+      [in] ICoreWebView2* sender,
+      [in] ICoreWebView2StagingSensitivityLabelEventArgs* args);
+}
+```
+
+```
 /// A continuation of the ICoreWebView2 interface to notify changes in
 /// web content sensitivity label.
 [uuid(ac4543d5-f466-5622-8b3b-24d3b195525c), object, pointer_default(unique)]
@@ -360,7 +376,6 @@ interface ICoreWebView2Staging32 : IUnknown {
   /// Removes an event handler previously added with `add_SensitivityLabelChanged`.
   HRESULT remove_SensitivityLabelChanged(
       [in] EventRegistrationToken token);
-
 
 }
 ```
