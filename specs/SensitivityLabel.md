@@ -130,7 +130,7 @@ void RegisterForSensitivityLabelChange()
             if(sensitivityState == COREWEBVIEW2_SENSITIVITY_LABEL_STATE_DETERMINED)
             {
               Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabelCollectionView> sensitivityLabelsCollection;
-              CHECK_FAILURE(args->get_SensitivityLabel(&sensitivityLabelsCollection));
+              CHECK_FAILURE(args->get_SensitivityLabels(&sensitivityLabelsCollection));
 
               // Get the count of labels
               UINT32 labelCount = 0;
@@ -150,7 +150,7 @@ void RegisterForSensitivityLabelChange()
 
                       // Get the label type
                       COREWEBVIEW2_SENSITIVITY_LABEL_TYPE labelType;
-                      CHECK_FAILURE(sensitivityLabel->GetLabelType(&labelType));
+                      CHECK_FAILURE(sensitivityLabel->get_LabelType(&labelType));
 
                       if (i > 0)
                       {
@@ -258,14 +258,11 @@ typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_TYPE {
 ```
 
 ```
-/// Base interface for all sensitivity label types.
-[uuid(9112ece5-d54d-5d16-a595-275ae574c287), object, pointer_default(unique)]
-interface ICoreWebView2StagingSensitivityLabel : IUnknown {
+/// Basic interface for all sensitivity label types.
+[uuid(e0288585-9f8c-5b29-bca8-5de14e024557), object, pointer_default(unique)]
+interface ICoreWebView2SensitivityLabel : IUnknown {
   /// Gets the type of this sensitivity label.
-  HRESULT GetLabelType(
-      [out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_TYPE* value);
-
-
+  [propget] HRESULT LabelType([out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_TYPE* value);
 }
 ```
 
