@@ -2,28 +2,26 @@ Sensitivity label support for Webview2
 ===
 
 # Background
-Web pages may contain content with sensitive information. Such information can be identified using data loss protection methods. The purpose of this API is to provide sensitivity label information, communicated by web pages through the [Page Interaction Restriction Manager](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md), to the host application. This enables the host application to be informed of the presence of sensitive content.
+Web pages may contain content with sensitive information. Such information can be identified using data loss protection (DLP) methods. The purpose of this API is to provide sensitivity label information, communicated by web pages through the [PageInteractionRestrictionManager](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md), to the host application. This enables the host application to be informed of the presence of sensitive content.
 
 ## Note about .NET/WinRT projection
-The work to project this API to .NET and WinRT are yet to be completed. Overall
-usage of this API is expected to be uncommon. There are no known asks for
-this. 
+The work to project this API to .NET and WinRT are yet to be completed. 
 
 # Description
 
-We propose introducing a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to domains explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified domains. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
+This API introduces a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to domains explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified domains. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
 
 The core features of this proposal are as follows:
-* Configure the allowlist filter for Page Interaction Restriction Manager at the profile level.
-* After the setup, the `Page Interaction Restriction Manager` is available on allowlisted pages. Content can send sensitivity labels to the platform via the API.
+* Configure the allow list filter for Page Interaction Restriction Manager at the profile level.
+* After the setup, the `Page Interaction Restriction Manager` is available on pages in the allow list. Content can send sensitivity labels to the platform via the API.
 * When a label changes, an event is raised by WebView2 to hosted app with all the labels on that page.
 * Sensitivity labels are cleared when navigating away from the current WebView.
 
 # Examples
 
-## Setting Up an Allowlist
+## Setting up an allow list
 
-Configure the PageInteractionRestrictionManager allowlist to enable DLP functionality on trusted domains.
+Configure the PageInteractionRestrictionManager allow list to enable DLP functionality on trusted domains.
 
 ```cpp
 void ConfigureAllowlist()
@@ -34,7 +32,7 @@ void ConfigureAllowlist()
 
     auto stagingProfile3 = profile.try_query<ICoreWebView2StagingProfile3>();
     if (stagingProfile3) {
-        // Create allowlist with trusted URLs
+        // Create allow list with trusted URLs
         std::vector<std::wstring> allowlist = {
             L"https://intranet.company.com/*",
             L"https://*.company.com/*",
@@ -59,7 +57,7 @@ void ConfigureAllowlist()
                 items.data(),
                 &stringCollection));
 
-            // Apply the allowlist
+            // Apply the allow list
             CHECK_FAILURE(stagingProfile3->put_PageInteractionRestrictionManagerAllowlist(
                 stringCollection.get()));
         }
@@ -67,7 +65,7 @@ void ConfigureAllowlist()
 }
 ```
 
-## Retrieving Current Allowlist
+## Retrieving current allow list
 
 ```cpp
 void GetCurrentAllowlist()
