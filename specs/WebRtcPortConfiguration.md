@@ -75,6 +75,46 @@ ScenarioWebRtcUdpPortConfiguration::~ScenarioWebRtcUdpPortConfiguration()
 }
 
 ```
+### C# Sample
+```csharp
+using Microsoft.Web.WebView2.Core;
+using System;
+
+class ScenarioWebRtcUdpPortConfiguration
+{
+    private readonly AppWindow _appWindow;
+    private readonly CoreWebView2 _webView;
+    private readonly string _demoUri;
+    private EventRegistrationToken _contentLoadingToken;
+
+    public ScenarioWebRtcUdpPortConfiguration(AppWindow appWindow)
+    {
+        _appWindow = appWindow;
+        _webView = appWindow.GetWebView();
+
+        // Navigate to a demo page that will trigger WebRTC usage.
+        _demoUri = "https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/";
+        _webView.Navigate(_demoUri);
+
+        // If we navigate away from the demo page, turn off this scenario.
+        _webView.ContentLoading += WebView_ContentLoading;
+    }
+
+    private void WebView_ContentLoading(object? sender, CoreWebView2ContentLoadingEventArgs e)
+    {
+        var uri = _webView.Source;
+        if (uri != _demoUri)
+        {
+            _appWindow.DeleteComponent(this);
+        }
+    }
+
+    ~ScenarioWebRtcUdpPortConfiguration()
+    {
+        _webView.ContentLoading -= WebView_ContentLoading;
+    }
+}
+```
 
 # API Details
 ## C++  
