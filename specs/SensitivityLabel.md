@@ -232,50 +232,74 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
 
 ## Sensitivity label change event
 ```
-/// Enum for sensitivity label State.
+/// Represents the state of sensitivity label detection and processing
+/// for web content loaded in the WebView2 control. This enum indicates
+/// whether sensitivity labels have been detected, are being processed,
+/// or are fully determined for the current web page content.
 [v1_enum]
 typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_STATE {
-  /// There are no allow listed pages loaded that report sensitivity label
+  /// Indicates that there are no allowlisted pages loaded that report
+  /// sensitivity labels. 
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_NONE,
-  /// There are allow listed pages in the WebView2 and the sensitivity label is not determined yet.
+  /// Indicates that there are allowlisted pages loaded in the WebView2
+  /// that are capable of reporting sensitivity labels, but the label
+  /// determination process is still in progress. 
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_UNDETERMINED,
-  /// There are allow listed pages in the WebView2 and the sensitivity label is determined.
+  /// Indicates that there are allowlisted pages loaded in the WebView2
+  /// and the content has reported label information to WebView2.
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_DETERMINED,
 } COREWEBVIEW2_SENSITIVITY_LABEL_STATE;
 ```
 
 ```
-/// Enum for sensitivity label types.
+/// Represents the type of sensitivity label applied to web content.
+/// Sensitivity labels are used to classify and protect content based on
+/// its sensitivity level. 
 [v1_enum]
 typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_TYPE {
-  /// Unknown or unsupported label type.
+  /// Represents an unknown or unsupported sensitivity label type.
   COREWEBVIEW2_SENSITIVITY_LABEL_TYPE_UNKNOWN,
-  /// Microsoft Information Protection label.
+  /// Represents a Microsoft Information Protection (MIP) sensitivity label.
   COREWEBVIEW2_SENSITIVITY_LABEL_TYPE_MIP,
 } COREWEBVIEW2_SENSITIVITY_LABEL_TYPE;
 ```
 
 ```
-/// Basic interface for all sensitivity label types.
+/// Base interface for all sensitivity label types used in WebView2.
+/// This interface provides common functionality for accessing sensitivity
+/// label information applied to web content. Different label types 
+/// (such as Microsoft Information Protection labels) can implement 
+/// this interface to provide specific label information and metadata.
 [uuid(e0288585-9f8c-5b29-bca8-5de14e024557), object, pointer_default(unique)]
 interface ICoreWebView2SensitivityLabel : IUnknown {
-  /// Gets the type of this sensitivity label.
+  /// Gets the type of the sensitivity label applied to the web content.
+  /// This property identifies which sensitivity label system is being used
+  /// (such as Microsoft Information Protection or other label providers).
+  /// Applications can use this information to determine how to interpret
+  /// and handle the label data, as different label types may have different
+  /// metadata formats, protection requirements, and policy enforcement
+  /// mechanisms.
   [propget] HRESULT LabelType([out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_TYPE* value);
 }
 ```
-
 ```
-/// Interface for MIP Sensitivity Label with label ID and organization ID.
+/// Interface for Microsoft Information Protection (MIP) sensitivity labels.
+/// This interface provides specific information about MIP labels, including
+/// label identification and organizational context. 
 [uuid(1a562888-3031-5375-b8c5-8afd573e79c8), object, pointer_default(unique)]
 interface ICoreWebView2StagingMipSensitivityLabel : IUnknown {
-  /// The string representing the label ID.
+  /// Gets the unique identifier for the Microsoft Information Protection label.
+  /// This string contains a GUID that uniquely identifies the specific
+  /// sensitivity label within the organization's MIP policy configuration.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT LabelId([out, retval] LPWSTR* value);
 
 
-  /// The string representing the organization ID.
+  /// Gets the unique identifier for the organization that owns the MIP label.
+  /// This string contains a GUID that identifies the Azure Active Directory
+  /// tenant or organization that configured and deployed the sensitivity label.
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
@@ -297,14 +321,22 @@ interface ICoreWebView2StagingSensitivityLabelCollectionView : IUnknown {
 ```
 
 ```
-/// Event args for the `SensitivityLabelChanged` event.
+/// Event arguments for the `SensitivityLabelChanged` event.
+/// This interface provides information about sensitivity label changes
+/// that occur when web content is loaded or updated in the WebView2 control.
+/// The event args contain the current state of sensitivity label detection
+/// and a collection of all sensitivity labels that have been reported by
+/// the web content via 
+/// [`Page Interaction Restriction Manager`](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md). 
 [uuid(36de2060-e013-5b03-939b-117d08d0abd5), object, pointer_default(unique)]
 interface ICoreWebView2StagingSensitivityLabelEventArgs : IUnknown {
-  /// The vector of Sensitivity Labels associated with the current document.
+  /// Gets a read-only collection of all sensitivity labels detected in the
+  /// current web document. This collection contains instances of sensitivity
+  /// labels that have been reported by the web content.
   [propget] HRESULT SensitivityLabels([out, retval] ICoreWebView2StagingSensitivityLabelCollectionView** value);
 
 
-  /// The state of the sensitivity label.
+  /// Gets the current state of sensitivity label detection.
   [propget] HRESULT SensitivityState([out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_STATE* value);
 
 }
@@ -322,12 +354,21 @@ interface ICoreWebView2StagingSensitivityLabelChangedEventHandler : IUnknown {
 ```
 
 ```
-/// A continuation of the ICoreWebView2 interface to notify changes in
-/// web content sensitivity label.
+/// Extension of the ICoreWebView2 interface that provides sensitivity label
+/// change notification capabilities. This interface enables applications to
+/// monitor and respond to changes in the sensitivity classification of web
+/// content loaded in the WebView2 control. When sensitivity labels are
+/// detected, updated, or removed from web pages, the SensitivityLabelChanged
+/// event is raised.
 [uuid(ac4543d5-f466-5622-8b3b-24d3b195525c), object, pointer_default(unique)]
 interface ICoreWebView2Staging32 : IUnknown {
   /// Adds an event handler for the `SensitivityLabelChanged` event.
-  /// This event is raised when the web content's sensitivity label changes.
+  /// Event raised when the sensitivity label classification of web content changes.
+  /// This event is triggered when the WebView2 control detects a change in the
+  /// sensitivity labels associated with the currently loaded web content. 
+  /// Applications can subscribe to this event to receive notifications
+  /// about sensitivity changes. The event args provide the current label state and
+  /// the complete collection of detected sensitivity labels.
   HRESULT add_SensitivityLabelChanged(
       [in] ICoreWebView2StagingSensitivityLabelChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
