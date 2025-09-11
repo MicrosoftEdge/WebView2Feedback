@@ -23,6 +23,8 @@ The core features of this proposal are as follows:
 
 Configure the PageInteractionRestrictionManager allow list to enable Sensitivity label functionality on trusted domains.
 
+
+
 ```cpp
 void ConfigureAllowlist()
 {
@@ -64,6 +66,22 @@ void ConfigureAllowlist()
     }
 }
 ```
+```c#
+// Configure allowlist for trusted company URLs
+var allowlist = new List<string>
+{
+    "https://intranet.company.com/*",
+    "https://*.company.com/*",           // Wildcard for all company subdomains
+    "https://trusted-partner.com/*",
+    "https://secure.vendor.net/*"
+};
+
+// Set the allowlist on the profile
+webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist = allowlist;
+
+MessageBox.Show($"Allowlist configured with {allowlist.Count} URLs");
+```
+
 
 ## Retrieving current allow list
 
@@ -89,6 +107,20 @@ void GetCurrentAllowlist()
     }
 }
 ```
+
+
+```c#
+// Get current allowlist
+var currentAllowlist = webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist;
+
+Console.WriteLine($"Current allowlist contains {currentAllowlist.Count} entries:");
+foreach (var url in currentAllowlist)
+{
+    Console.WriteLine($"  • {url}");
+}
+```
+
+
 ## Register for sensitivity label change
 
   ```cpp
@@ -227,6 +259,21 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
 
     /// Sets the `PageInteractionRestrictionManagerAllowlist` property.
     [propput] HRESULT PageInteractionRestrictionManagerAllowlist([in] ICoreWebView2StringCollection* value);
+}
+```
+
+```c#
+namespace Microsoft.Web.WebView2.Core
+{
+    public partial class CoreWebView2Profile
+    {
+        /// <summary>
+        /// Gets or sets the PageInteractionRestrictionManager allowlist.
+        /// </summary>
+        /// <value>A collection of URL patterns that are exempt from page interaction restrictions.
+        /// Pass an empty collection to clear the allowlist.</value>
+        public IReadOnlyList<string> PageInteractionRestrictionManagerAllowlist { get; set; }
+    }
 }
 ```
 
