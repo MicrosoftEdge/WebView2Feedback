@@ -21,7 +21,7 @@ The core features of this proposal are as follows:
 
 ## Setting up an allow list
 
-Configure the PageInteractionRestrictionManager allow list to enable DLP functionality on trusted domains.
+Configure the PageInteractionRestrictionManager allow list to enable Sensitivity label functionality on trusted domains.
 
 ```cpp
 void ConfigureAllowlist()
