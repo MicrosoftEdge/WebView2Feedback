@@ -284,15 +284,14 @@ namespace Microsoft.Web.WebView2.Core
 /// or are fully determined for the current web page content.
 [v1_enum]
 typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_STATE {
-  /// Indicates that there are no allowlisted pages loaded that report
-  /// sensitivity labels. 
+  /// Indicates that none of the loaded pages are in the allow list. Hence 
+  /// none will report sensitivity labels. 
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_NONE,
-  /// Indicates that there are allowlisted pages loaded in the WebView2
-  /// that are capable of reporting sensitivity labels, but the label
-  /// determination process is still in progress. 
+  /// Indicates that WebView2 has loaded pages from the allow list that can
+  /// report sensitivity labels, but the label determination is not yet complete.
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_UNDETERMINED,
-  /// Indicates that there are allowlisted pages loaded in the WebView2
-  /// and the content has reported label information to WebView2.
+  /// Indicates that WebView2 has loaded pages from the allow list,
+  /// and those pages have provided label information.
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_DETERMINED,
 } COREWEBVIEW2_SENSITIVITY_LABEL_STATE;
 
