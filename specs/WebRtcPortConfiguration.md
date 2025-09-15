@@ -6,14 +6,17 @@ WebRTC Port Range Configuration
 WebRTC by default allocates ports dynamically from the system’s ephemeral range.  
 In enterprise or testing environments, developers often need deterministic or firewall-friendly port allocation.  
 
-This API enables developers to configure the port range WebRTC uses for ICE candidates and media connections.  
+This API enables developers to configure the port range WebRTC uses for [ICE](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Protocols#ice) candidates and media connections.
+
 The initial support is for **UDP**, with room to extend to **TCP** in the future.  
 
 By exposing a `WebRtcPortConfiguration` object on `CoreWebView2EnvironmentOptions`, developers can set and retrieve the port range before creating the WebView2 environment.  
 
 # Conceptual pages (How To)
 
-Developers can use this API to restrict WebRTC’s UDP ports to a specific range.  
+Developers can use this API to restrict WebRTC’s UDP ports to a specific range which WebRTC uses for ICE candidate and media connections.
+
+ICE stands for **Interactive Connectivity Establishment**. It is a standard method of NAT traversal used in WebRTC. It is defined in [IETF RFC 5245](https://datatracker.ietf.org/doc/html/rfc5245). ICE deals with the process of connecting media through NATs by conducting connectivity checks.  
 
 Common scenarios:  
 - Configure ports for **enterprise firewall compliance**.  
@@ -203,10 +206,6 @@ public enum CoreWebView2WebRtcProtocolKind
     /// UDP protocol for WebRTC media and ICE candidates.
     /// </summary>
     Udp = 0,
-    /// <summary>
-    /// TCP protocol for WebRTC media and ICE candidates (future support).
-    /// </summary>
-    Tcp = 1,
 }
 
 /// <summary>
@@ -222,8 +221,9 @@ public interface ICoreWebView2WebRtcPortConfiguration
     /// This method allows configuring a specific port range that WebRTC will use
     /// for ICE candidates and media connections for the specified protocol.
     /// 
-    /// protocol specifies the WebRTC protocol type (UDP, TCP, etc.).
+    /// protocol specifies the WebRTC protocol type.
     /// minPort and maxPort must be in the range 1025-65535 (inclusive).
+    /// Calls with invalid ranges return E_INVALIDARG.
     /// minPort must be less than or equal to maxPort.
     /// If minPort equals maxPort, it represents a single port.
     /// 
@@ -257,14 +257,10 @@ public interface ICoreWebView2EnvironmentOptions
     /// Gets the WebRTC port configuration object for configuring custom port ranges.
     /// This configuration can be used to set and retrieve port range configuration
     /// that WebRTC will use for ICE candidates and media connections.
+    /// If no range is configured, WebRTC uses the OS ephemeral port range.
+    /// Configuration must be completed before the environment is created. Once the environment is
+    /// setup, the port range can not be customized.
     /// </summary>
     ICoreWebView2WebRtcPortConfiguration WebRtcPortConfiguration { get; }
 }
 ```
-
-# Appendix
-
-Validation rules: Ports must be within 1025–65535. Calls with invalid ranges return E_INVALIDARG.
-Default behavior: If no range is configured, WebRTC uses the OS ephemeral port range.
-Thread safety: Configuration must be completed before the environment is created.
-Extensibility: API is protocol-based to allow future support (e.g., TCP).
