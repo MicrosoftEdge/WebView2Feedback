@@ -279,7 +279,7 @@ namespace Microsoft.Web.WebView2.Core
 ### C++ 
 ```
 /// Represents the state of sensitivity label detection and processing
-/// for web content loaded in the WebView2 control. This enum indicates
+/// for web page loaded in the WebView2 control. This enum indicates
 /// whether sensitivity labels have been detected, are being processed,
 /// or are fully determined for the current web page content.
 [v1_enum]
@@ -295,81 +295,86 @@ typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_STATE {
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_DETERMINED,
 } COREWEBVIEW2_SENSITIVITY_LABEL_STATE;
 
-/// Represents the type of sensitivity label applied to web content.
+/// Represents the kind of sensitivity label applied to web page.
 /// Sensitivity labels are used to classify and protect content based on
-/// its sensitivity level. 
+/// its sensitivity level.
 [v1_enum]
-typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_TYPE {
-  /// Represents an unknown or unsupported sensitivity label type.
-  COREWEBVIEW2_SENSITIVITY_LABEL_TYPE_UNKNOWN,
+typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_KIND {
+  /// Represents an unknown or unsupported sensitivity label.
+  COREWEBVIEW2_SENSITIVITY_LABEL_KIND_UNKNOWN,
   /// Represents a Microsoft Information Protection (MIP) sensitivity label.
-  COREWEBVIEW2_SENSITIVITY_LABEL_TYPE_MIP,
-} COREWEBVIEW2_SENSITIVITY_LABEL_TYPE;
+  COREWEBVIEW2_SENSITIVITY_LABEL_KIND_MIP,
+} COREWEBVIEW2_SENSITIVITY_LABEL_KIND;
 
-/// Base interface for all sensitivity label types used in WebView2.
-/// This interface provides common functionality for accessing sensitivity
-/// label information applied to web content. Different label types 
-/// (such as Microsoft Information Protection labels) can implement 
-/// this interface to provide specific label information and metadata.
-[uuid(e0288585-9f8c-5b29-bca8-5de14e024557), object, pointer_default(unique)]
+/// Interface for different sensitivity label kinds used in WebView2.
+/// This interface provides functionality for accessing sensitivity
+/// label information applied to web page. Different label types
+/// (such as Microsoft Information Protection labels) provide
+/// specific label information and metadata.
+[uuid(5c27e6f2-baa6-5646-b726-db80a77b7345), object, pointer_default(unique)]
 interface ICoreWebView2SensitivityLabel : IUnknown {
-  /// Gets the type of the sensitivity label applied to the web content.
+  /// Gets the type of the sensitivity label applied to the web page.
   /// This property identifies which sensitivity label system is being used
   /// (such as Microsoft Information Protection or other label providers).
   /// Applications can use this information to determine how to interpret
   /// and handle the label data, as different label types may have different
   /// metadata formats, protection requirements, and policy enforcement
   /// mechanisms.
-  [propget] HRESULT LabelType([out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_TYPE* value);
+  [propget] HRESULT LabelKind([out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_KIND* value);
 }
 
 /// Interface for Microsoft Information Protection (MIP) sensitivity labels.
 /// This interface provides specific information about MIP labels, including
-/// label identification and organizational context. 
+/// label identification and organizational context.
 [uuid(1a562888-3031-5375-b8c5-8afd573e79c8), object, pointer_default(unique)]
-interface ICoreWebView2StagingMipSensitivityLabel : IUnknown {
-  /// Gets the unique identifier for the Microsoft Information Protection label.
+interface ICoreWebView2MipSensitivityLabel : IUnknown {
+  /// The unique identifier for the Microsoft Information Protection label.
   /// This string contains a GUID that uniquely identifies the specific
   /// sensitivity label within the organization's MIP policy configuration.
+  /// The GUID is of type GUIDv4 and follows the format:
+  /// `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+  /// eg: `3fa85f64-5717-4562-b3fc-2c963f66afa6`
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT LabelId([out, retval] LPWSTR* value);
 
-
-  /// Gets the unique identifier for the organization that owns the MIP label.
+  /// The unique identifier for the organization that owns the MIP label.
   /// This string contains a GUID that identifies the Azure Active Directory
   /// tenant or organization that configured and deployed the sensitivity label.
+  /// The GUID is of type GUIDv4 and follows the format:
+  /// `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+  /// eg: `44567f64-8712-1789-ac3f-15aa3f66ab12`
   ///
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propget] HRESULT OrganizationId([out, retval] LPWSTR* value);
-
 }
 
-/// A collection of ICoreWebView2StagingSensitivityLabel.
+
+/// A collection of ICoreWebView2SensitivityLabel.
 [uuid(2cb85219-0878-5f38-b7e9-769fab6ff887), object, pointer_default(unique)]
-interface ICoreWebView2StagingSensitivityLabelCollectionView : IUnknown {
+interface ICoreWebView2SensitivityLabelCollectionView : IUnknown {
   /// The number of elements contained in the collection.
   [propget] HRESULT Count([out, retval] UINT32* value);
 
   /// Gets the element at the given index.
-  HRESULT GetValueAtIndex([in] UINT32 index, [out, retval] ICoreWebView2StagingSensitivityLabel** value);
+  HRESULT GetValueAtIndex([in] UINT32 index, [out, retval] ICoreWebView2SensitivityLabel** value);
 }
 
 /// Event arguments for the `SensitivityLabelChanged` event.
 /// This interface provides information about sensitivity label changes
-/// that occur when web content is loaded or updated in the WebView2 control.
+/// that occur when web page is loaded or updated in the WebView2 control.
 /// The event args contain the current state of sensitivity label detection
 /// and a collection of all sensitivity labels that have been reported by
-/// the web content via 
+/// the web page via 
 /// [`Page Interaction Restriction Manager`](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md). 
 [uuid(36de2060-e013-5b03-939b-117d08d0abd5), object, pointer_default(unique)]
-interface ICoreWebView2StagingSensitivityLabelEventArgs : IUnknown {
+interface ICoreWebView2SensitivityLabelEventArgs : IUnknown {
   /// Gets a read-only collection of all sensitivity labels detected in the
   /// current web document. This collection contains instances of sensitivity
-  /// labels that have been reported by the web content.
-  [propget] HRESULT SensitivityLabels([out, retval] ICoreWebView2StagingSensitivityLabelCollectionView** value);
+  /// labels that have been reported by the web page.
+  [propget] HRESULT SensitivityLabels([out, retval] ICoreWebView2SensitivityLabelCollectionView** value);
 
 
   /// Gets the current state of sensitivity label detection.
@@ -379,11 +384,11 @@ interface ICoreWebView2StagingSensitivityLabelEventArgs : IUnknown {
 
 /// Receives `SensitivityLabelChanged` events.
 [uuid(927a011d-bbf3-546b-ba28-1fc0ef4c1f4a), object, pointer_default(unique)]
-interface ICoreWebView2StagingSensitivityLabelChangedEventHandler : IUnknown {
+interface ICoreWebView2SensitivityLabelChangedEventHandler : IUnknown {
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2* sender,
-      [in] ICoreWebView2StagingSensitivityLabelEventArgs* args);
+      [in] ICoreWebView2SensitivityLabelEventArgs* args);
 }
 
 /// Extension of the ICoreWebView2 interface that provides sensitivity label
@@ -393,16 +398,23 @@ interface ICoreWebView2StagingSensitivityLabelChangedEventHandler : IUnknown {
 /// detected, updated, or removed from web pages, the SensitivityLabelChanged
 /// event is raised.
 [uuid(ac4543d5-f466-5622-8b3b-24d3b195525c), object, pointer_default(unique)]
-interface ICoreWebView2Staging32 : IUnknown {
+interface ICoreWebView2_32 : IUnknown {
   /// Adds an event handler for the `SensitivityLabelChanged` event.
-  /// Event raised when the sensitivity label classification of web content changes.
+  /// Event raised when the sensitivity label classification of web page changes.
+  /// web pages may report sensitivity labels via
+  /// [`Page Interaction Restriction Manager`](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md).
   /// This event is triggered when the WebView2 control detects a change in the
-  /// sensitivity labels associated with the currently loaded web content. 
-  /// Applications can subscribe to this event to receive notifications
-  /// about sensitivity changes. The event args provide the current label state and
-  /// the complete collection of detected sensitivity labels.
+  /// sensitivity labels associated with the currently loaded web page.
+  /// Changes can occur when navigating to a new page in the main frame,
+  /// when the existing page updates its sensitivity label information.
+  /// On navigation to a new page `SensitivityLabelChanged` event is raised
+  /// after the `NavigationCompleted` event. Applications can subscribe to
+  /// this event to receive notifications about sensitivity changes. The
+  /// event args provide the current label state and the complete collection
+  /// of detected sensitivity labels. the complete collection of detected
+  /// sensitivity labels.
   HRESULT add_SensitivityLabelChanged(
-      [in] ICoreWebView2StagingSensitivityLabelChangedEventHandler* eventHandler,
+      [in] ICoreWebView2SensitivityLabelChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
   /// Removes an event handler previously added with `add_SensitivityLabelChanged`.
@@ -413,7 +425,7 @@ interface ICoreWebView2Staging32 : IUnknown {
 ```
 ### .NET/WinRT
 ```c#
-enum CoreWebView2SensitivityLabelType
+enum CoreWebView2SensitivityLabelKind
 {
     Unknown = 0,
     Mip = 1,
@@ -428,7 +440,7 @@ enum CoreWebView2SensitivityLabelState
 
 runtimeclass CoreWebView2SensitivityLabelEventArgs
 {
-    // ICoreWebView2StagingSensitivityLabelEventArgs members
+    // ICoreWebView2SensitivityLabelEventArgs members
     IVectorView<CoreWebView2SensitivityLabel>  SensitivityLabels { get; };
 
     CoreWebView2SensitivityLabelState SensitivityState { get; };
@@ -436,7 +448,7 @@ runtimeclass CoreWebView2SensitivityLabelEventArgs
 
 runtimeclass CoreWebView2SensitivityLabelCollectionView
 {
-    // ICoreWebView2StagingSensitivityLabelCollectionView members
+    // ICoreWebView2SensitivityLabelCollectionView members
     UInt32 Count { get; };
 
     CoreWebView2SensitivityLabel GetValueAtIndex(UInt32 index);
@@ -444,13 +456,13 @@ runtimeclass CoreWebView2SensitivityLabelCollectionView
 
 runtimeclass CoreWebView2SensitivityLabel
 {
-    // ICoreWebView2StagingSensitivityLabel members
+    // ICoreWebView2SensitivityLabel members
     CoreWebView2SensitivityLabelType LabelType { get; };
 }
 
 runtimeclass CoreWebView2MipSensitivityLabel
 {
-    // ICoreWebView2StagingMipSensitivityLabel members
+    // ICoreWebView2MipSensitivityLabel members
     String LabelId { get; };
 
     String OrganizationId { get; };
@@ -458,7 +470,7 @@ runtimeclass CoreWebView2MipSensitivityLabel
 
 runtimeclass CoreWebView2SensitivityLabelEventArgs
 {
-    // ICoreWebView2StagingSensitivityLabelEventArgs members
+    // ICoreWebView2SensitivityLabelEventArgs members
     IVectorView<CoreWebView2SensitivityLabel>  SensitivityLabels { get; };
 
     CoreWebView2SensitivityLabelState SensitivityState { get; };
@@ -466,9 +478,9 @@ runtimeclass CoreWebView2SensitivityLabelEventArgs
 
 runtimeclass CoreWebView2
 {
-    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Staging32")]
+    [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2_32")]
     {
-        // ICoreWebView2Staging32 members
+        // ICoreWebView2_32 members
         event Windows.Foundation.TypedEventHandler<CoreWebView2, CoreWebView2SensitivityLabelEventArgs> SensitivityLabelChanged;
     }
 }
