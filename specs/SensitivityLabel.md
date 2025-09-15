@@ -176,8 +176,8 @@ void RegisterForSensitivityLabelChange()
                       CHECK_FAILURE(sensitivityLabelsCollection->GetValueAtIndex(i, &sensitivityLabel));
 
                       // Get the label type
-                      COREWEBVIEW2_SENSITIVITY_LABEL_TYPE labelType;
-                      CHECK_FAILURE(sensitivityLabel->get_LabelType(&labelType));
+                      COREWEBVIEW2_SENSITIVITY_LABEL_KIND labelKind;
+                      CHECK_FAILURE(sensitivityLabel->get_LabelKind(&labelKind));
 
                       if (i > 0)
                       {
@@ -187,7 +187,7 @@ void RegisterForSensitivityLabelChange()
                       // Handle different label types
                       switch (labelType)
                       {
-                      case COREWEBVIEW2_SENSITIVITY_LABEL_TYPE_MIP:
+                      case COREWEBVIEW2_SENSITIVITY_LABEL_KIND_MIP:
                       {
                           Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabelMip> microsoftLabel;
                           if (SUCCEEDED(sensitivityLabel.As(&microsoftLabel)))
