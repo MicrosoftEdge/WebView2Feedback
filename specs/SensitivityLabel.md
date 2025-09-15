@@ -2,23 +2,39 @@ Sensitivity label support for Webview2
 ===
 
 # Background
-Web pages may contain content with sensitive information. Such information can be identified using data loss protection (DLP) methods. The purpose of this API is to provide sensitivity label information, communicated by web pages through the [PageInteractionRestrictionManager](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md), to the host application. This enables the host application to be informed of the presence of sensitive content.
+Web pages may contain content with sensitive information. Such information can
+be identified using data loss protection (DLP) methods. The purpose of this API
+is to provide sensitivity label information, communicated by web pages through
+the [PageInteractionRestrictionManager](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md),
+to the host application. This enables the host application to be informed of the
+presence of sensitive content.
 
 # Description
 
-This API introduces a SensitivityLabelChanged event to the CoreWebView2 object, enabling applications to monitor changes in sensitivity labels within hosted content. This functionality is restricted to domains explicitly included in an allow list configured by the application. The allow list can be set at the profile level, thereby enabling the Page Interaction Restriction Manager for content within specified domains. By default, the allow list is empty, preventing hosted content from transmitting sensitivity label information.
+This API introduces a SensitivityLabelChanged event to the CoreWebView2 object,
+enabling applications to monitor changes in sensitivity labels within hosted
+content. This functionality is restricted to domains explicitly included in an
+allow list configured by the application. The allow list can be set at the
+profile level, thereby enabling the Page Interaction Restriction Manager for
+content within specified domains. By default, the allow list is empty,
+preventing hosted content from transmitting sensitivity label information.
 
 The core features of this proposal are as follows:
-* Configure the allow list filter for Page Interaction Restriction Manager at the profile level.
-* After the setup, the `Page Interaction Restriction Manager` is available on pages in the allow list. Content can send sensitivity labels to the platform via the API.
-* When a label changes, an event is raised by WebView2 to hosted app with all the labels on that page.
+* Configure the allow list filter for Page Interaction Restriction Manager at
+  the profile level.
+* After the setup, the `Page Interaction Restriction Manager` is available on
+  pages in the allow list. Content can send sensitivity labels to the platform
+  via the API.
+* When a label changes, an event is raised by WebView2 to hosted app with all
+  the labels on that page.
 * Sensitivity labels are cleared when navigating away from the current WebView.
 
 # Examples
 
 ## Setting up an allow list
 
-Configure the PageInteractionRestrictionManager allow list to enable Sensitivity label functionality on trusted domains.
+Configure the PageInteractionRestrictionManager allow list to enable Sensitivity
+label functionality on trusted domains.
 
 ### C++ Sample
 ```cpp
@@ -28,8 +44,8 @@ void ConfigureAllowlist()
     wil::com_ptr<ICoreWebView2Profile> profile;
     CHECK_FAILURE(m_webView->get_Profile(&profile));
 
-    auto stagingProfile3 = profile.try_query<ICoreWebView2StagingProfile3>();
-    if (stagingProfile3) {
+    auto profile9 = profile.try_query<ICoreWebView2Profile9>();
+    if (profile9) {
         // Create allow list with trusted URLs
         std::vector<std::wstring> allowlist = {
             L"https://intranet.company.com/*",
@@ -47,16 +63,16 @@ void ConfigureAllowlist()
         wil::com_ptr<ICoreWebView2Environment> environment;
         CHECK_FAILURE(m_webView->get_Environment(&environment));
 
-        auto stagingEnvironment15 = environment.try_query<ICoreWebView2StagingEnvironment15>();
-        if (stagingEnvironment15) {
+        auto environment16 = environment.try_query<ICoreWebView2Environment16>();
+        if (environment16) {
             wil::com_ptr<ICoreWebView2StringCollection> stringCollection;
-            CHECK_FAILURE(stagingEnvironment15->CreateStringCollection(
+            CHECK_FAILURE(environment16->CreateStringCollection(
                 static_cast<UINT32>(items.size()),
                 items.data(),
                 &stringCollection));
 
             // Apply the allow list
-            CHECK_FAILURE(stagingProfile3->put_PageInteractionRestrictionManagerAllowlist(
+            CHECK_FAILURE(profile9->put_PageInteractionRestrictionManagerAllowlist(
                 stringCollection.get()));
         }
     }
@@ -74,47 +90,9 @@ var allowlist = new List<string>
 };
 
 // Set the allowlist on the profile
-webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist = allowlist;
+webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist =
+    allowlist;
 
-MessageBox.Show($"Allowlist configured with {allowlist.Count} URLs");
-```
-
-
-## Retrieving current allow list
-### C++ Sample
-```cpp
-void GetCurrentAllowlist()
-{
-    auto stagingProfile3 = m_profile.try_query<ICoreWebView2StagingProfile3>();
-    if (stagingProfile3) {
-        wil::com_ptr<ICoreWebView2StringCollection> allowlist;
-        HRESULT hr = stagingProfile3->get_PageInteractionRestrictionManagerAllowlist(&allowlist);
-
-        if (SUCCEEDED(hr) && allowlist) {
-            UINT count = 0;
-            CHECK_FAILURE(allowlist->get_Count(&count));
-
-            wprintf(L"Current allowlist contains %u entries:\n", count);
-            for (UINT i = 0; i < count; ++i) {
-                wil::unique_cotaskmem_string item;
-                CHECK_FAILURE(allowlist->GetValueAtIndex(i, &item));
-                wprintf(L"  • %s\n", item.get());
-            }
-        }
-    }
-}
-```
-
-### .NET/WinRT
-```c#
-// Get current allowlist
-var currentAllowlist = webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist;
-
-Console.WriteLine($"Current allowlist contains {currentAllowlist.Count} entries:");
-foreach (var url in currentAllowlist)
-{
-    Console.WriteLine($"  • {url}");
-}
 ```
 
 
@@ -156,8 +134,10 @@ void RegisterForSensitivityLabelChange()
 
             if(sensitivityState == COREWEBVIEW2_SENSITIVITY_LABEL_STATE_DETERMINED)
             {
-              Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabelCollectionView> sensitivityLabelsCollection;
-              CHECK_FAILURE(args->get_SensitivityLabels(&sensitivityLabelsCollection));
+              Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabelCollectionView> 
+                  sensitivityLabelsCollection;
+              CHECK_FAILURE(args->get_SensitivityLabels(
+                  &sensitivityLabelsCollection));
 
               // Get the count of labels
               UINT32 labelCount = 0;
@@ -172,8 +152,10 @@ void RegisterForSensitivityLabelChange()
               {
                   for (UINT32 i = 0; i < labelCount; ++i)
                   {
-                      Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabel> sensitivityLabel;
-                      CHECK_FAILURE(sensitivityLabelsCollection->GetValueAtIndex(i, &sensitivityLabel));
+                      Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabel> 
+                          sensitivityLabel;
+                      CHECK_FAILURE(sensitivityLabelsCollection->GetValueAtIndex(
+                          i, &sensitivityLabel));
 
                       // Get the label type
                       COREWEBVIEW2_SENSITIVITY_LABEL_KIND labelKind;
@@ -189,18 +171,23 @@ void RegisterForSensitivityLabelChange()
                       {
                       case COREWEBVIEW2_SENSITIVITY_LABEL_KIND_MIP:
                       {
-                          Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabelMip> microsoftLabel;
+                          Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabelMip> 
+                              microsoftLabel;
                           if (SUCCEEDED(sensitivityLabel.As(&microsoftLabel)))
                           {
                               wil::unique_cotaskmem_string labelId;
                               wil::unique_cotaskmem_string organizationId;
-                              CHECK_FAILURE(microsoftLabel->get_LabelId(&labelId));
-                              CHECK_FAILURE(microsoftLabel->get_OrganizationId(&organizationId));
+                              CHECK_FAILURE(microsoftLabel->get_LabelId(
+                                  &labelId));
+                              CHECK_FAILURE(microsoftLabel->get_OrganizationId(
+                                  &organizationId));
 
                               labelsString += L"Microsoft Label (ID: " +
-                                  std::wstring(labelId.get() ? labelId.get() : L"<empty>") +
+                                  std::wstring(labelId.get() ? 
+                                      labelId.get() : L"<empty>") +
                                   L", Org: " +
-                                  std::wstring(organizationId.get() ? organizationId.get() : L"<empty>") +
+                                  std::wstring(organizationId.get() ? 
+                                      organizationId.get() : L"<empty>") +
                                   L")";
                           }
                           break;
@@ -251,12 +238,14 @@ interface ICoreWebView2Environment16 : IUnknown {
 
 ```
 [uuid(7b0ade48-e6a9-5038-b7f7-496ad426d907), object, pointer_default(unique)]
-interface ICoreWebView2StagingProfile3 : IUnknown {
+interface ICoreWebView2Profile9 : IUnknown {
     /// Gets the `PageInteractionRestrictionManagerAllowlist` property.
-    [propget] HRESULT PageInteractionRestrictionManagerAllowlist([out, retval] ICoreWebView2StringCollection** value);
+    [propget] HRESULT PageInteractionRestrictionManagerAllowlist(
+        [out, retval] ICoreWebView2StringCollection** value);
 
     /// Sets the `PageInteractionRestrictionManagerAllowlist` property.
-    [propput] HRESULT PageInteractionRestrictionManagerAllowlist([in] ICoreWebView2StringCollection* value);
+    [propput] HRESULT PageInteractionRestrictionManagerAllowlist(
+        [in] ICoreWebView2StringCollection* value);
 }
 ```
 ### .NET/WinRT
@@ -268,9 +257,11 @@ namespace Microsoft.Web.WebView2.Core
         /// <summary>
         /// Gets or sets the PageInteractionRestrictionManager allowlist.
         /// </summary>
-        /// <value>A collection of URL patterns that are exempt from page interaction restrictions.
-        /// Pass an empty collection to clear the allowlist.</value>
-        public IReadOnlyList<string> PageInteractionRestrictionManagerAllowlist { get; set; }
+        /// <value>A collection of URL patterns that are exempt from page 
+        /// interaction restrictions. Pass an empty collection to clear the 
+        /// allowlist.</value>
+        public IReadOnlyList<string> PageInteractionRestrictionManagerAllowlist 
+            { get; set; }
     }
 }
 ```
@@ -288,7 +279,8 @@ typedef enum COREWEBVIEW2_SENSITIVITY_LABEL_STATE {
   /// none will report sensitivity labels. 
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_NONE,
   /// Indicates that WebView2 has loaded pages from the allow list that can
-  /// report sensitivity labels, but the label determination is not yet complete.
+  /// report sensitivity labels, but the label determination is not yet 
+  /// complete.
   COREWEBVIEW2_SENSITIVITY_LABEL_STATE_UNDETERMINED,
   /// Indicates that WebView2 has loaded pages from the allow list,
   /// and those pages have provided label information.
@@ -320,7 +312,8 @@ interface ICoreWebView2SensitivityLabel : IUnknown {
   /// and handle the label data, as different label types may have different
   /// metadata formats, protection requirements, and policy enforcement
   /// mechanisms.
-  [propget] HRESULT LabelKind([out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_KIND* value);
+  [propget] HRESULT LabelKind(
+      [out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_KIND* value);
 }
 
 /// Interface for Microsoft Information Protection (MIP) sensitivity labels.
@@ -359,7 +352,9 @@ interface ICoreWebView2SensitivityLabelCollectionView : IUnknown {
   [propget] HRESULT Count([out, retval] UINT32* value);
 
   /// Gets the element at the given index.
-  HRESULT GetValueAtIndex([in] UINT32 index, [out, retval] ICoreWebView2SensitivityLabel** value);
+  HRESULT GetValueAtIndex(
+      [in] UINT32 index, 
+      [out, retval] ICoreWebView2SensitivityLabel** value);
 }
 
 /// Event arguments for the `SensitivityLabelChanged` event.
@@ -374,11 +369,13 @@ interface ICoreWebView2SensitivityLabelEventArgs : IUnknown {
   /// Gets a read-only collection of all sensitivity labels detected in the
   /// current web document. This collection contains instances of sensitivity
   /// labels that have been reported by the web page.
-  [propget] HRESULT SensitivityLabels([out, retval] ICoreWebView2SensitivityLabelCollectionView** value);
+  [propget] HRESULT SensitivityLabels(
+      [out, retval] ICoreWebView2SensitivityLabelCollectionView** value);
 
 
   /// Gets the current state of sensitivity label detection.
-  [propget] HRESULT SensitivityState([out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_STATE* value);
+  [propget] HRESULT SensitivityState(
+      [out, retval] COREWEBVIEW2_SENSITIVITY_LABEL_STATE* value);
 
 }
 
@@ -400,11 +397,11 @@ interface ICoreWebView2SensitivityLabelChangedEventHandler : IUnknown {
 [uuid(ac4543d5-f466-5622-8b3b-24d3b195525c), object, pointer_default(unique)]
 interface ICoreWebView2_32 : IUnknown {
   /// Adds an event handler for the `SensitivityLabelChanged` event.
-  /// Event raised when the sensitivity label classification of web page changes.
-  /// web pages may report sensitivity labels via
+  /// Event raised when the sensitivity label classification of web page 
+  /// changes. web pages may report sensitivity labels via
   /// [`Page Interaction Restriction Manager`](https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/PageInteractionRestrictionManager/explainer.md).
-  /// This event is triggered when the WebView2 control detects a change in the
-  /// sensitivity labels associated with the currently loaded web page.
+  /// This event is triggered when the WebView2 control detects a change in 
+  /// the sensitivity labels associated with the currently loaded web page.
   /// Changes can occur when navigating to a new page in the main frame,
   /// when the existing page updates its sensitivity label information.
   /// On navigation to a new page `SensitivityLabelChanged` event is raised
@@ -417,7 +414,8 @@ interface ICoreWebView2_32 : IUnknown {
       [in] ICoreWebView2SensitivityLabelChangedEventHandler* eventHandler,
       [out] EventRegistrationToken* token);
 
-  /// Removes an event handler previously added with `add_SensitivityLabelChanged`.
+  /// Removes an event handler previously added with 
+  /// `add_SensitivityLabelChanged`.
   HRESULT remove_SensitivityLabelChanged(
       [in] EventRegistrationToken token);
 
