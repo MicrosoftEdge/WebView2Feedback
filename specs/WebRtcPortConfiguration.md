@@ -128,8 +128,6 @@ enum CoreWebView2WebRtcProtocolKind
 {
     /// UDP protocol for WebRTC media and ICE candidates.
     Udp = 0,
-    /// TCP protocol for WebRTC media and ICE candidates (future support).
-    Tcp = 1,
 };
 [availability("staging")]
 runtimeclass CoreWebView2WebRtcPortConfiguration : [default] ICoreWebView2WebRtcPortConfiguration{}
