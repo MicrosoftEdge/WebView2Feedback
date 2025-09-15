@@ -238,7 +238,7 @@ void RegisterForSensitivityLabelChange()
 
 ```
 [uuid(764ffcc6-b341-5307-8ca4-58face289427), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironment15 : IUnknown {
+interface ICoreWebView2Environment16 : IUnknown {
     /// Create an ICoreWebView2StringCollection from an array of strings.
     /// This provides a convenient way to create string collections for use
     /// with WebView2 APIs that require ICoreWebView2StringCollection objects.
