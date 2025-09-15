@@ -31,8 +31,8 @@ Usage steps:
 
 
 # Examples
-### Configure UDP Port Range
-```
+### C++ Configure UDP Port Range
+```cpp
 wil::com_ptr<ICoreWebView2EnvironmentOptions> options = 
     Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
 
@@ -41,6 +41,27 @@ CHECK_FAILURE(options->get_WebRtcPortConfiguration(&portConfig));
 
 CHECK_FAILURE(portConfig->SetPortRange(
     CoreWebView2WebRtcProtocolKind::Udp, 50000, 51000));
+
+HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
+        subFolder, m_userDataFolder.c_str(), options.Get(),
+        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            this, &AppWindow::OnCreateEnvironmentCompleted)
+            .Get());
+```
+
+### C# Configure UDP Port Range
+```csharp
+var options = new CoreWebView2EnvironmentOptions();
+
+var portConfig = options.WebRtcPortConfiguration;
+portConfig.SetPortRange(CoreWebView2WebRtcProtocolKind.Udp, 50000, 51000);
+
+var environment = await CoreWebView2Environment.CreateAsync(
+    browserExecutableFolder: subFolder,
+    userDataFolder: m_userDataFolder,
+    options: options);
+
+OnCreateEnvironmentCompleted(environment);
 ```
 
 ### C++ Sample
