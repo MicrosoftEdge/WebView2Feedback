@@ -243,6 +243,26 @@ interface ICoreWebView2Profile9 : IUnknown {
     [propget] HRESULT PageInteractionRestrictionManagerAllowlist(
         [out, retval] ICoreWebView2StringCollection** value);
 
+    /// Controls which URLs are allowed to access the PageInteractionRestrictionManager API.
+    /// 
+    /// This property manages an allowlist of URLs that determines which web pages
+    /// can use the PageInteractionRestrictionManager API. Only URLs that match 
+    /// entries in this allowlist (either exact matches or wildcard patterns) will
+    /// have access to the PageInteractionRestrictionManager functionality.
+    /// 
+    /// The allowlist accepts both exact URL strings and wildcard patterns.
+    /// For wildcard patterns, `*` matches zero or more characters.
+    /// 
+    /// URL matching occurs after the URI has been normalized, any URI fragment 
+    /// has been removed, and non-ASCII hostnames have been converted to punycode.
+    /// 
+    /// | URL Filter | Page URL | Access Granted | Notes |
+    /// | ---- | ---- | ---- | ---- |
+    /// | `https://example.com` | `https://example.com/page` | No | Exact match required |
+    /// | `https://example.com` | `https://example.com` | No | The URI is normalized before filter matching so the actual URI used for comparison is https://example.com/ |
+    /// | `https://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any path |
+    /// | `*://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any scheme |
+    /// | `*` | `https://any-site.com` | Yes | Wildcard matches all URLs |
     /// Sets the `PageInteractionRestrictionManagerAllowlist` property.
     [propput] HRESULT PageInteractionRestrictionManagerAllowlist(
         [in] ICoreWebView2StringCollection* value);
