@@ -18,5 +18,5 @@ Sometimes `edge://crashes` might not show crashes, then open Event Viewer by sea
 - In the left pane, expand Windows Logs and click on System.
 - In the right pane, click on Filter Current Log.
 - In the Filter tab, under Event sources, select **Windows Error Reporting** and click on OK.
-- You will see a list of events related to Windows Error Reporting – search for the ones with the msedgewebview2.exe process. Also `Date and Time` column might help you better locate your crash.
+- You will see a list of events related to Windows Error Reporting – search for the ones with the msedgewebview2.exe process. The `Date and Time` column might also help you better locate your crash.
 - Copy all the details shown in the `General` tab while reporting a crash
