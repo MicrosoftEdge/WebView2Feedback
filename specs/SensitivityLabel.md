@@ -40,59 +40,37 @@ label functionality on trusted domains.
 ```cpp
 void ConfigureAllowlist()
 {
-    // Get the WebView2 profile
     wil::com_ptr<ICoreWebView2Profile> profile;
     CHECK_FAILURE(m_webView->get_Profile(&profile));
 
     auto profile9 = profile.try_query<ICoreWebView2Profile9>();
     if (profile9) {
-        // Create allow list with trusted URLs
-        std::vector<std::wstring> allowlist = {
+        LPCWSTR allowlist[] = {
             L"https://intranet.company.com/*",
             L"https://*.company.com/*",
             L"https://trusted-partner.com/*"
         };
 
-        // Convert to LPCWSTR array for COM interface
-        std::vector<LPCWSTR> items;
-        for (const auto& url : allowlist) {
-            items.push_back(url.c_str());
-        }
-
-        // Get environment to create string collection
-        wil::com_ptr<ICoreWebView2Environment> environment;
-        CHECK_FAILURE(m_webView->get_Environment(&environment));
-
-        auto environment16 = environment.try_query<ICoreWebView2Environment16>();
-        if (environment16) {
-            wil::com_ptr<ICoreWebView2StringCollection> stringCollection;
-            CHECK_FAILURE(environment16->CreateStringCollection(
-                static_cast<UINT32>(items.size()),
-                items.data(),
-                &stringCollection));
-
-            // Apply the allow list
-            CHECK_FAILURE(profile9->put_PageInteractionRestrictionManagerAllowlist(
-                stringCollection.get()));
-        }
+        CHECK_FAILURE(profile9->SetPageInteractionRestrictionManagerAllowlist(
+            static_cast<UINT32>(std::size(allowlist)),
+            allowlist));
     }
 }
+
+
 ```
-### .NET/WinRT
-```c#
-// Configure allowlist for trusted company URLs
+### .NET/WinRT Sample
+```csharp
+var profile = webView2.CoreWebView2.Profile;
+
 var allowlist = new List<string>
 {
     "https://intranet.company.com/*",
-    "https://*.company.com/*",           // Wildcard for all company subdomains
-    "https://trusted-partner.com/*",
-    "https://secure.vendor.net/*"
+    "https://*.company.com/*", 
+    "https://trusted-partner.com/*"
 };
 
-// Set the allowlist on the profile
-webView2Control.CoreWebView2.Profile.PageInteractionRestrictionManagerAllowlist =
-    allowlist;
-
+profile.PageInteractionRestrictionManagerAllowlist = allowlist;
 ```
 
 
@@ -224,64 +202,75 @@ void RegisterForSensitivityLabelChange()
 ### C++
 
 ```
-[uuid(764ffcc6-b341-5307-8ca4-58face289427), object, pointer_default(unique)]
-interface ICoreWebView2Environment16 : IUnknown {
-    /// Create an ICoreWebView2StringCollection from an array of strings.
-    /// This provides a convenient way to create string collections for use
-    /// with WebView2 APIs that require ICoreWebView2StringCollection objects.
-    HRESULT CreateStringCollection(
-        [in] UINT32 count,
-        [in] LPCWSTR* items,
-        [out, retval] ICoreWebView2StringCollection** value);
-}
-```
-
-```
-[uuid(7b0ade48-e6a9-5038-b7f7-496ad426d907), object, pointer_default(unique)]
+/// This is the ICoreWebView2Profile interface for PageInteractionRestrictionManager allowlist management.
+[uuid(a15dadcf-8924-54c2-9624-1b765abdb796), object, pointer_default(unique)]
 interface ICoreWebView2Profile9 : IUnknown {
-    /// Gets the `PageInteractionRestrictionManagerAllowlist` property.
-    [propget] HRESULT PageInteractionRestrictionManagerAllowlist(
-        [out, retval] ICoreWebView2StringCollection** value);
+  /// Gets the allowlist of URLs that are allowed to access the PageInteractionRestrictionManager API.
+  /// 
+  /// This method retrieves the current allowlist configured for this profile.
+  /// The returned allowlist contains URL patterns that determine which web pages
+  /// can access the PageInteractionRestrictionManager functionality.
+  ///
+  /// The caller must free the returned string array with `CoTaskMemFree`.
+  HRESULT GetPageInteractionRestrictionManagerAllowlist(
+      [out] UINT32* allowlistCount,
+      [out] LPWSTR** allowlist
+  );
 
-    /// Controls which URLs are allowed to access the PageInteractionRestrictionManager API.
-    /// 
-    /// This property manages an allowlist of URLs that determines which web pages
-    /// can use the PageInteractionRestrictionManager API. Only URLs that match 
-    /// entries in this allowlist (either exact matches or wildcard patterns) will
-    /// have access to the PageInteractionRestrictionManager functionality.
-    /// 
-    /// The allowlist accepts both exact URL strings and wildcard patterns.
-    /// For wildcard patterns, `*` matches zero or more characters.
-    /// 
-    /// URL matching occurs after the URI has been normalized, any URI fragment 
-    /// has been removed, and non-ASCII hostnames have been converted to punycode.
-    /// 
-    /// | URL Filter | Page URL | Access Granted | Notes |
-    /// | ---- | ---- | ---- | ---- |
-    /// | `https://example.com` | `https://example.com/page` | No | Exact match required |
-    /// | `https://example.com` | `https://example.com` | No | The URI is normalized before filter matching so the actual URI used for comparison is https://example.com/ |
-    /// | `https://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any path |
-    /// | `*://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any scheme |
-    /// | `*` | `https://any-site.com` | Yes | Wildcard matches all URLs |
-    /// Sets the `PageInteractionRestrictionManagerAllowlist` property.
-    [propput] HRESULT PageInteractionRestrictionManagerAllowlist(
-        [in] ICoreWebView2StringCollection* value);
+  /// Sets the allowlist of URLs that are allowed to access the PageInteractionRestrictionManager API.
+  ///
+  /// This method configures an allowlist of URLs that determines which web pages
+  /// can use the PageInteractionRestrictionManager API. Only URLs that match 
+  /// entries in this allowlist (either exact matches or wildcard patterns) will
+  /// have access to the PageInteractionRestrictionManager functionality.
+  /// 
+  /// URL Matching Logic:
+  /// The allowlist accepts both exact URL strings and wildcard patterns.
+  /// For wildcard patterns, `*` matches zero or more characters.
+  /// 
+  /// | URL Filter | Page URL | Access Granted | Notes |
+  /// | ---- | ---- | ---- | ---- |
+  /// | `https://example.com` | `https://example.com/page` | No | Exact match required |
+  /// | `https://example.com` | `https://example.com` | No | The URI is normalized before filter matching so the actual URI used for comparison is https://example.com/ |
+  /// | `https://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any path |
+  /// | `*://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any scheme |
+  /// | `*` | `https://any-site.com` | Yes | Wildcard matches all URLs |
+  ///
+  /// Setting the allowlist to an empty array will disable access to the
+  /// PageInteractionRestrictionManager API for all pages.
+  ///
+  /// Changes take effect immediately for all WebView2 instances using this profile.
+  /// The allowlist is persisted across sessions.
+  HRESULT SetPageInteractionRestrictionManagerAllowlist(
+      [in] UINT32 allowlistCount,
+      [in] LPCWSTR* allowlist
+  );
 }
 ```
 ### .NET/WinRT
-```c#
+```idl
 namespace Microsoft.Web.WebView2.Core
 {
-    public partial class CoreWebView2Profile
+    runtimeclass CoreWebView2Profile
     {
-        /// <summary>
-        /// Gets or sets the PageInteractionRestrictionManager allowlist.
-        /// </summary>
-        /// <value>A collection of URL patterns that are exempt from page 
-        /// interaction restrictions. Pass an empty collection to clear the 
-        /// allowlist.</value>
-        public IReadOnlyList<string> PageInteractionRestrictionManagerAllowlist 
-            { get; set; }
+        /// Controls which URLs are allowed to access the PageInteractionRestrictionManager API.
+        /// 
+        /// This property manages an allowlist of URLs that determines which web pages
+        /// can use the PageInteractionRestrictionManager API. Only URLs that match 
+        /// entries in this allowlist (either exact matches or wildcard patterns) will
+        /// have access to the PageInteractionRestrictionManager functionality.
+        /// 
+        /// The allowlist accepts both exact URL strings and wildcard patterns.
+        /// For wildcard patterns, `*` matches zero or more characters.
+        /// 
+        /// | URL Filter | Page URL | Access Granted | Notes |
+        /// | ---- | ---- | ---- | ---- |
+        /// | `https://example.com` | `https://example.com/page` | No | Exact match required |
+        /// | `https://example.com` | `https://example.com` | No | The URI is normalized before filter matching so the actual URI used for comparison is https://example.com/ |
+        /// | `https://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any path |
+        /// | `*://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any scheme |
+        /// | `*` | `https://any-site.com` | Yes | Wildcard matches all URLs |
+        IVectorView<String> PageInteractionRestrictionManagerAllowlist { get; set; };
     }
 }
 ```
