@@ -13,10 +13,10 @@ If you do not have crash dumps - please navigate your webview2 control to `edge:
 
 ![crashes](resources/crashes.png)
 
-Sometimes `edge://crashes` might not show up crashes, then open Event Viewer by searching eventvwr in windows search box.
+Sometimes `edge://crashes` might not show crashes, then open Event Viewer by searching for eventvwr in the Windows search box.
 
 - In the left pane, expand Windows Logs and click on System.
 - In the right pane, click on Filter Current Log.
 - In the Filter tab, under Event sources, select **Windows Error Reporting** and click on OK.
 - You will see a list of events related to Windows Error Reporting – search for the ones with msedgewebview2.exe process. Also `Date and Time` column might help you better locate your crash.
-- Copy all the details shown in the `General` tab and share it to us
+- Copy all the details shown in the `General` tab while reporting a crash
