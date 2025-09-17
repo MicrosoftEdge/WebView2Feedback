@@ -1,10 +1,10 @@
 ## Automatic Log collection using script
 
-The script automates collection of commonly requested WebView2 diagnostic data — including ETW traces and installer logs — to minimize the effort required when reporting issues. It produces a single compressed archive that can be shared with the WebView2 support team for analysis.
+The script automates collection of commonly requested WebView2 diagnostic data — ETW traces and installer logs — to minimize the effort required when reporting issues. It produces a single compressed archive that can be shared with the WebView2 support team for analysis.
 
 ### Procedure
 
-1. Download the script file from [log_collection_script.ps1](resource/log_collection_script.ps1).
+1. Download the [script file](resource/log_collection_script.ps1).
 2. Open an elevated PowerShell window (**Run as Administrator**).
 3. Run the script by executing:
 
