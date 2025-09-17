@@ -145,7 +145,7 @@ class ScenarioWebRtcUdpPortConfiguration
 ```
 /// Additional options used to create WebView2 Environment to manage WebRTC UDP port range configuration.
 [uuid(0eebe393-8dcf-5bc5-a15d-d862088242e9), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
+interface ICoreWebView2EnvironmentOptions10 : IUnknown {
   /// Get the WebRTC port range configuration object for configuring a custom port range.
   /// This configuration object can be used to set and retrieve port range configuration
   /// that WebRTC will use for ICE candidates and media connections.
@@ -155,7 +155,7 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// 
   /// 
   /// \snippet AppWindow.cpp WebRtcPortConfiguration
-  [propget] HRESULT WebRtcPortConfiguration([out, retval] ICoreWebView2StagingWebRtcPortConfiguration** value);
+  [propget] HRESULT WebRtcPortConfiguration([out, retval] ICoreWebView2WebRtcPortConfiguration** value);
 
 
 
@@ -165,7 +165,7 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
 /// This interface provides methods to configure and retrieve custom port ranges
 /// that WebRTC will use for ICE candidates and media connections across different protocols.
 [uuid(b1ac2eb4-15b5-574f-aeb7-c51b9f1520fa), object, pointer_default(unique)]
-interface ICoreWebView2StagingWebRtcPortConfiguration : IUnknown {
+interface ICoreWebView2WebRtcPortConfiguration : IUnknown {
   /// The `SetPortRange` method allows you to set a custom port range for WebRTC to use
   /// for a specific protocol type.
   /// This method allows configuring a specific port range that WebRTC will use
