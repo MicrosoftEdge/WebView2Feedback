@@ -65,7 +65,7 @@ OnCreateEnvironmentCompleted(environment);
 ```
 
 # API Details
-## C++  
+### C++  
 ```
 /// Additional options used to create WebView2 Environment to manage WebRTC UDP port range configuration.
 [uuid(0eebe393-8dcf-5bc5-a15d-d862088242e9), object, pointer_default(unique)]
@@ -80,9 +80,6 @@ interface ICoreWebView2EnvironmentOptions10 : IUnknown {
   /// 
   /// \snippet AppWindow.cpp WebRtcPortConfiguration
   [propget] HRESULT WebRtcPortConfiguration([out, retval] ICoreWebView2WebRtcPortConfiguration** value);
-
-
-
 }
 
 /// WebRTC port configuration interface for managing WebRTC port range configuration.
@@ -124,13 +121,10 @@ interface ICoreWebView2WebRtcPortConfiguration : IUnknown {
       [out] UINT32* minPort,
       [out] UINT32* maxPort
       , [out, retval] BOOL* value);
-
-
 }
 ```
 
-## C#
-
+### C#
 ```csharp
 /// <summary>
 /// Specifies the WebRTC protocol type for port range configuration.
