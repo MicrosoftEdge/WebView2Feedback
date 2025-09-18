@@ -195,7 +195,54 @@ void RegisterForSensitivityLabelChange()
 }
 
   ```
+### .NET/WinRT Sample
 
+```c#
+void RegisterForSensitivityLabelChange()
+{
+    webView2.CoreWebView2.SensitivityLabelChanged += WebView_SensitivityLabelChanged;
+}
+
+void WebView_SensitivityLabelChanged(object sender, CoreWebView2SensitivityLabelEventArgs args)
+{
+    string message = $"Sensitivity Label Changed!\n" +
+                    $"SensitivityState: {args.SensitivityState}\n";
+
+    if (args.SensitivityLabels != null && args.SensitivityLabels.Count > 0)
+    {
+        message += $"Number of Sensitivity Labels: {args.SensitivityLabels.Count}\n";
+        for (int i = 0; i < args.SensitivityLabels.Count; i++)
+        {
+            CoreWebView2SensitivityLabel label = args.SensitivityLabels[i];
+            message += $"Label {i + 1}:\n";
+            message += $"  Type: {label.LabelType}\n";
+
+            switch(label.LabelType)
+            {
+                case CoreWebView2SensitivityLabelType.Mip:
+                    CoreWebView2MipSensitivityLabel mipLabel = (CoreWebView2MipSensitivityLabel)label;
+                    message += $" Label Id: {mipLabel.LabelId}\n";
+                    message += $"  Org Id: {mipLabel.OrganizationId}\n";
+                    break;
+
+                default:
+                    message += "  Unknown Label Type\n";
+                    break;
+            }
+        }
+    }
+    else
+    {
+        message += "No Sensitivity Labels found.\n";
+    }
+
+    this.Dispatcher.Invoke(() =>
+    {
+        MessageBox.Show(message, "Sensitivity Label Changed Event", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+    });
+}
+```
 # API Details
 
 ## Allow listing
