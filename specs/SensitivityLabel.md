@@ -83,118 +83,71 @@ EventRegistrationToken m_sensitivityLabelChangedToken = {};
 
 void RegisterForSensitivityLabelChange()
 {
-  auto m_webView32 = m_webView.try_query<ICoreWebView2_32>();
-  if (m_webView32)
-  {
-    CHECK_FAILURE(m_webView32->add_SensitivityLabelChanged(
-    Callback<ICoreWebView2SensitivityLabelChangedEventHandler>(
-        [this](ICoreWebView2* sender, ICoreWebView2SensitivityLabelEventArgs* args)
-            -> HRESULT
-        {
-            std::wstring labelsString;
-            COREWEBVIEW2_SENSITIVITY_LABEL_STATE sensitivityState;
-            CHECK_FAILURE(args->get_SensitivityState(&sensitivityState));
+    auto webView32 = m_webView.try_query<ICoreWebView2Staging32>();
+    if (webView32)
+    {
+        CHECK_FAILURE(webView32->add_SensitivityInfoChanged(
+            Callback<ICoreWebView2StagingSensitivityInfoChangedEventHandler>(
+                [this](ICoreWebView2* sender, IUnknown* args) -> HRESULT
+                {
+                    auto webView32 = this->m_webView.try_query<ICoreWebView2Staging32>();
+                    ICoreWebView2StagingSensitivityInfo* sensitivityInfo = nullptr;
+                    webView32->get_SensitivityInfo(&sensitivityInfo);
 
-            switch (sensitivityState)
-            {
-              case COREWEBVIEW2_SENSITIVITY_LABEL_STATE_UNDETERMINED:
-                labelsString = L"<Labels undetermined>";
-                break;
+                    COREWEBVIEW2_SENSITIVITY_LABELS_STATE sensitivityLabelsState;
+                    CHECK_FAILURE(sensitivityInfo->get_SensitivityLabelsState(&sensitivityLabelsState));
 
-              case COREWEBVIEW2_SENSITIVITY_LABEL_STATE_DETERMINED:
-                labelsString = L"<Labels determined>";
-                break;
+                    // Block print action in case sensitivity state is yet to be available
+                    bool shouldBlockPrint = (sensitivityLabelsState == COREWEBVIEW2_SENSITIVITY_LABELS_STATE_PENDING);
 
-              default:
-                labelsString = L"<No sensitivity state>";
-                break;
-            }
+                    // If sensitivity state is available check with the DLP provider if print rights is available
+                    if(sensitivityLabelsState == COREWEBVIEW2_SENSITIVITY_LABELS_STATE_AVAILABLE)
+                    {
+                        Microsoft::WRL::ComPtr<ICoreWebView2StagingSensitivityLabelCollectionView> sensitivityLabelsCollection;
+                        CHECK_FAILURE(sensitivityInfo->get_SensitivityLabels(&sensitivityLabelsCollection));
 
-            if(sensitivityState == COREWEBVIEW2_SENSITIVITY_LABEL_STATE_DETERMINED)
-            {
-              Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabelCollectionView> 
-                  sensitivityLabelsCollection;
-              CHECK_FAILURE(args->get_SensitivityLabels(
-                  &sensitivityLabelsCollection));
+                        // Get the count of labels
+                        UINT32 labelCount = 0;
+                        CHECK_FAILURE(sensitivityLabelsCollection->get_Count(&labelCount));
 
-              // Get the count of labels
-              UINT32 labelCount = 0;
-              CHECK_FAILURE(sensitivityLabelsCollection->get_Count(&labelCount));
+                        for (UINT32 i = 0; i < labelCount; ++i)
+                        {
+                            Microsoft::WRL::ComPtr<ICoreWebView2StagingSensitivityLabel> sensitivityLabel;
+                            CHECK_FAILURE(sensitivityLabelsCollection->GetValueAtIndex(i, &sensitivityLabel));
 
+                            // Get the label kind COREWEBVIEW2_SENSITIVITY_LABEL_KIND
+                            COREWEBVIEW2_SENSITIVITY_LABEL_KIND labelKind;
+                            CHECK_FAILURE(sensitivityLabel->get_LabelKind(&labelKind));
+                            if (labelKind == COREWEBVIEW2_SENSITIVITY_LABEL_KIND_MIP)
+                            {
+                                // Try to get as MIP label
+                                Microsoft::WRL::ComPtr<ICoreWebView2StagingMipSensitivityLabel> mipLabel;
+                                if (SUCCEEDED(sensitivityLabel.As(&mipLabel)))
+                                {
+                                    wil::unique_cotaskmem_string labelId;
+                                    wil::unique_cotaskmem_string organizationId;
+                                    CHECK_FAILURE(mipLabel->get_LabelId(&labelId));
+                                    CHECK_FAILURE(mipLabel->get_OrganizationId(&organizationId));
 
-              if (labelCount == 0)
-              {
-                  labelsString = L"No label present";
-              }
-              else
-              {
-                  for (UINT32 i = 0; i < labelCount; ++i)
-                  {
-                      Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabel> 
-                          sensitivityLabel;
-                      CHECK_FAILURE(sensitivityLabelsCollection->GetValueAtIndex(
-                          i, &sensitivityLabel));
+                                    // Query Purview for label metadata and check for Print rights
+                                    bool isPrintAllowed = IsPrintRightsAllowedByPurview(labelId, organizationId)
+                                    
+                                    // Block print if any of the document blocks print
+                                    shouldBlockPrint ||= isPrintAllowed;
+                                }
+                            }
+                        }
 
-                      // Get the label type
-                      COREWEBVIEW2_SENSITIVITY_LABEL_KIND labelKind;
-                      CHECK_FAILURE(sensitivityLabel->get_LabelKind(&labelKind));
-
-                      if (i > 0)
-                      {
-                          labelsString += L", ";
-                      }
-
-                      // Handle different label types
-                      switch (labelType)
-                      {
-                      case COREWEBVIEW2_SENSITIVITY_LABEL_KIND_MIP:
-                      {
-                          Microsoft::WRL::ComPtr<ICoreWebView2SensitivityLabelMip> 
-                              microsoftLabel;
-                          if (SUCCEEDED(sensitivityLabel.As(&microsoftLabel)))
-                          {
-                              wil::unique_cotaskmem_string labelId;
-                              wil::unique_cotaskmem_string organizationId;
-                              CHECK_FAILURE(microsoftLabel->get_LabelId(
-                                  &labelId));
-                              CHECK_FAILURE(microsoftLabel->get_OrganizationId(
-                                  &organizationId));
-
-                              labelsString += L"Microsoft Label (ID: " +
-                                  std::wstring(labelId.get() ? 
-                                      labelId.get() : L"<empty>") +
-                                  L", Org: " +
-                                  std::wstring(organizationId.get() ? 
-                                      organizationId.get() : L"<empty>") +
-                                  L")";
-                          }
-                          break;
-                      }
-                      default:
-                          labelsString += L"Unknown Label";
-                          break;
-                      }
-                  }
-              }
-            }
-
-            // Show the sensitivity labels in a popup dialog
-            RunAsync([this, labelsString]() {
-                MessageBox(
-                    m_appWindow,
-                    labelsString,
-                    L"Sensitivity Label State", MB_OK);
-            });
-
-            return S_OK;
-        })
-        .Get(),
-    &m_sensitivityLabelChangedToken));
-  }
-
+                        if (shouldBlockPrint)
+                        {
+                            BlockPrintOption();
+                        }
+                    }  
+                }).Get(),
+            &m_sensitivityLabelChangedToken));
+    }
 }
-
-  ```
+```
 ### .NET/WinRT Sample
 
 ```c#
@@ -435,7 +388,7 @@ interface ICoreWebView2StagingSensitivityInfo : IUnknown {
 
   /// Gets the current state of sensitivity label detection.
   /// Refer `COREWEBVIEW2_SENSITIVITY_LABELS_STATE` for different states.
-  [propget] HRESULT SensitivityState([out, retval] COREWEBVIEW2_SENSITIVITY_LABELS_STATE* value);
+  [propget] HRESULT SensitivityLabelsState([out, retval] COREWEBVIEW2_SENSITIVITY_LABELS_STATE* value);
 }
 
 /// Receives `SensitivityInfoChanged` events.
