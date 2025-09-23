@@ -38,22 +38,25 @@ label functionality on trusted domains.
 
 ### C++ Sample
 ```cpp
-void ConfigureAllowlist()
+void ConfigurePageInteractionAllowlist()
 {
     wil::com_ptr<ICoreWebView2Profile> profile;
     CHECK_FAILURE(m_webView->get_Profile(&profile));
 
     auto profile9 = profile.try_query<ICoreWebView2Profile9>();
     if (profile9) {
-        LPCWSTR allowlist[] = {
-            L"https://intranet.company.com/*",
-            L"https://*.company.com/*",
+        LPCWSTR allowedUrls[] = {
+            // Allow main domain and all its subdomains
+            L"https://trusted-domain.com/*",
+            L"https://*.trusted-domain.com/*",
+            
+            // Allow specific partner domain and all its pages
             L"https://trusted-partner.com/*"
         };
 
-        CHECK_FAILURE(profile9->SetPageInteractionRestrictionManagerAllowlist(
-            static_cast<UINT32>(std::size(allowlist)),
-            allowlist));
+        CHECK_FAILURE(profile9->SetPageInteractionRestrictionManagerAllowList(
+            static_cast<UINT32>(std::size(allowedUrls)),
+            allowedUrls));
     }
 }
 
@@ -63,14 +66,17 @@ void ConfigureAllowlist()
 ```csharp
 var profile = webView2.CoreWebView2.Profile;
 
-var allowlist = new List<string>
+var allowedUrls = new string[]
 {
-    "https://intranet.company.com/*",
-    "https://*.company.com/*", 
+    // Allow main domain and all its subdomains
+    "https://trusted-domain.com/*",
+    "https://*.trusted-domain.com/*",
+    
+    // Allow specific partner domain and all its pages
     "https://trusted-partner.com/*"
 };
 
-profile.PageInteractionRestrictionManagerAllowlist = allowlist;
+profile.SetPageInteractionRestrictionManagerAllowList(allowedUrls);
 ```
 
 
@@ -201,22 +207,7 @@ void WebView_SensitivityLabelChanged(object sender, CoreWebView2SensitivityLabel
 ## Allow listing
 ### C++
 
-```
-/// This is the ICoreWebView2Profile interface for PageInteractionRestrictionManager allowlist management.
-[uuid(a15dadcf-8924-54c2-9624-1b765abdb796), object, pointer_default(unique)]
-interface ICoreWebView2Profile9 : IUnknown {
-  /// Gets the allowlist of URLs that are allowed to access the PageInteractionRestrictionManager API.
-  /// 
-  /// This method retrieves the current allowlist configured for this profile.
-  /// The returned allowlist contains URL patterns that determine which web pages
-  /// can access the PageInteractionRestrictionManager functionality.
-  ///
-  /// The caller must free the returned string array with `CoTaskMemFree`.
-  HRESULT GetPageInteractionRestrictionManagerAllowlist(
-      [out] UINT32* allowlistCount,
-      [out] LPWSTR** allowlist
-  );
-
+```cpp
   /// Sets the allowlist of URLs that are allowed to access the PageInteractionRestrictionManager API.
   ///
   /// This method configures an allowlist of URLs that determines which web pages
@@ -241,7 +232,7 @@ interface ICoreWebView2Profile9 : IUnknown {
   ///
   /// Changes take effect immediately for all WebView2 instances using this profile.
   /// The allowlist is persisted across sessions.
-  HRESULT SetPageInteractionRestrictionManagerAllowlist(
+  HRESULT SetPageInteractionRestrictionManagerAllowList(
       [in] UINT32 allowlistCount,
       [in] LPCWSTR* allowlist
   );
@@ -253,9 +244,9 @@ namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2Profile
     {
-        /// Controls which URLs are allowed to access the PageInteractionRestrictionManager API.
+        /// Sets the allowlist of URLs that are allowed to access the PageInteractionRestrictionManager API.
         /// 
-        /// This property manages an allowlist of URLs that determines which web pages
+        /// This method sets an allowlist of URLs that determines which web pages
         /// can use the PageInteractionRestrictionManager API. Only URLs that match 
         /// entries in this allowlist (either exact matches or wildcard patterns) will
         /// have access to the PageInteractionRestrictionManager functionality.
@@ -270,7 +261,7 @@ namespace Microsoft.Web.WebView2.Core
         /// | `https://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any path |
         /// | `*://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any scheme |
         /// | `*` | `https://any-site.com` | Yes | Wildcard matches all URLs |
-        IVectorView<String> PageInteractionRestrictionManagerAllowlist { get; set; };
+        void SetPageInteractionRestrictionManagerAllowList(Windows.Foundation.Collections.IIterable<String> allowList);
     }
 }
 ```
