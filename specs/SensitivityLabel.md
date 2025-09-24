@@ -45,6 +45,8 @@ void ConfigurePageInteractionAllowlist()
 
     auto profile9 = profile.try_query<ICoreWebView2Profile9>();
     if (profile9) {
+        // URL patterns follow wildcard matching rules.
+        // For detailed examples, refer to the table at: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter
         LPCWSTR allowedUrls[] = {
             // Allow main domain and all its subdomains
             L"https://trusted-domain.com/*",
@@ -66,6 +68,8 @@ void ConfigurePageInteractionAllowlist()
 ```csharp
 var profile = webView2.CoreWebView2.Profile;
 
+// URL patterns follow wildcard matching rules.
+// For detailed examples, refer to the table at: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter
 var allowedUrls = new string[]
 {
     // Allow main domain and all its subdomains
@@ -219,25 +223,13 @@ void WebView_SensitivityLabelChanged(object sender, CoreWebView2SensitivityLabel
   /// The allowlist accepts both exact URL strings and wildcard patterns.
   /// For wildcard patterns, `*` matches zero or more characters.
   /// 
-  /// | URL Filter | Page URL | Access Granted | Notes |
-  /// | ---- | ---- | ---- | ---- |
-  /// | `https://example.com` | `https://example.com/page` | No | Exact match required |
-  /// | `https://example.com` | `https://example.com` | No | The URI is normalized before filter matching so the actual URI used for comparison is https://example.com/ |
-  /// | `https://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any path |
-  /// | `*://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any scheme |
-  /// | `*` | `https://any-site.com` | Yes | Wildcard matches all URLs |
-  ///
-  /// Setting the allowlist to an empty array will disable access to the
-  /// PageInteractionRestrictionManager API for all pages.
-  ///
-  /// Changes take effect immediately for all WebView2 instances using this profile.
-  /// The allowlist is persisted across sessions.
+  /// For detailed URL matching examples, refer to the table at [`AddWebResourceRequestedFilter`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
   HRESULT SetPageInteractionRestrictionManagerAllowList(
       [in] UINT32 allowlistCount,
       [in] LPCWSTR* allowlist
   );
-}
 ```
+
 ### .NET/WinRT
 ```idl
 namespace Microsoft.Web.WebView2.Core
@@ -254,13 +246,7 @@ namespace Microsoft.Web.WebView2.Core
         /// The allowlist accepts both exact URL strings and wildcard patterns.
         /// For wildcard patterns, `*` matches zero or more characters.
         /// 
-        /// | URL Filter | Page URL | Access Granted | Notes |
-        /// | ---- | ---- | ---- | ---- |
-        /// | `https://example.com` | `https://example.com/page` | No | Exact match required |
-        /// | `https://example.com` | `https://example.com` | No | The URI is normalized before filter matching so the actual URI used for comparison is https://example.com/ |
-        /// | `https://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any path |
-        /// | `*://example.com/*` | `https://example.com/page` | Yes | Wildcard matches any scheme |
-        /// | `*` | `https://any-site.com` | Yes | Wildcard matches all URLs |
+        /// For detailed URL matching examples, refer to the table at [`AddWebResourceRequestedFilter`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter).
         void SetPageInteractionRestrictionManagerAllowList(Windows.Foundation.Collections.IIterable<String> allowList);
     }
 }
