@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory=$false)]
-    [string]$ZipPath = "$env:TEMP",
+    [string]$ZipPath = "$PSScriptRoot",
     
     [Parameter(Mandatory=$false)]
     [string]$OutputDirectory = "$env:TEMP",
@@ -12,7 +12,7 @@ param(
 # Load Windows Forms assembly for GUI
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression
 
 # Variables to hold file paths for zipping
 $OutPath = ""
