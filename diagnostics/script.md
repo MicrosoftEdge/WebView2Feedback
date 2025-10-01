@@ -4,7 +4,7 @@ The script automates collection of commonly requested WebView2 diagnostic data â
 
 ### Procedure
 
-1. Download the [script file](resource/log_collection_script.ps1).
+1. Download the [script file](resources/log_collection_script.ps1).
 2. Open an elevated PowerShell window (**Run as Administrator**).
 3. Run the script by executing:
 
@@ -35,4 +35,5 @@ To specify a different output directory for the ZIP file, provide the `ZipPath` 
 
 ```
 .\log_collection_script.ps1 -ZipPath <folder-path>
+
 ```
