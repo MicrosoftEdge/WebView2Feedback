@@ -128,54 +128,22 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
 
 ### C#
 ```csharp
-/// <summary>
-/// Specifies the network protocol type for port configuration.
-/// </summary>
-public enum COREWEBVIEW2_NETWORK_PROTOCOL
+namespace Microsoft.Web.WebView2.Core
 {
-    /// <summary>
-    /// Transmission Control Protocol - reliable, connection-oriented protocol.
-    /// </summary>
-    COREWEBVIEW2_NETWORK_PROTOCOL_TCP,
-    /// <summary>
-    /// User Datagram Protocol - fast, connectionless protocol.
-    /// </summary>
-    COREWEBVIEW2_NETWORK_PROTOCOL_UDP,
-}
+    enum CoreWebView2NetworkProtocol
+    {
+        Tcp = 0,
+        Udp = 1,
+    };
 
-/// <summary>
-/// Additional options used to create WebView2 Environment to manage port range configuration.
-/// </summary>
-public interface ICoreWebView2StagingEnvironmentOptions10
-{
-    /// <summary>
-    /// Sets the allowed port range for the specified network protocol.
-    /// This allows WebView2 to work within enterprise firewall constraints
-    /// by restricting network communication to the specified port range.
-    /// Currently WebRTC UDP port restriction is supported.
-    /// </summary>
-    /// <param name="protocol">The network protocol (TCP or UDP) for which to set the port range.</param>
-    /// <param name="minPort">The minimum port number in the allowed range (inclusive).</param>
-    /// <param name="maxPort">The maximum port number in the allowed range (inclusive).</param>
-    void SetAllowedPortRange(
-        COREWEBVIEW2_NETWORK_PROTOCOL protocol,
-        int minPort,
-        int maxPort
-    );
-
-    /// <summary>
-    /// Gets the allowed port range for the specified network protocol.
-    /// Returns the current port range configuration that was set via
-    /// SetAllowedPortRange. Default value is 0,0, which means no restrictions applied
-    /// and ports are allocated randomly between system's ephemeral range.
-    /// </summary>
-    /// <param name="protocol">The network protocol (TCP or UDP) for which to get the port range.</param>
-    /// <param name="minPort">Receives the minimum port number in the allowed range.</param>
-    /// <param name="maxPort">Receives the maximum port number in the allowed range.</param>
-    void GetAllowedPortRange(
-        COREWEBVIEW2_NETWORK_PROTOCOL protocol,
-        out int minPort,
-        out int maxPort
-    );
+    runtimeclass CoreWebView2EnvironmentOptions
+    {
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironmentOptions10")]
+        {
+            // ICoreWebView2StagingEnvironmentOptions10 members
+            void SetAllowedPortRange(CoreWebView2NetworkProtocol protocol, Int32 minPort, Int32 maxPort);
+            void GetAllowedPortRange(CoreWebView2NetworkProtocol protocol, out Int32 minPort, out Int32 maxPort);
+        }
+    }
 }
 ```
