@@ -1,5 +1,5 @@
 
-WebRTC Port Range Configuration
+Port Range Configuration
 ===
 
 # Background
@@ -95,7 +95,13 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// Sets the allowed port range for the specified network protocol.
   /// This allows WebView2 to work within enterprise firewall constraints
   /// by restricting network communication to the specified port range.
-  /// Currently WebRTC UDP port restriction is supported.
+  /// Currently only WebRTC UDP port restriction is supported.
+  /// minPort and maxPort must be in the range 1025-65535 (inclusive).
+  /// Calls with invalid ranges fail with E_INVALIDARG.
+  /// minPort must be less than or equal to maxPort.
+  /// If minPort equals maxPort, it represents a single port.
+  /// If (0,0) is passed as (minPort, maxPort), API will treat this as default
+  /// value and no restrictions on ports will be applied.
   /// 
   /// `protocol` The network protocol (TCP or UDP) for which to set the port range.
   /// `minPort` The minimum port number in the allowed range (inclusive).
@@ -109,8 +115,8 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
 
   /// Gets the allowed port range for the specified network protocol.
   /// Returns the current port range configuration that was set via
-  /// SetAllowedPortRange. Default value is 0,0, which means no restrictions applied
-  /// and ports are allocated randomly between system's ephemeral range.
+  /// SetAllowedPortRange. Default value is (0,0) which means no restrictions applied
+  /// and ports are allocated randomly between system's ephemeral range 1025-65535 (inclusive).
   /// 
   /// `protocol` The network protocol (TCP or UDP) for which to get the port range.
   /// `minPort` Receives the minimum port number in the allowed range.
