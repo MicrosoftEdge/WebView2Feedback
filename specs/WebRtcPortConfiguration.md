@@ -3,14 +3,12 @@ WebRTC Port Range Configuration
 ===
 
 # Background
-WebRTC by default allocates ports dynamically from the system’s ephemeral range.  
+In webview2 components like WebRTC by default allocates ports dynamically from the system’s ephemeral range.  
 In enterprise or testing environments, developers often need deterministic or firewall-friendly port allocation.  
 
 This API enables developers to configure the port range WebRTC uses for [ICE](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Protocols#ice) candidates and media connections.
 
 The initial support is for **UDP**, with room to extend to **TCP** in the future.  
-
-By exposing a `WebRtcPortConfiguration` object on `CoreWebView2EnvironmentOptions`, developers can set and retrieve the port range before creating the WebView2 environment.  
 
 # Conceptual pages (How To)
 
@@ -24,23 +22,29 @@ Common scenarios:
 - Avoid conflicts with other applications that may already use ephemeral ranges.  
 
 Usage steps:  
-1. Create `CoreWebView2EnvironmentOptions`.  
-2. Access the `WebRtcPortConfiguration` object.  
-3. Call `SetPortRange` for `CoreWebView2WebRtcProtocolKind.Udp`.  
-4. Pass the options when creating the WebView2 environment.  
+1. Create `CoreWebView2EnvironmentOptions`.   
+2. Call `SetAllowedPortRange` for `COREWEBVIEW2_NETWORK_PROTOCOL_UDP`.  
+3. Pass the options when creating the WebView2 environment.  
 
 
 # Examples
 ### C++ Configure UDP Port Range
 ```cpp
-wil::com_ptr<ICoreWebView2EnvironmentOptions> options = 
-    Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+Microsoft::WRL::ComPtr<ICoreWebView2StagingEnvironmentOptions10> optionsStaging10;
+if (options.As(&optionsStaging10) == S_OK)
+{
+    // Configure port ranges for WebRTC UDP traffic to work within enterprise firewalls
+    // Set UDP port range (example: 50000-55000 for enterprise environments)
+    const INT32 udpMin = 50000, udpMax = 55000;
 
-wil::com_ptr<ICoreWebView2WebRtcPortConfiguration> portConfig;
-CHECK_FAILURE(options->get_WebRtcPortConfiguration(&portConfig));
+    CHECK_FAILURE(optionsStaging10->SetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_PROTOCOL_UDP, udpMin, udpMax));
 
-CHECK_FAILURE(portConfig->SetPortRange(
-    CoreWebView2WebRtcProtocolKind::Udp, 50000, 51000));
+    // Get the configured port range
+    CHECK_FAILURE(optionsStaging10->GetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_PROTOCOL_UDP, &m_udpPortRange.minPort,
+        &m_udpPortRange.maxPort));
+}
 
 HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
         subFolder, m_userDataFolder.c_str(), options.Get(),
@@ -51,145 +55,127 @@ HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
 
 ### C# Configure UDP Port Range
 ```csharp
-var options = new CoreWebView2EnvironmentOptions();
+var options = CoreWebView2Environment.CreateCoreWebView2EnvironmentOptions();
+var optionsStaging10 = options as ICoreWebView2StagingEnvironmentOptions10;
+if (optionsStaging10 != null)
+{
+    // Configure port ranges for WebRTC UDP traffic to work within enterprise firewalls
+    // Set UDP port range (example: 50000-55000 for enterprise environments)
+    const int udpMin = 50000, udpMax = 55000;
 
-var portConfig = options.WebRtcPortConfiguration;
-portConfig.SetPortRange(CoreWebView2WebRtcProtocolKind.Udp, 50000, 51000);
+    optionsStaging10.SetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_PROTOCOL_UDP, udpMin, udpMax);
+
+    // Get the configured port range
+    optionsStaging10.GetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_PROTOCOL_UDP, out m_udpPortRange.minPort,
+        out m_udpPortRange.maxPort);
+}
 
 var environment = await CoreWebView2Environment.CreateAsync(
-    browserExecutableFolder: subFolder,
-    userDataFolder: m_userDataFolder,
-    options: options);
-
+        subFolder, m_userDataFolder, options);
 OnCreateEnvironmentCompleted(environment);
 ```
 
 # API Details
 ### C++  
 ```
-/// Additional options used to create WebView2 Environment to manage WebRTC UDP port range configuration.
-[uuid(0eebe393-8dcf-5bc5-a15d-d862088242e9), object, pointer_default(unique)]
-interface ICoreWebView2EnvironmentOptions10 : IUnknown {
-  /// Get the WebRTC port range configuration object for configuring a custom port range.
-  /// This configuration object can be used to set and retrieve port range configuration
-  /// that WebRTC will use for ICE candidates and media connections.
-  /// If no custom range is configured, WebRTC will use the operating system's default dynamic port range.
-  /// Configuration must be completed before the environment is created. Once the environment is
-  /// created, the port range cannot be customized.
-  /// 
-  /// 
-  /// \snippet AppWindow.cpp WebRtcPortConfiguration
-  [propget] HRESULT WebRtcPortConfiguration([out, retval] ICoreWebView2WebRtcPortConfiguration** value);
-}
+/// Specifies the network protocol type for port configuration.
+[v1_enum]
+typedef enum COREWEBVIEW2_NETWORK_PROTOCOL {
+  /// Transmission Control Protocol - reliable, connection-oriented protocol.
+  COREWEBVIEW2_NETWORK_PROTOCOL_TCP,
+  /// User Datagram Protocol - fast, connectionless protocol.
+  COREWEBVIEW2_NETWORK_PROTOCOL_UDP,
+} COREWEBVIEW2_NETWORK_PROTOCOL;
 
-/// WebRTC port configuration interface for managing WebRTC port range configuration.
-/// This interface provides methods to configure and retrieve custom port ranges
-/// that WebRTC will use for ICE candidates and media connections across different protocols.
-[uuid(b1ac2eb4-15b5-574f-aeb7-c51b9f1520fa), object, pointer_default(unique)]
-interface ICoreWebView2WebRtcPortConfiguration : IUnknown {
-  /// The `SetPortRange` method allows you to set a custom port range for WebRTC to use
-  /// for a specific protocol type.
-  /// This method allows configuring a specific port range that WebRTC will use
-  /// for ICE candidates and media connections for the specified protocol.
+/// Additional options used to create WebView2 Environment to manage port range configuration.
+[uuid(eaf22436-27a1-5e3d-a4e3-84d7e7a69a1a), object, pointer_default(unique)]
+interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
+  /// Sets the allowed port range for the specified network protocol.
+  /// This allows WebView2 to work within enterprise firewall constraints
+  /// by restricting network communication to the specified port range.
+  /// Currently WebRTC UDP port restriction is supported.
   /// 
-  /// `protocol` specifies the WebRTC protocol type (UDP, TCP, etc.).
-  /// `minPort` and `maxPort` must be in the range 1025-65535 (inclusive).
-  /// Calls with invalid ranges return E_INVALIDARG.
-  /// `minPort` must be less than or equal to `maxPort`.
-  /// If `minPort` equals `maxPort`, it represents a single port.
+  /// `protocol` The network protocol (TCP or UDP) for which to set the port range.
+  /// `minPort` The minimum port number in the allowed range (inclusive).
+  /// `maxPort` The maximum port number in the allowed range (inclusive).
   /// 
-  /// Calling this method will replace any previously configured port range for the specified protocol.
-  /// 
-  /// 
-  /// \snippet AppWindow.cpp WebRtcPortConfiguration
-  HRESULT SetPortRange(
-      [in] COREWEBVIEW2_WEB_RTC_PROTOCOL_KIND protocol,
-      [in] UINT32 minPort,
-      [in] UINT32 maxPort
+  HRESULT SetAllowedPortRange(
+      [in] COREWEBVIEW2_NETWORK_PROTOCOL protocol,
+      [in] INT32 minPort,
+      [in] INT32 maxPort
   );
 
-  /// The `GetPortRange` method gets the currently configured port range for a specific protocol.
-  /// Returns TRUE if a custom port range is configured for the specified protocol, 
-  /// with the range values in out parameters.
-  /// Returns FALSE if no custom range is set for the protocol (using default dynamic allocation), 
-  /// in which case the out parameter values should be ignored.
+  /// Gets the allowed port range for the specified network protocol.
+  /// Returns the current port range configuration that was set via
+  /// SetAllowedPortRange. Default value is 0,0, which means no restrictions applied
+  /// and ports are allocated randomly between system's ephemeral range.
   /// 
+  /// `protocol` The network protocol (TCP or UDP) for which to get the port range.
+  /// `minPort` Receives the minimum port number in the allowed range.
+  /// `maxPort` Receives the maximum port number in the allowed range.
   /// 
-  /// \snippet AppWindow.cpp WebRtcPortConfiguration
-  HRESULT GetPortRange(
-      [in] COREWEBVIEW2_WEB_RTC_PROTOCOL_KIND protocol,
-      [out] UINT32* minPort,
-      [out] UINT32* maxPort
-      , [out, retval] BOOL* value);
+  HRESULT GetAllowedPortRange(
+      [in] COREWEBVIEW2_NETWORK_PROTOCOL protocol,
+      [out] INT32* minPort,
+      [out] INT32* maxPort
+  );
+
+
 }
 ```
 
 ### C#
 ```csharp
 /// <summary>
-/// Specifies the WebRTC protocol type for port range configuration.
+/// Specifies the network protocol type for port configuration.
 /// </summary>
-public enum CoreWebView2WebRtcProtocolKind
+public enum COREWEBVIEW2_NETWORK_PROTOCOL
 {
     /// <summary>
-    /// UDP protocol for WebRTC media and ICE candidates.
+    /// Transmission Control Protocol - reliable, connection-oriented protocol.
     /// </summary>
-    Udp = 0,
+    COREWEBVIEW2_NETWORK_PROTOCOL_TCP,
+    /// <summary>
+    /// User Datagram Protocol - fast, connectionless protocol.
+    /// </summary>
+    COREWEBVIEW2_NETWORK_PROTOCOL_UDP,
 }
 
 /// <summary>
-/// WebRTC port configuration interface for managing WebRTC port range configuration.
-/// This interface provides methods to configure and retrieve custom port ranges
-/// that WebRTC will use for ICE candidates and media connections across different protocols.
+/// Additional options used to create WebView2 Environment to manage port range configuration.
 /// </summary>
-public interface ICoreWebView2WebRtcPortConfiguration
+public interface ICoreWebView2StagingEnvironmentOptions10
 {
     /// <summary>
-    /// The SetPortRange method allows you to set a custom port range for WebRTC to use
-    /// for a specific protocol type.
-    /// This method allows configuring a specific port range that WebRTC will use
-    /// for ICE candidates and media connections for the specified protocol.
-    /// 
-    /// protocol specifies the WebRTC protocol type.
-    /// minPort and maxPort must be in the range 1025-65535 (inclusive).
-    /// Calls with invalid ranges return E_INVALIDARG.
-    /// minPort must be less than or equal to maxPort.
-    /// If minPort equals maxPort, it represents a single port.
-    /// 
-    /// Calling this method will replace any previously configured port range for the specified protocol.
+    /// Sets the allowed port range for the specified network protocol.
+    /// This allows WebView2 to work within enterprise firewall constraints
+    /// by restricting network communication to the specified port range.
+    /// Currently WebRTC UDP port restriction is supported.
     /// </summary>
-    /// <param name="protocol">The WebRTC protocol type</param>
-    /// <param name="minPort">Minimum port in the range (1025-65535)</param>
-    /// <param name="maxPort">Maximum port in the range (1025-65535)</param>
-    void SetPortRange(CoreWebView2WebRtcProtocolKind protocol, uint minPort, uint maxPort);
+    /// <param name="protocol">The network protocol (TCP or UDP) for which to set the port range.</param>
+    /// <param name="minPort">The minimum port number in the allowed range (inclusive).</param>
+    /// <param name="maxPort">The maximum port number in the allowed range (inclusive).</param>
+    void SetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_PROTOCOL protocol,
+        int minPort,
+        int maxPort
+    );
 
     /// <summary>
-    /// The GetPortRange method gets the currently configured port range for a specific protocol.
-    /// Returns true if a custom port range is configured for the specified protocol, 
-    /// with the range values in out parameters.
-    /// Returns false if no custom range is set for the protocol (using default dynamic allocation), 
-    /// in which case the out parameter values should be ignored.
+    /// Gets the allowed port range for the specified network protocol.
+    /// Returns the current port range configuration that was set via
+    /// SetAllowedPortRange. Default value is 0,0, which means no restrictions applied
+    /// and ports are allocated randomly between system's ephemeral range.
     /// </summary>
-    /// <param name="protocol">The WebRTC protocol type</param>
-    /// <param name="minPort">Output parameter for minimum port in the range</param>
-    /// <param name="maxPort">Output parameter for maximum port in the range</param>
-    /// <returns>True if custom range is configured, false if using default allocation</returns>
-    bool GetPortRange(CoreWebView2WebRtcProtocolKind protocol, out uint minPort, out uint maxPort);
-}
-
-/// <summary>
-/// Additional options used to create WebView2 Environment to manage WebRTC port range configuration.
-/// </summary>
-public interface ICoreWebView2EnvironmentOptions
-{
-    /// <summary>
-    /// Gets the WebRTC port configuration object for configuring custom port ranges.
-    /// This configuration can be used to set and retrieve port range configuration
-    /// that WebRTC will use for ICE candidates and media connections.
-    /// If no range is configured, WebRTC uses the OS ephemeral port range.
-    /// Configuration must be completed before the environment is created. Once the environment is
-    /// setup, the port range can not be customized.
-    /// </summary>
-    ICoreWebView2WebRtcPortConfiguration WebRtcPortConfiguration { get; }
+    /// <param name="protocol">The network protocol (TCP or UDP) for which to get the port range.</param>
+    /// <param name="minPort">Receives the minimum port number in the allowed range.</param>
+    /// <param name="maxPort">Receives the maximum port number in the allowed range.</param>
+    void GetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_PROTOCOL protocol,
+        out int minPort,
+        out int maxPort
+    );
 }
 ```
