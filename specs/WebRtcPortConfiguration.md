@@ -35,7 +35,7 @@ if (options.As(&optionsStaging10) == S_OK)
 {
     // Configure port ranges for WebRTC UDP traffic to work within enterprise firewalls
     // Set UDP port range (example: 50000-55000 for enterprise environments)
-    const UINT32 udpMin = 50000, udpMax = 55000;
+    const INT32 udpMin = 50000, udpMax = 55000;
 
     CHECK_FAILURE(optionsStaging10->SetAllowedPortRange(
         COREWEBVIEW2_TRANSPORT_PROTOCOL_UDP, udpMin, udpMax));
@@ -80,52 +80,56 @@ OnCreateEnvironmentCompleted(environment);
 # API Details
 ### C++  
 ```
-/// Specifies the transport protocol type for port configuration.
+/// Specifies the network protocol type for port configuration.
 [v1_enum]
-typedef enum COREWEBVIEW2_TRANSPORT_PROTOCOL {
-  /// Transmission Control Protocol - reliable, connection-oriented protocol.
-  COREWEBVIEW2_TRANSPORT_PROTOCOL_TCP,
+typedef enum COREWEBVIEW2_NETWORK_PROTOCOL {
   /// User Datagram Protocol - fast, connectionless protocol.
-  COREWEBVIEW2_TRANSPORT_PROTOCOL_UDP,
-} COREWEBVIEW2_TRANSPORT_PROTOCOL;
+  COREWEBVIEW2_NETWORK_PROTOCOL_UDP,
+} COREWEBVIEW2_NETWORK_PROTOCOL;
 
 /// Additional options used to create WebView2 Environment to manage port range configuration.
 [uuid(eaf22436-27a1-5e3d-a4e3-84d7e7a69a1a), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// Sets the allowed port range for the specified transport protocol.
-  /// This allows WebView2 to work within enterprise firewall constraints
-  /// by restricting transport communication to the specified port range.
-  /// Currently only WebRTC UDP port restriction is supported.
-  /// minPort and maxPort must be in the range 1025-65535 (inclusive).
-  /// Calls with invalid ranges fail with E_INVALIDARG.
-  /// minPort must be less than or equal to maxPort.
-  /// If minPort equals maxPort, it represents a single port.
-  /// If (0,0) is passed as (minPort, maxPort), API will treat this as default
-  /// value and no restrictions on ports will be applied.
+  /// This API enables WebView2 to operate within enterprise network or firewall
+  /// restrictions by limiting network communication to a defined port range.
   /// 
-  /// `protocol` The transport protocol (TCP or UDP) for which to set the port range.
-  /// `minPort` The minimum port number in the allowed range (inclusive).
-  /// `maxPort` The maximum port number in the allowed range (inclusive).
+  /// Currently, only WebRTC UDP Port Range restriction is supported.
+  /// 
+  /// `minPort` and `maxPort` must be within the range 1025â€“65535 (inclusive),
+  /// and `minPort` must be less than or equal to `maxPort`.
+  /// If `minPort` equals `maxPort`, the range represents a single port.
+  /// 
+  /// Passing `(0, 0)` resets to the default behavior, meaning no restrictions
+  /// are applied and the system assigns ports from the full ephemeral range.
+  /// 
+  /// Calls with invalid ranges fail with `E_INVALIDARG`.
+  /// 
+  /// `protocol` The transport protocol (currently only UDP is supported).
+  /// `minPort` The minimum allowed port number (inclusive).
+  /// `maxPort` The maximum allowed port number (inclusive).
   /// 
   HRESULT SetAllowedPortRange(
-      [in] COREWEBVIEW2_TRANSPORT_PROTOCOL protocol,
-      [in] UINT32 minPort,
-      [in] UINT32 maxPort
+      [in] COREWEBVIEW2_NETWORK_PROTOCOL protocol,
+      [in] INT32 minPort,
+      [in] INT32 maxPort
   );
 
-  /// Gets the allowed port range for the specified transport protocol.
-  /// Returns the current port range configuration that was set via
-  /// SetAllowedPortRange. Default value is (0,0) which means no restrictions applied
-  /// and ports are allocated randomly between system's ephemeral range 1025-65535 (inclusive).
+  /// Retrieves the allowed port range for the specified transport protocol.
+  /// Returns the currently configured port range previously set via
+  /// `SetAllowedPortRange`.
   /// 
-  /// `protocol` The transport protocol (TCP or UDP) for which to get the port range.
-  /// `minPort` Receives the minimum port number in the allowed range.
-  /// `maxPort` Receives the maximum port number in the allowed range.
+  /// By default, `(0, 0)` is returned, which indicates no restrictions are applied
+  /// and ports are allocated from the systemâ€™s ephemeral range (1025â€“65535 inclusive).
+  /// 
+  /// `protocol` The transport protocol (currently only UDP is supported).
+  /// `minPort` Receives the minimum allowed port number (inclusive).
+  /// `maxPort` Receives the maximum allowed port number (inclusive).
   /// 
   HRESULT GetAllowedPortRange(
-      [in] COREWEBVIEW2_TRANSPORT_PROTOCOL protocol,
-      [out] UINT32* minPort,
-      [out] UINT32* maxPort
+      [in] COREWEBVIEW2_NETWORK_PROTOCOL protocol,
+      [out] INT32* minPort,
+      [out] INT32* maxPort
   );
 
 
@@ -138,8 +142,7 @@ namespace Microsoft.Web.WebView2.Core
 {
     enum CoreWebView2NetworkProtocol
     {
-        Tcp = 0,
-        Udp = 1,
+        Udp = 0,
     };
 
     runtimeclass CoreWebView2EnvironmentOptions
@@ -147,8 +150,8 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironmentOptions10")]
         {
             // ICoreWebView2StagingEnvironmentOptions10 members
-            void SetAllowedPortRange(CoreWebView2NetworkProtocol protocol, UInt32 minPort, UInt32 maxPort);
-            void GetAllowedPortRange(CoreWebView2NetworkProtocol protocol, out UInt32 minPort, out UInt32 maxPort);
+            void SetAllowedPortRange(CoreWebView2NetworkProtocol protocol, Int32 minPort, Int32 maxPort);
+            void GetAllowedPortRange(CoreWebView2NetworkProtocol protocol, out Int32 minPort, out Int32 maxPort);
         }
     }
 }
