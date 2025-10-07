@@ -35,7 +35,7 @@ if (options.As(&optionsStaging10) == S_OK)
 {
     // Configure port ranges for WebRTC UDP traffic to work within enterprise firewalls
     // Set UDP port range (example: 50000-55000 for enterprise environments)
-    const INT32 udpMin = 50000, udpMax = 55000;
+    const UINT32 udpMin = 50000, udpMax = 55000;
 
     CHECK_FAILURE(optionsStaging10->SetAllowedPortRange(
         COREWEBVIEW2_TRANSPORT_PROTOCOL_UDP, udpMin, udpMax));
@@ -109,8 +109,8 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// 
   HRESULT SetAllowedPortRange(
       [in] COREWEBVIEW2_TRANSPORT_PROTOCOL protocol,
-      [in] INT32 minPort,
-      [in] INT32 maxPort
+      [in] UINT32 minPort,
+      [in] UINT32 maxPort
   );
 
   /// Gets the allowed port range for the specified transport protocol.
@@ -124,8 +124,8 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// 
   HRESULT GetAllowedPortRange(
       [in] COREWEBVIEW2_TRANSPORT_PROTOCOL protocol,
-      [out] INT32* minPort,
-      [out] INT32* maxPort
+      [out] UINT32* minPort,
+      [out] UINT32* maxPort
   );
 
 
@@ -147,8 +147,8 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironmentOptions10")]
         {
             // ICoreWebView2StagingEnvironmentOptions10 members
-            void SetAllowedPortRange(CoreWebView2NetworkProtocol protocol, Int32 minPort, Int32 maxPort);
-            void GetAllowedPortRange(CoreWebView2NetworkProtocol protocol, out Int32 minPort, out Int32 maxPort);
+            void SetAllowedPortRange(CoreWebView2NetworkProtocol protocol, UInt32 minPort, UInt32 maxPort);
+            void GetAllowedPortRange(CoreWebView2NetworkProtocol protocol, out UInt32 minPort, out UInt32 maxPort);
         }
     }
 }
