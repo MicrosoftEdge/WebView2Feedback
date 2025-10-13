@@ -23,7 +23,7 @@ Common scenarios:
 
 Usage steps:  
 1. Create `CoreWebView2EnvironmentOptions`.   
-2. Call `SetAllowedPortRange` for `COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP`.  
+2. Call `SetAllowedPortRange` for `COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_R_T_C` and `COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP`.  
 3. Pass the options when creating the WebView2 environment.  
 
 
@@ -38,10 +38,12 @@ if (options.As(&optionsStaging10) == S_OK)
     const INT32 udpMin = 50000, udpMax = 55000;
 
     CHECK_FAILURE(optionsStaging10->SetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_R_T_C,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax));
 
     // Get the configured port range
     CHECK_FAILURE(optionsStaging10->GetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_R_T_C,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, &m_udpPortRange.minPort,
         &m_udpPortRange.maxPort));
 }
@@ -64,10 +66,12 @@ if (optionsStaging10 != null)
     const int udpMin = 50000, udpMax = 55000;
 
     optionsStaging10.SetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_R_T_C,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax);
 
     // Get the configured port range
     optionsStaging10.GetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_R_T_C,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, out m_udpPortRange.minPort,
         out m_udpPortRange.maxPort);
 }
@@ -80,6 +84,15 @@ OnCreateEnvironmentCompleted(environment);
 # API Details
 ### C++  
 ```
+/// Specifies the network component scope for port configuration.
+[v1_enum]
+typedef enum COREWEBVIEW2_NETWORK_COMPONENT_SCOPE {
+  /// Scope applies to all components.
+  COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_ALL,
+  /// Applies only to WebRTC peer-to-peer connection.
+  COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_R_T_C,
+} COREWEBVIEW2_NETWORK_COMPONENT_SCOPE;
+
 /// Specifies the network protocol for port configuration.
 [v1_enum]
 typedef enum COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND {
@@ -88,11 +101,15 @@ typedef enum COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND {
 } COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND;
 
 /// Additional options used to create WebView2 Environment to manage port range configuration.
-[uuid(eaf22436-27a1-5e3d-a4e3-84d7e7a69a1a), object, pointer_default(unique)]
+[uuid(6ce30f6b-5dcc-5dc1-9c09-723cf233dbe5), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
-  /// Sets the allowed port range for the specified transport protocol.
+  /// Sets the allowed port range restriction for the specified network component 
+  /// scope and transport protocol.
+  /// 
   /// This API enables WebView2 to operate within enterprise network or firewall
   /// restrictions by limiting network communication to a defined port range.
+  /// It provides fine-grained control by allowing port restrictions to be applied
+  /// per network component scope, such as WebRTC or QUIC.
   /// 
   /// Currently, only WebRTC UDP Port Range restriction is supported.
   /// 
@@ -105,11 +122,13 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// 
   /// Calls with invalid ranges fail with `E_INVALIDARG`.
   /// 
-  /// `protocol` The transport protocol (currently only UDP is supported).
+  /// `scope` Network scope on which restrictions will apply.
+  /// `protocol` Transport protocol on which restrictions will apply.
   /// `minPort` The minimum allowed port number (inclusive).
   /// `maxPort` The maximum allowed port number (inclusive).
   /// 
   HRESULT SetAllowedPortRange(
+      [in] COREWEBVIEW2_NETWORK_COMPONENT_SCOPE scope,
       [in] COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND protocol,
       [in] INT32 minPort,
       [in] INT32 maxPort
@@ -122,11 +141,13 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// By default, `(0, 0)` is returned, which indicates no restrictions are applied
   /// and ports are allocated from the systemâ€™s ephemeral range (1025â€“65535 inclusive).
   /// 
-  /// `protocol` The transport protocol (currently only UDP is supported).
+  /// `scope` Network scope on which restrictions is applied.
+  /// `protocol` Transport protocol on which restrictions is applied.
   /// `minPort` Receives the minimum allowed port number (inclusive).
   /// `maxPort` Receives the maximum allowed port number (inclusive).
   /// 
   HRESULT GetAllowedPortRange(
+      [in] COREWEBVIEW2_NETWORK_COMPONENT_SCOPE scope,
       [in] COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND protocol,
       [out] INT32* minPort,
       [out] INT32* maxPort
@@ -140,6 +161,12 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
 ```csharp
 namespace Microsoft.Web.WebView2.Core
 {
+    enum CoreWebview2NetworkComponentScope
+    {
+        All = 0,
+        WebRTC = 1,
+    };
+
     enum CoreWebView2TransportProtocolKind
     {
         Udp = 0,
@@ -150,8 +177,8 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironmentOptions10")]
         {
             // ICoreWebView2StagingEnvironmentOptions10 members
-            void SetAllowedPortRange(CoreWebView2TransportProtocolKind protocol, Int32 minPort, Int32 maxPort);
-            void GetAllowedPortRange(CoreWebView2TransportProtocolKind protocol, out Int32 minPort, out Int32 maxPort);
+            void SetAllowedPortRange(CoreWebview2NetworkComponentScope scope, CoreWebView2TransportProtocolKind protocol, Int32 minPort, Int32 maxPort);
+            void GetAllowedPortRange(CoreWebview2NetworkComponentScope scope, CoreWebView2TransportProtocolKind protocol, out Int32 minPort, out Int32 maxPort);
         }
     }
 }
