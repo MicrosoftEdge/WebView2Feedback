@@ -23,8 +23,62 @@ Common scenarios:
 
 Usage steps:  
 1. Create `CoreWebView2EnvironmentOptions`.   
-2. Call `SetAllowedPortRange` for `COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_RTC` and `COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP`.  
+2. Call `SetAllowedPortRange` for `COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_ALL` and `COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP`.
 3. Pass the options when creating the WebView2 environment.
+
+# Examples
+### C++ Configure UDP Port Range
+```cpp
+Microsoft::WRL::ComPtr<ICoreWebView2StagingEnvironmentOptions10> optionsStaging10;
+if (options.As(&optionsStaging10) == S_OK)
+{
+    // Configure port ranges for UDP traffic to work within enterprise firewalls
+    // Set UDP port range (example: 50000-55000 for enterprise environments)
+    const INT32 udpMin = 50000, udpMax = 55000;
+
+    CHECK_FAILURE(optionsStaging10->SetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_ALL,
+        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax));
+
+    // Get the configured port range
+    CHECK_FAILURE(optionsStaging10->GetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_ALL,
+        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, &m_udpPortRange.minPort,
+        &m_udpPortRange.maxPort));
+}
+
+HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
+        subFolder, m_userDataFolder.c_str(), options.Get(),
+        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            this, &AppWindow::OnCreateEnvironmentCompleted)
+            .Get());
+```
+
+### C# Configure UDP Port Range
+```csharp
+var options = CoreWebView2Environment.CreateCoreWebView2EnvironmentOptions();
+var optionsStaging10 = options as ICoreWebView2StagingEnvironmentOptions10;
+if (optionsStaging10 != null)
+{
+    // Configure port ranges for UDP traffic to work within enterprise firewalls
+    // Set UDP port range (example: 50000-55000 for enterprise environments)
+    const int udpMin = 50000, udpMax = 55000;
+
+    optionsStaging10.SetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_ALL,
+        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax);
+
+    // Get the configured port range
+    optionsStaging10.GetAllowedPortRange(
+        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_ALL,
+        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, out m_udpPortRange.minPort,
+        out m_udpPortRange.maxPort);
+}
+
+var environment = await CoreWebView2Environment.CreateAsync(
+        subFolder, m_userDataFolder, options);
+OnCreateEnvironmentCompleted(environment);
+```
 
 API Rules and Precedence
 
@@ -47,68 +101,13 @@ API Rules and Precedence
 - Querying `_ALL` only returns `_ALL`; it does not aggregate component-specific settings.
 - If neither `_ALL` nor a component-specific scope is set, the default `(0,0)` (unrestricted) is returned.
 
-| `GetAllowedPortRange` Network Scope query                       | Returned Range                |
-| --------------------------------------------------------------- | ----------------------------- |
-| Pass `_WEB_RTC` when only `_ALL` is set                         | Returns `_ALL` range          |
-| Pass `_WEB_RTC` when `_WEB_RTC` explicitly set                  | Returns `_WEB_RTC` range      |
-| Pass `_WEB_RTC` when `_ALL` unset and `_WEB_RTC` unset           | Returns `(0, 0)`             |
-| Pass `_WEB_RTC` when `_ALL` set and `_WEB_RTC` reset to `(0, 0)` | Returns `(0, 0)`             |
-| Pass `_ALL` when only `_WEB_RTC` set                            | Returns  `(0,0)`              |
-
-
-# Examples
-### C++ Configure UDP Port Range
-```cpp
-Microsoft::WRL::ComPtr<ICoreWebView2StagingEnvironmentOptions10> optionsStaging10;
-if (options.As(&optionsStaging10) == S_OK)
-{
-    // Configure port ranges for WebRTC UDP traffic to work within enterprise firewalls
-    // Set UDP port range (example: 50000-55000 for enterprise environments)
-    const INT32 udpMin = 50000, udpMax = 55000;
-
-    CHECK_FAILURE(optionsStaging10->SetAllowedPortRange(
-        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_RTC,
-        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax));
-
-    // Get the configured port range
-    CHECK_FAILURE(optionsStaging10->GetAllowedPortRange(
-        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_RTC,
-        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, &m_udpPortRange.minPort,
-        &m_udpPortRange.maxPort));
-}
-
-HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
-        subFolder, m_userDataFolder.c_str(), options.Get(),
-        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            this, &AppWindow::OnCreateEnvironmentCompleted)
-            .Get());
-```
-
-### C# Configure UDP Port Range
-```csharp
-var options = CoreWebView2Environment.CreateCoreWebView2EnvironmentOptions();
-var optionsStaging10 = options as ICoreWebView2StagingEnvironmentOptions10;
-if (optionsStaging10 != null)
-{
-    // Configure port ranges for WebRTC UDP traffic to work within enterprise firewalls
-    // Set UDP port range (example: 50000-55000 for enterprise environments)
-    const int udpMin = 50000, udpMax = 55000;
-
-    optionsStaging10.SetAllowedPortRange(
-        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_RTC,
-        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax);
-
-    // Get the configured port range
-    optionsStaging10.GetAllowedPortRange(
-        COREWEBVIEW2_NETWORK_COMPONENT_SCOPE_WEB_RTC,
-        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, out m_udpPortRange.minPort,
-        out m_udpPortRange.maxPort);
-}
-
-var environment = await CoreWebView2Environment.CreateAsync(
-        subFolder, m_userDataFolder, options);
-OnCreateEnvironmentCompleted(environment);
-```
+| `GetAllowedPortRange` Network Scope query                        | Returned Range                |
+| ---------------------------------------------------------------- | ----------------------------- |
+| Pass `_WEB_RTC` when only `_ALL` is set                          | Returns `_ALL` range          |
+| Pass `_WEB_RTC` when `_WEB_RTC` explicitly set                   | Returns `_WEB_RTC` range      |
+| Pass `_WEB_RTC` when `_ALL` unset and `_WEB_RTC` unset           | Returns `(0, 0)`              |
+| Pass `_WEB_RTC` when `_ALL` set and `_WEB_RTC` reset to `(0, 0)` | Returns `(0, 0)`              |
+| Pass `_ALL` when only `_WEB_RTC` set                             | Returns  `(0,0)`              |
 
 # API Details
 ### C++  
@@ -142,8 +141,8 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// 
   /// Currently, only WebRTC UDP Port Range restriction is supported.
   /// 
-  /// `minPort` and `maxPort` must be within the range 1025â€“65535 (inclusive),
-  /// and `minPort` must be less than or equal to `maxPort`.
+  /// `minPort` and `maxPort` must be within the range 1025-65535 (inclusive).
+  /// `minPort` must be less than or equal to `maxPort`.
   /// If `minPort` equals `maxPort`, the range represents a single port.
   /// 
   /// Passing `(0, 0)` resets to the default behavior, meaning no restrictions
@@ -180,20 +179,20 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// `SetAllowedPortRange`.
   /// 
   /// By default, `(0, 0)` is returned, which indicates no restrictions are applied
-  /// and ports are allocated from the systemâ€™s ephemeral range (1025â€“65535 inclusive).
+  /// and ports are allocated from the system's ephemeral range (1025-65535 inclusive).
   ///
   /// `GetAllowedPortRange` returns the range explicitly set for the queried scope.
   /// If a specific scope is unset, it inherits `_ALL`.
   /// Querying `_ALL` only returns `_ALL`; it does not aggregate component-specific settings.
   /// If neither `_ALL` nor a component-specific scope is set, the default `(0,0)` (unrestricted) is returned.
 
-  /// | `GetAllowedPortRange` Network Scope query                       | Returned Range                |
-  /// | --------------------------------------------------------------- | ----------------------------- |
-  /// | Pass `_WEB_RTC` when only `_ALL` is set                         | Returns `_ALL` range          |
-  /// | Pass `_WEB_RTC` when `_WEB_RTC` explicitly set                  | Returns `_WEB_RTC` range      |
-  /// | Pass `_WEB_RTC` when `_ALL` unset and `_WEB_RTC` unset           | Returns `(0, 0)`             |
-  /// | Pass `_WEB_RTC` when `_ALL` set and `_WEB_RTC` reset to `(0, 0)` | Returns `(0, 0)`             |
-  /// | Pass `_ALL` when only `_WEB_RTC` set                            | Returns  `(0,0)`              |
+  /// | `GetAllowedPortRange` Network Scope query                        | Returned Range                |
+  /// | ---------------------------------------------------------------- | ----------------------------- |
+  /// | Pass `_WEB_RTC` when only `_ALL` is set                          | Returns `_ALL` range          |
+  /// | Pass `_WEB_RTC` when `_WEB_RTC` explicitly set                   | Returns `_WEB_RTC` range      |
+  /// | Pass `_WEB_RTC` when `_ALL` unset and `_WEB_RTC` unset           | Returns `(0, 0)`              |
+  /// | Pass `_WEB_RTC` when `_ALL` set and `_WEB_RTC` reset to `(0, 0)` | Returns `(0, 0)`              |
+  /// | Pass `_ALL` when only `_WEB_RTC` set                             | Returns  `(0,0)`              |
 
   /// `scope` Network scope on which restrictions is applied.
   /// `protocol` Transport protocol on which restrictions is applied.
