@@ -12,8 +12,6 @@ In Microsoft Edge, ESM offers two states:
 - Balanced – Enabled only for unfamiliar sites based on browsing heuristics.
 - Strict – Always enabled for all sites.
 
-Unlike Edge, WebView2 does not support heuristic-based Balanced mode. Only deterministic options are available: Off or Strict.
-
 ![image](https://github.com/MicrosoftEdge/WebView2Feedback/assets/82386753/35977716-e46c-4257-82da-906b0c6f833e)
 
 Unlike Edge browser, WebView2 does not support heuristic-based “Balanced” state. The Only options are available: Off or Strict.
@@ -77,10 +75,10 @@ void EnableEnhancedSecurityMode()
 /// This property applies to all WebView2 instances sharing the same profile and
 /// is persisted in the user data folder.
 ///
-/// Default: FALSE. ESM state is Off.
+/// Default: false. ESM state is Off.
 ///
-/// TRUE: Enables ESM in Strict state for all sites.
-/// FALSE: ESM state is Off.
+/// true: Enables ESM in Strict state for all sites.
+/// false: ESM state is Off.
 ///
 /// Notes:
 /// - Changes apply to future navigations; reload may be required.
