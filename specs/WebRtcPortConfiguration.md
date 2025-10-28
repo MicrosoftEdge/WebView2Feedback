@@ -23,7 +23,7 @@ Common scenarios:
 
 Usage steps:  
 1. Create `CoreWebView2EnvironmentOptions`.   
-2. Call `SetAllowedPortRange` for `COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE_DEFAULT` and `COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP`.
+2. Call `SetAllowedPortRange` for `COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT` and `COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP`.
 3. Pass the options when creating the WebView2 environment.
 
 # Examples
@@ -37,12 +37,12 @@ if (options.As(&optionsStaging10) == S_OK)
     const INT32 udpMin = 50000, udpMax = 55000;
 
     CHECK_FAILURE(optionsStaging10->SetAllowedPortRange(
-        COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE_DEFAULT,
+        COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax));
 
     // Get the configured port range
     CHECK_FAILURE(optionsStaging10->GetEffectiveAllowedPortRange(
-        COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE_DEFAULT,
+        COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, &m_udpPortRange.minPort,
         &m_udpPortRange.maxPort));
 }
@@ -65,12 +65,12 @@ if (optionsStaging10 != null)
     const int udpMin = 50000, udpMax = 55000;
 
     optionsStaging10.SetAllowedPortRange(
-        COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE_DEFAULT,
+        COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax);
 
     // Get the configured port range
     optionsStaging10.GetEffectiveAllowedPortRange(
-        COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE_DEFAULT,
+        COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, out m_udpPortRange.minPort,
         out m_udpPortRange.maxPort);
 }
@@ -116,12 +116,12 @@ API Rules and Precedence
 ```
 /// Specifies the scope for port configuration.
 [v1_enum]
-typedef enum COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE {
+typedef enum COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE {
   /// Scope applies to all components.
-  COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE_DEFAULT,
+  COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
   /// Applies only to WebRTC peer-to-peer connection.
-  COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE_WEB_RTC,
-} COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE;
+  COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_WEB_RTC,
+} COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE;
 
 /// Specifies the network protocol for port configuration.
 [v1_enum]
@@ -169,7 +169,7 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// `maxPort` The maximum allowed port number (inclusive).
   /// 
   HRESULT SetAllowedPortRange(
-      [in] COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE scope,
+      [in] COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE scope,
       [in] COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND protocol,
       [in] INT32 minPort,
       [in] INT32 maxPort
@@ -198,7 +198,7 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// `maxPort` Receives the maximum allowed port number (inclusive).
   /// 
   HRESULT GetEffectiveAllowedPortRange (
-      [in] COREWEBVIEW2_PORT_RANGE_RESTRICTION_SCOPE scope,
+      [in] COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE scope,
       [in] COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND protocol,
       [out] INT32* minPort,
       [out] INT32* maxPort
@@ -212,7 +212,7 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
 ```csharp
 namespace Microsoft.Web.WebView2.Core
 {
-    enum CoreWebview2PortRangeRestrictionScope
+    enum CoreWebview2AllowedPortRangeScope
     {
         Default = 0,
         WebRtc = 1,
@@ -228,8 +228,8 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironmentOptions10")]
         {
             // ICoreWebView2StagingEnvironmentOptions10 members
-            void SetAllowedPortRange(CoreWebview2PortRangeRestrictionScope scope, CoreWebView2TransportProtocolKind protocol, Int32 minPort, Int32 maxPort);
-            void GetEffectiveAllowedPortRange(CoreWebview2PortRangeRestrictionScope scope, CoreWebView2TransportProtocolKind protocol, out Int32 minPort, out Int32 maxPort);
+            void SetAllowedPortRange(CoreWebview2AllowedPortRangeScope scope, CoreWebView2TransportProtocolKind protocol, Int32 minPort, Int32 maxPort);
+            void GetEffectiveAllowedPortRange(CoreWebview2AllowedPortRangeScope scope, CoreWebView2TransportProtocolKind protocol, out Int32 minPort, out Int32 maxPort);
         }
     }
 }
