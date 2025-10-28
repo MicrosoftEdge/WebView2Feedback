@@ -87,7 +87,7 @@ API Rules and Precedence
 - `_DEFAULT` defines the base port range restrictions for all components without specific overrides.
 - Passing `(0, 0)` for a component scope unset its specific range restriction and inherit range restriction from `_DEFAULT`
 - If `_DEFAULT` is set and a specific scope is unset, that component inherits `_DEFAULT`.
-- Passing `(0,65535)` for a component scope make port range unrestricted for that component.
+- Passing `(1025,65535)` for a component scope make port range unrestricted for that component.
 
 | Scope State                                | Behaviour                                                                                     |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------- |
@@ -95,7 +95,7 @@ API Rules and Precedence
 | `_DEFAULT` and `_WEB_RTC` are both set           | `_WEB_RTC` port range restrictions applies to WebRTC; `_DEFAULT` applies to others      |
 | `_WEB_RTC` only is set                           | `_WEB_RTC` applies port range restrictions only to WebRTC; others unrestricted          |
 | `_DEFAULT` set and `_WEB_RTC` reset to `(0,0)`   | `_DEFAULT` applies port range restrictions to all and WebRTC inherits `_DEFAULT`        |
-| `_DEFAULT` set and `_WEB_RTC` set to `(0,65535)` | `_DEFAULT` applies port range restrictions to all except WebRTC which is unrestricted   |
+| `_DEFAULT` set and `_WEB_RTC` set to `(1025,65535)` | `_DEFAULT` applies port range restrictions to all except WebRTC which is unrestricted   |
 
 2. Port Range Restriction Scope param in GetEffectiveAllowedPortRange
 - `GetEffectiveAllowedPortRange` returns the range explicitly set for the queried scope.
