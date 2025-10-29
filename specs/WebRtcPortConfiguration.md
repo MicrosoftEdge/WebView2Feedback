@@ -98,8 +98,9 @@ API Rules and Precedence
 | `_DEFAULT` set and `_WEB_RTC` set to `(1025,65535)` | `_DEFAULT` applies port range restrictions to all except WebRTC which is unrestricted   |
 
 2. Port Range Restriction Scope param in GetEffectiveAllowedPortRange
-- `GetEffectiveAllowedPortRange` returns the range explicitly set for the queried scope.
-- If a specific scope is unset, it inherits `_DEFAULT`.
+- GetEffectiveAllowedPortRange returns the port range to use for the specified scope.
+- If the scope is _DEFAULT or if the specified scope is unset, then the _DEFAULT port range is returned.
+- A range of (0, 0) means that no port range has been set.
 - Querying `_DEFAULT` only returns `_DEFAULT`; it does not aggregate component-specific settings.
 - If neither `_DEFAULT` nor a component-specific scope is set, the default `(0,0)` (unset) is returned.
 
@@ -131,7 +132,7 @@ typedef enum COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND {
 } COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND;
 
 /// Additional options used to create WebView2 Environment to manage port range configuration.
-[uuid(6ce30f6b-5dcc-5dc1-9c09-723cf233dbe5), object, pointer_default(unique)]
+[uuid(2c0f597d-2958-5a94-82f9-c750cf86cb88), object, pointer_default(unique)]
 interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// Sets the allowed port range restriction for the specified 
   /// scope and transport protocol.
@@ -143,7 +144,7 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// 
   /// Currently, only WebRTC UDP Port Range restriction is supported.
   /// 
-  /// `minPort` and `maxPort` must be within the range 1025-65535 (inclusive).
+  /// `minPort` and `maxPort` must be within the range 1025-65535 (inclusive), or must both be the sentinel value 0.
   /// `minPort` must be less than or equal to `maxPort`.
   /// If `minPort` equals `maxPort`, the range represents a single port.
   /// 
@@ -179,8 +180,9 @@ interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
   /// Returns the effective port range previously set via
   /// `SetAllowedPortRange`.
   ///
-  /// `GetEffectiveAllowedPortRange` returns the range explicitly set for the queried scope.
-  /// If a specific scope is unset, it inherits `_DEFAULT`.
+  /// GetEffectiveAllowedPortRange returns the port range to use for the specified scope.
+  /// If the scope is _DEFAULT or if the specified scope is unset, then the _DEFAULT port range is returned.
+  /// A range of (0, 0) means that no port range has been set.
   /// Querying `_DEFAULT` only returns `_DEFAULT`; it does not aggregate component-specific settings.
   /// If neither `_DEFAULT` nor a component-specific scope is set, the default `(0,0)` (unset) is returned.
 
