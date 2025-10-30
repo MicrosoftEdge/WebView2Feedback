@@ -9,18 +9,19 @@ In WebView2, ESM is off by default to avoid performance impact. Host application
 
 In Microsoft Edge, ESM offers two states:
 
-- Balanced – Enabled only for unfamiliar sites based on browsing heuristics.
+- Balanced – Enabled only for unfamiliar sites based on browser usage patterns.
 - Strict – Always enabled for all sites.
 
 ![image](https://github.com/MicrosoftEdge/WebView2Feedback/assets/82386753/35977716-e46c-4257-82da-906b0c6f833e)
 
-Unlike Edge browser, WebView2 does not support heuristic-based “Balanced” state. The Only options are available: Off or Strict.
+Unlike Edge browser, WebView2 does not support heuristic-based “Balanced” state. Only two options are available: Off and Strict.
 
-Currently, ESM can only be configured via the --sdsm-state browser flag([see for more details](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/webview-features-flags?tabs=dotnetcsharp)) at environment creation, applying globally to all profiles.
-This proposal introduces a profile-level API to enable or disable ESM and persist the setting in the user data folder, giving developers fine-grained control without relying on global flags..
+Currently, ESM state can only be configured via the `--sdsm-state` browser flag([see for more details](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/webview-features-flags?tabs=dotnetcsharp)) at environment creation, applying globally to all profiles. There is no flexibility to modify the state at runtime.
+
+This proposal introduces an API to enable or disable ESM and persist the configuration for a WebView2 profile within the user data folder.
 
 ## CoreWebView2Profile.IsEnhancedSecurityModeEnabled
-Enables or disables Enhanced Security Mode (ESM) for all WebView2 instances sharing the same profile. The setting is persisted in the user data folder. Default is false.
+Enables or disables Enhanced Security Mode (ESM) for all WebView2 instances sharing the same profile. This property value is persisted for a WebView2 profile in the user data folder. The default value is false.
 
 - true: ESM enabled in Strict state: disables JavaScript JIT and applies additional OS protections.
 - false: ESM state is Off.
@@ -68,7 +69,7 @@ void EnableEnhancedSecurityMode()
 # API Details
 
 ```c#
-/// Extension of ICoreWebView2Profile to control Enhanced Security Mode (ESM).
+/// Extension of ICoreWebView2Profile to control Enhanced Security Mode (ESM) state.
 ///
 /// ESM reduces the risk of memory-related vulnerabilities by disabling JavaScript
 /// Just-in-Time (JIT) compilation and enabling additional OS protections.
