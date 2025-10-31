@@ -138,7 +138,7 @@ interface ICoreWebView2ProcessFailedEventArgs4 : ICoreWebView2ProcessFailedEvent
     /// if the process has started and ended unexpectedly. For other failure
     /// types, the process ID value will be `0`.
     ///
-    // MSOWNERS: core (acharif@microsoft.com)
+    // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT ProcessId([out, retval] INT32* value);
 }
 
