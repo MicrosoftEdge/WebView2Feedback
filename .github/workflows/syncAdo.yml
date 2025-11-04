@@ -7,6 +7,7 @@ on:
 permissions:
   id-token: write
   contents: read
+  issues: write
 
 jobs:
   alert:
@@ -22,7 +23,7 @@ jobs:
     - name: Sync to ADO
       uses: Navdeep-ss/github-actions-issue-to-work-item@simple-sync-azurecli
       env:
-        github_token: "${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}"
+        github_token: "${{ secrets.GITHUB_TOKEN }}"
       with:
         label: 'tracked'
         ado_organization: 'microsoft'
