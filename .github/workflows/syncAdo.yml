@@ -2,7 +2,10 @@ name: Sync ADO Issue
 
 on:
   issues:
+  
     types: [labeled, closed, reopened]
+  workflow_dispatch:
+
 
 permissions:
   id-token: write
