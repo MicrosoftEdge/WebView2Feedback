@@ -17,9 +17,18 @@ The Trusted Origin API addresses these scenarios by allowing applications to des
 
 This specification introduces two APIs on the `CoreWebView2Profile` object: `EnableFeatureForOrigins` and `DisableFeatureForOrigins`. These APIs allow applications to selectively enable or disable specific WebView2 features based on the origin of the content being loaded.
 
-The APIs support flexible origin matching through both exact origin specification and wildcard patterns. Origins can be specified as:
-- **Exact origins**: `https://contoso.com` matches only that specific origin.
-- **Wildcard patterns**: `https://*.contoso.com` matches any subdomain of contoso.com OR `*://suspicious-site.org` matches any protocol for suspicious-site.org
+The APIs support flexible origin matching through both exact origin specification and wildcard patterns. The following table depicts what can be input for 
+
+
+| Origin Filter String | What It Matches | Description |
+|---------|-----------------|-------------|
+| `*` | `https://www.google.com`<br>`https://api.contoso.com`<br>`https://www.microsoft.com` | Matches all the origins |
+| `https://contoso.com` | Only `https://contoso.com` | Matches the exact origin with specific protocol and hostname |
+| `https://*.contoso.com` | `https://app.contoso.com`<br>`https://api.contoso.com`<br>`https://admin.contoso.com` | Matches any subdomain under the specified domain |
+| `*://contoso.com` | `https://contoso.com`<br>`http://contoso.com`<br>`ftp://contoso.com` | Matches any protocol for the specified hostname |
+| `*contoso.*` | `https://www.contoso.com`<br>`http://app.contoso.com` | Matches any protocol and any subdomain under the hostname |
+| `*example/` | `https://app.example/`<br>`https://api.example/` | Matches any subdomain and top-level domain variations |
+| `https://xn--qei.example/` | `https://❤.example/`<br>`https://xn--qei.example/` | Normalized punycode matches with corresponding Non-ASCII hostnames |
 
 This granular control enables applications to implement trust-based security policies, allowing trusted origins to access advanced features while maintaining security restrictions for untrusted content.
 
@@ -175,7 +184,6 @@ typedef enum COREWEBVIEW2_ORIGIN_ENABLED_FEATURE {
   /// restrictions for web content. Enabling ESM for untrusted origins
   /// provides additional restrictions and overall security to the app.
   /// 
-  /// 
   /// This API would take effect if ICoreWebView2StagingProfile2::put_IsEnhancedSecurityModeEnabled
   /// is set to false.
   COREWEBVIEW2_ORIGIN_ENABLED_FEATURE_ENHANCED_SECURITY_MODE = 0x2,
@@ -195,13 +203,21 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// sharing the same profile. Features will be enabled immediately for currently loaded
   /// content from matching origins and for future navigations.
   /// 
+  /// EnableFeatureForOrigins takes preference over DisableFeatureForOrigins for the same feature and origin.
+  ///
   /// Origin Matching Logic:
   /// The origins list accepts both exact origin strings and wildcard patterns.
   /// For wildcard patterns, `*` matches zero or more characters.
   /// Examples:
-  /// - "https://example.com" - matches exactly this origin
-  /// - "https://*.example.com" - matches any subdomain of example.com
-  /// - "*://trusted-site.com" - matches any protocol for trusted-site.com
+  /// | Origin Filter String | What It Matches | Description |
+  /// |---------|-----------------|-------------|
+  /// | `*` | `https://www.google.com`, `https://api.contoso.com`,`https://www.microsoft.com` | Matches all the origins |
+  /// | `https://contoso.com` | Only `https://contoso.com` | Matches the exact origin with specific protocol and hostname |
+  /// | `https://*.contoso.com` | `https://app.contoso.com`,`https://api.contoso.com`,`https://admin.contoso.com` | Matches any subdomain under the specified domain |
+  /// | `*://contoso.com` | `https://contoso.com`,`http://contoso.com`,`ftp://contoso.com` | Matches any protocol for the specified hostname |
+  /// | `*contoso.*` | `https://www.contoso.com`,`http://app.contoso.com` | Matches any protocol and any subdomain under the hostname |
+  /// | `*example/` | `https://app.example/`,`https://api.example/` | Matches any subdomain and top-level domain variations |
+  /// | `https://xn--qei.example/` | `https://❤.example/`,`https://xn--qei.example/` | Normalized punycode matches with corresponding Non-ASCII hostnames |
   /// 
   /// Some features may have additional restrictions on allowed origins - refer to the
   /// specific COREWEBVIEW2_ORIGIN_ENABLED_FEATURE enum value documentation for details.
@@ -226,9 +242,15 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// The origins list accepts both exact origin strings and wildcard patterns.
   /// For wildcard patterns, `*` matches zero or more characters.
   /// Examples:
-  /// - "https://untrusted.com" - matches exactly this origin
-  /// - "https://*.ad-network.com" - matches any subdomain of ad-network.com  
-  /// - "*://suspicious-site.org" - matches any protocol for suspicious-site.org
+  /// | Origin Filter String | What It Matches | Description |
+  /// |---------|-----------------|-------------|
+  /// | `*` | `https://www.google.com`,`https://api.contoso.com`,`https://www.microsoft.com` | Matches all the origins |
+  /// | `https://contoso.com` | Only `https://contoso.com` | Matches the exact origin with specific protocol and hostname |
+  /// | `https://*.contoso.com` | `https://app.contoso.com`,`https://api.contoso.com`,`https://admin.contoso.com` | Matches any subdomain under the specified domain |
+  /// | `*://contoso.com` | `https://contoso.com`,`http://contoso.com`,`ftp://contoso.com` | Matches any protocol for the specified hostname |
+  /// | `*contoso.*` | `https://www.contoso.com`,`http://app.contoso.com` | Matches any protocol and any subdomain under the hostname |
+  /// | `*example/` | `https://app.example/`,`https://api.example/` | Matches any subdomain and top-level domain variations |
+  /// | `https://xn--qei.example/` | `https://❤.example/`,`https://xn--qei.example/` | Normalized punycode matches with corresponding Non-ASCII hostnames |
   /// 
   /// Some features may have additional restrictions on allowed origins - refer to the
   /// specific COREWEBVIEW2_ORIGIN_DISABLED_FEATURE enum value documentation for details.
@@ -271,13 +293,21 @@ namespace Microsoft.Web.WebView2.Core
         /// sharing the same profile. Features will be enabled immediately for currently loaded
         /// content from matching origins and for future navigations.
         /// 
+        /// EnableFeatureForOrigins takes preference over DisableFeatureForOrigins for the same feature and origin.
+        /// 
         /// Origin Matching Logic:
         /// The origins list accepts both exact origin strings and wildcard patterns.
         /// For wildcard patterns, `*` matches zero or more characters.
         /// Examples:
-        /// - "https://example.com" - matches exactly this origin
-        /// - "https://*.example.com" - matches any subdomain of example.com
-        /// - "*://trusted-site.com" - matches any protocol for trusted-site.com
+        /// | Origin Filter String | What It Matches | Description |
+        /// |---------|-----------------|-------------|
+        /// | `*` | `https://www.google.com`, `https://api.contoso.com`,`https://www.microsoft.com` | Matches all the origins |
+        /// | `https://contoso.com` | Only `https://contoso.com` | Matches the exact origin with specific protocol and hostname |
+        /// | `https://*.contoso.com` | `https://app.contoso.com`,`https://api.contoso.com`,`https://admin.contoso.com` | Matches any subdomain under the specified domain |
+        /// | `*://contoso.com` | `https://contoso.com`,`http://contoso.com`,`ftp://contoso.com` | Matches any protocol for the specified hostname |
+        /// | `*contoso.*` | `https://www.contoso.com`,`http://app.contoso.com` | Matches any protocol and any subdomain under the hostname |
+        /// | `*example/` | `https://app.example/`,`https://api.example/` | Matches any subdomain and top-level domain variations |
+        /// | `https://xn--qei.example/` | `https://❤.example/`,`https://xn--qei.example/` | Normalized punycode matches with corresponding Non-ASCII hostnames |
         /// 
         /// Some features may have additional restrictions on allowed origins - refer to the
         /// specific CoreWebView2OriginEnabledFeature enum value documentation for details.
@@ -298,9 +328,15 @@ namespace Microsoft.Web.WebView2.Core
         /// The origins list accepts both exact origin strings and wildcard patterns.
         /// For wildcard patterns, `*` matches zero or more characters.
         /// Examples:
-        /// - "https://untrusted.com" - matches exactly this origin
-        /// - "https://*.ad-network.com" - matches any subdomain of ad-network.com  
-        /// - "*://suspicious-site.org" - matches any protocol for suspicious-site.org
+        /// | Origin Filter String | What It Matches | Description |
+        /// |---------|-----------------|-------------|
+        /// | `*` | `https://www.google.com`,`https://api.contoso.com`,`https://www.microsoft.com` | Matches all the origins |
+        /// | `https://contoso.com` | Only `https://contoso.com` | Matches the exact origin with specific protocol and hostname |
+        /// | `https://*.contoso.com` | `https://app.contoso.com`,`https://api.contoso.com`,`https://admin.contoso.com` | Matches any subdomain under the specified domain |
+        /// | `*://contoso.com` | `https://contoso.com`,`http://contoso.com`,`ftp://contoso.com` | Matches any protocol for the specified hostname |
+        /// | `*contoso.*` | `https://www.contoso.com`,`http://app.contoso.com` | Matches any protocol and any subdomain under the hostname |
+        /// | `*example/` | `https://app.example/`,`https://api.example/` | Matches any subdomain and top-level domain variations |
+        /// | `https://xn--qei.example/` | `https://❤.example/`,`https://xn--qei.example/` | Normalized punycode matches with corresponding Non-ASCII hostnames |
         /// 
         /// Some features may have additional restrictions on allowed origins - refer to the
         /// specific CoreWebView2OriginDisabledFeature enum value documentation for details.
