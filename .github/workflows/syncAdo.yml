@@ -20,7 +20,7 @@ jobs:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    - name: Sync to ADO
+    - name: Sync tracked bugs to ADO
       uses: Navdeep-ss/github-actions-issue-to-work-item@simple-sync-azurecli
       env:
         github_token: "${{ secrets.GITHUB_TOKEN }}"
@@ -31,3 +31,15 @@ jobs:
         ado_area_path: 'Edge\Web Experience\WebView2'
         ado_tags: 'WV2_GitHub'
         ado_gh_closed_tag: 'WV2_GitHub_Closed'
+    - name: Sync Regressions to ADO
+      uses: Navdeep-ss/github-actions-issue-to-work-item@simple-sync-azurecli
+      env:
+        github_token: "${{ secrets.GITHUB_TOKEN }}"
+      with:
+        label: 'regression'
+        ado_organization: 'microsoft'
+        ado_project: 'Edge'
+        ado_area_path: 'Edge\Web Experience\WebView2'
+        ado_tags: 'WV2SupportAutoFile'
+        ado_gh_closed_tag: 'WV2_GitHub_Closed'
+
