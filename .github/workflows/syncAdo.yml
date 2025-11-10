@@ -42,4 +42,5 @@ jobs:
         ado_area_path: 'Edge\Web Experience\WebView2'
         ado_tags: 'WV2SupportAutoFile'
         ado_gh_closed_tag: 'WV2_GitHub_Closed'
+        update_issue_body: 'false'
 
