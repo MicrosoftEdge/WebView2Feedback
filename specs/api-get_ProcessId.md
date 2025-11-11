@@ -74,11 +74,11 @@ CHECK_FAILURE(m_webView->add_ProcessFailed(
                     CHECK_FAILURE(argProcessInfo->get_ProcessInfo(&processInfo));
                 }
                 INT32 processId = 0;
-                COREWEBVIEW2_PROCESS_KIND processKind;
+                COREWEBVIEW2_PROCESS_KIND processKind = COREWEBVIEW2_PROCESS_KIND_UNKNOWN;
                 if (processInfo)
                 {
                     CHECK_FAILURE(processInfo->get_ProcessId(&processId));
-                    processInfo->get_Kind(&processKind);
+                    CHECK_FAILURE(processInfo->get_Kind(&processKind));
                 }
 
                 // Log the failure details including the process ID
@@ -128,15 +128,22 @@ void WebView_ProcessFailed(object sender,
         $"Process description: {e.ProcessDescription}");
 
     // Get the process ID of the failed process
-    messageBuilder.AppendLine($"Process ID: {e.ProcessInfo.ProcessId}");
-    messageBuilder.AppendLine($"Process Kind: {e.ProcessInfo.Kind}");
+    if (e.ProcessInfo != null)
+    {
+        messageBuilder.AppendLine($"Process ID: {e.ProcessInfo.ProcessId}");
+        messageBuilder.AppendLine($"Process Kind: {e.ProcessInfo.Kind}");
+    }
+    else
+    {
+        messageBuilder.AppendLine("Process Info: unavailable (process may be gone externally)");
+    }
 
     // Log the failure or send to telemetry
     System.Diagnostics.Debug.WriteLine(messageBuilder.ToString());
 
     // You can also correlate with process info collected earlier
     var failedProcessInfo = _processInfoList.FirstOrDefault(
-        p => p.ProcessId == e.ProcessId);
+        p => p.ProcessId == e.ProcessInfo.ProcessId);
     if (failedProcessInfo != null)
     {
         System.Diagnostics.Debug.WriteLine(
@@ -148,7 +155,7 @@ void WebView_ProcessFailed(object sender,
 # Remarks
 
 The `ICoreWebView2ProcessInfo` property contains the process ID of the failed process
-and the process kind (GPU, Renderer, Browser, Utility, etc..)
+and the process kind (GPU, Renderer, Browser, Utility, etc.)
 
 # API Details
 
