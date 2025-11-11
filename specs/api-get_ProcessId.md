@@ -21,7 +21,7 @@ The updated API is detailed below. We'd appreciate your feedback.
 # Description
 
 The `ICoreWebView2ProcessFailedEventArgs4` interface extends the existing
-`ProcessFailedEventArgs` to include the ICoreWebView2ProcessInfo of the failed process. This
+`ProcessFailedEventArgs` to include the `ICoreWebView2ProcessInfo` of the failed process. This
 enables applications to:
 - Correlate process failures with running process data from the ProcessInfo API
 - Collect process-specific diagnostic information for logging and telemetry
@@ -67,15 +67,15 @@ CHECK_FAILURE(m_webView->add_ProcessFailed(
                 CHECK_FAILURE(args2->get_ExitCode(&exitCode));
 
                 // Get the process ID of the failed process
-                wil::com_ptr<ICoreWebView2ProcessInfo>  processInfo;
-                auto argProcessinfo = args.try_query<ICoreWebView2ProcessFailedEventArgs4>();
-                if (argProcessinfo)
+                wil::com_ptr<ICoreWebView2ProcessInfo> processInfo;
+                auto argProcessInfo = args.try_query<ICoreWebView2ProcessFailedEventArgs4>();
+                if (argProcessInfo)
                 {
-                    CHECK_FAILURE(argProcessinfo->get_ProcessInfo(&processInfo));
+                    CHECK_FAILURE(argProcessInfo->get_ProcessInfo(&processInfo));
                 }
                 INT32 processId = 0;
                 COREWEBVIEW2_PROCESS_KIND processKind;
-                if(processInfo)
+                if (processInfo)
                 {
                     CHECK_FAILURE(processInfo->get_ProcessId(&processId));
                     processInfo->get_Kind(&processKind);
@@ -128,7 +128,7 @@ void WebView_ProcessFailed(object sender,
         $"Process description: {e.ProcessDescription}");
 
     // Get the process ID of the failed process
-    messageBuilder.AppendLine($"Process Id: {e.ProcessInfo.ProcessId}");
+    messageBuilder.AppendLine($"Process ID: {e.ProcessInfo.ProcessId}");
     messageBuilder.AppendLine($"Process Kind: {e.ProcessInfo.Kind}");
 
     // Log the failure or send to telemetry
@@ -166,10 +166,10 @@ interface ICoreWebView2ProcessFailedEventArgs4 :
     /// The process info of the failed process, which can be used to
     /// correlate the failing process with the running process data or to
     /// analyze crash dumps for that process. The process ID should be
-    //  available in all failure kinds e.g. when GPU process hags,
-    //  browser process exits, utility process exits or renderer process hangs.
-    //  if the main frame renderer process is gone externally, the process id
-    //  will be set to 0.
+    /// available in all failure kinds e.g. when GPU process hangs,
+    /// browser process exits, utility process exits or renderer process hangs.
+    /// If the main frame renderer process is gone externally, the process ID
+    /// will be set to 0.
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT ProcessInfo([out, retval] ICoreWebView2ProcessInfo* value);
 }
@@ -186,10 +186,10 @@ namespace Microsoft.Web.WebView2.Core
     /// The process info of the failed process, which can be used to
     /// correlate the failing process with the running process data or to
     /// analyze crash dumps for that process. The process ID should be
-    //  available in all failure kinds e.g. when GPU process hags,
-    //  browser process exits, utility process exits or renderer process hangs.
-    //  if the main frame renderer process is gone externally, the process id
-    //  will be set to 0.
+    /// available in all failure kinds e.g. when GPU process hangs,
+    /// browser process exits, utility process exits or renderer process hangs.
+    /// If the main frame renderer process is gone externally, the process ID
+    /// will be set to 0.
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ProcessFailedEventArgs4")]
         {
