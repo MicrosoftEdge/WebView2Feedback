@@ -21,7 +21,7 @@ This specification introduces the following APIs.
 
     - **GetOriginSettings**: Get the list of `CoreWebView2OriginSetting` for this profile.
     - **CreateOriginSetting**: Create and return a new `CoreWebView2OriginSetting` object.
-2. `ICoreWebView2OriginSetting`interface, which exposes get and set APIs for the following features. These APIs are used to set the feature state of these features.
+2. `ICoreWebView2OriginSetting`interface, which exposes get and set APIs for the following features. These APIs are used to set the state of these features.
 
     - AccentColor 
     - EnhancedSecurityMode
@@ -71,12 +71,12 @@ void ScenarioTrustedOrigin::SetFeatureForOrigins(std::wstring originPattern)
 var profile = webView2.CoreWebView2.Profile;
 
 var originSetting = profile.CreateOriginSetting();
-originSetting.AccentColor = Block;
-originSetting.PersistenceStorage = Allow;
+originSetting.OriginPattern = "https://*.contoso.com";
+originSetting.AccentColor = OriginSettingState.Block;
+originSetting.PersistenceStorage = OriginSettingState.Allow;
 
 var originSettings = profile.GetOriginSettings();
-originSettings.Append(originSettings);
-
+originSettings.Add(originSetting);
 ```
 
 
