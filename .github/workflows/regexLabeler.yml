@@ -16,7 +16,7 @@ jobs:
         configuration-path: .github/labeler.yml
         enable-versioned-regex: 0
         include-title: 1
-        repo-token: ${{ github.token }}
+        repo-token: ${{ secrets.GH_PERSONAL_ACCESS_TOKEN }}
     - uses: wow-actions/auto-assign@v3
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
