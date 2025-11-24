@@ -25,7 +25,7 @@ This specification introduces the following APIs.
 
     - AccentColor 
     - EnhancedSecurityMode
-    - PersistenceStorage
+    - PersistentStorage
     - TrackingPrevention
 
     The feature state can have three values which are defined by OriginSettingState {
@@ -57,7 +57,7 @@ void ScenarioTrustedOrigin::SetFeatureForOrigins(std::wstring originPattern)
     CHECK_FAILURE(originSetting->put_AccentColor(OriginSettingState::OriginSettingState_BLOCK));
 
     // Allow Persistence Storage
-    CHECK_FAILURE(originSetting->put_PersistenceStorage(OriginSettingState::OriginSettingState_ALLOW));
+    CHECK_FAILURE(originSetting->put_PersistentStorage(OriginSettingState::OriginSettingState_ALLOW));
 
     UINT32 count;
     CHECK_FAILURE(originSettingCollection->get_Count(&count));
@@ -73,7 +73,7 @@ var profile = webView2.CoreWebView2.Profile;
 var originSetting = profile.CreateOriginSetting();
 originSetting.OriginPattern = "https://*.contoso.com";
 originSetting.AccentColor = OriginSettingState.Block;
-originSetting.PersistenceStorage = OriginSettingState.Allow;
+originSetting.PersistentStorage = OriginSettingState.Allow;
 
 var originSettings = profile.GetOriginSettings();
 originSettings.Add(originSetting);
@@ -112,7 +112,7 @@ interface ICoreWebView2StagingOriginSetting : IUnknown {
 
   /// Sets the enabled property for Accent Color for the associated origin.
   /// The default value for this is `Block`. When set to `Allow`, the origin is
-  /// allowed to use AccentColor keyword or accent-color CSS property to display OS Accent Color.
+  /// allowed to use AccentColor keyword to display OS Accent Color.
   [propput] HRESULT AccentColor([in] OriginSettingState value);
 
 
@@ -148,21 +148,19 @@ interface ICoreWebView2StagingOriginSetting : IUnknown {
   /// | `*example/` | `https://app.example/`,`https://api.example/` | Matches any subdomain and top-level domain variations |
   /// | `https://xn--qei.example/` | `https://â¤.example/`,`https://xn--qei.example/` | Normalized punycode matches with corresponding Non-ASCII hostnames |
   /// 
-  /// Note: `*` is not a valid value for OriginPattern.
-  /// 
   /// The caller must free the returned string with `CoTaskMemFree`.  See
   /// [API Conventions](/microsoft-edge/webview2/concepts/win32-api-conventions#strings).
   [propput] HRESULT OriginPattern([in] LPCWSTR value);
 
 
-  /// Gets the `PersistenceStorage` property.
-  [propget] HRESULT PersistenceStorage([out, retval] OriginSettingState* value);
+  /// Gets the `PersistentStorage` property.
+  [propget] HRESULT PersistentStorage([out, retval] OriginSettingState* value);
 
 
   /// Sets the enabled property for Persistence Storage for the associated origin.
   /// The default value for this is `Block`. When set to `Allow`, the storage created
   /// on this origin persists even when browser evicts storage under low disk space conditions.
-  [propput] HRESULT PersistenceStorage([in] OriginSettingState value);
+  [propput] HRESULT PersistentStorage([in] OriginSettingState value);
 
 
   /// Gets the `TrackingPrevention` property.
@@ -198,7 +196,7 @@ namespace Microsoft.Web.WebView2.Core
 
         String OriginPattern { get; set; };
 
-        Originsettingstate PersistenceStorage { get; set; };
+        Originsettingstate PersistentStorage { get; set; };
 
         Originsettingstate TrackingPrevention { get; set; };
     }
