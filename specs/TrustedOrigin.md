@@ -111,8 +111,8 @@ interface ICoreWebView2StagingOriginSetting : IUnknown {
 
 
   /// Sets the enabled property for Accent Color for the associated origin.
-  /// The default value for this is `Block`. When set to `Allow`, the origin is
-  /// allowed to use AccentColor keyword to display OS Accent Color.
+  /// When set to `Allow`, the origin can use the AccentColor and AccentColorText 
+  /// keyword to display OS Accent Color (default is `Block`).
   [propput] HRESULT AccentColor([in] OriginSettingState value);
 
 
@@ -158,8 +158,8 @@ interface ICoreWebView2StagingOriginSetting : IUnknown {
 
 
   /// Sets the enabled property for Persistence Storage for the associated origin.
-  /// The default value for this is `Block`. When set to `Allow`, the storage created
-  /// on this origin persists even when browser evicts storage under low disk space conditions.
+  /// When set to `Allow`, storage on this origin persists even when the browser 
+  /// evicts storage under low disk space conditions (default is `Block`).
   [propput] HRESULT PersistentStorage([in] OriginSettingState value);
 
 
@@ -169,9 +169,11 @@ interface ICoreWebView2StagingOriginSetting : IUnknown {
 
   /// Sets the enabled property for Tracking Prevention for the associated origin.
   /// When set to `Block`, the origin bypasses Tracking Prevention even if
-  /// Tracking Prevention is enabled for the profile. Similarly, when set to `Allow`,
-  /// the origin enforces Tracking Prevention even if Tracking Prevention is disabled
-  /// for the profile.
+  /// Tracking Prevention is enabled. Similarly, when set to `Allow`,
+  /// the origin enforces Tracking Prevention even if Tracking Prevention is disabled.
+  /// 
+  /// In webview2, Tracking Prevention can be enabled/disabled by 
+  /// ICoreWebView2EnvironmentOptions5::put_EnableTrackingPrevention.
   [propput] HRESULT TrackingPrevention([in] OriginSettingState value);
 }
 ```
