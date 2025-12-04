@@ -26,14 +26,13 @@ the `--sdsm-state` browser feature flag ([webview2 browser flag docs](https://le
 The setting applies globally to all profiles and cannot be changed at runtime.
 
 This proposal introduces an API to configure the Enhanced Security Mode level. 
-The configuration is persisted for a WebView2 profile within the user data folder.
+The configuration is not persisted to the user data folder. The property is reset when the profile is recreated.
 
 # Description
 
 The `EnhancedSecurityModeLevel` property allows you to control the Enhanced Security 
-Mode level for WebView2 instances associated with a profile. This level applies to the 
-context of the profile. That is, all WebView2s sharing the same profile are affected 
-and the value is persisted in the user data folder.
+Mode level for WebView2 instances associated with a profile. This level applies to the context of the profile. That is, all WebView2s sharing the same profile are affected.
+The configuration is not persisted to the user data folder. The property is reset when the profile is recreated.
 
 The default value is `COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL_OFF`.
 
@@ -42,11 +41,11 @@ When set to `Off`, Enhanced Security Mode is completely disabled. When set to
 
 See `COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL` for descriptions of levels.
 
-Changes apply to future navigations; reload may be required to see the effect.
+Changes apply to future navigations; a reload may be required for the change to take effect.
 
 # Examples
 
-## EnhancedSecurityModeLevel
+## Setting the ESM Level
 
 Set Enhanced Security Mode level for a profile.
 
@@ -95,7 +94,7 @@ typedef enum COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL {
   /// Enhanced Security Mode is turned off.
   COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL_OFF,
   /// Enhanced Security Mode is enabled in Strict level. Disables JavaScript 
-  /// Just-in-Time (JIT) compilation and enables additional OS protections.
+  /// Just-in-Time (JIT) compilation and enables additional operating system protections.
   ///
   /// This level applies enhanced security for all sites but may reduce JavaScript performance.
   ///
@@ -107,13 +106,13 @@ typedef enum COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL {
 /// Extension of ICoreWebView2Profile to control Enhanced Security Mode (ESM) level.
 ///
 /// ESM reduces the risk of memory-related vulnerabilities by disabling JavaScript
-/// Just-in-Time (JIT) compilation and enabling additional OS protections.
-/// This property applies to all WebView2 instances sharing the same profile and
-/// is persisted in the user data folder.
+/// Just-in-Time (JIT) compilation and enabling additional operating system protections.
+/// This property applies to all WebView2 instances sharing the same profile.
+/// The configuration is not persisted to the user data folder.
+/// The property is reset when the profile is recreated.
 ///
 /// See `COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL` for descriptions of levels.
 ///
-/// If `EnhancedSecurityModeLevel` is set, the property value is persisted in the profile.
 /// Changes apply to future navigations; reload may be required.
 ///
 /// Enabling ESM improves security but may reduce JavaScript performance.
