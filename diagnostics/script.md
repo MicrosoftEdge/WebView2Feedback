@@ -37,3 +37,28 @@ To specify a different output directory for the ZIP file, provide the `ZipPath` 
 .\log_collection_script.ps1 -ZipPath <folder-path>
 
 ```
+
+**Troubleshooting**
+
+If you encounter an execution policy error when running the script:
+![alt text](resources/execution-policy.png)
+
+This error indicates that the current execution policy on your system is preventing the script from running.
+
+1. Check your current execution policy:
+```shell
+Get-ExecutionPolicy
+```
+Note the current value to restore it after completing the diagnostic collection.
+
+2. Temporarily set the execution policy to Bypass:
+```shell
+Set-ExecutionPolicy -ExecutionPolicy Bypass
+```
+
+3. Run the log collection script and complete the diagnostic process.
+
+4. Restore the original execution policy:
+```shell
+Set-ExecutionPolicy -ExecutionPolicy <previous-value>
+```
