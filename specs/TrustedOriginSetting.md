@@ -21,7 +21,7 @@ This specification introduces the following APIs.
 
     - **CreateTrustedOriginFeatureSettings**: Creates a collection of CoreWebView2TrustedOriginFeatureSetting objects, which can be used to call SetTrustedOriginFeatures to configure features for trusted origins
     - **SetTrustedOriginFeatures**: Sets the feature settings for specified origins.
-    - **GetTrustedOriginFeaturesAsync**: Gets the feature settings (Feature and isEnabled) for a specified origin.
+    - **GetTrustedOriginFeatures**: Gets the feature settings (Feature and isEnabled) for a specified origin asynchronously.
 2. `ICoreWebView2TrustedOriginFeatureSetting`interface, is simply a tuple which has feature enum and feature state ( enabled or disabled ). For now the feature enum can have three values
 
     - AccentColor 
@@ -144,16 +144,7 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// such as accent color, persistent storage, and enhanced security mode.
   /// The origins can be both exact origin strings and wildcard patterns.
   /// For wildcard patterns, `*` matches zero or more characters.
-  /// Examples:
-  /// | Origin Filter String | What It Matches | Description |
-  /// |---------|-----------------|-------------|
-  /// | `https://contoso.com` | Only `https://contoso.com` | Matches the exact origin with specific protocol and hostname |
-  /// | `https://*.contoso.com` | `https://app.contoso.com`,`https://api.contoso.com`,`https://admin.contoso.com` | Matches any subdomain under the specified domain |
-  /// | `*://contoso.com` | `https://contoso.com`,`http://contoso.com`,`ftp://contoso.com` | Matches any protocol for the specified hostname |
-  /// | `*contoso.*` | `https://www.contoso.com`,`http://app.contoso.com` | Matches any protocol and any subdomain under the hostname |
-  /// | `*example/` | `https://app.example/`,`https://api.example/` | Matches any subdomain and top-level domain variations |
-  /// | `https://xn--qei.example/` | `https://â¤.example/`,`https://xn--qei.example/` | Normalized punycode matches with corresponding Non-ASCII hostnames |
-  /// 
+  /// For detailed examples, refer to the table at: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter.
   HRESULT SetTrustedOriginFeatures(
       [in] UINT32 originsCount,
       [in] LPCWSTR* origins,
