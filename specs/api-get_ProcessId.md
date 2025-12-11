@@ -1,4 +1,4 @@
-Process Info When a WebView2 Process Fails
+ProcessId for ProcessFailedEventArgs
 ===
 
 # Background
@@ -7,13 +7,13 @@ WebView2 provides applications with the
 [ProcessFailed](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2?view=webview2-1.0.705.50#add_processfailed)
 event so they can react accordingly when a process failure occurs. However,
 this event does not currently provide the process ID of the failed process.
-This is particularly problematic when running multiple renderers, it becomes
+This is particularly problematic when running multiple renderers. It becomes
 difficult for the application to determine which process to address.
 
 In this document we describe an extended version of the
 [ProcessFailedEventArgs](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2processfailedeventargs?view=webview2-1.0.2151.40),
-which includes the process ID and the process kind. This enables the host application to collect
-additional information about the process failure whether a renderer, GPU, or
+which provides access to an `ICoreWebView2ProcessInfo` object for the failed process. This object includes the process ID, process kind, and other relevant information. This enables the host application to collect
+additional information about the process failure, whether it is a renderer, GPU, or
 even the browser process.
 
 The updated API is detailed below. We'd appreciate your feedback.
@@ -21,7 +21,7 @@ The updated API is detailed below. We'd appreciate your feedback.
 # Description
 
 The `ICoreWebView2ProcessFailedEventArgs4` interface extends the existing
-`ProcessFailedEventArgs` to include the `ICoreWebView2ProcessInfo` of the failed process. This
+`ProcessFailedEventArgs` to include, when available, the `ICoreWebView2ProcessInfo` of the failed process. Note that `ProcessInfo` may be null or unavailable in certain scenarios. This
 enables applications to:
 - Correlate process failures with running process data from the ProcessInfo API
 - Collect process-specific diagnostic information for logging and telemetry
@@ -153,7 +153,7 @@ void WebView_ProcessFailed(object sender,
 
 # Remarks
 
-The `ICoreWebView2ProcessInfo` property contains the process ID of the failed process
+The `ProcessInfo` property returns an `ICoreWebView2ProcessInfo` object that contains the process ID of the failed process
 and the process kind (GPU, Renderer, Browser, Utility, etc.). When the failing
 process starts successfully (for example, GPU process hangs, browser process
 exits, utility process exits, renderer process hangs), the process ID is
@@ -183,7 +183,7 @@ interface ICoreWebView2ProcessFailedEventArgs4 :
     /// started or when the main frame renderer process is terminated externally
     /// (for example by Task Manager or taskkill), the process ID will be set to 0.
     // MSOWNERS: core (wvcore@microsoft.com)
-    [propget] HRESULT ProcessInfo([out, retval] ICoreWebView2ProcessInfo* value);
+    [propget] HRESULT ProcessInfo([out, retval] ICoreWebView2ProcessInfo** value);
 }
 
 ```
@@ -197,11 +197,11 @@ namespace Microsoft.Web.WebView2.Core
     {
     /// The process info of the failed process, which can be used to
     /// correlate the failing process with the running process data or to
-    /// analyze crash dumps for that process. The process ID is available when the
-    /// process starts successfully (GPU process hangs, browser process exits,
-    /// utility process exits, renderer process hangs). If the process never
-    /// started or when the main frame renderer process is terminated externally
-    /// (for example by Task Manager or taskkill), the process ID will be set to 0.
+    /// analyze crash dumps for that process.
+    /// 
+    /// This property may be <c>null</c> if the process never started or when the main frame renderer process
+    /// is terminated externally (for example, by Task Manager or taskkill). In these cases, process information
+    /// is not available. When available, the process ID is set to 0 if the process could not be identified.
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ProcessFailedEventArgs4")]
         {
