@@ -114,15 +114,14 @@ var originFeatures = await profile.GetTrustedOriginFeaturesAsync("https://app.co
 typedef enum COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE {
   /// Specifies the accent color feature for the origin.
   COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_ACCENT_COLOR,
-  /// Specifies persistent storage capabilities for the origin.
+  /// Specifies persistent storage capabilitity for the origin.
   COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_PERSISTENT_STORAGE,
-  /// Specifies enhanced security mode settings for the origin.
+  /// Specifies enhanced security mode setting for the origin.
   COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_ENHANCED_SECURITY_MODE,
 } COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE;
 
 /// Receives the result of the `GetTrustedOriginFeatures` method.
 interface ICoreWebView2StagingGetTrustedOriginFeaturesCompletedHandler : IUnknown {
-
   /// Provides the result of the corresponding asynchronous method.
   HRESULT Invoke([in] HRESULT errorCode, [in] ICoreWebView2StagingTrustedOriginFeatureSettingCollectionView* result);
 }
@@ -143,7 +142,6 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// This method allows configuring multiple features for trusted origins,
   /// such as accent color, persistent storage, and enhanced security mode.
   /// The origins can be both exact origin strings and wildcard patterns.
-  /// For wildcard patterns, `*` matches zero or more characters.
   /// For detailed examples, refer to the table at: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter.
   HRESULT SetTrustedOriginFeatures(
       [in] UINT32 originsCount,
@@ -154,8 +152,8 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// Gets the feature configurations for a specified origin.
   /// Returns a collection of feature settings that have been configured for the origin.
   /// If no features have been configured for the origin, an empty collection is returned.
-  /// The origin should have a valid scheme and host (e.g. "https://www.example.com"),
-  /// otherwise the method fails with `E_INVALIDARG`.
+  /// The origin can be both exact origin strings and wildcard patterns.
+  /// For detailed examples, refer to the table at: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter.
   HRESULT GetTrustedOriginFeatures(
       [in] LPCWSTR origin
       , [in] ICoreWebView2StagingGetTrustedOriginFeaturesCompletedHandler* handler);
@@ -166,7 +164,6 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
 interface ICoreWebView2StagingTrustedOriginFeatureSetting : IUnknown {
   /// The feature type for this setting.
   [propget] HRESULT Feature([out, retval] COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE* value);
-
 
   /// Indicates whether the feature is enabled for the origin.
   [propget] HRESULT IsEnabled([out, retval] BOOL* value);
