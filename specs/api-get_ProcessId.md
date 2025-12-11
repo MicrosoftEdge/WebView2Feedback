@@ -38,12 +38,11 @@ The following code snippets demonstrate how the updated
 ```cpp
 //! [ProcessFailed]
 // Register a handler for the ProcessFailed event.
-    // This handler checks the failure kind and tries to:
-    //   * Recreate the webview for browser failure and render unresponsive.
-    //   * Reload the webview for render failure.
-    //   * Reload the webview for frame-only render failure impacting app
-    //     content.
-    //   * Log information about the failure for other failures.
+    // This handler collects extended diagnostics so the host can:
+    //   * Inspect the failure kind together with reason, description, and exit code.
+    //   * Retrieve the CoreWebView2ProcessInfo for the failed process (ID and kind).
+    //   * Log the gathered information for telemetry or later correlation and decide
+    //     how to react (reload/recreate) based on app policy outside of this sample.
 CHECK_FAILURE(m_webView->add_ProcessFailed(
     Callback<ICoreWebView2ProcessFailedEventHandler>(
         [this](ICoreWebView2* sender,
@@ -135,7 +134,7 @@ void WebView_ProcessFailed(object sender,
     }
     else
     {
-        messageBuilder.AppendLine("Process Info: unavailable (process may be gone externally)");
+        messageBuilder.AppendLine("Process Info: unavailable (process may have been terminated externally, e.g., via Task Manager)");
     }
 
     // Log the failure or send to telemetry
@@ -155,7 +154,13 @@ void WebView_ProcessFailed(object sender,
 # Remarks
 
 The `ICoreWebView2ProcessInfo` property contains the process ID of the failed process
-and the process kind (GPU, Renderer, Browser, Utility, etc.)
+and the process kind (GPU, Renderer, Browser, Utility, etc.). When the failing
+process starts successfully (for example, GPU process hangs, browser process
+exits, utility process exits, renderer process hangs), the process ID is
+available so apps can correlate diagnostics. If the process never starts or if
+the main frame renderer process is terminated externally (for example, by Task
+Manager or taskkill) the associated process information is unavailable and the
+reported process ID is 0.
 
 # API Details
 
@@ -172,11 +177,11 @@ interface ICoreWebView2ProcessFailedEventArgs4 :
     ICoreWebView2ProcessFailedEventArgs3 {
     /// The process info of the failed process, which can be used to
     /// correlate the failing process with the running process data or to
-    /// analyze crash dumps for that process. The process ID should be
-    /// available in all failure kinds e.g. when GPU process hangs,
-    /// browser process exits, utility process exits or renderer process hangs.
-    /// If the main frame renderer process is gone externally, the process ID
-    /// will be set to 0.
+    /// analyze crash dumps for that process. The process ID is available when the
+    /// process starts successfully (GPU process hangs, browser process exits,
+    /// utility process exits, renderer process hangs). If the process never
+    /// started or when the main frame renderer process is terminated externally
+    /// (for example by Task Manager or taskkill), the process ID will be set to 0.
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT ProcessInfo([out, retval] ICoreWebView2ProcessInfo* value);
 }
@@ -192,11 +197,11 @@ namespace Microsoft.Web.WebView2.Core
     {
     /// The process info of the failed process, which can be used to
     /// correlate the failing process with the running process data or to
-    /// analyze crash dumps for that process. The process ID should be
-    /// available in all failure kinds e.g. when GPU process hangs,
-    /// browser process exits, utility process exits or renderer process hangs.
-    /// If the main frame renderer process is gone externally, the process ID
-    /// will be set to 0.
+    /// analyze crash dumps for that process. The process ID is available when the
+    /// process starts successfully (GPU process hangs, browser process exits,
+    /// utility process exits, renderer process hangs). If the process never
+    /// started or when the main frame renderer process is terminated externally
+    /// (for example by Task Manager or taskkill), the process ID will be set to 0.
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ProcessFailedEventArgs4")]
         {
