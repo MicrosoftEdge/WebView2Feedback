@@ -36,11 +36,14 @@ void ToggleServiceWorkerJsApiSetting()
 ## C#/.NET
 
 ```c#
-WebViewSettings.IsServiceWorkerJSAPIsEnabled = !WebViewSettings.AreDefaultScriptDialogsEnabled;
+private void ToggleServiceWorkerJsApiSetting()
+{
+    WebViewSettings.IsServiceWorkerJSAPIsEnabled = !WebViewSettings.AreDefaultScriptDialogsEnabled;
 
-MessageBox.Show(this, 
-    $"IsServiceWorkerJSAPIsEnabled is now set to: {WebViewSettings.IsServiceWorkerJSAPIsEnabled}",
-    "Trusted Origins", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    MessageBox.Show(this, 
+        $"IsServiceWorkerJSAPIsEnabled is now set to: {WebViewSettings.IsServiceWorkerJSAPIsEnabled}",
+        "Trusted Origins", MessageBoxButtons.OK, MessageBoxIcon.Information);
+}
 ```
 
 # API Details
@@ -56,7 +59,7 @@ interface ICoreWebView2StagingSettings : IUnknown {
   /// When set to `TRUE`, chrome and webview objects are available in Service Workers .
   /// chrome.webview exposes APIs to interact with the WebView from Service Workers.
   /// The default value is `FALSE`.
-  /// When enabled, this setting takes effect for all the newly registered Service Workers.
+  /// When enabled, this setting takes effect for all the newly installed Service Workers.
   /// \snippet SettingsComponent.cpp ToggleServiceWorkerJSAPIsEnabled
   [propput] HRESULT IsServiceWorkerJSAPIsEnabled([in] BOOL value);
 }
