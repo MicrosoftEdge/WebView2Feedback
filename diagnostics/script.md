@@ -27,7 +27,7 @@ The script will collect some registry keys and directory listings, start a WPR t
    - msedge_installer_Temp.log (*optional*)
    - msedge_installer_SystemTemp.log (*optional*)
    - msedge_installer_SystemTemp2.log (*optional*)
-   - Crashpad folder
+   - Crashpad folder (if ExeName or userDataDir provided)
 7. Provide the resulting ZIP file to the WebView2 support team for analysis.
 
 **Optional**

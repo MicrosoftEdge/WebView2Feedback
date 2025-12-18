@@ -8,8 +8,8 @@ param(
     [Parameter(Mandatory=$false)]
     [switch]$UseCPUProfile = $true,
 
-    [Parameter(Mandatory=$true)]
-    [string]$ExeName = "ms-teams.exe",
+    [Parameter(Mandatory=$false)]
+    [string]$ExeName = "",
 
     [Parameter(Mandatory=$false)]
     [string]$userDataDir = ""
@@ -740,25 +740,72 @@ function Export-EdgeUpdateRegistry {
     }
 }
 
-# Function to get watson_metadata file from Crashpad folder
-function Get-WatsonMetadataFile {
+# Function to get user data folders from WebView2 processes
+function Get-WebView2UserDataFolder {
     param(
-        [Parameter(Mandatory=$false)]
-        [array]$UserDataFolders = @(),
+        [Parameter(Mandatory=$true)]
+        [string]$ExeName,
         
         [Parameter(Mandatory=$false)]
         [string]$UserDataDir = ""
     )
     
     try {
+        # Look for Crashpad folder
+        $crashpadFolder = ""
         $folderToCheck = ""
+        $uniqueUserDataFolders = @()
         
-        if ($UserDataFolders.Count -gt 0) {
-            $folderToCheck = $UserDataFolders[0]
-        }
-        elseif (-not [string]::IsNullOrWhiteSpace($UserDataDir)) {
-            Write-Host "No user data folders found from processes, using provided userDataDir: $UserDataDir" -ForegroundColor Cyan
+        if (-not [string]::IsNullOrWhiteSpace($UserDataDir)) {
+            Write-Host "Using provided userDataDir: $UserDataDir" -ForegroundColor Cyan
             $folderToCheck = $UserDataDir
+        }
+        else {
+            Write-Host "Searching for msedgewebview2.exe processes with exe name: $ExeName" -ForegroundColor Green
+            
+            # Get all msedgewebview2.exe processes with their command lines
+            $processes = Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" -ErrorAction SilentlyContinue
+            
+            if (-not $processes) {
+                Write-Host "No msedgewebview2.exe processes found" -ForegroundColor Yellow
+                return @{ UserDataFolders = @(); CrashpadFolder = "" }
+            }
+            
+            $userDataFolders = @()
+            
+            foreach ($process in $processes) {
+                $commandLine = $process.CommandLine
+                
+                if ($commandLine) {
+                    # Check if command line contains required parameters
+                    if ($commandLine -match '--embedded-browser-webview=1' -and 
+                        $commandLine -match "--webview-exe-name=$([regex]::Escape($ExeName))") {
+                        
+                        Write-Host "  Process ID $($process.ProcessId) matches criteria" -ForegroundColor Cyan
+                        
+                        # Extract --user-data-dir value
+                        # Pattern handles: --user-data-dir="path" or --user-data-dir=path
+                        if ($commandLine -match '--user-data-dir=(?:"([^"]+)"|([^\s]+))') {
+                            $userDataFolder = if ($matches[1]) { $matches[1] } else { $matches[2] }
+                            $userDataFolders += $userDataFolder
+                        }
+                    }
+                }
+            }
+            
+            # Get unique values only
+            $uniqueUserDataFolders = $userDataFolders | Select-Object -Unique
+            
+            if ($uniqueUserDataFolders.Count -eq 0) {
+                Write-Host "No matching processes found with the specified criteria" -ForegroundColor Yellow
+            }
+            else {
+                Write-Host "Total user data folders found: $($userDataFolders.Count) (unique: $($uniqueUserDataFolders.Count))" -ForegroundColor Green
+            }
+            
+            if ($uniqueUserDataFolders.Count -gt 0) {
+                $folderToCheck = $uniqueUserDataFolders[0]
+            }
         }
         
         if (-not [string]::IsNullOrWhiteSpace($folderToCheck)) {
@@ -767,81 +814,21 @@ function Get-WatsonMetadataFile {
             if (Test-Path $crashpadFolder) {
                 Write-Host "Checking Crashpad folder: $crashpadFolder" -ForegroundColor Cyan
                 Write-Host "Found Crashpad folder: $crashpadFolder" -ForegroundColor Green
-                return $crashpadFolder
             }
             else {
                 Write-Host "Crashpad folder not found: $crashpadFolder" -ForegroundColor Yellow
+                $crashpadFolder = ""
             }
         }
         else {
-            Write-Host "No user data folder available to check for watson_metadata" -ForegroundColor Yellow
+            Write-Host "No user data folder available to check for Crashpad" -ForegroundColor Yellow
         }
         
-        return ""
-    }
-    catch {
-        Write-Host "Error searching for watson_metadata file: $($_.Exception.Message)" -ForegroundColor Red
-        return ""
-    }
-}
-
-# Function to get user data folders from WebView2 processes
-function Get-WebView2UserDataFolder {
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$ExeName
-    )
-    
-    try {
-        Write-Host "Searching for msedgewebview2.exe processes with exe name: $ExeName" -ForegroundColor Green
-        
-        # Get all msedgewebview2.exe processes with their command lines
-        $processes = Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" -ErrorAction SilentlyContinue
-        
-        if (-not $processes) {
-            Write-Host "No msedgewebview2.exe processes found" -ForegroundColor Yellow
-            return @()
-        }
-        
-        Write-Host "Found $($processes.Count) msedgewebview2.exe process(es)" -ForegroundColor Cyan
-        
-        $userDataFolders = @()
-        
-        foreach ($process in $processes) {
-            $commandLine = $process.CommandLine
-            
-            if ($commandLine) {
-                # Check if command line contains required parameters
-                if ($commandLine -match '--embedded-browser-webview=1' -and 
-                    $commandLine -match "--webview-exe-name=$([regex]::Escape($ExeName))") {
-                    
-                    Write-Host "  Process ID $($process.ProcessId) matches criteria" -ForegroundColor Cyan
-                    
-                    # Extract --user-data-dir value
-                    # Pattern handles: --user-data-dir="path" or --user-data-dir=path
-                    if ($commandLine -match '--user-data-dir=(?:"([^"]+)"|([^\s]+))') {
-                        $userDataFolder = if ($matches[1]) { $matches[1] } else { $matches[2] }
-                        $userDataFolders += $userDataFolder
-                    }
-                }
-            }
-        }
-        
-        # Get unique values only
-        $uniqueUserDataFolders = $userDataFolders | Select-Object -Unique
-        
-        if ($uniqueUserDataFolders.Count -eq 0) {
-            Write-Host "No matching processes found with the specified criteria" -ForegroundColor Yellow
-        }
-        else {
-            Write-Host "Total user data folders found: $($userDataFolders.Count) (unique: $($uniqueUserDataFolders.Count))" -ForegroundColor Green
-        }
-        
-        return $uniqueUserDataFolders
+        return @{ UserDataFolders = $uniqueUserDataFolders; CrashpadFolder = $crashpadFolder }
     }
     catch {
         Write-Host "Error getting WebView2 user data folders: $($_.Exception.Message)" -ForegroundColor Red
-        return @()
+        return @{ UserDataFolders = @(); CrashpadFolder = "" }
     }
 }
 
@@ -866,15 +853,22 @@ Write-Host "Directory file: $directoryResult" -ForegroundColor Yellow
 Write-Host "Zip destination: $ZipPath" -ForegroundColor Yellow
 Write-Host ""
 
-$userDataFolders = Get-WebView2UserDataFolder -ExeName $ExeName
-Write-Host "User data folders found: $($userDataFolders.Count)" -ForegroundColor Yellow
-foreach ($folder in $userDataFolders) {
-    Write-Host "  $folder" -ForegroundColor Yellow
+$result = @{ UserDataFolders = @(); CrashpadFolder = "" }
+if (-not [string]::IsNullOrWhiteSpace($ExeName)) {
+    $result = Get-WebView2UserDataFolder -ExeName $ExeName -UserDataDir $userDataDir
+    Write-Host "User data folders found: $($result.UserDataFolders.Count)" -ForegroundColor Yellow
+    foreach ($folder in $result.UserDataFolders) {
+        Write-Host "  $folder" -ForegroundColor Yellow
+    }
+    Write-Host ""
 }
-Write-Host ""
+else {
+    Write-Host "ExeName not provided, skipping user data folder detection" -ForegroundColor Yellow
+    Write-Host ""
+}
 
-# Look for watson_metadata file in Crashpad foldercmd
-$script:WatsonMetadataFilePath = Get-WatsonMetadataFile -UserDataFolders $userDataFolders -UserDataDir $userDataDir
+# Set Crashpad folder path
+$script:WatsonMetadataFilePath = $result.CrashpadFolder
 Write-Host ""
 
 # Start WPR tracing automatically
