@@ -9,7 +9,7 @@ The script automates collection of commonly requested WebView2 diagnostic data â
 3. Run the script by executing:
 
 ```
-.\log_collection_script.ps1
+.\log_collection_script.ps1 -ExeName <exe-name>
 ```
 
 The script will collect some registry keys and directory listings, start a WPR trace, and display a window similar to the image below.
@@ -27,6 +27,7 @@ The script will collect some registry keys and directory listings, start a WPR t
    - msedge_installer_Temp.log (*optional*)
    - msedge_installer_SystemTemp.log (*optional*)
    - msedge_installer_SystemTemp2.log (*optional*)
+   - Crashpad folder (*optional*, if ExeName or UserDataDir provided): Contains crash dumps and metadata to help diagnose application crashes.
 7. Provide the resulting ZIP file to the WebView2 support team for analysis.
 
 **Optional**
@@ -37,6 +38,13 @@ To specify a different output directory for the ZIP file, provide the `ZipPath` 
 .\log_collection_script.ps1 -ZipPath <folder-path>
 
 ```
+
+Sometimes if the script is not able to find the crashpad folder, the user can use the `UserDataDir` parameter to pass the user data directory to the script.
+
+```
+.\log_collection_script.ps1 -UserDataDir <absolute-path-to-user-data-dir>
+```
+
 
 **Troubleshooting**
 

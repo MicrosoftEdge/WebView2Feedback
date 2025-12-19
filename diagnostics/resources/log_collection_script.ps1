@@ -6,7 +6,13 @@ param(
     [string]$OutputDirectory = "$env:TEMP",
     
     [Parameter(Mandatory=$false)]
-    [switch]$UseCPUProfile = $true
+    [switch]$UseCPUProfile = $true,
+
+    [Parameter(Mandatory=$false)]
+    [string]$ExeName = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$UserDataDir = ""
 )
 
 # Load Windows Forms assembly for GUI
@@ -298,7 +304,8 @@ function Create-DiagnosticZip {
         [string]$RegistryFilePath,
         [string]$DirectoryFilePath,
         [string]$TraceFilePath,
-        [string]$ZipPath
+        [string]$ZipPath,
+        [string]$CrashpadFolderPath = ""
     )
     
     try {
@@ -369,6 +376,42 @@ function Create-DiagnosticZip {
             }
         }
         
+        # Add Crashpad folder if it exists
+        if ($CrashpadFolderPath -and (Test-Path $CrashpadFolderPath)) {
+            try {
+                Write-Host "Adding Crashpad folder contents..." -ForegroundColor Cyan
+                $crashpadFiles = Get-ChildItem -Path $CrashpadFolderPath -Recurse -File -ErrorAction SilentlyContinue
+                
+                # Trim trailing backslash to ensure correct substring calculation
+                $crashpadBasePath = $CrashpadFolderPath.TrimEnd('\')
+                
+                foreach ($crashpadFile in $crashpadFiles) {
+                    try {
+                        # Get relative path within Crashpad folder
+                        $relativePath = $crashpadFile.FullName.Substring($crashpadBasePath.Length + 1)
+                        $zipEntryName = "Crashpad/$relativePath".Replace("\", "/")
+                        
+                        $entry = $zip.CreateEntry($zipEntryName)
+                        $entryStream = $entry.Open()
+                        
+                        $fileStream = [System.IO.File]::Open($crashpadFile.FullName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+                        $fileStream.CopyTo($entryStream)
+                        $fileStream.Close()
+                        $entryStream.Close()
+                        
+                        $fileSize = $crashpadFile.Length / 1KB
+                        Write-Host "  Added to zip: Crashpad/$relativePath ($([math]::Round($fileSize, 2)) KB)" -ForegroundColor Cyan
+                    }
+                    catch {
+                        Write-Host "  Failed to add $($crashpadFile.Name): $($_.Exception.Message)" -ForegroundColor Red
+                    }
+                }
+            }
+            catch {
+                Write-Host "  Failed to add Crashpad folder: $($_.Exception.Message)" -ForegroundColor Red
+            }
+        }
+        
         $zip.Dispose()
         
         # Calculate final zip size
@@ -434,7 +477,7 @@ function Stop-WPRTrace {
             # Create diagnostic zip with all collected files
             Write-Host ""
             Write-Host "Creating diagnostic package..." -ForegroundColor Cyan
-            $zipResult = Create-DiagnosticZip -RegistryFilePath $script:RegistryFilePath -DirectoryFilePath $script:DirectoryFilePath -TraceFilePath $TracePath -ZipPath $script:FinalZipPath
+            $zipResult = Create-DiagnosticZip -RegistryFilePath $script:RegistryFilePath -DirectoryFilePath $script:DirectoryFilePath -TraceFilePath $TracePath -ZipPath $script:FinalZipPath -CrashpadFolderPath $script:CrashpadFolderPath
             
             if ($zipResult) {
                 Write-Host "All diagnostic files have been packaged and saved to: $zipResult" -ForegroundColor Green
@@ -700,6 +743,100 @@ function Export-EdgeUpdateRegistry {
     }
 }
 
+# Function to get user data folders from WebView2 processes
+function Get-WebView2UserDataFolder {
+    param(
+        [Parameter(Mandatory=$false)]
+        [string]$ExeName,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$UserDataDir = ""
+    )
+    
+    try {
+        # Look for Crashpad folder
+        $crashpadFolder = ""
+        $folderToCheck = ""
+        $foundUserDataFolder = ""
+        
+        if (-not [string]::IsNullOrWhiteSpace($UserDataDir)) {
+            # Validate UserDataDir to prevent path traversal
+            if ($UserDataDir -match '\.\.') {
+                Write-Host "Error: UserDataDir contains path traversal sequences (..). This is not allowed for security reasons." -ForegroundColor Red
+                return @{ UserDataFolders = @(); CrashpadFolder = "" }
+            }
+            
+            # Check if path is absolute (Windows path or UNC path)
+            if (-not ([System.IO.Path]::IsPathRooted($UserDataDir))) {
+                Write-Host "Error: UserDataDir must be an absolute path. Relative paths are not allowed." -ForegroundColor Red
+                return @{ UserDataFolders = @(); CrashpadFolder = "" }
+            }
+            
+            Write-Host "Using provided UserDataDir: $UserDataDir" -ForegroundColor Cyan
+            $folderToCheck = $UserDataDir
+        }
+        elseif (-not [string]::IsNullOrWhiteSpace($ExeName)) {
+            Write-Host "Searching for msedgewebview2.exe processes with exe name: $ExeName" -ForegroundColor Green
+            
+            # Get all msedgewebview2.exe processes with their command lines
+            $processes = Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" -ErrorAction SilentlyContinue
+            
+            if (-not $processes) {
+                Write-Host "No msedgewebview2.exe processes found" -ForegroundColor Yellow
+                return @{ UserDataFolders = @(); CrashpadFolder = "" }
+            }
+            
+            foreach ($process in $processes) {
+                $commandLine = $process.CommandLine
+                
+                if ($commandLine) {
+                    # Check if command line contains required parameters
+                    if ($commandLine -match '--embedded-browser-webview=1' -and 
+                        $commandLine -match "--webview-exe-name=$([regex]::Escape($ExeName))") {
+                        
+                        Write-Host "  Process ID $($process.ProcessId) matches criteria" -ForegroundColor Cyan
+                        
+                        # Extract --user-data-dir value
+                        # Pattern handles: --user-data-dir="path" or --user-data-dir=path
+                        if ($commandLine -match '--user-data-dir=(?:"([^"]+)"|([^\s]+))') {
+                            $folderToCheck = if ($matches[1]) { $matches[1] } else { $matches[2] }
+                            $foundUserDataFolder = $folderToCheck
+                            Write-Host "Found user data folder: $folderToCheck" -ForegroundColor Green
+                            break
+                        }
+                    }
+                }
+            }
+            
+            if (-not $folderToCheck) {
+                Write-Host "No matching processes found with the specified criteria" -ForegroundColor Yellow
+            }
+        }
+        
+        if (-not [string]::IsNullOrWhiteSpace($folderToCheck)) {
+            $crashpadFolder = Join-Path $folderToCheck "Crashpad"
+            
+            if (Test-Path $crashpadFolder) {
+                Write-Host "Checking Crashpad folder: $crashpadFolder" -ForegroundColor Cyan
+                Write-Host "Found Crashpad folder: $crashpadFolder" -ForegroundColor Green
+            }
+            else {
+                Write-Host "Crashpad folder not found: $crashpadFolder" -ForegroundColor Yellow
+                $crashpadFolder = ""
+            }
+        }
+        else {
+            Write-Host "No user data folder available to check for Crashpad" -ForegroundColor Yellow
+        }
+        
+        return @{ UserDataFolders = @($foundUserDataFolder); CrashpadFolder = $crashpadFolder }
+    }
+    catch {
+        Write-Host "Error getting WebView2 user data folders: $($_.Exception.Message)" -ForegroundColor Red
+        return @{ UserDataFolders = @(); CrashpadFolder = "" }
+    }
+}
+
 # Collect installer logs.
 $registryResult = Export-EdgeUpdateRegistry -OutputDirectory $OutputDirectory
 Write-Host ""
@@ -719,6 +856,24 @@ $script:FinalZipPath = Join-Path $ZipPath "WebView2_Logs_$timestamp"
 Write-Host "Registry file: $registryResult" -ForegroundColor Yellow
 Write-Host "Directory file: $directoryResult" -ForegroundColor Yellow
 Write-Host "Zip destination: $ZipPath" -ForegroundColor Yellow
+Write-Host ""
+
+$result = @{ UserDataFolders = @(); CrashpadFolder = "" }
+if (-not [string]::IsNullOrWhiteSpace($ExeName) -or -not [string]::IsNullOrWhiteSpace($UserDataDir)) {
+    $result = Get-WebView2UserDataFolder -ExeName $ExeName -UserDataDir $UserDataDir
+    Write-Host "User data folders found: $($result.UserDataFolders.Count)" -ForegroundColor Yellow
+    foreach ($folder in $result.UserDataFolders) {
+        Write-Host "  $folder" -ForegroundColor Yellow
+    }
+    Write-Host ""
+}
+else {
+    Write-Host "ExeName and UserDataDir not provided, skipping user data folder detection" -ForegroundColor Yellow
+    Write-Host ""
+}
+
+# Set Crashpad folder path
+$script:CrashpadFolderPath = $result.CrashpadFolder
 Write-Host ""
 
 # Start WPR tracing automatically
