@@ -39,10 +39,10 @@ To specify a different output directory for the ZIP file, provide the `ZipPath` 
 
 ```
 
-Sometimes if the script is not able to find the crashpad folder, user can use the `userDataDir` parameter to pass the user data directory to the script.
+Sometimes if the script is not able to find the crashpad folder, the user can use the `UserDataDir` parameter to pass the user data directory to the script.
 
 ```
-.\log_collection_script.ps1 -userDataDir <absolute-path-to-user-data-dir>
+.\log_collection_script.ps1 -UserDataDir <absolute-path-to-user-data-dir>
 ```
 
 

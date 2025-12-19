@@ -12,7 +12,7 @@ param(
     [string]$ExeName = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$userDataDir = ""
+    [string]$UserDataDir = ""
 )
 
 # Load Windows Forms assembly for GUI
@@ -305,7 +305,7 @@ function Create-DiagnosticZip {
         [string]$DirectoryFilePath,
         [string]$TraceFilePath,
         [string]$ZipPath,
-        [string]$WatsonMetadataFilePath = ""
+        [string]$CrashpadFolderPath = ""
     )
     
     try {
@@ -377,15 +377,18 @@ function Create-DiagnosticZip {
         }
         
         # Add Crashpad folder if it exists
-        if ($WatsonMetadataFilePath -and (Test-Path $WatsonMetadataFilePath)) {
+        if ($CrashpadFolderPath -and (Test-Path $CrashpadFolderPath)) {
             try {
                 Write-Host "Adding Crashpad folder contents..." -ForegroundColor Cyan
-                $crashpadFiles = Get-ChildItem -Path $WatsonMetadataFilePath -Recurse -File -ErrorAction SilentlyContinue
+                $crashpadFiles = Get-ChildItem -Path $CrashpadFolderPath -Recurse -File -ErrorAction SilentlyContinue
+                
+                # Trim trailing backslash to ensure correct substring calculation
+                $crashpadBasePath = $CrashpadFolderPath.TrimEnd('\')
                 
                 foreach ($crashpadFile in $crashpadFiles) {
                     try {
                         # Get relative path within Crashpad folder
-                        $relativePath = $crashpadFile.FullName.Substring($WatsonMetadataFilePath.Length + 1)
+                        $relativePath = $crashpadFile.FullName.Substring($crashpadBasePath.Length + 1)
                         $zipEntryName = "Crashpad/$relativePath".Replace("\", "/")
                         
                         $entry = $zip.CreateEntry($zipEntryName)
@@ -474,7 +477,7 @@ function Stop-WPRTrace {
             # Create diagnostic zip with all collected files
             Write-Host ""
             Write-Host "Creating diagnostic package..." -ForegroundColor Cyan
-            $zipResult = Create-DiagnosticZip -RegistryFilePath $script:RegistryFilePath -DirectoryFilePath $script:DirectoryFilePath -TraceFilePath $TracePath -ZipPath $script:FinalZipPath -WatsonMetadataFilePath $script:WatsonMetadataFilePath
+            $zipResult = Create-DiagnosticZip -RegistryFilePath $script:RegistryFilePath -DirectoryFilePath $script:DirectoryFilePath -TraceFilePath $TracePath -ZipPath $script:FinalZipPath -CrashpadFolderPath $script:CrashpadFolderPath
             
             if ($zipResult) {
                 Write-Host "All diagnostic files have been packaged and saved to: $zipResult" -ForegroundColor Green
@@ -757,7 +760,7 @@ function Get-WebView2UserDataFolder {
         $uniqueUserDataFolders = @()
         
         if (-not [string]::IsNullOrWhiteSpace($UserDataDir)) {
-            Write-Host "Using provided userDataDir: $UserDataDir" -ForegroundColor Cyan
+            Write-Host "Using provided UserDataDir: $UserDataDir" -ForegroundColor Cyan
             $folderToCheck = $UserDataDir
         }
         else {
@@ -770,8 +773,6 @@ function Get-WebView2UserDataFolder {
                 Write-Host "No msedgewebview2.exe processes found" -ForegroundColor Yellow
                 return @{ UserDataFolders = @(); CrashpadFolder = "" }
             }
-            
-            $userDataFolders = @()
             
             foreach ($process in $processes) {
                 $commandLine = $process.CommandLine
@@ -786,25 +787,17 @@ function Get-WebView2UserDataFolder {
                         # Extract --user-data-dir value
                         # Pattern handles: --user-data-dir="path" or --user-data-dir=path
                         if ($commandLine -match '--user-data-dir=(?:"([^"]+)"|([^\s]+))') {
-                            $userDataFolder = if ($matches[1]) { $matches[1] } else { $matches[2] }
-                            $userDataFolders += $userDataFolder
+                            $folderToCheck = if ($matches[1]) { $matches[1] } else { $matches[2] }
+                            $uniqueUserDataFolders = @($folderToCheck)
+                            Write-Host "Found user data folder: $folderToCheck" -ForegroundColor Green
+                            break
                         }
                     }
                 }
             }
             
-            # Get unique values only
-            $uniqueUserDataFolders = $userDataFolders | Select-Object -Unique
-            
-            if ($uniqueUserDataFolders.Count -eq 0) {
+            if (-not $folderToCheck) {
                 Write-Host "No matching processes found with the specified criteria" -ForegroundColor Yellow
-            }
-            else {
-                Write-Host "Total user data folders found: $($userDataFolders.Count) (unique: $($uniqueUserDataFolders.Count))" -ForegroundColor Green
-            }
-            
-            if ($uniqueUserDataFolders.Count -gt 0) {
-                $folderToCheck = $uniqueUserDataFolders[0]
             }
         }
         
@@ -854,8 +847,8 @@ Write-Host "Zip destination: $ZipPath" -ForegroundColor Yellow
 Write-Host ""
 
 $result = @{ UserDataFolders = @(); CrashpadFolder = "" }
-if (-not [string]::IsNullOrWhiteSpace($ExeName)) {
-    $result = Get-WebView2UserDataFolder -ExeName $ExeName -UserDataDir $userDataDir
+if (-not [string]::IsNullOrWhiteSpace($ExeName) -or -not [string]::IsNullOrWhiteSpace($UserDataDir)) {
+    $result = Get-WebView2UserDataFolder -ExeName $ExeName -UserDataDir $UserDataDir
     Write-Host "User data folders found: $($result.UserDataFolders.Count)" -ForegroundColor Yellow
     foreach ($folder in $result.UserDataFolders) {
         Write-Host "  $folder" -ForegroundColor Yellow
@@ -863,12 +856,12 @@ if (-not [string]::IsNullOrWhiteSpace($ExeName)) {
     Write-Host ""
 }
 else {
-    Write-Host "ExeName not provided, skipping user data folder detection" -ForegroundColor Yellow
+    Write-Host "ExeName and UserDataDir not provided, skipping user data folder detection" -ForegroundColor Yellow
     Write-Host ""
 }
 
 # Set Crashpad folder path
-$script:WatsonMetadataFilePath = $result.CrashpadFolder
+$script:CrashpadFolderPath = $result.CrashpadFolder
 Write-Host ""
 
 # Start WPR tracing automatically
