@@ -746,7 +746,7 @@ function Export-EdgeUpdateRegistry {
 # Function to get user data folders from WebView2 processes
 function Get-WebView2UserDataFolder {
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$ExeName,
         
         [Parameter(Mandatory=$false)]
@@ -757,13 +757,25 @@ function Get-WebView2UserDataFolder {
         # Look for Crashpad folder
         $crashpadFolder = ""
         $folderToCheck = ""
-        $uniqueUserDataFolders = @()
+        $foundUserDataFolder = ""
         
         if (-not [string]::IsNullOrWhiteSpace($UserDataDir)) {
+            # Validate UserDataDir to prevent path traversal
+            if ($UserDataDir -match '\.\.') {
+                Write-Host "Error: UserDataDir contains path traversal sequences (..). This is not allowed for security reasons." -ForegroundColor Red
+                return @{ UserDataFolders = @(); CrashpadFolder = "" }
+            }
+            
+            # Check if path is absolute (Windows path or UNC path)
+            if (-not ([System.IO.Path]::IsPathRooted($UserDataDir))) {
+                Write-Host "Error: UserDataDir must be an absolute path. Relative paths are not allowed." -ForegroundColor Red
+                return @{ UserDataFolders = @(); CrashpadFolder = "" }
+            }
+            
             Write-Host "Using provided UserDataDir: $UserDataDir" -ForegroundColor Cyan
             $folderToCheck = $UserDataDir
         }
-        else {
+        elseif (-not [string]::IsNullOrWhiteSpace($ExeName)) {
             Write-Host "Searching for msedgewebview2.exe processes with exe name: $ExeName" -ForegroundColor Green
             
             # Get all msedgewebview2.exe processes with their command lines
@@ -788,7 +800,7 @@ function Get-WebView2UserDataFolder {
                         # Pattern handles: --user-data-dir="path" or --user-data-dir=path
                         if ($commandLine -match '--user-data-dir=(?:"([^"]+)"|([^\s]+))') {
                             $folderToCheck = if ($matches[1]) { $matches[1] } else { $matches[2] }
-                            $uniqueUserDataFolders = @($folderToCheck)
+                            $foundUserDataFolder = $folderToCheck
                             Write-Host "Found user data folder: $folderToCheck" -ForegroundColor Green
                             break
                         }
@@ -817,7 +829,7 @@ function Get-WebView2UserDataFolder {
             Write-Host "No user data folder available to check for Crashpad" -ForegroundColor Yellow
         }
         
-        return @{ UserDataFolders = $uniqueUserDataFolders; CrashpadFolder = $crashpadFolder }
+        return @{ UserDataFolders = @($foundUserDataFolder); CrashpadFolder = $crashpadFolder }
     }
     catch {
         Write-Host "Error getting WebView2 user data folders: $($_.Exception.Message)" -ForegroundColor Red
