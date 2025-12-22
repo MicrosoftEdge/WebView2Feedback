@@ -19,16 +19,14 @@ This specification introduces the following APIs.
 
 1. On `CoreWebView2Profile`  
 
-    - **CreateTrustedOriginFeatureSetting**: Creates a CoreWebView2TrustedOriginFeatureSetting objects, which can be used to create an array to call SetTrustedOriginFeatures to configure features for trusted origins
+    - **CreateTrustedOriginFeatureSetting**: Creates a CoreWebView2TrustedOriginFeatureSetting object, which can be used to create an array to call SetTrustedOriginFeatures to configure features for trusted origins
     - **SetTrustedOriginFeatures**: Sets the feature settings for specified origins.
-    - **GetTrustedOriginFeatures**: Gets the feature settings (Feature and isEnabled) for a specified origin asynchronously.
-2. `ICoreWebView2TrustedOriginFeatureSetting`interface, is simply a tuple which has feature enum and feature state ( enabled or disabled ). For now the feature enum can have three values
+    - **GetTrustedOriginFeatures**: Gets the feature settings (Feature and FeatureState) for a specified origin asynchronously.
+2. `ICoreWebView2TrustedOriginFeatureSetting`interface, is simply a tuple which has feature enum and feature state enum ( enabled or disabled ). For now the feature enum can have three values
 
     - AccentColor 
     - EnhancedSecurityMode
     - PersistentStorage
-
-    The feature state is a boolean which can take two values : true (for enable) and false (for disable). 
 
 # Example
 
@@ -60,7 +58,7 @@ void ScenarioTrustedOrigin::SetFeatureForOrigins(std::vector<std::wstring> origi
             wil::com_ptr<ICoreWebView2StagingTrustedOriginFeatureSetting> setting;
             CHECK_FAILURE(stagingProfile3->CreateTrustedOriginFeatureSetting(
                 COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_ACCENT_COLOR,
-                TRUE,
+                COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE_ENABLED,
                 &setting));
             featureSettings.push_back(setting);
             featureSettingsRaw.push_back(setting.get());
@@ -71,7 +69,7 @@ void ScenarioTrustedOrigin::SetFeatureForOrigins(std::vector<std::wstring> origi
             wil::com_ptr<ICoreWebView2StagingTrustedOriginFeatureSetting> setting;
             CHECK_FAILURE(stagingProfile3->CreateTrustedOriginFeatureSetting(
                 COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_PERSISTENT_STORAGE,
-                TRUE,
+                COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE_DISABLED,
                 &setting));
             featureSettings.push_back(setting);
             featureSettingsRaw.push_back(setting.get());
@@ -82,7 +80,7 @@ void ScenarioTrustedOrigin::SetFeatureForOrigins(std::vector<std::wstring> origi
             wil::com_ptr<ICoreWebView2StagingTrustedOriginFeatureSetting> setting;
             CHECK_FAILURE(stagingProfile3->CreateTrustedOriginFeatureSetting(
                 COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_ENHANCED_SECURITY_MODE,
-                TRUE,
+                COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE_ENABLED,
                 &setting));
             featureSettings.push_back(setting);
             featureSettingsRaw.push_back(setting.get());
@@ -163,9 +161,9 @@ var profile = webView2.CoreWebView2.Profile;
 // Create feature settings collection
 var features = new[]
 {
-    new KeyValuePair<CoreWebView2TrustedOriginFeature, bool>(CoreWebView2TrustedOriginFeature.AccentColor, false),
-    new KeyValuePair<CoreWebView2TrustedOriginFeature, bool>(CoreWebView2TrustedOriginFeature.PersistentStorage, true),
-    new KeyValuePair<CoreWebView2TrustedOriginFeature, bool>(CoreWebView2TrustedOriginFeature.EnhancedSecurityMode, false)
+    new KeyValuePair<CoreWebView2TrustedOriginFeature, bool>(CoreWebView2TrustedOriginFeature.AccentColor, CoreWebView2TrustedOriginFeatureState.Enabled),
+    new KeyValuePair<CoreWebView2TrustedOriginFeature, bool>(CoreWebView2TrustedOriginFeature.PersistentStorage, CoreWebView2TrustedOriginFeatureState.Disabled),
+    new KeyValuePair<CoreWebView2TrustedOriginFeature, bool>(CoreWebView2TrustedOriginFeature.EnhancedSecurityMode, CoreWebView2TrustedOriginFeatureState.Enabled)
 };
 
 // Set features for origin patterns
@@ -195,6 +193,15 @@ typedef enum COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE {
   COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_ENHANCED_SECURITY_MODE,
 } COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE;
 
+/// Specifies the state of the trusted origin feature.
+[v1_enum]
+typedef enum COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE {
+  /// Sets the enabled state of the trusted origin feature.
+  COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE_ENABLED,
+  /// Sets the disabled state of the trusted origin feature.
+  COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE_DISABLED,
+} COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE;
+
 /// Receives the result of the `GetTrustedOriginFeatures` method.
 interface ICoreWebView2StagingGetTrustedOriginFeaturesCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
@@ -204,12 +211,12 @@ interface ICoreWebView2StagingGetTrustedOriginFeaturesCompletedHandler : IUnknow
 
 /// This is the ICoreWebView2Profile interface for trusted origin feature management.
 interface ICoreWebView2StagingProfile3 : IUnknown {
-  /// Creates a CoreWebView2TrustedOriginFeatureSetting objects.
+  /// Creates a CoreWebView2TrustedOriginFeatureSetting objects. This object represents a specific feature and its state (enabled or disabled).
   /// This method allows creating a feature settings object that can be used with
   /// SetTrustedOriginFeatures to configure features for trusted origins.
   HRESULT CreateTrustedOriginFeatureSetting(
-      [in] COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE features,
-      [in] BOOL isEnabled
+      [in] COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE featureKind,
+      [in] COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE featureState
       , [out, retval] ICoreWebView2StagingTrustedOriginFeatureSetting** value);
 
   /// Sets the feature configurations for specified origins.
@@ -229,6 +236,7 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// If no features have been configured for the origin, an empty collection is returned.
   /// The origin should have a valid scheme and host (e.g. "https://www.example.com"),
   /// otherwise the method fails with `E_INVALIDARG`.
+  /// The returned collection contains all the features that are part of `CoreWebView2TrustedOriginFeature`.
   HRESULT GetTrustedOriginFeatures(
       [in] LPCWSTR origin
       , [in] ICoreWebView2StagingGetTrustedOriginFeaturesCompletedHandler* handler);
@@ -269,9 +277,15 @@ namespace Microsoft.Web.WebView2.Core
         EnhancedSecurityMode = 2,
     }
 
+    public enum CoreWebView2TrustedOriginFeatureState
+    {
+        Enabled = 0,
+        Disabled = 1,
+    }
+
     public partial class CoreWebView2Profile
     {
-        public async Task<IEnumerable<KeyValuePair<CoreWebView2TrustedOriginFeature, bool>>> GetTrustedOriginFeaturesAsync(string origins);
+        public async Task<IEnumerable<KeyValuePair<CoreWebView2TrustedOriginFeature, CoreWebView2TrustedOriginFeatureState>>> GetTrustedOriginFeaturesAsync(string origins);
 
         public void SetTrustedOriginFeatures(IEnumerable<string> origins, IEnumerable<KeyValuePair<CoreWebView2TrustedOriginFeature, bool>> features);
     }
