@@ -29,19 +29,19 @@ Usage steps:
 # Examples
 ### C++ Configure UDP Port Range
 ```cpp
-Microsoft::WRL::ComPtr<ICoreWebView2StagingEnvironmentOptions10> optionsStaging10;
-if (options.As(&optionsStaging10) == S_OK)
+Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions> environmentOptions;
+if (options.As(&environmentOptions) == S_OK)
 {
     // Configure port ranges for UDP traffic to work within enterprise firewalls
     // Set UDP port range (example: 50000-55000 for enterprise environments)
     const INT32 udpMin = 50000, udpMax = 55000;
 
-    CHECK_FAILURE(optionsStaging10->SetAllowedPortRange(
+    CHECK_FAILURE(environmentOptions->SetAllowedPortRange(
         COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax));
 
     // Get the configured port range
-    CHECK_FAILURE(optionsStaging10->GetEffectiveAllowedPortRange(
+    CHECK_FAILURE(environmentOptions->GetEffectiveAllowedPortRange(
         COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, &m_udpPortRange.minPort,
         &m_udpPortRange.maxPort));
@@ -56,28 +56,34 @@ HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
 
 ### C# Configure UDP Port Range
 ```csharp
-var options = CoreWebView2Environment.CreateCoreWebView2EnvironmentOptions();
-var optionsStaging10 = options as ICoreWebView2StagingEnvironmentOptions10;
-if (optionsStaging10 != null)
+
+CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
+
+try 
 {
-    // Configure port ranges for UDP traffic to work within enterprise firewalls
-    // Set UDP port range (example: 50000-55000 for enterprise environments)
-    const int udpMin = 50000, udpMax = 55000;
+    // Set allowed port range for WebRTC UDP traffic (example: ports 10000-20000)
+    options.SetAllowedPortRange(
+        CoreWebView2AllowedPortRangeScope.WebRtc, 
+        CoreWebView2TransportProtocolKind.Udp, 
+        10000, 
+        20000);
 
-    optionsStaging10.SetAllowedPortRange(
-        COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
-        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax);
-
-    // Get the configured port range
-    optionsStaging10.GetEffectiveAllowedPortRange(
-        COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
-        COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, out m_udpPortRange.minPort,
-        out m_udpPortRange.maxPort);
+}
+catch (Exception ex)
+{
+    // Handle any errors setting the port range
+    System.Diagnostics.Debug.WriteLine($"Failed to set WebRTC UDP port range: {ex.Message}");
+}
+string browserExecutableFolder = null;
+if (webView2.CreationProperties?.BrowserExecutableFolder != null)
+{
+    browserExecutableFolder = webView2.CreationProperties.BrowserExecutableFolder;
 }
 
-var environment = await CoreWebView2Environment.CreateAsync(
-        subFolder, m_userDataFolder, options);
-OnCreateEnvironmentCompleted(environment);
+CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(browserExecutableFolder, null, options);
+
+// Configure WebRTC UDP port range if experimental API is available
+await webView2.EnsureCoreWebView2Async(environment);
 ```
 
 API Rules and Precedence
@@ -133,7 +139,7 @@ typedef enum COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND {
 
 /// Additional options used to create WebView2 Environment to manage port range configuration.
 [uuid(2c0f597d-2958-5a94-82f9-c750cf86cb88), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironmentOptions10 : IUnknown {
+interface ICoreWebView2ExperimentalEnvironmentOptions : IUnknown {
   /// Sets the allowed port range restriction for the specified 
   /// scope and transport protocol.
   /// 
@@ -227,9 +233,9 @@ namespace Microsoft.Web.WebView2.Core
 
     runtimeclass CoreWebView2EnvironmentOptions
     {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingEnvironmentOptions10")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ExperimentalEnvironmentOptions")]
         {
-            // ICoreWebView2StagingEnvironmentOptions10 members
+            // ICoreWebView2ExperimentalEnvironmentOptions members
             void SetAllowedPortRange(CoreWebview2AllowedPortRangeScope scope, CoreWebView2TransportProtocolKind protocol, Int32 minPort, Int32 maxPort);
             void GetEffectiveAllowedPortRange(CoreWebview2AllowedPortRangeScope scope, CoreWebView2TransportProtocolKind protocol, out Int32 minPort, out Int32 maxPort);
         }
