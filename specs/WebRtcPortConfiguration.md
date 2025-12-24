@@ -29,19 +29,19 @@ Usage steps:
 # Examples
 ### C++ Configure UDP Port Range
 ```cpp
-Microsoft::WRL::ComPtr<ICoreWebView2ExperimentalEnvironmentOptions> optionsExperimental;
-if (options.As(&optionsExperimental) == S_OK)
+Microsoft::WRL::ComPtr<ICoreWebView2EnvironmentOptions> environmentOptions;
+if (options.As(&environmentOptions) == S_OK)
 {
     // Configure port ranges for UDP traffic to work within enterprise firewalls
     // Set UDP port range (example: 50000-55000 for enterprise environments)
     const INT32 udpMin = 50000, udpMax = 55000;
 
-    CHECK_FAILURE(optionsExperimental->SetAllowedPortRange(
+    CHECK_FAILURE(environmentOptions->SetAllowedPortRange(
         COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, udpMin, udpMax));
 
     // Get the configured port range
-    CHECK_FAILURE(optionsExperimental->GetEffectiveAllowedPortRange(
+    CHECK_FAILURE(environmentOptions->GetEffectiveAllowedPortRange(
         COREWEBVIEW2_ALLOWED_PORT_RANGE_SCOPE_DEFAULT,
         COREWEBVIEW2_TRANSPORT_PROTOCOL_KIND_UDP, &m_udpPortRange.minPort,
         &m_udpPortRange.maxPort));
