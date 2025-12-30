@@ -219,11 +219,37 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
       [in] COREWEBVIEW2_TRUSTED_ORIGIN_FEATURE_STATE featureState
       , [out, retval] ICoreWebView2StagingTrustedOriginFeatureSetting** value);
 
-  /// Sets the feature configurations for specified origins.
-  /// This method allows configuring multiple features for trusted origins,
-  /// such as accent color, persistent storage, and enhanced security mode.
-  /// The origins can be both exact origin strings and wildcard patterns.
-  /// For detailed examples, refer to the table at: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter.
+  /// Configures one or more feature settings for the specified origins. 
+	/// 
+	/// This method applies feature configurations—such as accent color support, 
+	/// persistent storage, or enhanced security mode—to trusted origins. Origins 
+	/// may be provided as exact origin strings or as wildcard patterns. 
+	/// 
+	/// For examples of origin pattern matching, see the table in: 
+	/// https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter. 
+	/// 
+	/// Calling this method multiple times with the same (featureKind, featureState) 
+	/// pair overwrites the previous configuration; the most recent call takes 
+	/// precedence. 
+	/// 
+	/// When multiple configurations exist for the same feature but specify 
+	/// different featureState values, the configuration whose origin pattern is 
+	/// more specific takes precedence. 
+	/// 
+	/// The specificity of an origin pattern is determined by the presence and 
+	/// placement of wildcards. Three wildcard categories influence specificity: 
+	/// - Wildcards in the port (for example, `https://www.example.com:*/*`) 
+	/// - Wildcards in the scheme (for example, `*://www.example.com:123/*`) 
+	/// - Wildcards in the hostname (for example, `https://*.example.com:123/*`) 
+	/// 
+	/// If one pattern is more specific in one component but less specific in 
+	/// another, specificity is evaluated in the following order: 
+	/// 1. Hostname 
+	/// 2. Scheme 
+	/// 3. Port 
+	/// 
+	/// For example, the following patterns are ordered by precedence: 
+	/// `https://www.example.com:*/*` → `*://www.example.com:123/*` → `https://*.example.com:123/*`.
   HRESULT SetTrustedOriginFeatures(
       [in] UINT32 originsCount,
       [in] LPCWSTR* originPatterns,
