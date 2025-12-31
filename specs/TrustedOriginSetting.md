@@ -3,15 +3,17 @@ Trusted Origin Support for WebView2
 
 # Background
 
-WebView2 applications often require different security and feature policies for different origins based on trust levels. Some applications need to enable specific features only for trusted origins while applying stricter security measures to untrusted content.
+Many WebView2 applications need to apply different security and feature policies depending on the trust level of the content they host. In some scenarios, applications must enable advanced capabilities for trusted origins while enforcing stricter protections for untrusted or external content.
 
-Currently, WebView2 applies uniform security policies across all origins, which creates two key challenges:
-- **Feature Access Control**: Applications cannot selectively enable advanced features (such as certain APIs or capabilities) only for origins they trust, forcing them to either expose these features to all origins or disable them entirely.
-- **Performance vs Security Trade-offs**: Security features like Enhanced Security Mode, while important for untrusted content, can impact performance when applied to trusted origins where such protections may be unnecessary.
+By default, WebView2 enforces a single, uniform security model across all origins. This creates two primary limitations:
 
-For example, a content management application might want to allow full feature access and disable security restrictions when loading trusted administrative interfaces, while maintaining strict security policies for user-generated or external content loaded in the same WebView2 instance.
+- **Feature Access Control**: Applications cannot selectively enable privileged features—such as specific APIs or advanced capabilities—for trusted origins only. As a result, developers must either expose these features to all content or disable them entirely.
 
-The Trusted Origin API addresses these scenarios by allowing applications to designate specific origins as trusted, enabling fine-grained control over which security and feature policies apply to different content sources.
+- **Performance and Security Trade-offs**: Security mechanisms such as Enhanced Security Mode are essential for untrusted content but may introduce unnecessary overhead when applied to trusted, first‑party experiences.
+
+For example, a content management system may need to grant full feature access and relax certain security restrictions for its administrative interface, while still applying strict security policies to user‑generated or external content displayed within the same WebView2 instance.
+
+The Trusted Origin API enables these scenarios by allowing applications to explicitly identify trusted origins. Once designated, WebView2 can apply differentiated security and feature policies, giving developers fine‑grained control over how content from various sources is handled.
 
 # Description
 
@@ -37,7 +39,7 @@ This specification introduces the following interfaces:
 
 # Example
 
-## Set Origin Setting for an Origin Pattern
+## Configure Origin Settings for Origin Patterns
 
 ### C++ example
 
