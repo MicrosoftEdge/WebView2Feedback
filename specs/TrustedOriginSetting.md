@@ -17,7 +17,9 @@ The Trusted Origin API addresses these scenarios by allowing applications to des
 
 This specification introduces the following interfaces:
 
-1. `ICoreWebView2Profile3`: The ICoreWebView2Profile3 interface provides APIs for defining, applying, and retrieving trusted‑origin feature settings. It introduces the following members:
+1. `ICoreWebView2Profile3`: 
+
+    The ICoreWebView2Profile3 interface provides APIs for defining, applying, and retrieving trusted‑origin feature settings. It introduces the following members:
 
     - **CreateTrustedOriginFeatureSetting**: Creates a new CoreWebView2TrustedOriginFeatureSetting object. The returned object can be added to the collection passed to SetTrustedOriginFeatures to configure feature behavior for trusted origins.
 
@@ -25,8 +27,9 @@ This specification introduces the following interfaces:
 
     - **GetTrustedOriginFeatures**: Asynchronously retrieves the trusted‑origin feature settings—both the feature identifier and its enabled/disabled state—for a specified origin.
 
-2. `ICoreWebView2TrustedOriginFeatureSetting`: The  ICoreWebView2TrustedOriginFeatureSetting interface represents a simple pairing of a feature enumeration value and its corresponding feature state (enabled or disabled).
-Currently, the feature enumeration supports the following values:
+2. `ICoreWebView2TrustedOriginFeatureSetting`: 
+
+    The  ICoreWebView2TrustedOriginFeatureSetting interface represents a simple pairing of a feature enumeration value and its corresponding feature state (enabled or disabled). Currently, the feature enumeration supports the following values:
 
     - AccentColor 
     - EnhancedSecurityMode
@@ -135,9 +138,11 @@ void ScenarioTrustedOrigin::GetFeatureSettingsForOrigin()
 ### .NET/WinRT 
 
 ```c#
-var profile = webView2.CoreWebView2.Profile;
-
 using OriginFeatureSetting = System.Collections.Generic.KeyValuePair<CoreWebView2TrustedOriginFeature, CoreWebView2TrustedOriginFeatureState>;
+
+// ...
+
+var profile = webView2.CoreWebView2.Profile;
 
 // Create feature settings collection
 var features = new[]
@@ -271,7 +276,7 @@ interface ICoreWebView2StagingTrustedOriginFeatureSettingCollectionView : IUnkno
 }
 ```
 
-## C# (midl3)
+## MIDL3
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
