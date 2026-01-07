@@ -36,8 +36,8 @@ void ToggleServiceWorkerJsApiSetting()
     {
         // Toggle the service worker post message setting.
         BOOL isEnabled;
-        CHECK_FAILURE(webViewSettingsStaging->get_IsServiceWorkerJSAPIsEnabled(&isEnabled));
-        CHECK_FAILURE(webViewSettingsStaging->put_IsServiceWorkerJSAPIsEnabled(!isEnabled));
+        CHECK_FAILURE(webViewSettingsStaging->get_IsWebViewScriptApisForServiceWorkerEnabled(&isEnabled));
+        CHECK_FAILURE(webViewSettingsStaging->put_IsWebViewScriptApisForServiceWorkerEnabled(!isEnabled));
         
         MessageBox(
             nullptr,
@@ -51,6 +51,114 @@ void ToggleServiceWorkerJsApiSetting()
     // check if chrome and webview objects are available in service worker script.
     m_sampleUri = m_appWindow->GetLocalUri(L"index.html");
     CHECK_FAILURE(m_webView->Navigate(m_sampleUri.c_str()));
+
+    // Setup WebMessageReceived event to receive message from main thread.
+    m_webView->add_WebMessageReceived(
+        Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+            [this](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
+            {
+                wil::unique_cotaskmem_string message;
+                CHECK_FAILURE(args->TryGetWebMessageAsString(&message));
+
+                std::wstring msgStr = message.get();
+                if (msgStr == L"MessageFromMainThread")
+                {
+                    std::wstringstream message{};
+                    message << L"Message: " << std::endl << L"Service Worker Message from Main thread" << std::endl;
+                    m_appWindow->AsyncMessageBox(message.str(), L"Message from Service Worker");
+                }
+                return S_OK;
+            })
+            .Get(),
+        &m_webMessageReceivedToken);
+
+    // Get ServiceWorkerManager from profile and setup events to listen to service worker post messages.
+    auto webView2_13 = m_webView.try_query<ICoreWebView2_13>();
+    CHECK_FEATURE_RETURN_EMPTY(webView2_13);
+
+    wil::com_ptr<ICoreWebView2Profile> webView2Profile;
+    CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
+    auto webViewExperimentalProfile13 =
+        webView2Profile.try_query<ICoreWebView2ExperimentalProfile13>();
+    CHECK_FEATURE_RETURN_EMPTY(webViewExperimentalProfile13);
+    CHECK_FAILURE(
+        webViewExperimentalProfile13->get_ServiceWorkerManager(&m_serviceWorkerManager));
+
+    CHECK_FAILURE(m_serviceWorkerManager->add_ServiceWorkerRegistered(
+        Callback<ICoreWebView2ExperimentalServiceWorkerRegisteredEventHandler>(
+            [this](
+                ICoreWebView2ExperimentalServiceWorkerManager* sender,
+                ICoreWebView2ExperimentalServiceWorkerRegisteredEventArgs* args)
+            {
+                wil::com_ptr<ICoreWebView2ExperimentalServiceWorkerRegistration>
+                    serviceWorkerRegistration;
+                CHECK_FAILURE(args->get_ServiceWorkerRegistration(&serviceWorkerRegistration));
+
+                if (serviceWorkerRegistration)
+                {
+                    wil::unique_cotaskmem_string scopeUri;
+                    CHECK_FAILURE(serviceWorkerRegistration->get_ScopeUri(&scopeUri));
+                    std::wstring scopeUriStr(scopeUri.get());
+
+                    wil::com_ptr<ICoreWebView2ExperimentalServiceWorker> serviceWorker;
+                    CHECK_FAILURE(
+                        serviceWorkerRegistration->get_ActiveServiceWorker(&serviceWorker));
+
+                    if (serviceWorker)
+                    {
+                        SetupEventsOnServiceWorker(serviceWorker);
+                    }
+                    else
+                    {
+                        CHECK_FAILURE(serviceWorkerRegistration->add_ServiceWorkerActivated(
+                            Callback<
+                                ICoreWebView2ExperimentalServiceWorkerActivatedEventHandler>(
+                                [this](
+                                    ICoreWebView2ExperimentalServiceWorkerRegistration* sender,
+                                    ICoreWebView2ExperimentalServiceWorkerActivatedEventArgs*
+                                        args) -> HRESULT
+                                {
+                                    wil::com_ptr<ICoreWebView2ExperimentalServiceWorker>
+                                        serviceWorker;
+                                    CHECK_FAILURE(
+                                        args->get_ActiveServiceWorker(&serviceWorker));
+                                    SetupEventsOnServiceWorker(serviceWorker);
+
+                                    return S_OK;
+                                })
+                                .Get(),
+                            nullptr));
+                    }
+                }
+
+                return S_OK;
+            })
+            .Get(),
+        &m_serviceWorkerRegisteredToken));
+}
+
+void SetupEventsOnServiceWorker(
+    wil::com_ptr<ICoreWebView2ExperimentalServiceWorker> serviceWorker)
+{
+    serviceWorker->add_WebMessageReceived(
+        Callback<ICoreWebView2ExperimentalServiceWorkerWebMessageReceivedEventHandler>(
+            [this](
+                ICoreWebView2ExperimentalServiceWorker* sender,
+                ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
+            {
+
+                wil::unique_cotaskmem_string messageRaw;
+                CHECK_FAILURE(args->TryGetWebMessageAsString(&messageRaw));
+                std::wstring messageFromWorker = messageRaw.get();
+
+                std::wstringstream message{};
+                message << L"Message: " << std::endl << messageFromWorker << std::endl;
+                m_appWindow->AsyncMessageBox(message.str(), L"Message from Service Worker");
+
+                return S_OK;
+            })
+            .Get(),
+        nullptr);
 }
 
 ```
@@ -88,17 +196,8 @@ void ToggleServiceWorkerJsApiSetting()
         navigator.serviceWorker.addEventListener('message', function(event) {
             console.log("Message received from service worker:", event.data);
             
-            // Display the result in the HTML element
-            const resultElement = document.getElementById('result');
-            if (event.data === 'chromeWebViewAvailable') {
-                resultElement.textContent = 'chrome.webview is AVAILABLE in Service Worker';
-                resultElement.style.color = 'green';
-            } else if (event.data === 'chromeWebViewNotAvailable') {
-                resultElement.textContent = 'chrome.webview is NOT AVAILABLE in Service Worker';
-                resultElement.style.color = 'red';
-            } else {
-                resultElement.textContent = 'Received: ' + event.data;
-                resultElement.style.color = 'blue';
+            if (event.data === 'chromeWebViewNotAvailable') {
+                self.chrome.webview.postMessage('MessageFromMainThread');
             }
         });
     </script>
@@ -106,10 +205,6 @@ void ToggleServiceWorkerJsApiSetting()
 <body>
     <h1>Service Worker Post Message Setting</h1>
     <p>This page registers a service worker, posts a message to it, and listens for responses.</p>
-    <p>Check the console for debug information.</p>
-    <div id="result" style="font-size: 18px; font-weight: bold; margin-top: 20px; padding: 10px; border: 2px solid #ccc; border-radius: 5px;">
-        Waiting for service worker response...
-    </div>
 </body>
 </html>
 ```
@@ -117,12 +212,15 @@ void ToggleServiceWorkerJsApiSetting()
 **service_worker.js**
 ```js
 self.addEventListener('message', (event) => {
-  if (event.data.command === 'CHECK_CHROME_WEBVIEW') {
-    if(self.chrome && self.chrome.webview) {
-      event.source.postMessage('chromeWebViewAvailable');
-    } else {
-      event.source.postMessage('chromeWebViewNotAvailable');
-    }
+  if(self.chrome && self.chrome.webview) {
+    event.source.postMessage('chromeWebViewAvailable');
+    // When self.chrome.webview is available, message can be directly posted
+    // to service worker object on host.
+    self.chrome.webview.postMessage('Service Worker Message directly from service worker thread');
+  } else {
+    // When self.chrome.webview is not available, message can be posted back
+    // to main thread, which can then forward it to host.
+    event.source.postMessage('chromeWebViewNotAvailable');
   }
 });
 ```
@@ -142,10 +240,10 @@ private void ToggleServiceWorkerJsApiSetting()
         });");
 
     // Toggle the service worker post message setting.
-    WebViewSettings.IsServiceWorkerJSAPIsEnabled = !WebViewSettings.IsServiceWorkerJSAPIsEnabled;
+    WebViewSettings.IsWebViewScriptApisForServiceWorkerEnabled = !WebViewSettings.IsWebViewScriptApisForServiceWorkerEnabled;
 
     MessageBox.Show(this, 
-        $"IsServiceWorkerJSAPIsEnabled is now set to: {WebViewSettings.IsServiceWorkerJSAPIsEnabled}",
+        $"IsWebViewScriptApisForServiceWorkerEnabled is now set to: {WebViewSettings.IsWebViewScriptApisForServiceWorkerEnabled}",
         "Service Worker JS API Setting", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
     // Navigate to index.html which will register a new service worker and
@@ -162,15 +260,15 @@ private void ToggleServiceWorkerJsApiSetting()
 ## Win32 C++
 ```cpp
 interface ICoreWebView2Settings : IUnknown {
-  /// Gets the `IsServiceWorkerJSAPIsEnabled` property.
-  [propget] HRESULT IsServiceWorkerJSAPIsEnabled([out, retval] BOOL* value);
+  /// Gets the `IsWebViewScriptApisForServiceWorkerEnabled` property.
+  [propget] HRESULT IsWebViewScriptApisForServiceWorkerEnabled([out, retval] BOOL* value);
 
   /// Enables or disables webview2 specific Service Worker JS APIs in the WebView2.
   /// When set to `TRUE`, chrome and webview objects are available in Service Workers .
   /// chrome.webview exposes APIs to interact with the WebView from Service Workers.
   /// The default value is `FALSE`.
   /// When enabled, this setting takes effect for all the newly installed Service Workers.
-  [propput] HRESULT IsServiceWorkerJSAPIsEnabled([in] BOOL value)
+  [propput] HRESULT IsWebViewScriptApisForServiceWorkerEnabled([in] BOOL value)
 }
 
 ```
@@ -183,7 +281,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2StagingSettings")]
         {
-            Boolean IsServiceWorkerJSAPIsEnabled { get; set; };
+            Boolean IsWebViewScriptApisForServiceWorkerEnabled { get; set; };
         }
     }
 }
