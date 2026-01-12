@@ -6,7 +6,7 @@ This API provides a setting to expose the webview2 specific JS APIs on service w
 
 # Description
 
-We propose adding the `ServiceWorkerJSAPIsEnabled` setting API to control the exposure of WebView2-specific JavaScript APIs in service worker scripts. When enabled, developers can use WebView2's service worker postmessage APIs to communicate directly between service worker scripts and the WebView2 host.
+We propose adding the `WebViewScriptApisForServiceWorkerEnabled` setting API to control the exposure of WebView2-specific JavaScript APIs in service worker scripts. When enabled, developers can use WebView2's service worker postmessage APIs to communicate directly between service worker scripts and the WebView2 host.
 
 Previously, WebView2-specific JavaScript APIs were only exposed to service worker scripts when developers subscribed to the `ServiceWorkerRegistered` event. This approach was unreliable because developers could obtain service worker registrations through the `GetServiceWorkerRegistrations` API and attempt to use service worker postmessage APIs, which would fail since the JavaScript APIs were not exposed.
 
