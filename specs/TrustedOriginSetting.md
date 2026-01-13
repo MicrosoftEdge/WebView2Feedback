@@ -35,7 +35,6 @@ This specification introduces the following interfaces:
 
     - AccentColor 
     - EnhancedSecurityMode
-    - PersistentStorage
 
 # Example
 
@@ -56,12 +55,6 @@ void SetOriginFeatures()
         COREWEBVIEW2_ORIGIN_FEATURE_STATE_ENABLED,
         &accentColorSetting));
 
-    wil::com_ptr<ICoreWebView2StagingOriginFeatureSetting> persistentStorageSetting;
-    CHECK_FAILURE(stagingProfile3->CreateOriginFeatureSetting(
-        COREWEBVIEW2_ORIGIN_FEATURE_PERSISTENT_STORAGE,
-        COREWEBVIEW2_ORIGIN_FEATURE_STATE_DISABLED,
-        &persistentStorageSetting));
-
     wil::com_ptr<ICoreWebView2StagingOriginFeatureSetting> enhancedSecuritySetting;
     CHECK_FAILURE(stagingProfile3->CreateOriginFeatureSetting(
         COREWEBVIEW2_ORIGIN_FEATURE_ENHANCED_SECURITY_MODE,
@@ -71,7 +64,6 @@ void SetOriginFeatures()
     // Set features for origin patterns
     ICoreWebView2StagingOriginFeatureSetting* features[] = {
         accentColorSetting.get(),
-        persistentStorageSetting.get(),
         enhancedSecuritySetting.get()
     };
 
@@ -149,7 +141,6 @@ var profile = webView2.CoreWebView2.Profile;
 var features = new[]
 {
     new OriginFeatureSetting(CoreWebView2OriginFeature.AccentColor, CoreWebView2OriginFeatureState.Enabled),
-    new OriginFeatureSetting(CoreWebView2OriginFeature.PersistentStorage, CoreWebView2OriginFeatureState.Disabled),
     new OriginFeatureSetting(CoreWebView2OriginFeature.EnhancedSecurityMode, CoreWebView2OriginFeatureState.Enabled)
 };
 
@@ -176,18 +167,6 @@ typedef enum COREWEBVIEW2_ORIGIN_FEATURE {
   /// For more information about CSS color keywords, see:
   /// https://developer.mozilla.org/en-US/docs/Web/CSS/color_value
   COREWEBVIEW2_ORIGIN_FEATURE_ACCENT_COLOR,
-  /// Specifies persistent storage capabilities for the origin.
-  /// This controls whether data stored by the origin (including Cache API, Cookies,
-  /// localStorage, IndexedDB, File System API, and Service Workers) can be marked as
-  /// persistent. When enabled, WebView2 will not automatically evict the origin's data
-  /// during storage pressure situations such as low disk space. When disabled, the
-  /// origin's data may be cleared by WebView2 when storage space is needed.
-  /// By default, persistent storage is disabled for all origins.
-  /// 
-  /// For more information about persistent storage, see:
-  /// https://web.dev/articles/persistent-storage
-  /// https://developer.mozilla.org/en-US/docs/Web/API/Storage_API
-  COREWEBVIEW2_ORIGIN_FEATURE_PERSISTENT_STORAGE,
   /// Specifies enhanced security mode settings for the origin.
   /// Enhanced Security Mode provides additional protections by disabling or restricting
   /// certain web platform features that may pose security risks, such as JIT compilation,
@@ -231,7 +210,7 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// Configures one or more feature settings for the specified origins. 
 	/// 
 	/// This method applies feature configurations—such as accent color support, 
-	/// persistent storage, or enhanced security mode—to origins. Origins 
+	/// or enhanced security mode—to origins. Origins 
 	/// may be provided as exact origin strings or as wildcard patterns. 
 	/// 
 	/// For examples of origin pattern matching, see the table in: 
@@ -313,7 +292,6 @@ namespace Microsoft.Web.WebView2.Core
     enum CoreWebView2OriginFeature
     {
         AccentColor = 0,
-        PersistentStorage = 1,
         EnhancedSecurityMode = 2,
     };
 
