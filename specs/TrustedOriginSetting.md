@@ -112,7 +112,7 @@ void GetFeatureSettingsForOrigin()
                                 CHECK_FAILURE(result->GetValueAtIndex(i, &setting));
 
                                 COREWEBVIEW2_ORIGIN_FEATURE feature;
-                                BOOL isEnabled;
+                                COREWEBVIEW2_ORIGIN_FEATURE_STATE isEnabled;
                                 CHECK_FAILURE(setting->get_Feature(&feature));
                                 CHECK_FAILURE(setting->get_IsEnabled(&isEnabled));
 
@@ -262,7 +262,7 @@ interface ICoreWebView2StagingOriginFeatureSetting : IUnknown {
   [propget] HRESULT Feature([out, retval] COREWEBVIEW2_ORIGIN_FEATURE* value);
 
   /// Indicates whether the feature is enabled for the origin.
-  [propget] HRESULT IsEnabled([out, retval] BOOL* value);
+  [propget] HRESULT IsEnabled([out, retval] COREWEBVIEW2_ORIGIN_FEATURE_STATE* value);
 }
 
 
@@ -300,7 +300,7 @@ namespace Microsoft.Web.WebView2.Core
         // ICoreWebView2StagingOriginFeatureSetting members
         CoreWebView2OriginFeature Feature { get; };
 
-        Boolean IsEnabled { get; };
+        CoreWebView2OriginFeatureState IsEnabled { get; };
     }
 
     runtimeclass CoreWebView2Profile 
