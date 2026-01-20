@@ -208,36 +208,45 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
       , [out, retval] ICoreWebView2StagingOriginFeatureSetting** value);
 
   /// Configures one or more feature settings for the specified origins. 
-	/// 
-	/// This method applies feature configurations—such as accent color support, 
-	/// or enhanced security mode—to origins. Origins 
-	/// may be provided as exact origin strings or as wildcard patterns. 
-	/// 
-	/// For examples of origin pattern matching, see the table in: 
-	/// https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.addwebresourcerequestedfilter. 
-	/// 
-	/// Calling this method multiple times with the same (featureKind, featureState) 
-	/// pair overwrites the previous configuration; the most recent call takes 
-	/// precedence. 
-	/// 
-	/// When multiple configurations exist for the same feature but specify 
-	/// different featureState values, the configuration whose origin pattern is 
-	/// more specific takes precedence. 
-	/// 
-	/// The specificity of an origin pattern is determined by the presence and 
-	/// placement of wildcards. Three wildcard categories influence specificity: 
-	/// - Wildcards in the port (for example, `https://www.example.com:*/*`) 
-	/// - Wildcards in the scheme (for example, `*://www.example.com:123/*`) 
-	/// - Wildcards in the hostname (for example, `https://*.example.com:123/*`) 
-	/// 
-	/// If one pattern is more specific in one component but less specific in 
-	/// another, specificity is evaluated in the following order: 
-	/// 1. Hostname 
-	/// 2. Scheme 
-	/// 3. Port 
-	/// 
-	/// For example, the following patterns are ordered by precedence: 
-	/// `https://www.example.com:*/*` → `*://www.example.com:123/*` → `https://*.example.com:123/*`.
+  /// 
+  /// This method applies feature configurations—such as accent color support, 
+  /// or enhanced security mode—to origins. Origins 
+  /// may be provided as exact origin strings or as wildcard patterns. 
+  /// 
+  /// The origin pattern can be an exact origin string or a wildcard pattern.
+  /// For wildcard patterns, `*` matches zero or more characters.
+  /// Examples:
+  /// | Origin Filter String | What It Matches | Description |
+  /// |---------|-----------------|-------------|
+  /// | `https://contoso.com` | Only `https://contoso.com` | Matches the exact origin with specific protocol and hostname |
+  /// | `https://[*.]contoso.com` | `https://app.contoso.com`,`https://api.contoso.com`,`https://admin.contoso.com` | Matches any subdomain under the specified domain |
+  /// | `*://contoso.com` | `https://contoso.com`,`http://contoso.com`,`ftp://contoso.com` | Matches any protocol for the specified hostname |
+  /// | `https://www.microsoft.com:*` | `https://www.microsoft.com:123` | Matches any port for the specified origin |
+  /// | `[*.]example.com` | `https://www.example.com`,`http://abc.example.com` | Matches any subdomain with any protocol for the specified domain |
+  /// | `https://xn--qei.example/` | `https://❤.example/`,`https://xn--qei.example/` | Normalized punycode matches with corresponding Non-ASCII hostnames |
+  /// 
+  /// Calling this method multiple times with the same (featureKind, featureState) 
+  /// pair overwrites the previous configuration; the most recent call takes 
+  /// precedence. 
+  /// 
+  /// When multiple configurations exist for the same feature but specify 
+  /// different featureState values, the configuration whose origin pattern is 
+  /// more specific takes precedegnce. 
+  /// 
+  /// The specificity of an origin pattern is determined by the presence and 
+  /// placement of wildcards. Three wildcard categories influence specificity: 
+  /// - Wildcards in the port (for example, `https://www.example.com:*/*`) 
+  /// - Wildcards in the scheme (for example, `*://www.example.com:123/*`) 
+  /// - Wildcards in the hostname (for example, `https://*.example.com:123/*`) 
+  /// 
+  /// If one pattern is more specific in one component but less specific in 
+  /// another, specificity is evaluated in the following order: 
+  /// 1. Hostname 
+  /// 2. Scheme 
+  /// 3. Port 
+  /// 
+  /// For example, the following patterns are ordered by precedence: 
+  /// `https://www.example.com:*/*` → `*://www.example.com:123/*` → `https://*.example.com:123/*`.
   HRESULT SetOriginFeatures(
       [in] UINT32 originsCount,
       [in] LPCWSTR* originPatterns,
