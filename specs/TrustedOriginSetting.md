@@ -49,7 +49,7 @@ This specification introduces the following interfaces:
     - **SetOriginFeatures**: Applies the specified origin feature settings to
       one or more origins associated with this profile.
 
-    - **GetOriginFeatures**: Asynchronously retrieves the origin feature
+    - **GetEffectiveFeaturesForOrigin**: Asynchronously retrieves the origin feature
       settings—both the feature identifier and its enabled/disabled state—for
       a specified origin.
 
@@ -111,9 +111,9 @@ void GetFeatureSettingsForOrigin()
     std::wstring origin = L"https://www.microsoft.com";
 
     CHECK_FAILURE(
-        stagingProfile3->GetOriginFeatures(
+        stagingProfile3->GetEffectiveFeaturesForOrigin(
             origin.c_str(),
-            Callback<ICoreWebView2StagingGetOriginFeaturesCompletedHandler>(
+            Callback<ICoreWebView2StagingGetEffectiveFeaturesForOriginCompletedHandler>(
                 [this, origin](HRESULT errorCode,
                         ICoreWebView2StagingOriginFeatureSettingCollectionView* result) -> HRESULT
                 {
@@ -163,7 +163,7 @@ public void SetOriginFeatures()
 
 private async Task GetFeatureSettingsForOriginAsync()
 {
-    var settings = await m_webviewProfile.GetOriginFeaturesAsync("https://www.microsoft.com/");
+    var settings = await m_webviewProfile.GetEffectiveFeaturesForOriginAsync("https://www.microsoft.com/");
     var builder = new StringBuilder();
     foreach (var setting in settings) {
         builder.AppendLine($"Feature: {setting.Feature}, Enabled = {setting.State}");
@@ -198,6 +198,7 @@ typedef enum COREWEBVIEW2_ORIGIN_FEATURE {
   /// surface. When enabled for an origin, that origin will have Enhanced Security Mode
   /// applied; when disabled, normal security mode is used.
   /// Enhanced security mode can be configured globally via EnhancedSecurityModeLevel API on profile.
+  /// If Enhanced Security Mode is not configured for an origin, the global profile setting will apply.
   /// 
   /// For more information about Enhanced Security Mode, see:
   /// https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/security
@@ -213,8 +214,8 @@ typedef enum COREWEBVIEW2_ORIGIN_FEATURE_STATE {
   COREWEBVIEW2_ORIGIN_FEATURE_STATE_DISABLED,
 } COREWEBVIEW2_ORIGIN_FEATURE_STATE;
 
-/// Receives the result of the `GetOriginFeatures` method.
-interface ICoreWebView2StagingGetOriginFeaturesCompletedHandler : IUnknown {
+/// Receives the result of the `GetEffectiveFeaturesForOrigin` method.
+interface ICoreWebView2StagingGetEffectiveFeaturesForOriginCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
   HRESULT Invoke([in] HRESULT errorCode, [in] ICoreWebView2StagingOriginFeatureSettingCollectionView* result);
 }
@@ -286,9 +287,9 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// The order of features in the returned collection is not guaranteed.
   /// The origin should have a valid scheme and host (e.g. "https://www.example.com"),
   /// otherwise the method fails with `E_INVALIDARG`.
-  HRESULT GetOriginFeatures(
+  HRESULT GetEffectiveFeaturesForOrigin(
       [in] LPCWSTR origin
-      , [in] ICoreWebView2StagingGetOriginFeaturesCompletedHandler* handler);
+      , [in] ICoreWebView2StagingGetEffectiveFeaturesForOriginCompletedHandler* handler);
 }
 
 /// Represents a feature setting configuration for a origin.
@@ -347,7 +348,7 @@ namespace Microsoft.Web.WebView2.Core
                 Windows.Foundation.Collections.IIterable<
                 Windows.Foundation.Collections.IKeyValuePair<CoreWebView2OriginFeature, CoreWebView2OriginFeatureState> > features);
 
-            Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2OriginFeatureSetting> > GetOriginFeaturesAsync(String origin);
+            Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2OriginFeatureSetting> > GetEffectiveFeaturesForOriginAsync(String origin);
         }
     }
 }
