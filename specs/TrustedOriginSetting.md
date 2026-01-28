@@ -3,17 +3,33 @@ Origin Feature Configuration for WebView2
 
 # Background
 
-Many WebView2 applications need to apply different security and feature policies depending on the origin of the content they host. In some scenarios, applications must enable advanced capabilities for specific origins while enforcing stricter protections for other origins.
+Many WebView2 applications need to apply different security and feature
+policies depending on the origin of the content they host. In some scenarios,
+applications must enable advanced capabilities for specific origins while
+enforcing stricter protections for other origins.
 
-By default, WebView2 enforces a single, uniform security model across all origins. This creates two primary limitations:
+By default, WebView2 enforces a single, uniform security model across all
+origins. This creates two primary limitations:
 
-- **Feature Access Control**: Applications cannot selectively enable privileged features—such as specific APIs or advanced capabilities—for certain origins only. As a result, developers must either expose these features to all content or disable them entirely.
+- **Feature Access Control**: Applications cannot selectively enable
+  privileged features—such as specific APIs or advanced capabilities—for
+  certain origins only. As a result, developers must either expose these
+  features to all content or disable them entirely.
 
-- **Performance and Security Trade-offs**: Security mechanisms such as Enhanced Security Mode are essential for external content but may introduce unnecessary overhead when applied to first‑party experiences.
+- **Performance and Security Trade-offs**: Security mechanisms such as
+  Enhanced Security Mode are essential for external content but may introduce
+  unnecessary overhead when applied to first‑party experiences.
 
-For example, a content management system may need to grant full feature access and relax certain security restrictions for its administrative interface, while still applying strict security policies to user‑generated or external content displayed within the same WebView2 instance.
+For example, a content management system may need to grant full feature access
+and relax certain security restrictions for its administrative interface,
+while still applying strict security policies to user‑generated or external
+content displayed within the same WebView2 instance.
 
-The Origin Configuration API enables these scenarios by allowing applications to configure origin-specific settings for different features. Applications can define feature policies for specific origins or origin patterns, giving developers fine‑grained control over how features and security mechanisms are applied to content from various sources.
+The Origin Configuration API enables these scenarios by allowing applications
+to configure origin-specific settings for different features. Applications can
+define feature policies for specific origins or origin patterns, giving
+developers fine‑grained control over how features and security mechanisms are
+applied to content from various sources.
 
 # Description
 
@@ -21,17 +37,28 @@ This specification introduces the following interfaces:
 
 1. `ICoreWebView2Profile3`: 
 
-    The ICoreWebView2Profile3 interface provides APIs for defining, applying, and retrieving origin feature settings. It introduces the following members:
+    The ICoreWebView2Profile3 interface provides APIs for defining, applying,
+    and retrieving origin feature settings. It introduces the following
+    members:
 
-    - **CreateOriginFeatureSetting**: Creates a new CoreWebView2OriginFeatureSetting object. The returned object can be added to the collection passed to SetOriginFeatures to configure feature behavior for origins.
+    - **CreateOriginFeatureSetting**: Creates a new
+      CoreWebView2OriginFeatureSetting object. The returned object can be
+      added to the collection passed to SetOriginFeatures to configure
+      feature behavior for origins.
 
-    - **SetOriginFeatures**: Applies the specified origin feature settings to one or more origins associated with this profile.
+    - **SetOriginFeatures**: Applies the specified origin feature settings to
+      one or more origins associated with this profile.
 
-    - **GetOriginFeatures**: Asynchronously retrieves the origin feature settings—both the feature identifier and its enabled/disabled state—for a specified origin.
+    - **GetOriginFeatures**: Asynchronously retrieves the origin feature
+      settings—both the feature identifier and its enabled/disabled state—for
+      a specified origin.
 
 2. `ICoreWebView2OriginFeatureSetting`: 
 
-    The  ICoreWebView2OriginFeatureSetting interface represents a simple pairing of a feature enumeration value and its corresponding feature state (enabled or disabled). Currently, the feature enumeration supports the following values:
+    The ICoreWebView2OriginFeatureSetting interface represents a simple
+    pairing of a feature enumeration value and its corresponding feature
+    state (enabled or disabled). Currently, the feature enumeration supports
+    the following values:
 
     - AccentColor 
     - EnhancedSecurityMode
@@ -81,72 +108,68 @@ void GetFeatureSettingsForOrigin()
     auto stagingProfile3 =
         m_webviewProfile.try_query<ICoreWebView2StagingProfile3>();
 
-    TextInputDialog inputDialog(
-        m_appWindow->GetMainWindow(),
-        L"Get Origin Features",
-        L"Enter the origin to retrieve feature settings for:",
-        L"Origin:",
-        std::wstring(L"https://www.microsoft.com"),
-        false);  // not read-only
+    std::wstring origin = L"https://www.microsoft.com";
 
-    if (inputDialog.confirmed)
-    {
-        std::wstring origin = inputDialog.input;
-
-        CHECK_FAILURE(
-            stagingProfile3->GetOriginFeatures(
-                origin.c_str(),
-                Callback<ICoreWebView2StagingGetOriginFeaturesCompletedHandler>(
-                    [this, origin](HRESULT errorCode,
-                           ICoreWebView2StagingOriginFeatureSettingCollectionView* result) -> HRESULT
+    CHECK_FAILURE(
+        stagingProfile3->GetOriginFeatures(
+            origin.c_str(),
+            Callback<ICoreWebView2StagingGetOriginFeaturesCompletedHandler>(
+                [this, origin](HRESULT errorCode,
+                        ICoreWebView2StagingOriginFeatureSettingCollectionView* result) -> HRESULT
+                {
+                    if (SUCCEEDED(errorCode))
                     {
-                        if (SUCCEEDED(errorCode))
+                        UINT32 count = 0;
+                        CHECK_FAILURE(result->get_Count(&count));
+
+                        std::wstring message = L"Features for origin: " + origin + L"\n";
+                        for (UINT32 i = 0; i < count; i++)  
                         {
-                            UINT32 count = 0;
-                            CHECK_FAILURE(result->get_Count(&count));
+                            wil::com_ptr<ICoreWebView2StagingOriginFeatureSetting> setting;
+                            CHECK_FAILURE(result->GetValueAtIndex(i, &setting));
 
-                            std::wstring message = L"Features for origin: " + origin + L"\n";
-                            for (UINT32 i = 0; i < count; i++)  
-                            {
-                                wil::com_ptr<ICoreWebView2StagingOriginFeatureSetting> setting;
-                                CHECK_FAILURE(result->GetValueAtIndex(i, &setting));
+                            COREWEBVIEW2_ORIGIN_FEATURE feature;
+                            COREWEBVIEW2_ORIGIN_FEATURE_STATE State;
+                            CHECK_FAILURE(setting->get_Feature(&feature));
+                            CHECK_FAILURE(setting->get_State(&State));
 
-                                COREWEBVIEW2_ORIGIN_FEATURE feature;
-                                COREWEBVIEW2_ORIGIN_FEATURE_STATE isEnabled;
-                                CHECK_FAILURE(setting->get_Feature(&feature));
-                                CHECK_FAILURE(setting->get_IsEnabled(&isEnabled));
-
-                                message += L"Feature: " + std::to_wstring(static_cast<int>(feature)) +
-                                           L", Enabled: " + (isEnabled ? L"True" : L"False") + L"\n";
-                            }
-
-                            MessageBoxW(m_appWindow->GetMainWindow(), message.c_str(), L"Origin Features", MB_OK);
+                            message += L"Feature: " + std::to_wstring(static_cast<int>(feature)) +
+                                        L", Enabled: " + (State ? L"True" : L"False") + L"\n";
                         }
-                        return S_OK;
-                    }).Get()));
-    }
+
+                        MessageBoxW(m_appWindow->GetMainWindow(), message.c_str(), L"Origin Features", MB_OK);
+                    }
+                    return S_OK;
+                }).Get()));
 }
 ```
 
 ### .NET/WinRT 
 
 ```c#
-using OriginFeatureSetting = System.Collections.Generic.KeyValuePair<CoreWebView2OriginFeature, CoreWebView2OriginFeatureState>;
-
-// ...
-
-var profile = webView2.CoreWebView2.Profile;
-
-// Create feature settings collection
-var features = new[]
+public void SetOriginFeatures()
 {
-    new OriginFeatureSetting(CoreWebView2OriginFeature.AccentColor, CoreWebView2OriginFeatureState.Enabled),
-    new OriginFeatureSetting(CoreWebView2OriginFeature.EnhancedSecurityMode, CoreWebView2OriginFeatureState.Enabled)
-};
+    // Create feature settings collection
+    var features = new Dictionary<CoreWebView2OriginFeature, CoreWebView2OriginFeatureState>
+    {
+        { CoreWebView2OriginFeature.AccentColor, CoreWebView2OriginFeatureState.Enabled },
+        { CoreWebView2OriginFeature.EnhancedSecurityMode, CoreWebView2OriginFeatureState.Enabled },
+    };
 
-// Set features for origin patterns
-var origins = new[] { "https://*.contoso.com" };
-profile.SetOriginFeatures(origins, features);
+    // Set features for origin patterns
+    var origins = new[] { "https://*.contoso.com" };
+    m_webviewProfile.SetOriginFeatures(origins, features);
+}
+
+private async Task GetFeatureSettingsForOriginAsync()
+{
+    var settings = await m_webviewProfile.GetOriginFeaturesAsync("https://www.microsoft.com/");
+    var builder = new StringBuilder();
+    foreach (var setting in settings) {
+        builder.AppendLine($"Feature: {setting.Feature}, Enabled = {setting.State}");
+    }
+    m_appWindow.AsyncMessageBox(builder.ToString(), "Origin features");
+}
 ```
 
 
@@ -231,7 +254,7 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// 
   /// When multiple configurations exist for the same feature but specify 
   /// different featureState values, the configuration whose origin pattern is 
-  /// more specific takes precedegnce. 
+  /// more specific takes precedence. 
   /// 
   /// The specificity of an origin pattern is determined by the presence and 
   /// placement of wildcards. Three wildcard categories influence specificity: 
@@ -254,12 +277,15 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
       [in] ICoreWebView2StagingOriginFeatureSetting** features
   );
 
-  /// Gets the feature configurations for a specified origin.
-  /// Returns a collection of feature settings that have been configured for the origin.
-  /// If no features have been configured for the origin, an empty collection is returned.
+  /// Gets the effective feature settings for a specified origin.
+  /// Returns a collection of feature settings for all the features in 
+  /// `COREWEBVIEW2_ORIGIN_FEATURE`. This collection contains the effective 
+  /// (computed) setting values for all features, including features that were 
+  /// not explicitly configured via `SetOriginFeatures` and thus have their 
+  /// default values.
+  /// The order of features in the returned collection is not guaranteed.
   /// The origin should have a valid scheme and host (e.g. "https://www.example.com"),
   /// otherwise the method fails with `E_INVALIDARG`.
-  /// The returned collection contains all the features that are part of `CoreWebView2OriginFeature`.
   HRESULT GetOriginFeatures(
       [in] LPCWSTR origin
       , [in] ICoreWebView2StagingGetOriginFeaturesCompletedHandler* handler);
@@ -271,7 +297,7 @@ interface ICoreWebView2StagingOriginFeatureSetting : IUnknown {
   [propget] HRESULT Feature([out, retval] COREWEBVIEW2_ORIGIN_FEATURE* value);
 
   /// Indicates whether the feature is enabled for the origin.
-  [propget] HRESULT IsEnabled([out, retval] COREWEBVIEW2_ORIGIN_FEATURE_STATE* value);
+  [propget] HRESULT State([out, retval] COREWEBVIEW2_ORIGIN_FEATURE_STATE* value);
 }
 
 
@@ -301,7 +327,7 @@ namespace Microsoft.Web.WebView2.Core
     enum CoreWebView2OriginFeature
     {
         AccentColor = 0,
-        EnhancedSecurityMode = 2,
+        EnhancedSecurityMode = 1,
     };
 
     runtimeclass CoreWebView2OriginFeatureSetting
@@ -309,7 +335,7 @@ namespace Microsoft.Web.WebView2.Core
         // ICoreWebView2StagingOriginFeatureSetting members
         CoreWebView2OriginFeature Feature { get; };
 
-        CoreWebView2OriginFeatureState IsEnabled { get; };
+        CoreWebView2OriginFeatureState State { get; };
     }
 
     runtimeclass CoreWebView2Profile 
