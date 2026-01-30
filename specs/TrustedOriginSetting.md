@@ -271,6 +271,13 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// 
   /// For example, the following patterns are ordered by precedence: 
   /// `https://www.example.com:*/*` → `*://www.example.com:123/*` → `https://*.example.com:123/*`.
+  ///
+  /// To reset the origin list for a particular (feature, state) pair, call
+  /// SetOriginFeatures with an empty origin list or nullptr for the same
+  /// feature setting.
+  /// For example,
+  /// SetOriginFeatures(1, {"https://microsoft.com"}, 1, {{ESM: Enabled}});
+  /// SetOriginFeatures(0, {}, 1, {{ESM: Enabled}}); // Resets {ESM: Enabled}
   HRESULT SetOriginFeatures(
       [in] UINT32 originsCount,
       [in] LPCWSTR* originPatterns,
