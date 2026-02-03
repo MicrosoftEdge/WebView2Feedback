@@ -46,8 +46,8 @@ void ToggleServiceWorkerJsApiSetting()
     {
         // Toggle the service worker post message setting.
         BOOL isEnabled;
-        CHECK_FAILURE(webViewProfileStaging->get_IsWebViewScriptApisForServiceWorkerEnabled(&isEnabled));
-        CHECK_FAILURE(webViewProfileStaging->put_IsWebViewScriptApisForServiceWorkerEnabled(!isEnabled));
+        CHECK_FAILURE(webViewProfileStaging->get_AreWebViewScriptApisForServiceWorkerEnabled(&isEnabled));
+        CHECK_FAILURE(webViewProfileStaging->put_AreWebViewScriptApisForServiceWorkerEnabled(!isEnabled));
         
         MessageBox(
             reinterpret_cast<HWND>(m_appWindow.Id().Value),
@@ -322,7 +322,7 @@ interface ICoreWebView2Profile9 : ICoreWebView2Profile8 {
   /// Gets the `AreWebViewScriptApisEnabledForServiceWorkers` property.
   [propget] HRESULT AreWebViewScriptApisEnabledForServiceWorkers([out, retval] BOOL* value);
 
-  /// Enables or disables webview2 specific Service Worker JS APIs in the WebView2.
+  /// Enables or disables webview2 specific Service Worker JS APIs in the WebView2s associated with this Profile.
   /// When set to `TRUE`, chrome and webview objects are available in Service Workers .
   /// chrome.webview exposes APIs to interact with the WebView from Service Workers.
   /// The default value is `FALSE`.
