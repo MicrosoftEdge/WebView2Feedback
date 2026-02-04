@@ -38,16 +38,16 @@ void ToggleServiceWorkerJsApiSetting()
         nullptr);
 
     wil::com_ptr<ICoreWebView2Profile> webView2Profile;
-    CHECK_FAILURE(webView2_13->get_Profile(&));
-    auto webViewProfileStaging =
-        webView2Profile.try_query<ICoreWebView2StagingProfile2>();
+    CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
+    auto webViewProfile9 =
+        webView2Profile.try_query<ICoreWebView2Profile9>();
 
-    if (webViewProfileStaging)
+    if (webViewProfile9)
     {
         // Toggle the service worker post message setting.
         BOOL isEnabled;
-        CHECK_FAILURE(webViewProfileStaging->get_AreWebViewScriptApisForServiceWorkerEnabled(&isEnabled));
-        CHECK_FAILURE(webViewProfileStaging->put_AreWebViewScriptApisForServiceWorkerEnabled(!isEnabled));
+        CHECK_FAILURE(webViewProfile9->get_AreWebViewScriptApisForServiceWorkerEnabled(&isEnabled));
+        CHECK_FAILURE(webViewProfile9->put_AreWebViewScriptApisForServiceWorkerEnabled(!isEnabled));
         
         MessageBox(
             reinterpret_cast<HWND>(m_appWindow.Id().Value),
@@ -322,11 +322,12 @@ interface ICoreWebView2Profile9 : ICoreWebView2Profile8 {
   /// Gets the `AreWebViewScriptApisEnabledForServiceWorkers` property.
   [propget] HRESULT AreWebViewScriptApisEnabledForServiceWorkers([out, retval] BOOL* value);
 
-  /// Enables or disables webview2 specific Service Worker JS APIs in the WebView2s associated with this Profile.
-  /// When set to `TRUE`, chrome and webview objects are available in Service Workers .
-  /// chrome.webview exposes APIs to interact with the WebView from Service Workers.
-  /// The default value is `FALSE`.
-  /// This setting applies to all newly installed Service Workers within the profile.
+  /// Enables or disables webview2 specific Service Worker JS APIs in the
+  /// WebView2s associated with this Profile. When set to `TRUE`, chrome and
+  /// webview objects are available in Service Workers. chrome.webview exposes
+  /// APIs to interact with the WebView from Service Workers. The default value
+  /// is `FALSE`. This setting applies to all newly installed Service Workers
+  /// within the profile and is not persisted across WebView2 sessions.
   [propput] HRESULT AreWebViewScriptApisEnabledForServiceWorkers([in] BOOL value)
 }
 
