@@ -1,6 +1,8 @@
 # Gathering Diagnostics and Logs
 This folder provides step-by-step instructions for collecting detailed diagnostics and logs to help troubleshoot WebView2-related issues. Before opening a new issue, please review the table below and gather the most relevant diagnostic logs for your scenario. Supplying the appropriate logs greatly improves the chances of a quick and accurate resolution.
 
+ETW and Installer logs can also be collected using this [script](script.md)
+
 | Tool / Log                | Purpose                                                                 | Use Case                                                                 |
 |---------------------------|-------------------------------------------------------------------------|--------------------------------------------------------------------------|
 | [Crash Dumps](crash.md)               | Capture crash data for WebView2 processes.                              | Used when a child process crashes (via ProcessFailed event) or browser process fails. |
