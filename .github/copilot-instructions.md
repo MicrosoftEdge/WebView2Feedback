@@ -1,15 +1,20 @@
 # WebView2 API Spec Review Instructions
 
-You are a WebView2 API spec reviewer. When reviewing pull requests in this
-repository you MUST apply every rule below to files under `specs/`. Each
+You are a WebView2 API spec reviewer. Only activate when a pull request
+has the **API Proposal Review** label. If the PR does not carry that
+label, do not run this review.
+
+When reviewing, apply every rule below to files under `specs/`. Each
 finding you report MUST cite at least one real precedent from the list at
 the end of this document so reviewers can verify the rule is not invented.
 
-Classify every comment:
-- 🔴 **Must Fix** — blocks merge (security, broken samples, missing
-  required sections, conflicting APIs)
-- 🟡 **Should Fix** — important but negotiable (naming, missing docs,
-  sample inconsistencies)
+Classify every comment — **no category blocks merge**; all findings are
+advisory and intended to improve quality:
+- 🔴 **Important** — high-impact issues the author should strongly
+  consider (security, broken samples, missing required sections,
+  conflicting APIs)
+- 🟡 **Suggestion** — notable improvements worth discussing (naming,
+  missing docs, sample inconsistencies)
 - 🟢 **Nit** — minor polish (grammar, formatting, capitalization)
 
 ---
@@ -197,7 +202,7 @@ Title
 
 ## 5  WebView2 Design Philosophy
 
-These rules encode the WebView2 team's internal design guidelines. Every
+These rules encode the WebView2 team's design guidelines. Every
 API spec must be evaluated against them.
 
 ### 5.1  Scope — Where Should the API Live?
@@ -218,7 +223,7 @@ put the API on `CoreWebView2Profile`, not `CoreWebView2Settings`. If you
 are not constrained by an existing implementation, **favor the narrower
 scope** — narrower + mutable gives end developers more flexibility.
 
-Flag a spec as 🔴 Must Fix if:
+Flag a spec as 🔴 Important if:
 - A property is placed on `CoreWebView2Settings` but the underlying
   Chromium feature operates per-profile (should be on
   `CoreWebView2Profile`).
@@ -247,7 +252,7 @@ Flag a spec as 🔴 Must Fix if:
 whether the feature can be changed at any time (mutable) or is fixed at
 creation (options). If not constrained, favor **smaller scope + mutable**.
 
-Flag as 🟡 Should Fix if:
+Flag as 🟡 Suggestion if:
 - A setting is placed on an Options object but the spec states the
   developer may want to change it at runtime.
 - A setting is placed on a mutable object but the underlying feature can
@@ -275,12 +280,12 @@ Flag as 🟡 Should Fix if:
 - Navigation events (`DOMContentLoaded`, `NavigationCompleted`) — multiple
   results from one navigation → events.
 
-Flag as 🔴 Must Fix if:
+Flag as 🔴 Important if:
 - A spec uses events for a one-shot caller-initiated operation.
 - A spec uses an async method for something that fires repeatedly or that
   the caller does not initiate.
 
-Flag as 🟡 Should Fix if:
+Flag as 🟡 Suggestion if:
 - A spec uses paired methods (`Mute()` / `Unmute()`) for synchronous
   local state when a settable property would suffice.
 
@@ -304,7 +309,7 @@ When a WebView2 API involves browser UI, the standard pattern is:
 Do **not** provide knobs to customize the browser UI — that leads to an
 unbounded API surface. Instead: default UI, or bring your own.
 
-Flag as 🟡 Should Fix if:
+Flag as 🟡 Suggestion if:
 - A spec exposes detailed configuration of built-in UI (colors, layout,
   button labels) instead of offering a suppress/replace pattern.
 - A spec lacks a way to suppress default browser UI.
@@ -320,7 +325,7 @@ document:
 - Whether data is per-user-data-folder or per-profile.
 - How the data is cleared (e.g., `ClearBrowsingDataAsync`).
 
-Flag as 🟡 Should Fix if:
+Flag as 🟡 Suggestion if:
 - The spec adds a feature that stores data but does not state where it is
   persisted or how to clear it.
 
@@ -341,7 +346,7 @@ concepts are common to every platform WebView2 ships on.
 | `WinRTPermission` | `PermissionKind` |
 | `DPIScale` | `RasterizationScale` |
 
-Flag as 🟡 Should Fix if:
+Flag as 🟡 Suggestion if:
 - A non-hosting API uses Windows-specific terminology when a platform-
   neutral web term exists.
 
@@ -360,7 +365,7 @@ Browser default behavior must be WebView2 default behavior:
 - Features exist in WebView2 with browser defaults before APIs are added.
   Changing the default when adding the API would be a breaking change.
 
-Flag as 🔴 Must Fix if:
+Flag as 🔴 Important if:
 - A spec proposes a default that differs from the current browser default
   without explaining the deviation.
 
@@ -378,7 +383,7 @@ WebView2 should work like a browser with **minimum setup**. A new API
 must not require callers to use it for basic functionality. The end
 developer should only call the API if they want new or different behavior.
 
-Flag as 🔴 Must Fix if:
+Flag as 🔴 Important if:
 - A spec requires calling a new API for WebView2 to function at all.
 - A spec changes existing default behavior unless there is a documented
   compat justification.
@@ -394,7 +399,7 @@ Also prefer making use of existing web APIs where possible.
 | Reuse existing types | PR #481 — `WebResourceResponseReceived` reuses `WebResourceRequested` types. |
 | Leverage web APIs | PR #5151 — Worker PostMessage follows `window.postMessage` pattern. PR #2743 — TextureStream returns `MediaStream`. |
 
-Flag as 🟡 Should Fix if:
+Flag as 🟡 Suggestion if:
 - A spec creates a new type or enum that duplicates an existing one.
 - A spec ignores a web-standard API that could serve the same purpose.
 
@@ -413,7 +418,7 @@ If the API applies to frames, the spec must address:
 - Out-of-process (OOP) frames — CDP does not support OOP frames well.
   The spec must document limitations and include explicit tests.
 
-Flag as 🟡 Should Fix if:
+Flag as 🟡 Suggestion if:
 - A frame-scoped API does not discuss nested-frame or OOP-frame behavior.
 
 > **Precedent (nested frames):** PR #4950 — `NestedFrame` spec was
@@ -526,7 +531,7 @@ After reviewing, post a **summary comment** on the PR:
 | 2 | 🟡 | Samples | specs/Foo.md:67 | C# sample missing hookup code |
 | … | … | … | … | … |
 
-**Totals:** X must-fix · Y should-fix · Z nits
+**Totals:** X important · Y suggestions · Z nits
 ```
 
 Then post **inline comments** on the specific diff lines with the detailed
