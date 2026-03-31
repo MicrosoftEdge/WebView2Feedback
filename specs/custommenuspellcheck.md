@@ -26,235 +26,310 @@ are unaffected.
 ## Win32 C++
 
 ```cpp
+static constexpr INT32 kSuggestionBase = 50000;
+static constexpr UINT32 kMaxSuggestions = 5;
+
+// Shared state between the menu builder and the async handler
+// that updates the live popup menu in-place.
+struct SpellCheckMenuState
+{
+    HMENU hPopupMenu = nullptr;
+    std::vector<std::wstring> suggestionLabels;
+    bool suggestionsApplied = false;
+};
+
 void ShowCustomContextMenuWithSpellCheck(
+    ICoreWebView2* webview,
+    ICoreWebView2Controller* controller,
     ICoreWebView2ContextMenuRequestedEventArgs* args)
 {
     wil::com_ptr<ICoreWebView2ContextMenuTarget> target;
     CHECK_FAILURE(args->get_ContextMenuTarget(&target));
 
     BOOL isEditable = FALSE;
-    CHECK_FAILURE(target->get_IsEditable(&isEditable));
+    target->get_IsEditable(&isEditable);
 
-    HMENU hMenu = CreatePopupMenu();
-    UINT menuIndex = 0;
+    if (!isEditable)
+        return;
 
-    if (isEditable)
+    // Suppress the default context menu; the host will render its own.
+    CHECK_FAILURE(args->put_Handled(TRUE));
+
+    // Take a deferral so the runtime keeps the event args alive
+    // while the popup menu is open.
+    wil::com_ptr<ICoreWebView2Deferral> deferral;
+    CHECK_FAILURE(args->GetDeferral(&deferral));
+
+    auto spState = std::make_shared<SpellCheckMenuState>();
+    spState->hPopupMenu = CreatePopupMenu();
+    HMENU hPopupMenu = spState->hPopupMenu;
+
+    auto target2 = target.try_query<ICoreWebView2ContextMenuTarget2>();
+    auto args2 = args.try_query<ICoreWebView2ContextMenuRequestedEventArgs2>();
+
+    // --- Query spellcheck state ---
+    COREWEBVIEW2_SPELL_CHECK_READINESS spellState =
+        COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_AVAILABLE;
+    bool hasMisspelled = false;
+
+    if (target2 && args2)
     {
-        auto target2 = target.try_query<ICoreWebView2ContextMenuTarget2>();
-        auto args2 = wil::com_ptr_query<ICoreWebView2ContextMenuRequestedEventArgs2>(args);
+        LPWSTR misspelledRaw = nullptr;
+        wil::com_ptr<ICoreWebView2StringCollection> suggestions;
+        HRESULT hr = target2->GetSpellCheckInfo(
+            &misspelledRaw, &spellState, &suggestions);
 
-        if (target2 && args2)
+        hasMisspelled = SUCCEEDED(hr) && misspelledRaw && misspelledRaw[0];
+
+        if (hasMisspelled)
         {
-            wil::unique_cotaskmem_string misspelledWord;
-            COREWEBVIEW2_SPELL_CHECK_READINESS spellState;
-            wil::com_ptr<ICoreWebView2StringCollection> suggestions;
-            CHECK_FAILURE(target2->GetSpellCheckInfo(
-                &misspelledWord, &spellState, &suggestions));
-
             if (spellState == COREWEBVIEW2_SPELL_CHECK_READINESS_READY)
             {
-                // Suggestions are available — add them to the menu.
+                // Suggestions available — add them directly.
                 UINT32 count = 0;
-                suggestions->get_Count(&count);
-                for (UINT32 i = 0; i < count && i < 5; i++)
+                if (suggestions)
+                    suggestions->get_Count(&count);
+                for (UINT32 i = 0; i < count && i < kMaxSuggestions; i++)
                 {
-                    wil::unique_cotaskmem_string suggestion;
-                    suggestions->GetValueAtIndex(i, &suggestion);
-                    MENUITEMINFO mii = {};
-                    mii.cbSize = sizeof(mii);
-                    mii.fMask = MIIM_STRING | MIIM_ID;
-                    mii.wID = IDM_SPELL_SUGGESTION_BASE + i;
-                    mii.dwTypeData = suggestion.get();
-                    InsertMenuItem(hMenu, menuIndex++, TRUE, &mii);
+                    LPWSTR sugRaw = nullptr;
+                    suggestions->GetValueAtIndex(i, &sugRaw);
+                    if (sugRaw && sugRaw[0])
+                    {
+                        spState->suggestionLabels.push_back(sugRaw);
+                        AppendMenu(hPopupMenu, MF_STRING,
+                                   kSuggestionBase + i, sugRaw);
+                    }
+                    if (sugRaw)
+                        CoTaskMemFree(sugRaw);
                 }
+                spState->suggestionsApplied = true;
             }
             else if (spellState == COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_READY)
             {
-                // Suggestions pending — show placeholder and register async handler.
-                MENUITEMINFO mii = {};
-                mii.cbSize = sizeof(mii);
-                mii.fMask = MIIM_STRING | MIIM_ID | MIIM_STATE;
-                mii.fState = MFS_DISABLED;
-                mii.wID = IDM_SPELL_PLACEHOLDER;
-                mii.dwTypeData = const_cast<LPWSTR>(L"Loading suggestions...");
-                InsertMenuItem(hMenu, menuIndex++, TRUE, &mii);
-
-                // Handler fires when suggestions arrive (or immediately if
-                // already resolved). During TrackPopupMenu's modal loop,
-                // the handler updates the menu in-place.
-                CHECK_FAILURE(args2->add_SpellCheckSuggestionsReady(
-                    Callback<ICoreWebView2SpellCheckSuggestionsReadyEventHandler>(
-                        [hMenu, target2, args2](
-                            ICoreWebView2ContextMenuRequestedEventArgs* sender,
-                            IUnknown* eventArgs) -> HRESULT
-                        {
-                            wil::unique_cotaskmem_string word;
-                            COREWEBVIEW2_SPELL_CHECK_READINESS state;
-                            wil::com_ptr<ICoreWebView2StringCollection> suggs;
-                            CHECK_FAILURE(target2->GetSpellCheckInfo(
-                                &word, &state, &suggs));
-
-                            if (state == COREWEBVIEW2_SPELL_CHECK_READINESS_READY)
-                            {
-                                UINT32 count = 0;
-                                suggs->get_Count(&count);
-                                if (count > 0)
-                                {
-                                    // Replace placeholder with first suggestion.
-                                    wil::unique_cotaskmem_string first;
-                                    suggs->GetValueAtIndex(0, &first);
-                                    MENUITEMINFO mii = {};
-                                    mii.cbSize = sizeof(mii);
-                                    mii.fMask = MIIM_STRING | MIIM_ID | MIIM_STATE;
-                                    mii.fState = MFS_ENABLED;
-                                    mii.wID = IDM_SPELL_SUGGESTION_BASE;
-                                    mii.dwTypeData = first.get();
-                                    SetMenuItemInfo(
-                                        hMenu, IDM_SPELL_PLACEHOLDER, FALSE, &mii);
-
-                                    // Insert remaining suggestions.
-                                    for (UINT32 i = 1; i < count && i < 5; i++)
-                                    {
-                                        wil::unique_cotaskmem_string s;
-                                        suggs->GetValueAtIndex(i, &s);
-                                        MENUITEMINFO item = {};
-                                        item.cbSize = sizeof(item);
-                                        item.fMask = MIIM_STRING | MIIM_ID;
-                                        item.wID = IDM_SPELL_SUGGESTION_BASE + i;
-                                        item.dwTypeData = s.get();
-                                        InsertMenuItem(hMenu, i, TRUE, &item);
-                                    }
-                                }
-
-                                // Repaint the popup menu.
-                                HWND hPopup = FindWindow(L"#32768", nullptr);
-                                if (hPopup)
-                                {
-                                    RedrawWindow(
-                                        hPopup, nullptr, nullptr,
-                                        RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
-                                }
-                            }
-                            return S_OK;
-                        })
-                        .Get(),
-                    &m_spellCheckToken));
+                // Suggestions pending — show placeholder.
+                AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING,
+                           kSuggestionBase, L"Loading suggestions...");
             }
         }
+        if (misspelledRaw)
+            CoTaskMemFree(misspelledRaw);
     }
 
-    // Add standard WebView2 context menu items.
+    // --- Register async handler for in-place update if NOT_READY ---
+    if (spellState == COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_READY
+        && hasMisspelled && args2 && target2)
+    {
+        EventRegistrationToken token;
+        args2->add_SpellCheckSuggestionsReady(
+            Callback<ICoreWebView2SpellCheckSuggestionsReadyEventHandler>(
+                [spState, target2](
+                    ICoreWebView2ContextMenuRequestedEventArgs*,
+                    IUnknown*) -> HRESULT
+                {
+                    if (spState->suggestionsApplied || !spState->hPopupMenu)
+                        return S_OK;
+
+                    // Re-query — should be READY now.
+                    LPWSTR w = nullptr;
+                    COREWEBVIEW2_SPELL_CHECK_READINESS st;
+                    wil::com_ptr<ICoreWebView2StringCollection> sc;
+                    target2->GetSpellCheckInfo(&w, &st, &sc);
+                    if (w)
+                        CoTaskMemFree(w);
+
+                    UINT32 count = 0;
+                    if (sc)
+                        sc->get_Count(&count);
+
+                    for (UINT32 i = 0; i < count && i < kMaxSuggestions; i++)
+                    {
+                        LPWSTR sr = nullptr;
+                        sc->GetValueAtIndex(i, &sr);
+                        if (sr && sr[0])
+                        {
+                            spState->suggestionLabels.push_back(sr);
+                            if (i == 0)
+                            {
+                                // Replace placeholder with first suggestion.
+                                MENUITEMINFOW mii = {};
+                                mii.cbSize = sizeof(mii);
+                                mii.fMask = MIIM_STRING | MIIM_STATE | MIIM_ID;
+                                mii.fState = MFS_ENABLED;
+                                mii.wID = kSuggestionBase;
+                                mii.dwTypeData = sr;
+                                SetMenuItemInfoW(spState->hPopupMenu,
+                                                 kSuggestionBase, FALSE, &mii);
+                            }
+                            else
+                            {
+                                // Insert additional suggestions.
+                                MENUITEMINFOW mii = {};
+                                mii.cbSize = sizeof(mii);
+                                mii.fMask =
+                                    MIIM_STRING | MIIM_STATE | MIIM_ID | MIIM_FTYPE;
+                                mii.fType = MFT_STRING;
+                                mii.fState = MFS_ENABLED;
+                                mii.wID = kSuggestionBase + i;
+                                mii.dwTypeData = sr;
+                                InsertMenuItemW(spState->hPopupMenu,
+                                                i, TRUE, &mii);
+                            }
+                        }
+                        if (sr)
+                            CoTaskMemFree(sr);
+                    }
+                    spState->suggestionsApplied = true;
+
+                    // Force redraw of the live popup menu.
+                    HWND hMenuWnd = FindWindowW(L"#32768", nullptr);
+                    if (hMenuWnd)
+                    {
+                        RedrawWindow(hMenuWnd, nullptr, nullptr,
+                                     RDW_INVALIDATE | RDW_ERASE |
+                                     RDW_FRAME | RDW_ALLCHILDREN);
+                    }
+                    return S_OK;
+                })
+                .Get(),
+            &token);
+    }
+
+    // --- Add standard WebView2 context menu items ---
     wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
     CHECK_FAILURE(args->get_MenuItems(&items));
     UINT32 itemCount;
     CHECK_FAILURE(items->get_Count(&itemCount));
     for (UINT32 i = 0; i < itemCount; i++)
     {
-        wil::com_ptr<ICoreWebView2ContextMenuItem> item;
-        CHECK_FAILURE(items->GetValueAtIndex(i, &item));
-        // ... add each item to hMenu ...
+        wil::com_ptr<ICoreWebView2ContextMenuItem> current;
+        items->GetValueAtIndex(i, &current);
+        // ... add each item to hPopupMenu ...
     }
 
-    // Show the menu.
-    UINT selectedId = TrackPopupMenu(
-        hMenu, TPM_RETURNCMD, pt.x, pt.y, 0, m_hWnd, nullptr);
+    // --- Show popup menu (blocks, but pumps messages so the
+    // SpellCheckSuggestionsReady callback can fire during this) ---
+    HWND hWnd;
+    controller->get_ParentWindow(&hWnd);
+    POINT location;
+    args->get_Location(&location);
+    // Adjust location for WebView bounds and DPI scale as needed.
 
-    // Handle selection.
-    if (selectedId >= IDM_SPELL_SUGGESTION_BASE &&
-        selectedId < IDM_SPELL_SUGGESTION_BASE + 5)
+    INT32 selectedCmd = TrackPopupMenu(
+        hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD,
+        location.x, location.y, 0, hWnd, nullptr);
+
+    spState->hPopupMenu = nullptr;
+
+    // --- Handle selection ---
+    if (selectedCmd >= kSuggestionBase &&
+        selectedCmd < kSuggestionBase + (INT32)kMaxSuggestions)
     {
-        // Apply the selected spellcheck suggestion.
-        wil::unique_cotaskmem_string word;
-        COREWEBVIEW2_SPELL_CHECK_READINESS state;
-        wil::com_ptr<ICoreWebView2StringCollection> suggs;
-        target2->GetSpellCheckInfo(&word, &state, &suggs);
-        wil::unique_cotaskmem_string chosen;
-        suggs->GetValueAtIndex(selectedId - IDM_SPELL_SUGGESTION_BASE, &chosen);
-        args2->ApplySpellCheckSuggestion(chosen.get());
+        UINT32 idx = selectedCmd - kSuggestionBase;
+        if (idx < spState->suggestionLabels.size() && args2)
+        {
+            args2->ApplySpellCheckSuggestion(
+                spState->suggestionLabels[idx].c_str());
+        }
+    }
+    else if (selectedCmd > 0)
+    {
+        args->put_SelectedCommandId(selectedCmd);
     }
 
-    args->put_Handled(TRUE);
-    DestroyMenu(hMenu);
+    DestroyMenu(hPopupMenu);
+    deferral->Complete();
 }
 ```
 
 ## C#/.NET
 
 ```csharp
-void ShowCustomContextMenuWithSpellCheck(
+async void ShowCustomContextMenuWithSpellCheck(
     object sender, CoreWebView2ContextMenuRequestedEventArgs args)
 {
     var target = args.ContextMenuTarget;
-    var menuItems = new List<ToolStripItem>();
 
-    if (target.IsEditable)
+    if (!target.IsEditable)
+        return;
+
+    // Suppress the default context menu.
+    args.Handled = true;
+
+    // Take a deferral so the runtime keeps the event args alive.
+    var deferral = args.GetDeferral();
+
+    try
     {
         string misspelledWord = target.MisspelledWord;
         CoreWebView2SpellCheckReadiness spellState = target.SpellCheckReadiness;
         IReadOnlyList<string> suggestions = target.SpellCheckSuggestions;
 
-        if (spellState == CoreWebView2SpellCheckReadiness.Ready && suggestions.Count > 0)
-        {
-            // Suggestions available — add them directly.
-            foreach (string suggestion in suggestions.Take(5))
-            {
-                var item = new ToolStripMenuItem(suggestion);
-                item.Click += (s, e) =>
-                {
-                    args.ApplySpellCheckSuggestion(suggestion);
-                };
-                menuItems.Add(item);
-            }
-            menuItems.Add(new ToolStripSeparator());
-        }
-        else if (spellState == CoreWebView2SpellCheckReadiness.NotReady)
-        {
-            // Suggestions pending — show placeholder.
-            var placeholder = new ToolStripMenuItem("Loading suggestions...")
-            {
-                Enabled = false
-            };
-            menuItems.Add(placeholder);
-            menuItems.Add(new ToolStripSeparator());
+        var contextMenu = new ContextMenuStrip();
 
-            // Register async handler. Fires when suggestions resolve
-            // or immediately if already resolved.
-            args.SpellCheckSuggestionsReady += (s, e) =>
+        if (!string.IsNullOrEmpty(misspelledWord))
+        {
+            if (spellState == CoreWebView2SpellCheckReadiness.Ready
+                && suggestions.Count > 0)
             {
-                string word = target.MisspelledWord;
-                var readySuggestions = target.SpellCheckSuggestions;
-                if (target.SpellCheckReadiness == CoreWebView2SpellCheckReadiness.Ready
-                    && readySuggestions.Count > 0)
+                // Suggestions available — add them directly.
+                foreach (string suggestion in suggestions.Take(5))
                 {
-                    // Replace placeholder with actual suggestions.
-                    int index = menuItems.IndexOf(placeholder);
-                    menuItems.Remove(placeholder);
-                    foreach (string suggestion in readySuggestions.Take(5))
+                    var item = new ToolStripMenuItem(suggestion);
+                    item.Click += (s, e) =>
                     {
-                        var item = new ToolStripMenuItem(suggestion);
-                        item.Click += (s2, e2) =>
-                        {
-                            args.ApplySpellCheckSuggestion(suggestion);
-                        };
-                        menuItems.Insert(index++, item);
-                    }
+                        args.ApplySpellCheckSuggestion(suggestion);
+                    };
+                    contextMenu.Items.Add(item);
                 }
-            };
+                contextMenu.Items.Add(new ToolStripSeparator());
+            }
+            else if (spellState == CoreWebView2SpellCheckReadiness.NotReady)
+            {
+                // Suggestions pending — show placeholder.
+                var placeholder = new ToolStripMenuItem("Loading suggestions...")
+                {
+                    Enabled = false
+                };
+                contextMenu.Items.Insert(0, placeholder);
+                contextMenu.Items.Insert(1, new ToolStripSeparator());
+
+                // Handler fires when suggestions resolve
+                // or immediately if already resolved.
+                args.SpellCheckSuggestionsReady += (s, e) =>
+                {
+                    var readySuggestions = target.SpellCheckSuggestions;
+                    if (target.SpellCheckReadiness ==
+                            CoreWebView2SpellCheckReadiness.Ready
+                        && readySuggestions.Count > 0)
+                    {
+                        int index = contextMenu.Items.IndexOf(placeholder);
+                        contextMenu.Items.Remove(placeholder);
+                        foreach (string suggestion in readySuggestions.Take(5))
+                        {
+                            var item = new ToolStripMenuItem(suggestion);
+                            item.Click += (s2, e2) =>
+                            {
+                                args.ApplySpellCheckSuggestion(suggestion);
+                            };
+                            contextMenu.Items.Insert(index++, item);
+                        }
+                    }
+                };
+            }
         }
-    }
 
-    // Add standard WebView2 context menu items.
-    foreach (var menuItem in args.MenuItems)
+        // Add standard WebView2 context menu items.
+        foreach (var menuItem in args.MenuItems)
+        {
+            // ... add each item to contextMenu ...
+        }
+
+        contextMenu.Show(webView, webView.PointToClient(Cursor.Position));
+    }
+    finally
     {
-        // ... add each item to menuItems ...
+        deferral.Complete();
     }
-
-    // Show the context menu.
-    var contextMenu = new ContextMenuStrip();
-    contextMenu.Items.AddRange(menuItems.ToArray());
-    contextMenu.Show(webView, webView.PointToClient(Cursor.Position));
-
-    args.Handled = true;
 }
 ```
 
