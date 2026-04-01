@@ -13,7 +13,7 @@ these suggestions.
 We propose extending the existing `ContextMenuRequested` API surface with spellcheck support for custom
 context menus. This adds the ability to:
 
-1. Query spellcheck information (misspelled word, readiness state, suggestions) from the context menu target.
+1. Query spellcheck suggestion readiness state and suggestions from the context menu target.
 2. Subscribe to an asynchronous notification when spellcheck suggestions become available.
 3. Apply a selected spellcheck suggestion to replace the misspelled word in the DOM.
 
@@ -47,7 +47,7 @@ void ShowCustomContextMenuWithSpellCheck(
     CHECK_FAILURE(args->get_ContextMenuTarget(&target));
 
     BOOL isEditable = FALSE;
-    target->get_IsEditable(&isEditable);
+    CHECK_FAILURE(target->get_IsEditable(&isEditable));
 
     if (!isEditable)
         return;
@@ -70,54 +70,49 @@ void ShowCustomContextMenuWithSpellCheck(
     // --- Query spellcheck state ---
     COREWEBVIEW2_SPELL_CHECK_READINESS spellState =
         COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_AVAILABLE;
-    bool hasMisspelled = false;
 
     if (target2 && args2)
     {
-        LPWSTR misspelledRaw = nullptr;
-        wil::com_ptr<ICoreWebView2StringCollection> suggestions;
-        HRESULT hr = target2->GetSpellCheckInfo(
-            &misspelledRaw, &spellState, &suggestions);
+        COREWEBVIEW2_SPELL_CHECK_READINESS readiness;
+        HRESULT hr = target2->get_SpellCheckReadiness(&readiness);
 
-        hasMisspelled = SUCCEEDED(hr) && misspelledRaw && misspelledRaw[0];
+        if (SUCCEEDED(hr))
+            spellState = readiness;
 
-        if (hasMisspelled)
+        if (spellState == COREWEBVIEW2_SPELL_CHECK_READINESS_READY)
         {
-            if (spellState == COREWEBVIEW2_SPELL_CHECK_READINESS_READY)
+            // Suggestions available — add them directly.
+            wil::com_ptr<ICoreWebView2StringCollection> suggestions;
+            target2->get_SpellCheckSuggestions(&suggestions);
+            UINT32 count = 0;
+            if (suggestions)
+                suggestions->get_Count(&count);
+            for (UINT32 i = 0; i < count && i < kMaxSuggestions; i++)
             {
-                // Suggestions available — add them directly.
-                UINT32 count = 0;
-                if (suggestions)
-                    suggestions->get_Count(&count);
-                for (UINT32 i = 0; i < count && i < kMaxSuggestions; i++)
+                LPWSTR sugRaw = nullptr;
+                suggestions->GetValueAtIndex(i, &sugRaw);
+                if (sugRaw && sugRaw[0])
                 {
-                    LPWSTR sugRaw = nullptr;
-                    suggestions->GetValueAtIndex(i, &sugRaw);
-                    if (sugRaw && sugRaw[0])
-                    {
-                        spState->suggestionLabels.push_back(sugRaw);
-                        AppendMenu(hPopupMenu, MF_STRING,
-                                   kSuggestionBase + i, sugRaw);
-                    }
-                    if (sugRaw)
-                        CoTaskMemFree(sugRaw);
+                    spState->suggestionLabels.push_back(sugRaw);
+                    AppendMenu(hPopupMenu, MF_STRING,
+                               kSuggestionBase + i, sugRaw);
                 }
-                spState->suggestionsApplied = true;
+                if (sugRaw)
+                    CoTaskMemFree(sugRaw);
             }
-            else if (spellState == COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_READY)
-            {
-                // Suggestions pending — show placeholder.
-                AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING,
-                           kSuggestionBase, L"Loading suggestions...");
-            }
+            spState->suggestionsApplied = true;
         }
-        if (misspelledRaw)
-            CoTaskMemFree(misspelledRaw);
+        else if (spellState == COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_READY)
+        {
+            // Suggestions pending — show placeholder.
+            AppendMenu(hPopupMenu, MF_GRAYED | MF_STRING,
+                       kSuggestionBase, L"Loading suggestions...");
+        }
     }
 
     // --- Register async handler for in-place update if NOT_READY ---
     if (spellState == COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_READY
-        && hasMisspelled && args2 && target2)
+        && args2 && target2)
     {
         EventRegistrationToken token;
         args2->add_SpellCheckSuggestionsReady(
@@ -130,12 +125,11 @@ void ShowCustomContextMenuWithSpellCheck(
                         return S_OK;
 
                     // Re-query — should be READY now.
-                    LPWSTR w = nullptr;
                     COREWEBVIEW2_SPELL_CHECK_READINESS st;
+                    target2->get_SpellCheckReadiness(&st);
+
                     wil::com_ptr<ICoreWebView2StringCollection> sc;
-                    target2->GetSpellCheckInfo(&w, &st, &sc);
-                    if (w)
-                        CoTaskMemFree(w);
+                    target2->get_SpellCheckSuggestions(&sc);
 
                     UINT32 count = 0;
                     if (sc)
@@ -210,13 +204,31 @@ void ShowCustomContextMenuWithSpellCheck(
     // SpellCheckSuggestionsReady callback can fire during this) ---
     HWND hWnd;
     controller->get_ParentWindow(&hWnd);
+    SetForegroundWindow(hWnd);
+
+    // Convert WebView-relative coordinates to screen coordinates.
+    RECT bounds;
+    controller->get_Bounds(&bounds);
+    RECT clientRect;
+    GetClientRect(hWnd, &clientRect);
+    POINT topLeft = {clientRect.left, clientRect.top};
+    ClientToScreen(hWnd, &topLeft);
+
     POINT location;
     args->get_Location(&location);
-    // Adjust location for WebView bounds and DPI scale as needed.
+
+    // Account for DPI scaling.
+    double scale = 1.0;
+    wil::com_ptr<ICoreWebView2Controller3> ctrl3;
+    if (SUCCEEDED(controller->QueryInterface(IID_PPV_ARGS(&ctrl3))))
+        ctrl3->get_RasterizationScale(&scale);
+
+    int screenX = bounds.left + topLeft.x + static_cast<int>(location.x * scale);
+    int screenY = bounds.top + topLeft.y + static_cast<int>(location.y * scale);
 
     INT32 selectedCmd = TrackPopupMenu(
         hPopupMenu, TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD,
-        location.x, location.y, 0, hWnd, nullptr);
+        screenX, screenY, 0, hWnd, nullptr);
 
     spState->hPopupMenu = nullptr;
 
@@ -237,14 +249,14 @@ void ShowCustomContextMenuWithSpellCheck(
     }
 
     DestroyMenu(hPopupMenu);
-    deferral->Complete();
+    CHECK_FAILURE(deferral->Complete());
 }
 ```
 
-## C#/.NET
+## .NET/WinRT
 
 ```csharp
-async void ShowCustomContextMenuWithSpellCheck(
+void ShowCustomContextMenuWithSpellCheck(
     object sender, CoreWebView2ContextMenuRequestedEventArgs args)
 {
     var target = args.ContextMenuTarget;
@@ -260,62 +272,58 @@ async void ShowCustomContextMenuWithSpellCheck(
 
     try
     {
-        string misspelledWord = target.MisspelledWord;
         CoreWebView2SpellCheckReadiness spellState = target.SpellCheckReadiness;
         IReadOnlyList<string> suggestions = target.SpellCheckSuggestions;
 
         var contextMenu = new ContextMenuStrip();
 
-        if (!string.IsNullOrEmpty(misspelledWord))
+        if (spellState == CoreWebView2SpellCheckReadiness.Ready
+            && suggestions.Count > 0)
         {
-            if (spellState == CoreWebView2SpellCheckReadiness.Ready
-                && suggestions.Count > 0)
+            // Suggestions available — add them directly.
+            foreach (string suggestion in suggestions.Take(5))
             {
-                // Suggestions available — add them directly.
-                foreach (string suggestion in suggestions.Take(5))
+                var item = new ToolStripMenuItem(suggestion);
+                item.Click += (s, e) =>
                 {
-                    var item = new ToolStripMenuItem(suggestion);
-                    item.Click += (s, e) =>
-                    {
-                        args.ApplySpellCheckSuggestion(suggestion);
-                    };
-                    contextMenu.Items.Add(item);
-                }
-                contextMenu.Items.Add(new ToolStripSeparator());
-            }
-            else if (spellState == CoreWebView2SpellCheckReadiness.NotReady)
-            {
-                // Suggestions pending — show placeholder.
-                var placeholder = new ToolStripMenuItem("Loading suggestions...")
-                {
-                    Enabled = false
+                    args.ApplySpellCheckSuggestion(suggestion);
                 };
-                contextMenu.Items.Insert(0, placeholder);
-                contextMenu.Items.Insert(1, new ToolStripSeparator());
+                contextMenu.Items.Add(item);
+            }
+            contextMenu.Items.Add(new ToolStripSeparator());
+        }
+        else if (spellState == CoreWebView2SpellCheckReadiness.NotReady)
+        {
+            // Suggestions pending — show placeholder.
+            var placeholder = new ToolStripMenuItem("Loading suggestions...")
+            {
+                Enabled = false
+            };
+            contextMenu.Items.Insert(0, placeholder);
+            contextMenu.Items.Insert(1, new ToolStripSeparator());
 
-                // Handler fires when suggestions resolve
-                // or immediately if already resolved.
-                args.SpellCheckSuggestionsReady += (s, e) =>
+            // Handler fires when suggestions resolve
+            // or immediately if already resolved.
+            args.SpellCheckSuggestionsReady += (s, e) =>
+            {
+                var readySuggestions = target.SpellCheckSuggestions;
+                if (target.SpellCheckReadiness ==
+                        CoreWebView2SpellCheckReadiness.Ready
+                    && readySuggestions.Count > 0)
                 {
-                    var readySuggestions = target.SpellCheckSuggestions;
-                    if (target.SpellCheckReadiness ==
-                            CoreWebView2SpellCheckReadiness.Ready
-                        && readySuggestions.Count > 0)
+                    int index = contextMenu.Items.IndexOf(placeholder);
+                    contextMenu.Items.Remove(placeholder);
+                    foreach (string suggestion in readySuggestions.Take(5))
                     {
-                        int index = contextMenu.Items.IndexOf(placeholder);
-                        contextMenu.Items.Remove(placeholder);
-                        foreach (string suggestion in readySuggestions.Take(5))
+                        var item = new ToolStripMenuItem(suggestion);
+                        item.Click += (s2, e2) =>
                         {
-                            var item = new ToolStripMenuItem(suggestion);
-                            item.Click += (s2, e2) =>
-                            {
-                                args.ApplySpellCheckSuggestion(suggestion);
-                            };
-                            contextMenu.Items.Insert(index++, item);
-                        }
+                            args.ApplySpellCheckSuggestion(suggestion);
+                        };
+                        contextMenu.Items.Insert(index++, item);
                     }
-                };
-            }
+                }
+            };
         }
 
         // Add standard WebView2 context menu items.
@@ -367,28 +375,28 @@ interface ICoreWebView2SpellCheckSuggestionsReadyEventHandler : IUnknown {
 
 /// Extends ICoreWebView2ContextMenuTarget with spellcheck information
 /// for custom context menu integration. Allows host applications to retrieve
-/// spellcheck suggestions and metadata when rendering custom menus
-/// on editable fields.
+/// spellcheck suggestions when rendering custom menus on editable fields.
 [uuid(d3f7e01a-9b5c-4e8f-a1d2-7c6b3e4f5a80), object, pointer_default(unique)]
 interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
-  /// Gets spellcheck information for the current context menu target in a
-  /// single call. Returns the misspelled word (empty if none), the readiness
-  /// state of suggestions, and a collection of suggestion strings.
+  /// Gets the readiness state of spellcheck suggestions for the current
+  /// context menu target.
   ///
-  /// The caller must free `misspelledWord` with `CoTaskMemFree`.
-  ///
-  /// When `state` is `COREWEBVIEW2_SPELL_CHECK_READINESS_READY`, the
-  /// `suggestions` collection is populated with correction strings.
-  /// When `state` is `COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_READY`, the
+  /// When the value is `COREWEBVIEW2_SPELL_CHECK_READINESS_READY`, the
+  /// `SpellCheckSuggestions` collection is populated with correction strings.
+  /// When the value is `COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_READY`, the
   /// collection is empty; subscribe to `SpellCheckSuggestionsReady` on
   /// `ICoreWebView2ContextMenuRequestedEventArgs2` to be notified when
-  /// suggestions become available, then call this method again.
-  /// When `state` is `COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_AVAILABLE` or
+  /// suggestions become available.
+  /// When the value is `COREWEBVIEW2_SPELL_CHECK_READINESS_NOT_AVAILABLE` or
   /// `COREWEBVIEW2_SPELL_CHECK_READINESS_ERROR`, no suggestions will arrive.
-  HRESULT GetSpellCheckInfo(
-      [out] LPWSTR* misspelledWord,
-      [out] COREWEBVIEW2_SPELL_CHECK_READINESS* state,
-      [out, retval] ICoreWebView2StringCollection** suggestions);
+  [propget] HRESULT SpellCheckReadiness(
+      [out, retval] COREWEBVIEW2_SPELL_CHECK_READINESS* value);
+
+  /// Gets the collection of spellcheck suggestion strings for the misspelled
+  /// word at the current context menu target. The collection is empty when
+  /// `SpellCheckReadiness` is not `READY`.
+  [propget] HRESULT SpellCheckSuggestions(
+      [out, retval] ICoreWebView2StringCollection** value);
 }
 
 /// Extends ICoreWebView2ContextMenuRequestedEventArgs with methods to apply
@@ -398,8 +406,8 @@ interface ICoreWebView2ContextMenuRequestedEventArgs2
     : ICoreWebView2ContextMenuRequestedEventArgs {
   /// Applies the selected spellcheck suggestion by replacing the misspelled
   /// word in the currently focused editable field. The `suggestion` parameter
-  /// must be one of the strings obtained from the `suggestions` collection
-  /// returned by `ICoreWebView2ContextMenuTarget2::GetSpellCheckInfo`.
+  /// must be one of the strings obtained from the `SpellCheckSuggestions`
+  /// collection on `ICoreWebView2ContextMenuTarget2`.
   /// The runtime handles all editing internally, including routing to the
   /// correct frame for nested iframes.
   HRESULT ApplySpellCheckSuggestion([in] LPCWSTR suggestion);
@@ -419,7 +427,7 @@ interface ICoreWebView2ContextMenuRequestedEventArgs2
 }
 ```
 
-## .NET/C#
+## .NET/WinRT
 
 ```csharp
 namespace Microsoft.Web.WebView2.Core
@@ -436,7 +444,6 @@ namespace Microsoft.Web.WebView2.Core
     {
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2ContextMenuTarget2")]
         {
-            String MisspelledWord { get; };
             CoreWebView2SpellCheckReadiness SpellCheckReadiness { get; };
             IVectorView<String> SpellCheckSuggestions { get; };
         }
