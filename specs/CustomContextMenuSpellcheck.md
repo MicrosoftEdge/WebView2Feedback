@@ -395,7 +395,7 @@ Each `ICoreWebView2ContextMenuItem` returned by `GetSpellCheckSuggestionsAsync` 
 |----------|-------|
 | `Label` | Suggestion text (e.g., "the") |
 | `CommandId` | WebView2-allocated opaque ID (e.g., 50001) |
-| `Name` | `"spellcheck"` |
+| `Name` | `"spellCheckSuggestion"` |
 | `Kind` | `COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_COMMAND` |
 | `IsEnabled` | `TRUE` |
 | `IsChecked` | `FALSE` |
@@ -425,6 +425,22 @@ The deferred capability pattern introduced by this feature is designed for zero-
 |------------------------|-----------------|
 | New flag constant | for example - `COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_EMOJI = 0x2` |
 | New capability interface | `ICoreWebView2ContextMenuEmoji : IUnknown { ... }` |
+
+## Planned SpellCheck Extensions
+
+The following actions will be added as additional `ICoreWebView2ContextMenuItem` entries in the
+collection returned by `GetSpellCheckSuggestionsAsync`. No new interfaces or methods are required:
+
+| Action | `Name` value |
+|--------|-------------|
+| Add to Dictionary | `"spellCheckAddToDictionary"` |
+| Ignore (session) | `"spellCheckIgnore"` |
+
+These follow the same commanding model: the host renders them like any other item and applies via
+`SelectedCommandId`. A `Language` property (BCP-47 tag of the dictionary that flagged the misspelling)
+will also be added to `ICoreWebView2ContextMenuSpellCheck` in a follow-up version. Profile-level
+spellcheck configuration (`IsSpellCheckEnabled`, `SpellCheckLanguages`) is tracked as a separate
+follow-up.
 
 ## Relationship to Existing APIs
 
