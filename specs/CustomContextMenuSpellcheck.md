@@ -1,4 +1,4 @@
-Custom Context Menu SpellCheck
+Spellcheck Support for Custom Context Menus
 ===
 
 # Background
@@ -11,7 +11,7 @@ these suggestions.
 This feature adds spellcheck support to custom context menus. Because spellcheck suggestions arrive
 asynchronously (after the `ContextMenuRequested` event fires), the feature introduces a deferred
 capability discovery pattern on `ICoreWebView2ContextMenuRequestedEventArgs2` that allows the host to
-detect and acquire async capabilities at event time. SpellCheck is the first capability delivered
+detect and acquire async capabilities at event time. Spellcheck is the first capability delivered
 through this pattern; the same extensible mechanism will support future capabilities (emoji panel,
 voice typing, etc.) without requiring additional EventArgs versions.
 
@@ -26,7 +26,7 @@ This new interface provides:
   interface. For spellcheck, the host passes `IID_ICoreWebView2ContextMenuSpellCheck`.
 
 **Runtime version detection:** If `QueryInterface` for `EventArgs2` returns `E_NOINTERFACE`, the host
-is running on an older runtime that doesn't support this feature.
+is running on an older runtime that does not support this feature.
 
 The spellcheck capability interface (`ICoreWebView2ContextMenuSpellCheck`) provides:
 
@@ -48,97 +48,168 @@ applicable (non-editable field, correctly-spelled word, or spellcheck disabled b
 
 # Examples
 
-## Win32 C++
+## Win32 C++ — Display Custom Context Menu with Spellcheck Suggestions
 
 ```cpp
-// Inside ContextMenuRequested handler for an editable field:
+webView->add_ContextMenuRequested(
+    Callback<ICoreWebView2ContextMenuRequestedEventHandler>(
+        [this](ICoreWebView2* sender,
+               ICoreWebView2ContextMenuRequestedEventArgs* args) -> HRESULT
+        {
+            // ── Step 1: Runtime version check ──
+            auto args2 = wil::try_com_query<
+                ICoreWebView2ContextMenuRequestedEventArgs2>(args);
+            if (!args2)
+                return S_OK; // Old runtime — use default menu.
 
-// ── Step 1: Runtime version check ──
-auto args2 = wil::try_com_query<
-    ICoreWebView2ContextMenuRequestedEventArgs2>(args);
-if (!args2)
-    return S_OK;  // Old runtime — use default menu.
+            // ── Step 2: Discover deferred capabilities ──
+            COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES caps =
+                COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_NONE;
+            CHECK_FAILURE(args2->get_DeferredCapabilities(&caps));
 
-// ── Step 2: Discover deferred capabilities ──
-COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES caps =
-    COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_NONE;
-CHECK_FAILURE(args2->get_DeferredCapabilities(&caps));
+            if (!(caps &
+                  COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_SPELL_CHECK))
+                return S_OK; // No misspelling — use default menu.
 
-if (!(caps & COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_SPELL_CHECK))
-    return S_OK;  // No misspelling — use default menu.
+            // ── Step 3: Acquire spellcheck interface ──
+            wil::com_ptr<ICoreWebView2ContextMenuSpellCheck> spellCheck;
+            CHECK_FAILURE(
+                args2->GetDeferredCapability(IID_PPV_ARGS(&spellCheck)));
 
-// ── Step 3: Acquire spellcheck interface ──
-wil::com_ptr<ICoreWebView2ContextMenuSpellCheck> spellCheck;
-CHECK_FAILURE(args2->GetDeferredCapability(IID_PPV_ARGS(&spellCheck)));
+            // ── Step 4: Take over rendering (only after confirming spellcheck) ──
+            CHECK_FAILURE(args->put_Handled(TRUE));
+            wil::com_ptr<ICoreWebView2Deferral> deferral;
+            CHECK_FAILURE(args->GetDeferral(&deferral));
 
-// ── Step 4: Take over menu rendering (only after confirming spellcheck) ──
-CHECK_FAILURE(args->put_Handled(TRUE));
-wil::com_ptr<ICoreWebView2Deferral> deferral;
-CHECK_FAILURE(args->GetDeferral(&deferral));
+            // ── Step 5: Read misspelled word (synchronous) ──
+            wil::unique_cotaskmem_string misspelledWord;
+            CHECK_FAILURE(spellCheck->get_MisspelledWord(&misspelledWord));
 
-// ── Step 5: Read misspelled word (synchronous) ──
-wil::unique_cotaskmem_string misspelledWord;
-spellCheck->get_MisspelledWord(&misspelledWord);
+            // ── Step 6: Get suggestions and build menu in the callback ──
+            wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
+            args->get_MenuItems(&items);
 
-// ── Step 6: Get suggestions and build menu in the callback ──
-// Build the menu inside the callback so all items are present before display.
-wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
-args->get_MenuItems(&items);
-
-m_appWindow->RunAsync(
-    [this, args, spellCheck, items, deferral,
-     word = std::wstring(misspelledWord.get())]()
-    {
-        spellCheck->GetSpellCheckSuggestionsAsync(
-            Callback<ICoreWebView2GetSpellCheckSuggestionsCompletedHandler>(
-                [this, args, items, deferral, word](
-                    HRESULT errorCode,
-                    ICoreWebView2ContextMenuItemCollection* suggestions) -> HRESULT
+            m_appWindow->RunAsync(
+                [this, args, spellCheck, items, deferral,
+                 word = std::wstring(misspelledWord.get())]()
                 {
-                    HMENU hMenu = CreatePopupMenu();
+                    spellCheck->GetSpellCheckSuggestionsAsync(
+                        Callback<
+                            ICoreWebView2GetSpellCheckSuggestionsCompletedHandler>(
+                            [this, args, items, deferral, word](
+                                HRESULT errorCode,
+                                ICoreWebView2ContextMenuItemCollection*
+                                    suggestions) -> HRESULT
+                            {
+                                HMENU hMenu = CreatePopupMenu();
 
-                    // Add spellcheck suggestions at the top.
-                    UINT32 sugCount = 0;
-                    if (SUCCEEDED(errorCode) && suggestions)
-                        suggestions->get_Count(&sugCount);
+                                // Add spellcheck suggestions at the top.
+                                UINT32 sugCount = 0;
+                                if (SUCCEEDED(errorCode) && suggestions)
+                                    suggestions->get_Count(&sugCount);
 
-                    if (sugCount > 0)
-                    {
-                        AppendMenu(hMenu, MF_GRAYED | MF_STRING, 0,
-                                   (L"Suggestions for '" + word + L"':").c_str());
-                        for (UINT32 i = 0; i < sugCount; i++)
-                        {
-                            wil::com_ptr<ICoreWebView2ContextMenuItem> item;
-                            suggestions->GetValueAtIndex(i, &item);
-                            wil::unique_cotaskmem_string label;
-                            item->get_Label(&label);
-                            INT32 cmdId;
-                            item->get_CommandId(&cmdId);
-                            AppendMenu(hMenu, MF_STRING, cmdId, label.get());
-                        }
-                        AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
-                    }
+                                if (sugCount > 0)
+                                {
+                                    AppendMenuW(
+                                        hMenu, MF_GRAYED | MF_STRING, 0,
+                                        (L"Suggestions for '" + word + L"':")
+                                            .c_str());
+                                    for (UINT32 i = 0; i < sugCount; i++)
+                                    {
+                                        wil::com_ptr<
+                                            ICoreWebView2ContextMenuItem>
+                                            item;
+                                        suggestions->GetValueAtIndex(i, &item);
+                                        wil::unique_cotaskmem_string label;
+                                        item->get_Label(&label);
+                                        INT32 cmdId;
+                                        item->get_CommandId(&cmdId);
+                                        AppendMenuW(
+                                            hMenu, MF_STRING, cmdId,
+                                            label.get());
+                                    }
+                                    AppendMenuW(
+                                        hMenu, MF_SEPARATOR, 0, nullptr);
+                                }
 
-                    // Add standard items (skip default spellcheck items by name).
-                    AddMenuItems(hMenu, items.get());  // Your helper function
+                                // Add remaining standard context menu items,
+                                // skipping built-in spellcheck entries.
+                                UINT32 itemCount = 0;
+                                items->get_Count(&itemCount);
+                                for (UINT32 i = 0; i < itemCount; i++)
+                                {
+                                    wil::com_ptr<ICoreWebView2ContextMenuItem>
+                                        cur;
+                                    items->GetValueAtIndex(i, &cur);
+                                    wil::unique_cotaskmem_string name;
+                                    cur->get_Name(&name);
+                                    // Skip built-in spellcheck items already
+                                    // handled above.
+                                    if (wcsstr(name.get(), L"spellCheck"))
+                                        continue;
+                                    COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND kind;
+                                    cur->get_Kind(&kind);
+                                    if (kind ==
+                                        COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_SEPARATOR)
+                                    {
+                                        AppendMenuW(
+                                            hMenu, MF_SEPARATOR, 0, nullptr);
+                                    }
+                                    else
+                                    {
+                                        wil::unique_cotaskmem_string label;
+                                        cur->get_Label(&label);
+                                        INT32 cmdId;
+                                        cur->get_CommandId(&cmdId);
+                                        BOOL enabled = FALSE;
+                                        cur->get_IsEnabled(&enabled);
+                                        AppendMenuW(
+                                            hMenu,
+                                            MF_STRING |
+                                                (enabled ? 0 : MF_GRAYED),
+                                            cmdId, label.get());
+                                    }
+                                }
 
-                    // Show popup and get user selection.
-                    INT32 selectedCmd = ShowPopupAtCursor(hMenu, args);
+                                // Show popup at the context menu location.
+                                HWND hWnd = m_appWindow->GetMainWindow();
+                                POINT pt;
+                                wil::com_ptr<ICoreWebView2ContextMenuTarget>
+                                    target;
+                                args->get_ContextMenuTarget(&target);
+                                POINT location;
+                                args->get_Location(&location);
+                                RECT bounds;
+                                GetWindowRect(hWnd, &bounds);
+                                // location is in WebView client coordinates;
+                                // convert to screen.
+                                pt = {bounds.left + location.x,
+                                      bounds.top + location.y};
+                                INT32 selectedCmd = TrackPopupMenu(
+                                    hMenu,
+                                    TPM_TOPALIGN | TPM_LEFTALIGN |
+                                        TPM_RETURNCMD,
+                                    pt.x, pt.y, 0, hWnd, nullptr);
 
-                    // ── Unified commanding ──
-                    // Works for spellcheck suggestions AND standard items alike.
-                    if (selectedCmd > 0)
-                        args->put_SelectedCommandId(selectedCmd);
+                                // ── Unified commanding ──
+                                // Works for spellcheck suggestions AND
+                                // standard items alike.
+                                if (selectedCmd > 0)
+                                    args->put_SelectedCommandId(selectedCmd);
 
-                    DestroyMenu(hMenu);
-                    deferral->Complete();
-                    return S_OK;
-                }).Get());
-    });
-return S_OK;
+                                DestroyMenu(hMenu);
+                                deferral->Complete();
+                                return S_OK;
+                            })
+                            .Get());
+                });
+            return S_OK;
+        })
+        .Get(),
+    &m_contextMenuRequestedToken);
 ```
 
-## .NET / C#
+## .NET / C# — Display Custom Context Menu with Spellcheck Suggestions
 
 ```csharp
 webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
@@ -180,7 +251,27 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
         contextMenu.Items.Add(item);
     }
 
-    // Add standard items from args.MenuItems...
+    // Add standard items, skipping built-in spellcheck entries.
+    foreach (var menuItem in args.MenuItems)
+    {
+        if (menuItem.Name.StartsWith("spellCheck"))
+            continue;
+        if (menuItem.Kind == CoreWebView2ContextMenuItemKind.Separator)
+        {
+            contextMenu.Items.Add(new ToolStripSeparator());
+        }
+        else
+        {
+            var stdItem = new ToolStripMenuItem(menuItem.Label);
+            stdItem.Enabled = menuItem.IsEnabled;
+            var stdCmdId = menuItem.CommandId;
+            stdItem.Click += (_, _) =>
+            {
+                args.SelectedCommandId = stdCmdId;
+            };
+            contextMenu.Items.Add(stdItem);
+        }
+    }
 
     // Complete deferral once on menu close (covers both selection and dismissal).
     contextMenu.Closed += (_, _) =>
@@ -195,7 +286,7 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 };
 ```
 
-## Future Capabilities (Extensibility Pattern)
+## Win32 C++ — Check Multiple Deferred Capabilities (Future Pattern)
 
 When additional capabilities are added in the future, the same discovery pattern applies, no new
 EventArgs versions are needed:
@@ -225,7 +316,7 @@ if (caps & COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_SPELL_CHECK)
 ## Win32 C++
 
 ```idl
-// ─── EventArgs2: Deferred Capability Discovery (introduced for SpellCheck) ───
+// ─── EventArgs2: Deferred Capability Discovery (introduced for spellcheck) ───
 
 /// Flags indicating which deferred capabilities are available for a given
 /// context menu invocation. Treat as a bitmask — test individual flags
@@ -243,7 +334,7 @@ typedef enum COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES {
 } COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES;
 
 /// Extends `ICoreWebView2ContextMenuRequestedEventArgs` with deferred capability
-/// discovery and acquisition. Introduced as part of the SpellCheck feature, this
+/// discovery and acquisition. Introduced as part of the spellcheck feature, this
 /// extensible pattern supports all current and future deferred capabilities —
 /// new capabilities add a flag constant and an interface definition, not new
 /// EventArgs versions.
@@ -251,7 +342,7 @@ typedef enum COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES {
 /// The host checks `DeferredCapabilities` flags to discover what async
 /// capabilities exist for this invocation, then calls `GetDeferredCapability`
 /// with the desired interface IID to acquire it.
-[uuid(f1b2c3d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6), object, pointer_default(unique)]
+[uuid(54ab63d2-9c3b-45a1-88d8-6c5a561784c9), object, pointer_default(unique)]
 interface ICoreWebView2ContextMenuRequestedEventArgs2
     : ICoreWebView2ContextMenuRequestedEventArgs {
 
@@ -283,13 +374,13 @@ interface ICoreWebView2ContextMenuRequestedEventArgs2
       [out, iid_is(riid), retval] void** capability);
 }
 
-// ─── SpellCheck Capability ───
+// ─── Spellcheck Capability ───
 
 /// Receives the result of `GetSpellCheckSuggestionsAsync`.
 /// The handler is invoked exactly once, always asynchronously (posted to the
 /// caller's message loop, never invoked inline during the call to
 /// `GetSpellCheckSuggestionsAsync`).
-[uuid(c5d6e7f8-9a0b-1c2d-3e4f-5a6b7c8d9e0f), object, pointer_default(unique)]
+[uuid(d73832f9-d05b-438d-bb6d-644124521fe3), object, pointer_default(unique)]
 interface ICoreWebView2GetSpellCheckSuggestionsCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
   /// Each item in the `suggestions` collection is an
@@ -311,7 +402,7 @@ interface ICoreWebView2GetSpellCheckSuggestionsCompletedHandler : IUnknown {
 /// to `ICoreWebView2ContextMenuRequestedEventArgs.put_SelectedCommandId`.
 /// This follows the same commanding model used for all other context menu
 /// items (Cut, Copy, Paste, etc.).
-[uuid(e4a8f3b2-6c1d-4e9a-b5f7-2d8c9a0e1b34), object, pointer_default(unique)]
+[uuid(aa742569-d944-4510-8924-c2c0583fa320), object, pointer_default(unique)]
 interface ICoreWebView2ContextMenuSpellCheck : IUnknown {
   /// Gets the misspelled word at the current context menu target location.
   /// This is the word that spellcheck flagged as incorrect and for which
@@ -345,6 +436,10 @@ interface ICoreWebView2ContextMenuSpellCheck : IUnknown {
 ```csharp
 namespace Microsoft.Web.WebView2.Core
 {
+    /// <summary>
+    /// Flags indicating which deferred capabilities are available for a given
+    /// context menu invocation.
+    /// </summary>
     [Flags]
     enum CoreWebView2ContextMenuDeferredCapabilities
     {
@@ -353,23 +448,37 @@ namespace Microsoft.Web.WebView2.Core
         // Future: Emoji = 0x2, VoiceTyping = 0x4, ...
     }
 
-    // Extended event args — includes deferred capability discovery for spellcheck.
-    runtimeclass CoreWebView2ContextMenuRequestedEventArgs2
-        : CoreWebView2ContextMenuRequestedEventArgs
+    runtimeclass CoreWebView2ContextMenuRequestedEventArgs
     {
-        CoreWebView2ContextMenuDeferredCapabilities DeferredCapabilities { get; };
+        // Existing members unchanged.
 
-        // Generic accessor — returns null if capability is not applicable.
-        T GetDeferredCapability<T>();
+        [interface_name("ICoreWebView2ContextMenuRequestedEventArgs2")]
+        {
+            /// <summary>
+            /// Returns a bitmask of deferred capabilities available for this
+            /// context menu invocation.
+            /// </summary>
+            CoreWebView2ContextMenuDeferredCapabilities DeferredCapabilities { get; };
+
+            /// <summary>
+            /// Retrieves the capability-specific interface for a deferred
+            /// capability. Returns null if the capability is not applicable.
+            /// </summary>
+            T GetDeferredCapability<T>();
+        }
     }
 
     runtimeclass CoreWebView2ContextMenuSpellCheck
     {
-        // The misspelled word under the cursor.
+        /// <summary>
+        /// The misspelled word under the cursor.
+        /// </summary>
         String MisspelledWord { get; };
 
-        // Returns suggestions as ContextMenuItem objects.
-        // Apply via args.SelectedCommandId = suggestion.CommandId.
+        /// <summary>
+        /// Asynchronously retrieves spellcheck suggestions. Each item's
+        /// CommandId can be passed to SelectedCommandId to apply the correction.
+        /// </summary>
         Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ContextMenuItem>>
             GetSpellCheckSuggestionsAsync();
     }
@@ -410,10 +519,10 @@ Each `ICoreWebView2ContextMenuItem` returned by `GetSpellCheckSuggestionsAsync` 
 | QI for EventArgs2 fails | Old runtime — use default menu |
 | `SPELL_CHECK` flag not set | No misspelling — skip spellcheck UI |
 | `GetDeferredCapability` returns `E_NOINTERFACE` | Capability not available (consistent with flags) |
-| `MisspelledWord` returns empty string | Spellcheck applicable but word is empty — defensive check recommended |
+| `MisspelledWord` returns empty string | Unexpected — indicates a runtime bug. Host should treat as "no spellcheck" and skip spellcheck UI |
 | Second call to `GetSpellCheckSuggestionsAsync` | Returns `E_ILLEGAL_METHOD_CALL` |
 | Suggestions handler — no suggestions available | `count == 0` — show "No suggestions" or skip |
-| User dismisses menu without selecting | Set `SelectedCommandId` to 0 or simply complete the deferral |
+| User dismisses menu without selecting | Do not set `SelectedCommandId` (its default value of −1 indicates no selection) and complete the deferral |
 
 # Appendix
 
@@ -423,10 +532,10 @@ The deferred capability pattern introduced by this feature is designed for zero-
 
 | To add a new capability | Required changes |
 |------------------------|-----------------|
-| New flag constant | for example - `COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_EMOJI = 0x2` |
+| New flag constant | `COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_EMOJI = 0x2` |
 | New capability interface | `ICoreWebView2ContextMenuEmoji : IUnknown { ... }` |
 
-## Planned SpellCheck Extensions
+## Planned Spellcheck Extensions
 
 The following actions will be added as additional `ICoreWebView2ContextMenuItem` entries in the
 collection returned by `GetSpellCheckSuggestionsAsync`. No new interfaces or methods are required:
