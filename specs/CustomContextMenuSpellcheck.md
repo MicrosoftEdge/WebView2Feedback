@@ -87,7 +87,7 @@ webView->add_ContextMenuRequested(
 
             // ── Step 6: Get suggestions and build menu in the callback ──
             wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
-            args->get_MenuItems(&items);
+            CHECK_FAILURE(args->get_MenuItems(&items));
 
             m_appWindow->RunAsync(
                 [this, args, spellCheck, items, deferral,
@@ -209,7 +209,7 @@ webView->add_ContextMenuRequested(
     &m_contextMenuRequestedToken);
 ```
 
-## .NET / C# — Display Custom Context Menu with Spellcheck Suggestions
+## .NET/WinRT — Display Custom Context Menu with Spellcheck Suggestions
 
 ```csharp
 webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
@@ -313,7 +313,12 @@ if (caps & COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_SPELL_CHECK)
 
 # API Details
 
-## Win32 C++
+## Win32 COM IDL
+
+> **Note:** This spec uses COM IDL (MIDL2) syntax, consistent with the existing
+> `WebView2.idl` and `WebView2Staging.idl` in the repository. Verify with the
+> SDK team whether MIDL3 format is required for new specs submitted to Windows
+> API review.
 
 ```idl
 // ─── EventArgs2: Deferred Capability Discovery (introduced for spellcheck) ───
@@ -431,7 +436,7 @@ interface ICoreWebView2ContextMenuSpellCheck : IUnknown {
 }
 ```
 
-## .NET / WinRT
+## .NET/WinRT
 
 ```csharp
 namespace Microsoft.Web.WebView2.Core
