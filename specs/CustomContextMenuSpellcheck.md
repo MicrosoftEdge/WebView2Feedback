@@ -11,9 +11,7 @@ these suggestions.
 This feature adds spellcheck support to custom context menus. Because spellcheck suggestions arrive
 asynchronously (after the `ContextMenuRequested` event fires), the feature introduces a deferred
 capability discovery pattern on `ICoreWebView2ContextMenuRequestedEventArgs2` that allows the host to
-detect and acquire async capabilities at event time. Spellcheck is the first capability delivered
-through this pattern; the same extensible mechanism will support future capabilities (emoji panel,
-voice typing, etc.) without requiring additional EventArgs versions.
+detect and acquire async capabilities at event time.
 
 # Description
 
@@ -32,16 +30,16 @@ The spellcheck capability interface (`ICoreWebView2ContextMenuSpellCheck`) provi
 
 - **`MisspelledWord`** — Read-only property returning the misspelled word under the cursor. Useful for
   displaying "Suggestions for 'teh':" headers in custom menus.
-- **`GetSpellCheckSuggestionsAsync`** — Retrieves suggestions as `ICoreWebView2ContextMenuItem` objects.
+- **`GetSpellCheckSuggestions`** — Retrieves suggestions as `ICoreWebView2ContextMenuItem` objects.
   Each suggestion has a `Label` (display text) and `CommandId` (opaque identifier).
 
 **Commanding model:** The host applies a suggestion by passing its `CommandId` to
 `put_SelectedCommandId` on the EventArgs — the same execution path used for Cut, Copy, Paste, and
 all other context menu items. No separate execution method is needed.
 
-**Async contract:** The handler fires exactly once, always asynchronously (posted to the caller's
-message loop, never invoked inline). Only one handler may be registered; a second call returns
-`E_ILLEGAL_METHOD_CALL`.
+**Async contract:** This is a standard async method. The handler is invoked exactly once when
+suggestions are available, always asynchronously (posted to the caller's message loop, never
+invoked inline).
 
 **Availability:** If the `SPELL_CHECK` flag is not set in `DeferredCapabilities`, spellcheck is not
 applicable (non-editable field, correctly-spelled word, or spellcheck disabled by policy).
@@ -93,7 +91,7 @@ webView->add_ContextMenuRequested(
                 [this, args, spellCheck, items, deferral,
                  word = std::wstring(misspelledWord.get())]()
                 {
-                    spellCheck->GetSpellCheckSuggestionsAsync(
+                    spellCheck->GetSpellCheckSuggestions(
                         Callback<
                             ICoreWebView2GetSpellCheckSuggestionsCompletedHandler>(
                             [this, args, items, deferral, word](
@@ -132,8 +130,12 @@ webView->add_ContextMenuRequested(
                                         hMenu, MF_SEPARATOR, 0, nullptr);
                                 }
 
-                                // Add remaining standard context menu items,
-                                // skipping built-in spellcheck entries.
+                                // Add remaining standard context menu items.
+                                // The MenuItems collection contains built-in
+                                // spellcheck items (Name = "spellcheck") that
+                                // duplicate the suggestions from
+                                // GetSpellCheckSuggestions — filter them out
+                                // to avoid showing duplicate entries.
                                 UINT32 itemCount = 0;
                                 items->get_Count(&itemCount);
                                 for (UINT32 i = 0; i < itemCount; i++)
@@ -143,8 +145,9 @@ webView->add_ContextMenuRequested(
                                     items->GetValueAtIndex(i, &cur);
                                     wil::unique_cotaskmem_string name;
                                     cur->get_Name(&name);
-                                    // Skip built-in spellcheck items already
-                                    // handled above.
+                                    // Filter out built-in spellcheck items
+                                    // (Name = "spellcheck") — we render our
+                                    // own from GetSpellCheckSuggestions above.
                                     if (wcsstr(name.get(), L"spellCheck"))
                                         continue;
                                     COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND kind;
@@ -286,31 +289,6 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 };
 ```
 
-## Win32 C++ — Check Multiple Deferred Capabilities (Future Pattern)
-
-When additional capabilities are added in the future, the same discovery pattern applies, no new
-EventArgs versions are needed:
-
-```cpp
-COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES caps;
-args2->get_DeferredCapabilities(&caps);
-
-if (caps & COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_SPELL_CHECK)
-{
-    wil::com_ptr<ICoreWebView2ContextMenuSpellCheck> spellCheck;
-    args2->GetDeferredCapability(IID_PPV_ARGS(&spellCheck));
-    // ... use spellCheck ...
-}
-
-// Future: no new EventArgs versions needed, just new flag constants.
-// if (caps & COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_EMOJI)
-// {
-//     wil::com_ptr<ICoreWebView2ContextMenuEmoji> emoji;
-//     args2->GetDeferredCapability(IID_PPV_ARGS(&emoji));
-//     // ... same pattern ...
-// }
-```
-
 # API Details
 
 ## Win32 COM IDL
@@ -328,16 +306,10 @@ typedef enum COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES {
   /// Spellcheck is available — the target is an editable field with a
   /// misspelled word and spellcheck is enabled.
   COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_SPELL_CHECK = 0x1,
-  // Future capabilities add new flag constants here. No interface changes.
-  // COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_EMOJI = 0x2,
-  // COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_VOICE_TYPING = 0x4,
 } COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES;
 
 /// Extends `ICoreWebView2ContextMenuRequestedEventArgs` with deferred capability
-/// discovery and acquisition. Introduced as part of the spellcheck feature, this
-/// extensible pattern supports all current and future deferred capabilities —
-/// new capabilities add a flag constant and an interface definition, not new
-/// EventArgs versions.
+/// discovery and acquisition for spellcheck.
 ///
 /// The host checks `DeferredCapabilities` flags to discover what async
 /// capabilities exist for this invocation, then calls `GetDeferredCapability`
@@ -365,7 +337,6 @@ interface ICoreWebView2ContextMenuRequestedEventArgs2
   ///
   /// Supported IIDs:
   ///   `IID_ICoreWebView2ContextMenuSpellCheck`
-  ///   (future: emoji, voice typing, writing direction, etc.)
   ///
   /// The returned interface is valid for the lifetime of the event
   /// (until the deferral is completed).
@@ -376,10 +347,10 @@ interface ICoreWebView2ContextMenuRequestedEventArgs2
 
 // ─── Spellcheck Capability ───
 
-/// Receives the result of `GetSpellCheckSuggestionsAsync`.
+/// Receives the result of `GetSpellCheckSuggestions`.
 /// The handler is invoked exactly once, always asynchronously (posted to the
 /// caller's message loop, never invoked inline during the call to
-/// `GetSpellCheckSuggestionsAsync`).
+/// `GetSpellCheckSuggestions`).
 [uuid(d73832f9-d05b-438d-bb6d-644124521fe3), object, pointer_default(unique)]
 interface ICoreWebView2GetSpellCheckSuggestionsCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
@@ -406,7 +377,7 @@ interface ICoreWebView2GetSpellCheckSuggestionsCompletedHandler : IUnknown {
 interface ICoreWebView2ContextMenuSpellCheck : IUnknown {
   /// Gets the misspelled word at the current context menu target location.
   /// This is the word that spellcheck flagged as incorrect and for which
-  /// suggestions are available via `GetSpellCheckSuggestionsAsync`.
+  /// suggestions are available via `GetSpellCheckSuggestions`.
   /// The caller must free the returned string using `CoTaskMemFree`.
   ///
   /// Use this to display contextual headers like "Suggestions for 'teh':"
@@ -423,10 +394,7 @@ interface ICoreWebView2ContextMenuSpellCheck : IUnknown {
   /// and `nullptr` on failure. Each item's `Label` is the suggestion text
   /// and its `CommandId` can be passed to `put_SelectedCommandId` to apply
   /// the correction.
-  ///
-  /// Only one handler may be registered per event invocation. A second call
-  /// returns `E_ILLEGAL_METHOD_CALL`.
-  HRESULT GetSpellCheckSuggestionsAsync(
+  HRESULT GetSpellCheckSuggestions(
       [in] ICoreWebView2GetSpellCheckSuggestionsCompletedHandler* handler);
 }
 ```
@@ -445,7 +413,6 @@ namespace Microsoft.Web.WebView2.Core
     {
         None       = 0x0,
         SpellCheck = 0x1,
-        // Future: Emoji = 0x2, VoiceTyping = 0x4, ...
     }
 
     runtimeclass CoreWebView2ContextMenuRequestedEventArgs
@@ -498,7 +465,7 @@ namespace Microsoft.Web.WebView2.Core
 
 ## Suggestion Item Properties
 
-Each `ICoreWebView2ContextMenuItem` returned by `GetSpellCheckSuggestionsAsync` has:
+Each `ICoreWebView2ContextMenuItem` returned by `GetSpellCheckSuggestions` has:
 
 | Property | Value |
 |----------|-------|
@@ -512,6 +479,28 @@ Each `ICoreWebView2ContextMenuItem` returned by `GetSpellCheckSuggestionsAsync` 
 | `ShortcutKeyDescription` | `L""` |
 | `Children` | `nullptr` |
 
+## Relationship to Built-in Spellcheck Menu Items
+
+When a misspelled word is present, the `MenuItems` collection (from `get_MenuItems`) already
+contains Chromium's **built-in** spellcheck suggestion items with `Name = "spellcheck"`. These
+are the same suggestions that appear in the browser's default context menu.
+
+The items returned by `GetSpellCheckSuggestions` are **separate objects** with
+`Name = "spellCheckSuggestion"` and different `CommandId` values. They represent the same
+underlying suggestions but are delivered through the new async API with full
+`ICoreWebView2ContextMenuItem` semantics.
+
+**Why both exist:** The built-in `"spellcheck"` items are part of the synchronous `MenuItems`
+snapshot that all hosts already receive. The new `"spellCheckSuggestion"` items are delivered
+asynchronously via `GetSpellCheckSuggestions` for hosts that want explicit control over
+spellcheck rendering. Hosts using `GetSpellCheckSuggestions` should **filter out** the built-in
+`"spellcheck"` items from `MenuItems` to avoid showing duplicate suggestions.
+
+**Placement guidance:** The built-in `"spellcheck"` items appear at the top of `MenuItems`
+(matching browser default behavior). Hosts may insert the new suggestion items at the same
+position by scanning `MenuItems` for the first `"spellcheck"` entry's index, or simply place
+them at the top of their custom menu as shown in the examples above.
+
 ## Error Handling
 
 | Scenario | Behavior |
@@ -520,9 +509,48 @@ Each `ICoreWebView2ContextMenuItem` returned by `GetSpellCheckSuggestionsAsync` 
 | `SPELL_CHECK` flag not set | No misspelling — skip spellcheck UI |
 | `GetDeferredCapability` returns `E_NOINTERFACE` | Capability not available (consistent with flags) |
 | `MisspelledWord` returns empty string | Unexpected — indicates a runtime bug. Host should treat as "no spellcheck" and skip spellcheck UI |
-| Second call to `GetSpellCheckSuggestionsAsync` | Returns `E_ILLEGAL_METHOD_CALL` |
+| Second call to `GetSpellCheckSuggestions` | Standard async behavior — each call registers its own handler |
 | Suggestions handler — no suggestions available | `count == 0` — show "No suggestions" or skip |
 | User dismisses menu without selecting | Do not set `SelectedCommandId` (its default value of −1 indicates no selection) and complete the deferral |
+
+## Async Timing
+
+Spellcheck suggestions are resolved asynchronously by the platform spellchecker in the browser
+process. When `ContextMenuRequested` fires, the `spellCheckState` may be:
+
+| State | Meaning | `GetSpellCheckSuggestions` behavior |
+|-------|---------|-------------------------------------|
+| **Ready** | Suggestions already resolved before the event fired | Handler fires on next message loop iteration (sub-millisecond) |
+| **Not Ready** | Platform spellchecker still working | Handler is stored; fires when browser delivers results via IPC |
+
+The host does **not** need to check readiness — `GetSpellCheckSuggestions` handles both cases
+transparently. However, the host should be aware that the handler may fire with a variable delay
+in the Not Ready case, depending on the platform spellchecker's response time.
+
+### Host Patterns
+
+**Pattern 1: Wait-then-show** (simpler — used in the examples above)
+
+The host defers the context menu, calls `GetSpellCheckSuggestions`, and builds/shows the menu
+only after the handler fires. This produces a complete menu in one shot but delays appearance
+if suggestions are not yet ready.
+
+```
+ContextMenuRequested → put_Handled(TRUE) + GetDeferral → GetSpellCheckSuggestions
+    → [handler fires] → build & show menu → complete deferral
+```
+
+**Pattern 2: Show-then-update** (responsive — mirrors browser built-in behavior)
+
+The host shows the context menu immediately with a placeholder (e.g., "Loading suggestions…")
+and updates it in-place when the handler fires. This keeps menu appearance instant at the cost
+of added complexity.
+
+```
+ContextMenuRequested → put_Handled(TRUE) + GetDeferral → show menu with placeholder
+    → GetSpellCheckSuggestions → [handler fires] → update menu items in-place
+    → [user selects] → complete deferral
+```
 
 # Appendix
 
@@ -535,6 +563,43 @@ The deferred capability pattern introduced by this feature is designed for zero-
 | New flag constant | `COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_EMOJI = 0x2` |
 | New capability interface | `ICoreWebView2ContextMenuEmoji : IUnknown { ... }` |
 
+Example of how a host would check multiple capabilities in the future:
+
+```cpp
+COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES caps;
+args2->get_DeferredCapabilities(&caps);
+
+if (caps & COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_SPELL_CHECK)
+{
+    wil::com_ptr<ICoreWebView2ContextMenuSpellCheck> spellCheck;
+    args2->GetDeferredCapability(IID_PPV_ARGS(&spellCheck));
+    // ... use spellCheck ...
+}
+
+// Future: no new EventArgs versions needed, just new flag constants.
+// if (caps & COREWEBVIEW2_CONTEXT_MENU_DEFERRED_CAPABILITIES_EMOJI)
+// {
+//     wil::com_ptr<ICoreWebView2ContextMenuEmoji> emoji;
+//     args2->GetDeferredCapability(IID_PPV_ARGS(&emoji));
+// }
+```
+
+## Planned Spellcheck Extensions
+
+The following actions will be added as additional `ICoreWebView2ContextMenuItem` entries in the
+collection returned by `GetSpellCheckSuggestions`. No new interfaces or methods are required:
+
+| Action | `Name` value |
+|--------|-------------|
+| Add to Dictionary | `"spellCheckAddToDictionary"` |
+| Ignore (session) | `"spellCheckIgnore"` |
+
+These follow the same commanding model: the host renders them like any other item and applies via
+`SelectedCommandId`. A `Language` property (BCP-47 tag of the dictionary that flagged the misspelling)
+will also be added to `ICoreWebView2ContextMenuSpellCheck` in a follow-up version. Profile-level
+spellcheck configuration (`IsSpellCheckEnabled`, `SpellCheckLanguages`) is tracked as a separate
+follow-up.
+
 ## Relationship to Existing APIs
 
 | Existing API | This Feature |
@@ -543,4 +608,4 @@ The deferred capability pattern introduced by this feature is designed for zero-
 | `EventArgs.SelectedCommandId` | Execution path — now also used for spellcheck suggestions |
 | `ContextMenuItem.CommandId` | Already used for all items — spellcheck items join this pool |
 | `ContextMenuItem.Label` | Display text — spellcheck suggestions use this for the suggestion word |
-| `EventArgs.GetDeferral()` | Must be held across the async `GetSpellCheckSuggestionsAsync` gap |
+| `EventArgs.GetDeferral()` | Must be held across the async `GetSpellCheckSuggestions` gap |
