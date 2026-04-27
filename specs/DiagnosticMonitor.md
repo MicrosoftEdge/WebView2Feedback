@@ -14,7 +14,7 @@ The Diagnostic Monitor API introduces an observation-only monitor
 object that delivers diagnostic signals from all layers — WebView,
 Profile, and Environment — through a single `DiagnosticReceived`
 event. Host apps create a monitor from the environment and opt in
-per category using `AddDiagnosticReceivedFilter`.
+per category using `SetDiagnosticFilter`.
 
 
 # Description
@@ -23,7 +23,7 @@ You create an `ICoreWebView2DiagnosticMonitor` from the environment
 using `CreateDiagnosticMonitor`. The monitor observes diagnostic
 signals across all WebViews, profiles, and the environment itself.
 You control which categories of events are delivered by calling
-`AddDiagnosticReceivedFilter` with a category and an optional JSON
+`SetDiagnosticFilter` with a category and an optional JSON
 filter string.
 
 Key scenarios:
@@ -60,7 +60,7 @@ public:
 private:
     void SetupDiagnostics();
     void HandleDiagnosticEvent(
-        ICoreWebView2DiagnosticEventArgs* args);
+        ICoreWebView2DiagnosticReceivedEventArgs* args);
 
     wil::com_ptr<ICoreWebView2Environment17> m_environment;
     wil::com_ptr<ICoreWebView2DiagnosticMonitor> m_monitor;
@@ -98,7 +98,7 @@ void DiagnosticComponent::SetupDiagnostics()
     // Add a filter for NETWORK_ERROR. Pass "{}" to receive
     // all network errors without field-level filtering.
     CHECK_FAILURE(
-        m_monitor->AddDiagnosticReceivedFilter(
+        m_monitor->SetDiagnosticFilter(
             COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_ERROR,
             L"{}"));
 
@@ -108,7 +108,7 @@ void DiagnosticComponent::SetupDiagnostics()
             ICoreWebView2DiagnosticReceivedEventHandler>(
             [this](
                 ICoreWebView2DiagnosticMonitor* sender,
-                ICoreWebView2DiagnosticEventArgs* args)
+                ICoreWebView2DiagnosticReceivedEventArgs* args)
                 -> HRESULT
             {
                 HandleDiagnosticEvent(args);
@@ -119,17 +119,16 @@ void DiagnosticComponent::SetupDiagnostics()
 }
 
 void DiagnosticComponent::HandleDiagnosticEvent(
-    ICoreWebView2DiagnosticEventArgs* args)
+    ICoreWebView2DiagnosticReceivedEventArgs* args)
 {
     COREWEBVIEW2_DIAGNOSTIC_CATEGORY category;
     CHECK_FAILURE(args->get_Category(&category));
 
-    COREWEBVIEW2_DIAGNOSTIC_SOURCE_SCOPE scope;
+    COREWEBVIEW2_DIAGNOSTIC_SCOPE scope;
     CHECK_FAILURE(args->get_Scope(&scope));
 
     wil::unique_cotaskmem_string detailsJson;
-    CHECK_FAILURE(args->GetCategoryDetailsAsJson(
-        category, &detailsJson));
+    CHECK_FAILURE(args->GetDetailsAsJson(&detailsJson));
 
     INT64 timestamp = 0;
     CHECK_FAILURE(args->get_Timestamp(&timestamp));
@@ -164,7 +163,7 @@ public class DiagnosticComponent : IDisposable
         // Add a filter for NetworkError. Pass "{}" to
         // receive all network errors without field-level
         // filtering.
-        _monitor.AddDiagnosticReceivedFilter(
+        _monitor.SetDiagnosticFilter(
             CoreWebView2DiagnosticCategory.NetworkError,
             "{}");
 
@@ -175,15 +174,15 @@ public class DiagnosticComponent : IDisposable
 
     private void OnDiagnosticReceived(
         CoreWebView2DiagnosticMonitor sender,
-        CoreWebView2DiagnosticEventArgs args)
+        CoreWebView2DiagnosticReceivedEventArgs args)
     {
         CoreWebView2DiagnosticCategory category =
             args.Category;
-        CoreWebView2DiagnosticSourceScope scope =
+        CoreWebView2DiagnosticScope scope =
             args.Scope;
         long timestamp = args.Timestamp;
         string detailsJson =
-            args.GetCategoryDetailsAsJson(category);
+            args.GetDetailsAsJson();
 
         Debug.WriteLine(
             $"[Diagnostic] category={category} " +
@@ -207,7 +206,7 @@ public class DiagnosticComponent : IDisposable
 
 ## Filter with field-level JSON criteria
 
-You can pass a JSON object to `AddDiagnosticReceivedFilter` to
+You can pass a JSON object to `SetDiagnosticFilter` to
 restrict which events are delivered. An empty JSON object `"{}"` receives
 all events in that category. A non-empty JSON object applies field-level
 matching. Calling the method again for the same category replaces
@@ -225,7 +224,7 @@ void DiagnosticComponent::SetupFilteredDiagnostics()
     // and timeout (ERR_TIMED_OUT, -7) errors
     // for GET/POST requests from the "Default" profile.
     CHECK_FAILURE(
-        m_monitor->AddDiagnosticReceivedFilter(
+        m_monitor->SetDiagnosticFilter(
             COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_ERROR,
             LR"({
               "profileName": "Default",
@@ -238,7 +237,7 @@ void DiagnosticComponent::SetupFilteredDiagnostics()
             ICoreWebView2DiagnosticReceivedEventHandler>(
             [this](
                 ICoreWebView2DiagnosticMonitor* sender,
-                ICoreWebView2DiagnosticEventArgs* args)
+                ICoreWebView2DiagnosticReceivedEventArgs* args)
                 -> HRESULT
             {
                 HandleDiagnosticEvent(args);
@@ -261,7 +260,7 @@ private void SetupFilteredDiagnostics()
     // Only DNS (ERR_NAME_NOT_RESOLVED, -105) and timeout
     // (ERR_TIMED_OUT, -7) errors for GET/POST requests
     // from the "Default" profile.
-    _monitor.AddDiagnosticReceivedFilter(
+    _monitor.SetDiagnosticFilter(
         CoreWebView2DiagnosticCategory.NetworkError,
         @"{
             ""profileName"": ""Default"",
@@ -292,28 +291,27 @@ typedef enum COREWEBVIEW2_DIAGNOSTIC_CATEGORY {
 
 /// Specifies the scope that originated a diagnostic event.
 [v1_enum]
-typedef enum COREWEBVIEW2_DIAGNOSTIC_SOURCE_SCOPE {
+typedef enum COREWEBVIEW2_DIAGNOSTIC_SCOPE {
   /// The diagnostic signal originated from a specific
   /// WebView instance.
-  COREWEBVIEW2_DIAGNOSTIC_SOURCE_SCOPE_WEB_VIEW,
+  COREWEBVIEW2_DIAGNOSTIC_SCOPE_WEB_VIEW,
 
-  /// The diagnostic signal originated from a profile or
-  /// its underlying network context but is not tied to a
-  /// specific WebView.
-  COREWEBVIEW2_DIAGNOSTIC_SOURCE_SCOPE_PROFILE,
+  /// The diagnostic signal originated from a profile
+  /// but is not tied to a specific WebView.
+  COREWEBVIEW2_DIAGNOSTIC_SCOPE_PROFILE,
 
   /// The diagnostic signal originated from the environment
   /// (for example, a browser-wide event that affects all
   /// WebViews).
-  COREWEBVIEW2_DIAGNOSTIC_SOURCE_SCOPE_ENVIRONMENT,
-} COREWEBVIEW2_DIAGNOSTIC_SOURCE_SCOPE;
+  COREWEBVIEW2_DIAGNOSTIC_SCOPE_ENVIRONMENT,
+} COREWEBVIEW2_DIAGNOSTIC_SCOPE;
 
 /// Event args for the `DiagnosticReceived` event on
 /// `ICoreWebView2DiagnosticMonitor`. Each instance
 /// represents a single diagnostic signal.
 [uuid(A1B2C3D4-E5F6-7890-ABCD-EF1234567890),
  object, pointer_default(unique)]
-interface ICoreWebView2DiagnosticEventArgs : IUnknown {
+interface ICoreWebView2DiagnosticReceivedEventArgs : IUnknown {
   /// The diagnostic category that this event belongs to.
   [propget] HRESULT Category(
       [out, retval]
@@ -322,7 +320,7 @@ interface ICoreWebView2DiagnosticEventArgs : IUnknown {
   /// The scope that originated this diagnostic signal.
   [propget] HRESULT Scope(
       [out, retval]
-          COREWEBVIEW2_DIAGNOSTIC_SOURCE_SCOPE* value);
+          COREWEBVIEW2_DIAGNOSTIC_SCOPE* value);
 
   /// Monotonic timestamp in microseconds since an
   /// unspecified epoch. You can use this value to order
@@ -331,11 +329,7 @@ interface ICoreWebView2DiagnosticEventArgs : IUnknown {
       [out, retval] INT64* value);
 
   /// Returns category-specific diagnostic data as a JSON
-  /// string for the specified category.
-  ///
-  /// The `category` parameter must match the value
-  /// returned by `get_Category`. If a different category
-  /// is passed, the method returns `"{}"`.
+  /// string.
   ///
   /// For `COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_ERROR`
   /// the JSON schema is:
@@ -363,8 +357,7 @@ interface ICoreWebView2DiagnosticEventArgs : IUnknown {
   /// this method returns `"{}"`.
   ///
   /// Free the returned string with `CoTaskMemFree`.
-  HRESULT GetCategoryDetailsAsJson(
-      [in] COREWEBVIEW2_DIAGNOSTIC_CATEGORY category,
+  HRESULT GetDetailsAsJson(
       [out, retval] LPWSTR* value);
 }
 
@@ -377,7 +370,7 @@ interface ICoreWebView2DiagnosticReceivedEventHandler
   /// Provides the event args for the corresponding event.
   HRESULT Invoke(
       [in] ICoreWebView2DiagnosticMonitor* sender,
-      [in] ICoreWebView2DiagnosticEventArgs* args);
+      [in] ICoreWebView2DiagnosticReceivedEventArgs* args);
 }
 
 /// A diagnostic monitor that receives diagnostic signals
@@ -392,11 +385,17 @@ interface ICoreWebView2DiagnosticReceivedEventHandler
 /// The monitor is active from creation until it is
 /// released. Releasing the monitor automatically stops all
 /// events and clears all filters.
+///
+/// All members of this interface must be called on the
+/// same thread that created the
+/// `ICoreWebView2Environment`. Calling from a different
+/// thread returns `RPC_E_WRONG_THREAD`. Handlers must
+/// not block this thread.
 [uuid(E4F5A6B7-C8D9-0123-ABCD-456789012345),
  object, pointer_default(unique)]
 interface ICoreWebView2DiagnosticMonitor : IUnknown {
 
-  /// Adds a diagnostic filter for the specified category.
+  /// Sets a diagnostic filter for the specified category.
   /// After this call, `DiagnosticReceived` will fire for
   /// events in this category that match the JSON criteria.
   ///
@@ -433,7 +432,7 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   ///
   /// Returns `E_INVALIDARG` if the JSON is malformed.
   /// On failure, the filter state is unchanged.
-  HRESULT AddDiagnosticReceivedFilter(
+  HRESULT SetDiagnosticFilter(
       [in] COREWEBVIEW2_DIAGNOSTIC_CATEGORY category,
       [in] LPCWSTR jsonFilter);
 
@@ -441,16 +440,16 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// category. After this call, `DiagnosticReceived`
   /// will no longer fire for events in this category.
   ///
-  /// If no filter was previously added for the category,
+  /// If no filter was previously set for the category,
   /// this method is a no-op and returns `S_OK`.
-  HRESULT RemoveDiagnosticReceivedFilter(
+  HRESULT RemoveDiagnosticFilter(
       [in] COREWEBVIEW2_DIAGNOSTIC_CATEGORY category);
 
   /// Subscribes to diagnostic events on this monitor.
   /// The handler is invoked on the thread that created
   /// the environment. It fires every time a diagnostic
-  /// signal passes a filter added with
-  /// `AddDiagnosticReceivedFilter`.
+  /// signal passes a filter set with
+  /// `SetDiagnosticFilter`.
   ///
   /// Multiple handlers can be registered. They are
   /// invoked in registration order.
@@ -479,8 +478,8 @@ interface ICoreWebView2Environment17
   /// panel to operate without interfering with each other.
   ///
   /// The monitor is active immediately, but no events fire
-  /// until a filter is added via
-  /// `AddDiagnosticReceivedFilter`.
+  /// until a filter is set via
+  /// `SetDiagnosticFilter`.
   ///
   /// Release the monitor to stop receiving events and
   /// free resources.
@@ -505,7 +504,7 @@ namespace Microsoft.Web.WebView2.Core
 
     /// Specifies the scope that originated a diagnostic
     /// event.
-    enum CoreWebView2DiagnosticSourceScope
+    enum CoreWebView2DiagnosticScope
     {
         /// Signal from a specific WebView instance.
         WebView = 0,
@@ -518,17 +517,16 @@ namespace Microsoft.Web.WebView2.Core
     };
 
     /// Event args for the DiagnosticReceived event.
-    runtimeclass CoreWebView2DiagnosticEventArgs
+    runtimeclass CoreWebView2DiagnosticReceivedEventArgs
     {
         CoreWebView2DiagnosticCategory Category { get; };
-        CoreWebView2DiagnosticSourceScope Scope { get; };
+        CoreWebView2DiagnosticScope Scope { get; };
         Int64 Timestamp { get; };
 
         /// Returns category-specific data as a JSON
         /// string. Returns "{}" for unrecognized
         /// categories.
-        String GetCategoryDetailsAsJson(
-            CoreWebView2DiagnosticCategory category);
+        String GetDetailsAsJson();
     }
 
     /// A diagnostic monitor that receives signals from
@@ -537,16 +535,16 @@ namespace Microsoft.Web.WebView2.Core
     runtimeclass CoreWebView2DiagnosticMonitor
         : Windows.Foundation.IClosable
     {
-        void AddDiagnosticReceivedFilter(
+        void SetDiagnosticFilter(
             CoreWebView2DiagnosticCategory category,
             String jsonFilter);
 
-        void RemoveDiagnosticReceivedFilter(
+        void RemoveDiagnosticFilter(
             CoreWebView2DiagnosticCategory category);
 
         event Windows.Foundation.TypedEventHandler<
             CoreWebView2DiagnosticMonitor,
-            CoreWebView2DiagnosticEventArgs>
+            CoreWebView2DiagnosticReceivedEventArgs>
             DiagnosticReceived;
     }
 
