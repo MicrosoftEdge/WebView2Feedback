@@ -79,9 +79,14 @@ DiagnosticComponent::DiagnosticComponent(
 
 DiagnosticComponent::~DiagnosticComponent()
 {
-    // Releasing the monitor automatically stops all
-    // events and clears filters.
-    m_monitor.Reset();
+    if (m_monitor)
+    {
+        // Unsubscribe before releasing the monitor to
+        // ensure no callbacks arrive during teardown.
+        m_monitor->remove_DiagnosticReceived(
+            m_diagnosticToken);
+        m_monitor.Reset();
+    }
 }
 
 void DiagnosticComponent::SetupDiagnostics()
@@ -139,7 +144,7 @@ void DiagnosticComponent::HandleDiagnosticEvent(
 }
 ```
 
-### .NET C#
+### .NET, WinRT
 
 ```c#
 using Microsoft.Web.WebView2.Core;
@@ -188,9 +193,14 @@ public class DiagnosticComponent : IDisposable
 
     public void Dispose()
     {
-        // Disposing the monitor stops all events and
-        // clears filters automatically.
-        _monitor?.Dispose();
+        if (_monitor != null)
+        {
+            // Unsubscribe before disposing the monitor.
+            _monitor.DiagnosticReceived -=
+                OnDiagnosticReceived;
+            _monitor.Dispose();
+            _monitor = null;
+        }
     }
 }
 ```
@@ -198,8 +208,8 @@ public class DiagnosticComponent : IDisposable
 ## Filter with field-level JSON criteria
 
 You can pass a JSON object to `AddDiagnosticReceivedFilter` to
-restrict which events are delivered. An empty JSON `"{}"` receives
-all events in that category. A non-empty JSON applies field-level
+restrict which events are delivered. An empty JSON object `"{}"` receives
+all events in that category. A non-empty JSON object applies field-level
 matching. Calling the method again for the same category replaces
 the previous filter.
 
@@ -211,7 +221,8 @@ void DiagnosticComponent::SetupFilteredDiagnostics()
     CHECK_FAILURE(
         m_environment->CreateDiagnosticMonitor(&m_monitor));
 
-    // Only receive DNS and timeout errors (-105, -7)
+    // Only receive DNS (ERR_NAME_NOT_RESOLVED, -105)
+    // and timeout (ERR_TIMED_OUT, -7) errors
     // for GET/POST requests from the "Default" profile.
     CHECK_FAILURE(
         m_monitor->AddDiagnosticReceivedFilter(
@@ -238,14 +249,17 @@ void DiagnosticComponent::SetupFilteredDiagnostics()
 }
 ```
 
-### .NET C#
+### .NET, WinRT
 
 ```c#
+private CoreWebView2Environment _environment;
+
 private void SetupFilteredDiagnostics()
 {
     _monitor = _environment.CreateDiagnosticMonitor();
 
-    // Only DNS and timeout errors for GET/POST requests
+    // Only DNS (ERR_NAME_NOT_RESOLVED, -105) and timeout
+    // (ERR_TIMED_OUT, -7) errors for GET/POST requests
     // from the "Default" profile.
     _monitor.AddDiagnosticReceivedFilter(
         CoreWebView2DiagnosticCategory.NetworkError,
@@ -263,7 +277,7 @@ private void SetupFilteredDiagnostics()
 
 # API Details
 
-## COM
+## Win32 C++
 
 ```idl
 /// Specifies the category of diagnostic event.
@@ -272,7 +286,7 @@ typedef enum COREWEBVIEW2_DIAGNOSTIC_CATEGORY {
   /// Network request failure including DNS resolution
   /// errors, TLS handshake failures, connection timeouts,
   /// HTTP error status codes (4xx/5xx), CORS violations,
-  /// and mixed-content blocks.
+  /// and mixed-content blocked requests.
   COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_ERROR,
 } COREWEBVIEW2_DIAGNOSTIC_CATEGORY;
 
@@ -319,7 +333,7 @@ interface ICoreWebView2DiagnosticEventArgs : IUnknown {
   /// Returns category-specific diagnostic data as a JSON
   /// string for the specified category.
   ///
-  /// The `category` parameter should match the value
+  /// The `category` parameter must match the value
   /// returned by `get_Category`. If a different category
   /// is passed, the method returns `"{}"`.
   ///
@@ -345,11 +359,10 @@ interface ICoreWebView2DiagnosticEventArgs : IUnknown {
   /// `protocol` is the protocol scheme (e.g. "https").
   /// `uri` is the request URI.
   ///
-  /// For categories the runtime does not yet populate,
+  /// For categories that the runtime does not yet populate,
   /// this method returns `"{}"`.
   ///
-  /// The caller must free the returned string with
-  /// `CoTaskMemFree`.
+  /// Free the returned string with `CoTaskMemFree`.
   HRESULT GetCategoryDetailsAsJson(
       [in] COREWEBVIEW2_DIAGNOSTIC_CATEGORY category,
       [out, retval] LPWSTR* value);
@@ -410,7 +423,7 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// `profileName` is a single string that must match
   /// the profile name exactly. All other fields are
   /// arrays of accepted values. An event passes if it
-  /// matches **any** value in each specified field
+  /// matches any value in each specified field
   /// (OR within a field, AND across fields). String
   /// fields in `uriPattern` support wildcard patterns
   /// using `*` and `?`.
@@ -419,7 +432,7 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// replaces the previous filter for that category.
   ///
   /// Returns `E_INVALIDARG` if the JSON is malformed.
-  /// On failure the filter state is unchanged.
+  /// On failure, the filter state is unchanged.
   HRESULT AddDiagnosticReceivedFilter(
       [in] COREWEBVIEW2_DIAGNOSTIC_CATEGORY category,
       [in] LPCWSTR jsonFilter);
@@ -435,8 +448,8 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
 
   /// Subscribes to diagnostic events on this monitor.
   /// The handler is invoked on the thread that created
-  /// the environment every time a diagnostic signal
-  /// passes a filter added with
+  /// the environment. It fires every time a diagnostic
+  /// signal passes a filter added with
   /// `AddDiagnosticReceivedFilter`.
   ///
   /// Multiple handlers can be registered. They are
@@ -465,7 +478,7 @@ interface ICoreWebView2Environment17
   /// consumers such as a telemetry pipeline and a debug
   /// panel to operate without interfering with each other.
   ///
-  /// The monitor is active immediately but no events fire
+  /// The monitor is active immediately, but no events fire
   /// until a filter is added via
   /// `AddDiagnosticReceivedFilter`.
   ///
@@ -497,7 +510,7 @@ namespace Microsoft.Web.WebView2.Core
         /// Signal from a specific WebView instance.
         WebView = 0,
 
-        /// Signal from a profile / NetworkContext.
+        /// Signal from a profile.
         Profile = 1,
 
         /// Signal from the environment.
