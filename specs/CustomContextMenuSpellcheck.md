@@ -39,7 +39,7 @@ all other context menu items. No separate execution method is needed.
 
 # Examples
 
-## Win32 C++ — Display Custom Context Menu with Spellcheck Suggestions
+## Win32 C++
 
 ```cpp
 webView->add_ContextMenuRequested(
@@ -47,100 +47,54 @@ webView->add_ContextMenuRequested(
         [this](ICoreWebView2* sender,
                ICoreWebView2ContextMenuRequestedEventArgs* args) -> HRESULT
         {
-            // ── Step 1: Get context menu target ──
             wil::com_ptr<ICoreWebView2ContextMenuTarget> target;
             CHECK_FAILURE(args->get_ContextMenuTarget(&target));
 
-            // ── Step 2: Check for Target2 (runtime version check) ──
+            // QI for Target2 — returns E_NOINTERFACE on older runtimes.
             auto target2 = wil::try_com_query<
                 ICoreWebView2ContextMenuTarget2>(target);
             if (!target2)
-                return S_OK; // Old runtime — use default menu.
+                return S_OK;
 
-            // ── Step 3: Check for misspelled word ──
+            // Check if the context menu target has a misspelled word.
             BOOL hasMisspelledWord = FALSE;
             CHECK_FAILURE(target2->get_HasMisspelledWord(&hasMisspelledWord));
             if (!hasMisspelledWord)
-                return S_OK; // No misspelling — use default menu.
+                return S_OK;
 
-            // ── Step 4: Take over rendering and hold deferral ──
+            // Take deferral — menu will be shown after async callback.
             CHECK_FAILURE(args->put_Handled(TRUE));
             wil::com_ptr<ICoreWebView2Deferral> deferral;
             CHECK_FAILURE(args->GetDeferral(&deferral));
 
-            // ── Step 5: Get menu items for later use ──
-            wil::com_ptr<ICoreWebView2ContextMenuItemCollection> items;
-            CHECK_FAILURE(args->get_MenuItems(&items));
-
-            // ── Step 6: Get suggestions asynchronously and build menu ──
+            // Asynchronously retrieve spellcheck suggestions.
             CHECK_FAILURE(target2->GetSpellCheckSuggestions(
                 Callback<
                     ICoreWebView2GetSpellCheckSuggestionsCompletedHandler>(
-                    [this, args, items, deferral](
+                    [args, deferral](
                         HRESULT errorCode,
                         ICoreWebView2ContextMenuItemCollection*
                             suggestions) -> HRESULT
                     {
-                        HMENU hMenu = CreatePopupMenu();
-
-                        // Add spellcheck suggestions at the top.
-                        UINT32 sugCount = 0;
+                        // Enumerate suggestions — each has Label and CommandId.
+                        UINT32 count = 0;
                         if (SUCCEEDED(errorCode) && suggestions)
-                            suggestions->get_Count(&sugCount);
+                            suggestions->get_Count(&count);
 
-                        if (sugCount > 0)
+                        for (UINT32 i = 0; i < count; i++)
                         {
-                            AppendMenuW(
-                                hMenu, MF_GRAYED | MF_STRING, 0,
-                                L"Spelling suggestions:");
-                            for (UINT32 i = 0; i < sugCount; i++)
-                            {
-                                wil::com_ptr<
-                                    ICoreWebView2ContextMenuItem>
-                                    item;
-                                suggestions->GetValueAtIndex(i, &item);
-                                wil::unique_cotaskmem_string label;
-                                item->get_Label(&label);
-                                INT32 cmdId;
-                                item->get_CommandId(&cmdId);
-                                AppendMenuW(
-                                    hMenu, MF_STRING, cmdId,
-                                    label.get());
-                            }
-                            AppendMenuW(
-                                hMenu, MF_SEPARATOR, 0, nullptr);
-                        }
-                        else
-                        {
-                            AppendMenuW(
-                                hMenu, MF_GRAYED | MF_STRING, 0,
-                                L"No suggestions available");
-                            AppendMenuW(
-                                hMenu, MF_SEPARATOR, 0, nullptr);
+                            wil::com_ptr<ICoreWebView2ContextMenuItem> item;
+                            suggestions->GetValueAtIndex(i, &item);
+                            wil::unique_cotaskmem_string label;
+                            item->get_Label(&label);
+                            INT32 cmdId;
+                            item->get_CommandId(&cmdId);
+                            // ... add to custom menu using label and cmdId ...
                         }
 
-                        // Add remaining standard context menu items.
-                        AddMenuItems(hMenu, items.get());
+                        // Apply selection via unified commanding.
+                        // args->put_SelectedCommandId(selectedCmdId);
 
-                        // Show popup at the context menu location.
-                        HWND hWnd = m_appWindow->GetMainWindow();
-                        POINT location;
-                        args->get_Location(&location);
-                        RECT bounds;
-                        GetWindowRect(hWnd, &bounds);
-                        POINT pt = {bounds.left + location.x,
-                                    bounds.top + location.y};
-                        INT32 selectedCmd = TrackPopupMenu(
-                            hMenu,
-                            TPM_TOPALIGN | TPM_LEFTALIGN |
-                                TPM_RETURNCMD,
-                            pt.x, pt.y, 0, hWnd, nullptr);
-
-                        // ── Unified commanding ──
-                        if (selectedCmd > 0)
-                            args->put_SelectedCommandId(selectedCmd);
-
-                        DestroyMenu(hMenu);
                         deferral->Complete();
                         return S_OK;
                     })
@@ -151,84 +105,41 @@ webView->add_ContextMenuRequested(
     &m_contextMenuRequestedToken);
 ```
 
-## .NET/WinRT — Display Custom Context Menu with Spellcheck Suggestions
+## .NET/WinRT
 
 ```csharp
 webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 {
-    // Step 1: Get context menu target.
     var target = args.ContextMenuTarget;
 
-    // Step 2: Check for misspelled word (Target2 property).
+    // Check if the context menu target has a misspelled word.
     if (!target.HasMisspelledWord)
-        return;  // No misspelling — let default menu show.
+        return;
 
-    // Step 3: Take over menu rendering and hold deferral.
+    // Take deferral — menu will be shown after async call completes.
     args.Handled = true;
     var deferral = args.GetDeferral();
 
-    // Step 4: Get suggestions asynchronously.
+    // Asynchronously retrieve spellcheck suggestions.
     IReadOnlyList<CoreWebView2ContextMenuItem> suggestions =
         await target.GetSpellCheckSuggestionsAsync();
 
-    // Step 5: Build custom menu.
+    // Build custom menu with suggestions.
     var contextMenu = new ContextMenuStrip();
-    bool completed = false;
-
-    if (suggestions.Count > 0)
+    foreach (var suggestion in suggestions)
     {
-        contextMenu.Items.Add(new ToolStripMenuItem(
-            "Spelling suggestions:") { Enabled = false });
-
-        foreach (var suggestion in suggestions)
+        var item = new ToolStripMenuItem(suggestion.Label);
+        var capturedId = suggestion.CommandId;
+        item.Click += (_, _) =>
         {
-            var item = new ToolStripMenuItem(suggestion.Label);
-            var capturedId = suggestion.CommandId;
-            item.Click += (_, _) =>
-            {
-                // Unified commanding — same as Cut, Copy, Paste.
-                args.SelectedCommandId = capturedId;
-            };
-            contextMenu.Items.Add(item);
-        }
-        contextMenu.Items.Add(new ToolStripSeparator());
-    }
-    else
-    {
-        contextMenu.Items.Add(new ToolStripMenuItem(
-            "No suggestions available") { Enabled = false });
-        contextMenu.Items.Add(new ToolStripSeparator());
+            // Apply selection via unified commanding.
+            args.SelectedCommandId = capturedId;
+        };
+        contextMenu.Items.Add(item);
     }
 
-    // Add standard items.
-    foreach (var menuItem in args.MenuItems)
-    {
-        if (menuItem.Kind == CoreWebView2ContextMenuItemKind.Separator)
-        {
-            contextMenu.Items.Add(new ToolStripSeparator());
-        }
-        else
-        {
-            var stdItem = new ToolStripMenuItem(menuItem.Label);
-            stdItem.Enabled = menuItem.IsEnabled;
-            var stdCmdId = menuItem.CommandId;
-            stdItem.Click += (_, _) =>
-            {
-                args.SelectedCommandId = stdCmdId;
-            };
-            contextMenu.Items.Add(stdItem);
-        }
-    }
-
-    // Complete deferral on menu close.
-    contextMenu.Closed += (_, _) =>
-    {
-        if (!completed)
-        {
-            completed = true;
-            deferral.Complete();
-        }
-    };
+    // Show menu and complete deferral when closed.
+    contextMenu.Closed += (_, _) => deferral.Complete();
     contextMenu.Show(webView, new Point(args.Location.X, args.Location.Y));
 };
 ```
