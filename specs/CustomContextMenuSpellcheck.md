@@ -177,8 +177,9 @@ interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
   /// correction. The handler receives an empty collection if no suggestions
   /// are available, if `HasMisspelledWord` is FALSE, or if the underlying
   /// spell check service does not respond within an internal timeout.
+  /// Multiple concurrent calls are supported; each handler will be invoked
+  /// with the same result when suggestions become available.
   /// Returns `E_POINTER` if `handler` is null.
-  /// Returns `E_ILLEGAL_METHOD_CALL` if a previous request is still pending.
   HRESULT GetSpellCheckSuggestions(
       [in] ICoreWebView2GetSpellCheckSuggestionsCompletedHandler* handler);
 }
