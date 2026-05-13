@@ -1,4 +1,4 @@
-ICoreWebView2CrashReport
+Crash Report
 ===
 
 # Background
@@ -33,18 +33,18 @@ report time). Per-property reference documentation appears in the API Details se
   alive at this point, so no crash report exists yet.
 - The failure is a launch failure or a clean termination; these do not go through the crash
   handler.
-- The crash handler ran but could not find a matching crash record (rare; typically a timing issue).
 
-`CrashReport` is populated for crash failures, including renderer crashes, GPU process crashes,
-utility process crashes, browser process crashes, and out-of-memory terminations.
+`CrashReport` is populated for any crash-type process failure, including `__fastfail`
+(`0xC0000409`) and out-of-memory terminations. For `__fastfail` crashes, fields are
+sourced from the Windows Error Reporting event log rather than the crash handler;
+`BucketId` will be empty.
 
 Each `CoreWebView2Environment` only delivers reports for its own WebView2 processes (scoped by user
 data folder). When
 [`IsCustomCrashReportingEnabled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions3#get_iscustomcrashreportingenabled)
 is `TRUE`, the crash handler still catches exceptions and writes the minidump and crash metadata to
 disk, so `CrashReport` is populated and all fields except `BucketId` are available. `BucketId` will
-be empty because the network hit that returns the bucket assignment is not made when custom crash
-reporting is enabled.
+be empty because crash data is not uploaded to Microsoft's telemetry service.
 
 # Examples
 
@@ -106,7 +106,7 @@ CHECK_FAILURE(m_webView->add_ProcessFailed(
     &m_processFailedToken));
 ```
 
-## .NET and WinRT
+## WinRT and .NET
 
 ```c#
 webView.CoreWebView2.ProcessFailed += (sender, args) =>
@@ -132,7 +132,7 @@ webView.CoreWebView2.ProcessFailed += (sender, args) =>
 
 ## COM
 
-```cpp
+```
 /// Provides crash signature data captured at the moment of process failure.
 /// Accessed via ICoreWebView2ProcessFailedEventArgs5.CrashReport.
 ///
@@ -141,14 +141,13 @@ webView.CoreWebView2.ProcessFailed += (sender, args) =>
 [uuid(7c3a1b40-9f1e-4a5d-8b2e-2e0e7c1f3a55), object, pointer_default(unique)]
 interface ICoreWebView2CrashReport : IUnknown {
     /// A stable identifier for this crash report. Use this to locate the
-    /// corresponding dump file in `FailureReportFolderPath`. The dump file
-    /// is written as `<CrashReportId>.dmp` directly inside that folder.
+    /// corresponding dump file in `FailureReportFolderPath`.
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT CrashReportId([out, retval] LPWSTR* value);
 
-    /// The Windows exception code captured by the crash handler,
-    /// e.g. 0xC0000005 for STATUS_ACCESS_VIOLATION or 0xC0000409 for
-    /// STATUS_STACK_BUFFER_OVERRUN (fast-fail).
+    /// The Windows exception code for the failure, e.g. 0xC0000005 for
+    /// STATUS_ACCESS_VIOLATION, 0xC0000409 for STATUS_STACK_BUFFER_OVERRUN
+    /// (fast-fail), or 0xe0000008 for an out-of-memory termination.
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT ExceptionCode([out, retval] UINT32* value);
 
@@ -166,11 +165,12 @@ interface ICoreWebView2CrashReport : IUnknown {
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT FaultOffset([out, retval] UINT64* value);
 
-    /// Crash bucket identifier assigned by Microsoft's crash telemetry
-    /// service, if available at event-fire time. Empty when no bucket was
-    /// assigned (network throttled/unavailable, custom crash reporting
-    /// enabled, or the crash bypassed the standard handler such as
-    /// `__fastfail`).
+    /// Crash bucket identifier assigned by Microsoft's crash telemetry service,
+    /// if available at event-fire time. Returned as a 32-character hex string.
+    /// Empty when no bucket was assigned: crash data was not uploaded to
+    /// Microsoft's telemetry service (custom crash reporting enabled), the
+    /// assignment was not yet received (network throttled/unavailable), or the
+    /// crash bypassed the standard handler (e.g. `__fastfail`).
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT BucketId([out, retval] LPWSTR* value);
 
@@ -194,7 +194,7 @@ interface ICoreWebView2ProcessFailedEventArgs5
 }
 ```
 
-## .NET / WinRT
+## WinRT and .NET
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
@@ -248,5 +248,5 @@ All fields in `CrashReport` are technical crash-signature values with no user-id
 | `ExceptionCode`, `FaultOffset` | Technical values; identical across users for the same crash. | None |
 | `FaultingModuleName` | Basename only; never a full path. | None |
 | `FaultingModuleVersion` | Public version string. | None |
-| `BucketId` | Identifier assigned by Microsoft's crash telemetry service; no user data. May be empty. | None |
+| `BucketId` | Hex string identifier assigned by Microsoft's crash telemetry service; no user data. May be empty. | None |
 | `ReportTime` | Timestamp of the crash; identical precision to OS event logs. No user-identifying signal. | None |
