@@ -11,20 +11,35 @@ interactive (they expect a response), and each has its own event
 shape.
 
 The Diagnostic Monitor API introduces an observation-only monitor
-object that delivers diagnostic signals from all layers — WebView,
+API that delivers diagnostic signals from all layers — WebView,
 Profile, and Environment — through a single `DiagnosticReceived`
-event. Host apps create a monitor from the environment and opt in
+event. Host apps create monitors from the environment and opt in
 per category using `SetDiagnosticFilter`.
 
 
 # Description
 
 You create an `ICoreWebView2DiagnosticMonitor` from the environment
-using `CreateDiagnosticMonitor`. The monitor observes diagnostic
-signals across all WebViews, profiles, and the environment itself.
-You control which categories of events are delivered by calling
-`SetDiagnosticFilter` with a category and an optional JSON
-filter string.
+using `CreateDiagnosticMonitor`. The monitor is strictly
+**observation-only** — it reports diagnostic signals but does not
+allow the host to intercept, modify, or respond to them. Unlike
+interactive APIs such as `ServerCertificateErrorDetected`, the
+monitor never expects a response and has no deferral mechanism.
+It is designed purely for logging and telemetry, not for making
+runtime decisions.
+
+The monitor observes diagnostic signals across all WebViews,
+profiles, and the environment itself. You control which categories
+of events are delivered by calling `SetDiagnosticFilter` with a
+category and a JSON filter string.
+
+The API is **JSON-in / JSON-out by design**. Filters are expressed
+as JSON objects whose schema is defined and maintained as part of
+the API contract. Diagnostic details are returned as JSON strings
+whose schema is documented per category with a set of guaranteed
+fields; the runtime may include additional key-value pairs beyond
+the documented set, so consumers should ignore unknown keys and
+must not treat the documented schema as exhaustive.
 
 Key scenarios:
 
@@ -344,7 +359,9 @@ interface ICoreWebView2DiagnosticReceivedEventArgs : IUnknown {
   /// }
   /// ```
   ///
-  /// `errorCode` is the Chromium net error code (integer).
+  /// `errorCode` is the Chromium net error code (negative
+  /// integer). See the list at
+  /// [net_error_list.h](https://source.chromium.org/chromium/chromium/src/+/main:net/base/net_error_list.h).
   /// `statusCode` is the HTTP response status code
   /// (integer, 0 if no response was received).
   /// `httpMethod` is the HTTP method string.
@@ -352,6 +369,11 @@ interface ICoreWebView2DiagnosticReceivedEventArgs : IUnknown {
   /// milliseconds (integer).
   /// `protocol` is the protocol scheme (e.g. "https").
   /// `uri` is the request URI.
+  ///
+  /// The runtime may include additional key-value pairs
+  /// beyond the fields listed above. Consumers should
+  /// ignore unknown keys and must not treat the documented
+  /// schema as exhaustive.
   ///
   /// For categories that the runtime does not yet populate,
   /// this method returns `"{}"`.
@@ -398,6 +420,9 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// Sets a diagnostic filter for the specified category.
   /// After this call, `DiagnosticReceived` will fire for
   /// events in this category that match the JSON criteria.
+  ///
+  /// The filter JSON schema is defined and maintained as
+  /// part of the API contract.
   ///
   /// Pass `"{}"` or an empty string as `jsonFilter` to
   /// receive all events in the category without
@@ -524,8 +549,10 @@ namespace Microsoft.Web.WebView2.Core
         Int64 Timestamp { get; };
 
         /// Returns category-specific data as a JSON
-        /// string. Returns "{}" for unrecognized
-        /// categories.
+        /// string. The runtime may include additional
+        /// key-value pairs beyond the documented fields;
+        /// consumers should ignore unknown keys.
+        /// Returns "{}" for unrecognized categories.
         String GetDetailsAsJson();
     }
 
