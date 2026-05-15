@@ -17,8 +17,8 @@ checks whether a misspelled word is present, then asynchronously retrieves spell
 The `ICoreWebView2ContextMenuTarget` is extended with `ICoreWebView2ContextMenuTarget2`.
 This new interface provides:
 
-- **`HasMisspelledWord`** — Read-only BOOL property indicating whether the context menu target
-  contains a misspelled word. This is always available synchronously when the event fires.
+- **`HasSpellingError`** — Read-only BOOL property indicating whether the context menu target
+  contains a spelling error. This is always available synchronously when the event fires.
 - **`GetSpellCheckSuggestions(handler)`** — Asynchronously retrieves spell check suggestions as
   `ICoreWebView2ContextMenuItem` objects. Each suggestion has a `Label` (display text) and
   `CommandId` (opaque identifier).
@@ -56,10 +56,10 @@ webView->add_ContextMenuRequested(
             if (!target2)
                 return S_OK;
 
-            // Check if the context menu target has a misspelled word.
-            BOOL hasMisspelledWord = FALSE;
-            CHECK_FAILURE(target2->get_HasMisspelledWord(&hasMisspelledWord));
-            if (!hasMisspelledWord)
+            // Check if the context menu target has a spelling error.
+            BOOL hasSpellingError = FALSE;
+            CHECK_FAILURE(target2->get_HasSpellingError(&hasSpellingError));
+            if (!hasSpellingError)
                 return S_OK;
 
             // Take deferral — menu will be shown after async callback.
@@ -112,8 +112,8 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 {
     var target = args.ContextMenuTarget;
 
-    // Check if the context menu target has a misspelled word.
-    if (!target.HasMisspelledWord)
+    // Check if the context menu target has a spelling error.
+    if (!target.HasSpellingError)
         return;
 
     // Take deferral — menu will be shown after async call completes.
@@ -156,7 +156,7 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 ///
 /// The host can `QueryInterface` the `ICoreWebView2ContextMenuTarget` returned
 /// by `ICoreWebView2ContextMenuRequestedEventArgs::get_ContextMenuTarget` to
-/// obtain this interface. Check `HasMisspelledWord` to determine whether
+/// obtain this interface. Check `HasSpellingError` to determine whether
 /// the context menu was invoked on a misspelled word, then call
 /// `GetSpellCheckSuggestions` to asynchronously retrieve spelling corrections.
 ///
@@ -164,10 +164,10 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 /// `ICoreWebView2ContextMenuRequestedEventArgs::put_SelectedCommandId`.
 [uuid(f7a3b8c1-2d4e-5f6a-8b9c-0d1e2f3a4b5c), object, pointer_default(unique)]
 interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
-  /// Returns TRUE if the context menu target contains a misspelled word.
+  /// Returns TRUE if the context menu target contains a spelling error.
   /// When TRUE, call `GetSpellCheckSuggestions` to retrieve the available
   /// spelling correction suggestions asynchronously.
-  [propget] HRESULT HasMisspelledWord([out, retval] BOOL* value);
+  [propget] HRESULT HasSpellingError([out, retval] BOOL* value);
 
   /// Asynchronously retrieves spell check suggestion options as a collection
   /// of context menu items. The handler is invoked immediately if suggestions
@@ -175,7 +175,7 @@ interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
   /// spell check engine. Each item's `Label` is the suggestion text and its
   /// `CommandId` can be passed to `put_SelectedCommandId` to apply the
   /// correction. The handler receives an empty collection if no suggestions
-  /// are available, if `HasMisspelledWord` is FALSE, or if the underlying
+  /// are available, if `HasSpellingError` is FALSE, or if the underlying
   /// spell check service does not respond within an internal timeout.
   /// Multiple concurrent calls are supported; each handler will be invoked
   /// with the same result when suggestions become available.
@@ -211,9 +211,9 @@ namespace Microsoft.Web.WebView2.Core
         [interface_name("ICoreWebView2ContextMenuTarget2")]
         {
             /// <summary>
-            /// Returns TRUE if the context menu target contains a misspelled word.
+            /// Returns TRUE if the context menu target contains a spelling error.
             /// </summary>
-            Boolean HasMisspelledWord { get; };
+            Boolean HasSpellingError { get; };
 
             /// <summary>
             /// Asynchronously retrieves spell check suggestions. Each item's
@@ -233,7 +233,7 @@ namespace Microsoft.Web.WebView2.Core
 | Step | Action | Result |
 |------|--------|--------|
 | 1 | QI for `Target2` from `ContextMenuTarget` | `E_NOINTERFACE` → old runtime, fall back to default menu |
-| 2 | Read `HasMisspelledWord` | `TRUE` → misspelling present; `FALSE` → no misspelling |
+| 2 | Read `HasSpellingError` | `TRUE` → spelling error present; `FALSE` → no spelling error |
 | 3 | Call `GetSpellCheckSuggestions(handler)` | Handler invoked when suggestions are available |
 
 ## Suggestion Item Properties
