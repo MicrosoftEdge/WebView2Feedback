@@ -197,7 +197,7 @@ typedef enum COREWEBVIEW2_ORIGIN_FEATURE {
   /// is particularly useful for protecting against zero-day exploits and reducing attack
   /// surface. When enabled for an origin, that origin will have Enhanced Security Mode
   /// applied; when disabled, normal security mode is used.
-  /// Enhanced security mode can be configured globally via EnhancedSecurityModeLevel API on profile.
+  /// Enhanced security mode can be configured globally via EnhancedSecurityModeState API on profile.
   /// If Enhanced Security Mode is not configured for an origin, the global profile setting will apply.
   /// 
   /// For more information about Enhanced Security Mode, see:
