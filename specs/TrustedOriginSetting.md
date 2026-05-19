@@ -219,18 +219,14 @@ typedef enum COREWEBVIEW2_ORIGIN_FEATURE {
   /// `Disabled` for an origin will skip SmartScreen reputation checks for
   /// navigations and downloads from that origin, effectively allow-listing it.
   /// 
-  /// \warning Disabling SmartScreen for an origin removes important security
-  /// protections. Only disable SmartScreen for fully trusted, app-controlled
-  /// origins where the content is known to be safe.
+  /// Warning: Disabling SmartScreen for an origin bypasses phishing and malware
+  /// reputation checks. Only disable for fully trusted, app-controlled origins
+  /// where the content is known to be safe.
   /// 
-  /// This configuration operates within the scope of the per-WebView SmartScreen
-  /// setting controlled by
-  /// [IsReputationCheckingRequired](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2settings.isreputationcheckingrequired).
-  /// When `IsReputationCheckingRequired` is `false` (SmartScreen
-  /// disabled), the SmartScreen check is not active and this
-  /// per-origin configuration has no effect. When `IsReputationCheckingRequired`
-  /// is `true` (the default), this per-origin configuration controls whether
-  /// individual origins are exempt from SmartScreen reputation checks.
+  /// This per-origin configuration only takes effect when SmartScreen is
+  /// enabled. If SmartScreen is disabled via
+  /// [IsReputationCheckingRequired](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2settings.isreputationcheckingrequired),
+  /// this setting has no effect.
   COREWEBVIEW2_ORIGIN_FEATURE_SMART_SCREEN,
 } COREWEBVIEW2_ORIGIN_FEATURE;
 
