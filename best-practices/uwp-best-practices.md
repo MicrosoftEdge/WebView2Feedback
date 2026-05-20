@@ -12,12 +12,18 @@ Each entry uses the format:
 
 ### Best practice
 
-Call `Close()` on every `CoreWebView2Controller` you own before your UWP app
-exits, and release your references afterwards.
+Call `Close()` on every `CoreWebView2Controller` you own from your UWP app's
+suspend handler (for example `Application.Suspending`), and release your
+references afterwards.
 
 ```cpp
-// C++/WinRT
-void App::OnClosed()
+// C++/WinRT — App.xaml.cpp
+App::App()
+{
+    Suspending({ this, &App::OnSuspending });
+}
+
+void App::OnSuspending(IInspectable const&, SuspendingEventArgs const&)
 {
     if (m_controller)
     {
@@ -29,8 +35,13 @@ void App::OnClosed()
 ```
 
 ```csharp
-// C#
-private void OnClosed(object sender, WindowEventArgs e)
+// C# — App.xaml.cs
+public App()
+{
+    this.Suspending += OnSuspending;
+}
+
+private void OnSuspending(object sender, SuspendingEventArgs e)
 {
     if (_controller != null)
     {
@@ -56,14 +67,31 @@ inconsistent state on the next launch.
 
 Subscribe to `CoreWebView2.LaunchingExternalUriScheme`, cancel the default
 launch, and forward the URI to `Windows.System.Launcher.LaunchUriAsync` so
-that the OS performs the activation.
+that the OS performs the activation. Gate the hand‑off on
+`IsUserInitiated` and, where appropriate, an allow‑list of schemes and
+initiating origins so that web content cannot silently activate other apps.
 
 ```csharp
 // C#
+private static readonly HashSet<string> AllowedSchemes =
+    new(StringComparer.OrdinalIgnoreCase) { "mailto", "tel", "ms-settings" };
+
 _webView.CoreWebView2.LaunchingExternalUriScheme += async (s, e) =>
 {
     e.Cancel = true;
-    await Windows.System.Launcher.LaunchUriAsync(new Uri(e.Uri));
+
+    if (!e.IsUserInitiated) return;
+    if (!Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri)) return;
+    if (!AllowedSchemes.Contains(uri.Scheme)) return;
+
+    try
+    {
+        await Windows.System.Launcher.LaunchUriAsync(uri);
+    }
+    catch
+    {
+        // Optional: surface a fallback UI to the user.
+    }
 };
 ```
 
@@ -72,7 +100,17 @@ _webView.CoreWebView2.LaunchingExternalUriScheme += async (s, e) =>
 m_webview.LaunchingExternalUriScheme([](auto&&, auto const& args)
 {
     args.Cancel(true);
-    Windows::System::Launcher::LaunchUriAsync(Uri{ args.Uri() });
+
+    if (!args.IsUserInitiated()) return;
+
+    Uri uri{ nullptr };
+    try { uri = Uri{ args.Uri() }; } catch (...) { return; }
+
+    auto scheme = uri.SchemeName();
+    if (scheme != L"mailto" && scheme != L"tel" && scheme != L"ms-settings")
+        return;
+
+    Windows::System::Launcher::LaunchUriAsync(uri);
 });
 ```
 
