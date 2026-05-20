@@ -62,6 +62,7 @@ This specification introduces the following interfaces:
 
     - AccentColor 
     - EnhancedSecurityMode
+    - SmartScreen
 
 # Example
 
@@ -88,10 +89,17 @@ void SetOriginFeatures()
         COREWEBVIEW2_ORIGIN_FEATURE_STATE_ENABLED,
         &enhancedSecuritySetting));
 
+    wil::com_ptr<ICoreWebView2StagingOriginFeatureSetting> smartScreenSetting;
+    CHECK_FAILURE(stagingProfile3->CreateOriginFeatureSetting(
+        COREWEBVIEW2_ORIGIN_FEATURE_SMART_SCREEN,
+        COREWEBVIEW2_ORIGIN_FEATURE_STATE_DISABLED,
+        &smartScreenSetting));
+
     // Set features for origin patterns
     ICoreWebView2StagingOriginFeatureSetting* features[] = {
         accentColorSetting.get(),
-        enhancedSecuritySetting.get()
+        enhancedSecuritySetting.get(),
+        smartScreenSetting.get()
     };
 
     LPCWSTR origins[] = { L"https://*.contoso.com" };
@@ -154,6 +162,7 @@ public void SetOriginFeatures()
     {
         { CoreWebView2OriginFeature.AccentColor, CoreWebView2OriginFeatureState.Enabled },
         { CoreWebView2OriginFeature.EnhancedSecurityMode, CoreWebView2OriginFeatureState.Enabled },
+        { CoreWebView2OriginFeature.SmartScreen, CoreWebView2OriginFeatureState.Disabled },
     };
 
     // Set features for origin patterns
@@ -203,6 +212,22 @@ typedef enum COREWEBVIEW2_ORIGIN_FEATURE {
   /// For more information about Enhanced Security Mode, see:
   /// https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/security
   COREWEBVIEW2_ORIGIN_FEATURE_ENHANCED_SECURITY_MODE,
+  /// Specifies SmartScreen reputation check settings for the origin.
+  /// SmartScreen protects users from phishing and malware by checking navigated
+  /// URLs and downloaded files against a cloud-based reputation service.
+  /// By default, SmartScreen is enabled for all origins. Setting this feature to
+  /// `Disabled` for an origin will skip SmartScreen reputation checks for
+  /// navigations and downloads from that origin, effectively allow-listing it.
+  /// 
+  /// Warning: Disabling SmartScreen for an origin bypasses phishing and malware
+  /// reputation checks. Only disable for fully trusted, app-controlled origins
+  /// where the content is known to be safe.
+  /// 
+  /// This per-origin configuration only takes effect when SmartScreen is
+  /// enabled. If SmartScreen is disabled via
+  /// [IsReputationCheckingRequired](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2settings.isreputationcheckingrequired),
+  /// this setting has no effect.
+  COREWEBVIEW2_ORIGIN_FEATURE_SMART_SCREEN,
 } COREWEBVIEW2_ORIGIN_FEATURE;
 
 /// Specifies the state of the origin feature.
@@ -234,7 +259,7 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
   /// Configures one or more feature settings for the specified origins. 
   /// 
   /// This method applies feature configurations—such as accent color support, 
-  /// or enhanced security mode—to origins. Origins 
+  /// enhanced security mode, or SmartScreen reputation checking—to origins. Origins 
   /// may be provided as exact origin strings or as wildcard patterns. 
   /// 
   /// The origin pattern can be an exact origin string or a wildcard pattern.
@@ -336,6 +361,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         AccentColor = 0,
         EnhancedSecurityMode = 1,
+        SmartScreen = 2,
     };
 
     runtimeclass CoreWebView2OriginFeatureSetting
