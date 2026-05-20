@@ -568,5 +568,5 @@ At a high level, the WebView2CompositionControl instantiates a CoreWebView2 in m
 the regular WebView2 control, but connects to it and controls it using the CoreWebView2CompositionController
 instead of the CoreWebView2Controller. The composition controller is given a WinComp visual to draw into,
 and this visual is used to create a GraphicsCaptureSession. When frames from this capture session are
-captured they are they rendered into a WPF Image element that's part of the control.
+captured they are then rendered into a WPF Image element that's part of the control.
 
