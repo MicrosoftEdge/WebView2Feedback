@@ -14,7 +14,10 @@ Each entry uses the format:
 
 Call `Close()` on every `CoreWebView2Controller` you own from your UWP app's
 suspend handler (for example `Application.Suspending`), and release your
-references afterwards.
+references afterwards. Because browser process teardown is asynchronous, take
+a suspend deferral and complete it from
+`CoreWebView2Environment.BrowserProcessExited` so the OS does not tear the
+app down before the runtime has finished shutting down.
 
 ```cpp
 // C++/WinRT — App.xaml.cpp
@@ -23,8 +26,15 @@ App::App()
     Suspending({ this, &App::OnSuspending });
 }
 
-void App::OnSuspending(IInspectable const&, SuspendingEventArgs const&)
+void App::OnSuspending(IInspectable const&, SuspendingEventArgs const& e)
 {
+    auto deferral = e.SuspendingOperation().GetDeferral();
+
+    m_environment.BrowserProcessExited([deferral](auto&&, auto&&)
+    {
+        deferral.Complete();
+    });
+
     if (m_controller)
     {
         m_controller.Close();
@@ -43,6 +53,16 @@ public App()
 
 private void OnSuspending(object sender, SuspendingEventArgs e)
 {
+    var deferral = e.SuspendingOperation.GetDeferral();
+
+    void OnExited(object s, CoreWebView2BrowserProcessExitedEventArgs args)
+    {
+        _environment.BrowserProcessExited -= OnExited;
+        deferral.Complete();
+    }
+
+    _environment.BrowserProcessExited += OnExited;
+
     if (_controller != null)
     {
         _controller.Close();
