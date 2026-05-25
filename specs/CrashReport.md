@@ -17,8 +17,11 @@ is no supported API to read this data from a host application.
 This document proposes `ICoreWebView2CrashReport`, a new read-only property on
 `ProcessFailedEventArgs` that delivers crash signature data to your handler at the moment the event
 fires: no file parsing, no event log queries, no internal knowledge required. A stable
-`CrashReportId` ties the event directly to the crash report on disk, which you can locate via
+`CrashReportId` identifies the crash event and, when a dump was written, can be used to locate the
+corresponding dump file via
 [`FailureReportFolderPath`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environment11#get_failurereportfolderpath).
+Note that some crash types (e.g. `__fastfail`) do not produce a dump file at all; `CrashReportId`
+still uniquely identifies the failure in that case.
 
 # Description
 
@@ -35,9 +38,11 @@ report time). Per-property reference documentation appears in the API Details se
   handler.
 
 `CrashReport` is populated for any crash-type process failure, including `__fastfail`
-(`0xC0000409`) and out-of-memory terminations. For `__fastfail` crashes, fields are
-sourced from the Windows Error Reporting event log rather than the crash handler;
-`BucketId` will be empty.
+(`0xC0000409`) and out-of-memory terminations. For `__fastfail` crashes on Windows, the standard
+crash handler is bypassed entirely; fields are sourced from the Windows Error Reporting event log
+instead, and `BucketId` will be empty. `BucketId` is also empty on Windows devices where crash
+reports are submitted via `WerReportSubmit` rather than direct HTTP upload (enterprise
+Azure-AD-joined devices not classified as internal users).
 
 Each `CoreWebView2Environment` only delivers reports for its own WebView2 processes (scoped by user
 data folder). When
@@ -140,8 +145,10 @@ webView.CoreWebView2.ProcessFailed += (sender, args) =>
 /// (normal exit, external kill, launch failure, hang).
 [uuid(7c3a1b40-9f1e-4a5d-8b2e-2e0e7c1f3a55), object, pointer_default(unique)]
 interface ICoreWebView2CrashReport : IUnknown {
-    /// A stable identifier for this crash report. Use this to locate the
-    /// corresponding dump file in `FailureReportFolderPath`.
+    /// A stable identifier for this crash report. When a minidump was written,
+    /// use this to locate the corresponding dump file in `FailureReportFolderPath`.
+    /// For crashes that bypass the standard handler (e.g. `__fastfail`), no dump
+    /// file is written, but `CrashReportId` still uniquely identifies the failure.
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT CrashReportId([out, retval] LPWSTR* value);
 
@@ -165,12 +172,18 @@ interface ICoreWebView2CrashReport : IUnknown {
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT FaultOffset([out, retval] UINT64* value);
 
-    /// Crash bucket identifier assigned by Microsoft's crash telemetry service,
-    /// if available at event-fire time. Returned as a 32-character hex string.
-    /// Empty when no bucket was assigned: crash data was not uploaded to
-    /// Microsoft's telemetry service (custom crash reporting enabled), the
-    /// assignment was not yet received (network throttled/unavailable), or the
-    /// crash bypassed the standard handler (e.g. `__fastfail`).
+    /// Crash bucket identifier assigned by Microsoft's crash telemetry service.
+    /// Returned as a 32-character hex string. Available at event-fire time on
+    /// devices that upload crash data via HTTP (the standard path for most
+    /// consumer and non-enterprise Windows devices, and all Mac devices).
+    /// Empty in the following cases:
+    /// - Custom crash reporting is enabled (`IsCustomCrashReportingEnabled`):
+    ///   crash data is not uploaded to Microsoft's telemetry service.
+    /// - The crash bypassed the standard handler (e.g. `__fastfail` on Windows):
+    ///   no crash handler ran, so no upload occurred.
+    /// - Enterprise Azure-AD-joined device (non-internal): crash is submitted via
+    ///   `WerReportSubmit` rather than HTTP; no feedback channel exists to return
+    ///   the bucket assignment at event time.
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT BucketId([out, retval] LPWSTR* value);
 
