@@ -34,10 +34,10 @@ report time). Per-property reference documentation appears in the API Details se
 - The failure is a launch failure or a clean termination; these do not go through the crash
   handler.
 
-`CrashReport` is populated for any crash-type process failure, including `__fastfail`
-(`0xC0000409`) and out-of-memory terminations. For `__fastfail` crashes, fields are
-sourced from the Windows Error Reporting event log rather than the crash handler;
-`BucketId` will be empty.
+`CrashReport` is populated for crash-type process failures handled by the WebView2 crash
+handler, including out-of-memory terminations. `CrashReport` is `null` for crashes that
+bypass the crash handler, such as `__fastfail` (`0xC0000409`) and heap corruption
+terminations; these failures still fire `ProcessFailed` but do not produce a crash report.
 
 Each `CoreWebView2Environment` only delivers reports for its own WebView2 processes (scoped by user
 data folder). When
@@ -146,8 +146,7 @@ interface ICoreWebView2CrashReport : IUnknown {
     [propget] HRESULT CrashReportId([out, retval] LPWSTR* value);
 
     /// The Windows exception code for the failure, e.g. 0xC0000005 for
-    /// STATUS_ACCESS_VIOLATION, 0xC0000409 for STATUS_STACK_BUFFER_OVERRUN
-    /// (fast-fail), or 0xe0000008 for an out-of-memory termination.
+    /// STATUS_ACCESS_VIOLATION, or 0xe0000008 for an out-of-memory termination.
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT ExceptionCode([out, retval] UINT32* value);
 
@@ -168,9 +167,8 @@ interface ICoreWebView2CrashReport : IUnknown {
     /// Crash bucket identifier assigned by Microsoft's crash telemetry service,
     /// if available at event-fire time. Returned as a 32-character hex string.
     /// Empty when no bucket was assigned: crash data was not uploaded to
-    /// Microsoft's telemetry service (custom crash reporting enabled), the
-    /// assignment was not yet received (network throttled/unavailable), or the
-    /// crash bypassed the standard handler (e.g. `__fastfail`).
+    /// Microsoft's telemetry service (custom crash reporting enabled), or the
+    /// assignment was not yet received (network throttled/unavailable).
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT BucketId([out, retval] LPWSTR* value);
 
