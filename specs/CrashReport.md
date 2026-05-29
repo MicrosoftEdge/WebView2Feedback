@@ -9,23 +9,22 @@ event when a WebView2 process crashes, hangs, or fails to launch. The event tell
 the failure kind, the exit code, and the process type, enough to react and recover. But it does not
 tell you _which crash report was generated_ for that failure.
 
-When a crash occurs, the WebView2 runtime's crash handler captures a minidump and writes crash
+When a crash occurs, the WebView2 runtime's crash handler captures a crash dump and writes crash
 signature data (exception code, faulting module, bucket ID) to disk. This data is useful for
 tracking reliability, grouping crashes by root cause, and filing actionable bug reports. Today there
 is no supported API to read this data from a host application.
 
 This document proposes `ICoreWebView2CrashReport`, a new read-only property on
 `ProcessFailedEventArgs` that delivers crash signature data to your handler at the moment the event
-fires: no file parsing, no event log queries, no internal knowledge required. A stable
-`CrashReportId` ties the event directly to the crash report on disk, which you can locate via
+fires. `CrashReportId` ties the event directly to the crash report on disk (`<CrashReportId>.dmp`),
+which you can locate via
 [`FailureReportFolderPath`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environment11#get_failurereportfolderpath).
 
 # Description
 
 We propose to extend `ProcessFailedEventArgs` with a read-only `CrashReport` property that exposes
-a `CoreWebView2CrashReport` object. This object is a snapshot of crash signature data captured at
-the moment of failure (exception code, faulting module and version, fault offset, bucket id, and
-report time). Per-property reference documentation appears in the API Details section.
+a `CoreWebView2CrashReport` object. This object provides crash signature data captured at
+the moment of failure. Per-property reference documentation appears in the API Details section.
 
 `CrashReport` is `null` when the failure did not produce a crash report. That is:
 
@@ -33,16 +32,17 @@ report time). Per-property reference documentation appears in the API Details se
   alive at this point, so no crash report exists yet.
 - The failure is a launch failure or a clean termination; these do not go through the crash
   handler.
+- The process was terminated externally (for example, by Task Manager or another application
+  calling `TerminateProcess`); no crash handler runs in this case.
 
-`CrashReport` is populated for crash-type process failures handled by the WebView2 crash
-handler, including out-of-memory terminations. `CrashReport` is `null` for crashes that
-bypass the crash handler, such as `__fastfail` (`0xC0000409`) and heap corruption
-terminations; these failures still fire `ProcessFailed` but do not produce a crash report.
+`CrashReport` is populated for crash-type process failures for which a crash report is
+available. `CrashReport` may be `null` for certain crash-type failures where no crash
+report was produced; host apps should always check for `null` before accessing properties.
 
 Each `CoreWebView2Environment` only delivers reports for its own WebView2 processes (scoped by user
 data folder). When
 [`IsCustomCrashReportingEnabled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions3#get_iscustomcrashreportingenabled)
-is `TRUE`, the crash handler still catches exceptions and writes the minidump and crash metadata to
+is `TRUE`, the crash handler still catches exceptions and writes the crash dump and crash metadata to
 disk, so `CrashReport` is populated and all fields except `BucketId` are available. `BucketId` will
 be empty because crash data is not uploaded to Microsoft's telemetry service.
 
@@ -183,9 +183,9 @@ interface ICoreWebView2CrashReport : IUnknown {
 [uuid(1d8e2f4a-3c6b-4f7d-9a1e-5b8c2d3e4f60), object, pointer_default(unique)]
 interface ICoreWebView2ProcessFailedEventArgs5
     : ICoreWebView2ProcessFailedEventArgs4 {
-    /// The crash report for this process failure, or null if the failure
-    /// did not produce a report (normal exit, external kill, launch
-    /// failure, hang).
+    /// The crash report for this process failure, or null if no crash report
+    /// is available for this failure (normal exit, external kill, launch
+    /// failure, hang, or crash-type failure that produced no report).
     // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT CrashReport(
         [out, retval] ICoreWebView2CrashReport** value);
@@ -233,7 +233,7 @@ namespace Microsoft.Web.WebView2.Core
 | `ProcessFailedEventArgs5.CrashReport` _(this API)_ | Crash identity and signature at failure time. |
 | [`ProcessFailed`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2#add_processfailed) | Real-time recovery signal (kind, reason, exit code). |
 | [`BrowserProcessExited`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environment5#add_browserprocessexited) | Browser process exit notification (lifecycle, no CrashReport). |
-| [`IsCustomCrashReportingEnabled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions3#get_iscustomcrashreportingenabled) | Disables upload to Microsoft's telemetry service. Minidump is still written locally; `CrashReport` is populated but `BucketId` will be empty. |
+| [`IsCustomCrashReportingEnabled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions3#get_iscustomcrashreportingenabled) | Disables upload to Microsoft's telemetry service. Crash dump is still written locally; `CrashReport` is populated but `BucketId` will be empty. |
 | [`FailureReportFolderPath`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environment11#get_failurereportfolderpath) | Dump folder. Use `CrashReportId` to find the dump file. |
 
 ## Privacy
