@@ -10,9 +10,9 @@ the failure kind, the exit code, and the process type, enough to react and recov
 tell you _which crash report was generated_ for that failure.
 
 When a crash occurs, the WebView2 runtime's crash handler captures a crash dump and writes crash
-signature data (exception code, faulting module, bucket ID) to disk. This data is useful for
-tracking reliability, grouping crashes by root cause, and filing actionable bug reports. Today there
-is no supported API to read this data from a host application.
+signature data to disk. This data is useful for tracking reliability, grouping crashes by root
+cause, and filing actionable bug reports. Today there is no supported API to read this data from a
+host application.
 
 This document proposes `ICoreWebView2CrashReport`, a new read-only property on
 `ProcessFailedEventArgs` that delivers crash signature data to your handler at the moment the event
