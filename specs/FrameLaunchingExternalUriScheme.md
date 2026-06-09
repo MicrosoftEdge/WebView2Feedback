@@ -225,7 +225,11 @@ void RegisterFrameLaunchingExternalUriSchemeHandler()
 
 ## Win32 C++
 
-```idl
+```cpp
+interface ICoreWebView2ExperimentalFrame10;
+interface ICoreWebView2ExperimentalFrameLaunchingExternalUriSchemeEventHandler;
+interface ICoreWebView2LaunchingExternalUriSchemeEventArgs2;
+
 /// This is an extension of the `ICoreWebView2Frame` interface that
 /// surfaces the `LaunchingExternalUriScheme` event at the iframe level.
 /// Host apps can subscribe per-iframe to attribute external URI scheme
@@ -298,7 +302,7 @@ interface ICoreWebView2LaunchingExternalUriSchemeEventArgs2
 }
 ```
 
-## .NET, WinRT
+## .NET/C#
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
