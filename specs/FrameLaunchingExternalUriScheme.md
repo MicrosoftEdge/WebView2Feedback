@@ -36,12 +36,10 @@ The shape of this API mirrors
 [`ICoreWebView2Frame3::add_PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested)
 +
 [`ICoreWebView2PermissionRequestedEventArgs2::Handled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs2#put_handled)
-— see
-[specs/IFramePermissionRequested.md](IFramePermissionRequested.md) for
-the precedent. The
-[`OriginalSourceFrameInfo` property added to `NewWindowRequested`](NewWindowSourceFrameInfo.md)
-solves a related attribution problem for that event; the trade-offs
-between the two shapes are summarized in the Appendix.
+. The
+[`OriginalSourceFrameInfo` property on `ICoreWebView2NewWindowRequestedEventArgs3`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2newwindowrequestedeventargs3#get_originalsourceframeinfo)
+solves a related attribution problem for the `NewWindowRequested` event;
+the trade-offs between the two shapes are summarized in the Appendix.
 
 We would appreciate your feedback.
 
@@ -358,15 +356,16 @@ namespace Microsoft.Web.WebView2.Core
 We considered surfacing the initiating frame on the existing webview-level
 event via an `OriginalSourceFrameInfo` property, mirroring the pattern
 shipped on
-[`ICoreWebView2NewWindowRequestedEventArgs3`](NewWindowSourceFrameInfo.md).
+[`ICoreWebView2NewWindowRequestedEventArgs3`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2newwindowrequestedeventargs3#get_originalsourceframeinfo).
 That approach delivers the iframe identity to a single webview-level
 handler.
 
 We chose the frame-level event instead because it:
 
 * aligns with the per-frame ergonomic already shipped for
-  [`PermissionRequested`](IFramePermissionRequested.md) and
-  `ScreenCaptureStarting`;
+  [`PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested)
+  and
+  [`ScreenCaptureStarting`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame6#add_screencapturestarting);
 * allows independent handler registration per iframe, decoupling default
   webview-level policy from per-iframe rules;
 * makes the iframe object directly available as the event `sender`,
@@ -385,7 +384,7 @@ for some scenarios.
 The event surfaces on the closest tracked `CoreWebView2Frame` in the
 initiating iframe's ancestor chain. This matches the routing convention
 already used by
-[`CoreWebView2Frame.PermissionRequested`](IFramePermissionRequested.md):
+[`CoreWebView2Frame.PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested):
 the host registers `FrameCreated` handlers (top-level iframes only by
 default; or use
 [`ICoreWebView2Frame7.add_FrameCreated`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame7#add_framecreated)
@@ -398,5 +397,5 @@ The event fires regardless of whether the iframe shares an origin with
 its parent. Cross-origin iframes without a user gesture still follow
 existing WebView2 behavior: the external-URI launch is blocked and the
 event is not raised, matching the
-[`CoreWebView2.LaunchingExternalUriScheme`](LaunchingExternalUriScheme.md)
+[`CoreWebView2.LaunchingExternalUriScheme`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2_18#add_launchingexternalurischeme)
 contract.
