@@ -3,18 +3,27 @@ Diagnostic Monitor API
 
 # Background
 
-WebView2 host applications today lack a unified way to observe
-diagnostic signals — such as network request completions — across
-all WebView instances and profiles within an environment. Existing
-APIs such as `ServerCertificateErrorDetected` are per-WebView or
-per-profile, interactive (they expect a response), and each has
-its own event shape.
+WebView2 host applications get deployed in diverse environments,
+and those environments occasionally surface problems that cannot
+be recovered from — or even diagnosed — by the normal in-app
+error paths. When that happens, the only recourse is detailed
+logging information from the affected WebView2 instance, often
+behind a security boundary that prevents the host app itself
+from collecting it inline.
 
-The Diagnostic Monitor API introduces an observation-only monitor
-API that delivers diagnostic signals from all layers — WebView,
-Profile, and Environment — through a single `DiagnosticReceived`
-event. Host apps create monitors from the environment and opt in
-per category using `SetDiagnosticFilter`.
+None of today's WebView2 APIs cover this scenario. Existing
+error-handling APIs such as `ServerCertificateErrorDetected` are
+interactive, per-instance, and shaped around in-flow decisions —
+not around capturing rich, free-form diagnostic data from a
+misbehaving deployment after the fact.
+
+The Diagnostic Monitor API addresses this gap. It is an
+**observation-only** surface that lets a host app opt in,
+typically by external trigger, to collect detailed diagnostic
+information from a specific non-functioning instance when the
+situation demands it. The API is complementary and tangential
+to regular error handling and is **not** intended as a general
+error-handling mechanism.
 
 
 # Description
@@ -22,36 +31,47 @@ per category using `SetDiagnosticFilter`.
 You create an `ICoreWebView2DiagnosticMonitor` from the environment
 using `CreateDiagnosticMonitor`. The monitor is strictly
 **observation-only** — it reports diagnostic signals but does not
-allow the host to intercept, modify, or respond to them. Unlike
-interactive APIs such as `ServerCertificateErrorDetected`, the
+allow the host to intercept, modify, or respond to them. The
 monitor never expects a response and has no deferral mechanism.
-It is designed purely for logging and telemetry, not for making
-runtime decisions.
+It exists to capture rich diagnostic data on demand for offline
+analysis, not to drive runtime decisions.
 
-The monitor observes diagnostic signals across all WebViews,
+A monitor observes diagnostic signals across all WebViews,
 profiles, and the environment itself. You control which categories
 of events are delivered by calling `SetDiagnosticFilter` with a
-category and a JSON filter string.
+category and a JSON filter string; nothing is delivered until at
+least one filter is set. This keeps the monitor inert until a
+host explicitly turns it on — for example, in response to an
+external diagnostic trigger targeting a specific deployment.
 
 The API is **JSON-in / JSON-out by design**. Filters are expressed
-as JSON objects whose schema is defined and maintained as part of
-the API contract. Diagnostic details are returned as JSON strings
-whose schema is documented per category with a set of guaranteed
-fields; the runtime may include additional key-value pairs beyond
-the documented set, so consumers should ignore unknown keys and
-must not treat the documented schema as exhaustive.
+as JSON objects whose schema is defined per category and maintained
+as part of the API contract. Diagnostic details are returned as
+JSON strings whose schema is also documented per category, with a
+set of guaranteed fields; the runtime may include additional
+key-value pairs beyond the documented set, so consumers should
+ignore unknown keys and must not treat the documented schema as
+exhaustive. The JSON-in / JSON-out shape is intentional: it lets
+new categories and fields ship without breaking the API contract
+or requiring host-app updates, which matters for an API whose
+primary job is to collect diagnostic data from deployments that
+are already in the field.
 
-Key scenarios:
+Typical scenarios:
 
-* **Telemetry** — subscribe to all network requests and forward the
-  JSON details to your telemetry backend.
-* **Targeted monitoring** — filter to specific error codes or HTTP
-  methods using the JSON filter.
-* **Multiple consumers** — create separate monitors for telemetry
-  and a debug panel, each with independent filters.
+* **Targeted field diagnostics** — turn the monitor on for a
+  specific non-functioning deployment in response to an external
+  trigger, capture detailed diagnostic data, and turn it back
+  off.
+* **Telemetry** — subscribe to a category and forward the JSON
+  details to your telemetry backend.
+* **Multiple consumers** — create separate monitors for a
+  diagnostic capture session and a debug panel, each with
+  independent filters.
 
-The monitor is active from creation until it is released. Releasing
-the monitor stops all events and clears all filters automatically.
+The monitor is active from creation until it is released or
+Closed. Releasing or closing the monitor stops all events and
+clears all filters automatically.
 
 
 # Examples
