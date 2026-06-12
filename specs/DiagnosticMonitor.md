@@ -4,11 +4,11 @@ Diagnostic Monitor API
 # Background
 
 WebView2 host applications today lack a unified way to observe
-diagnostic signals — such as network failures — across all WebView
-instances and profiles within an environment. Existing APIs such as
-`ServerCertificateErrorDetected` are per-WebView or per-profile,
-interactive (they expect a response), and each has its own event
-shape.
+diagnostic signals — such as network request completions — across
+all WebView instances and profiles within an environment. Existing
+APIs such as `ServerCertificateErrorDetected` are per-WebView or
+per-profile, interactive (they expect a response), and each has
+its own event shape.
 
 The Diagnostic Monitor API introduces an observation-only monitor
 API that delivers diagnostic signals from all layers — WebView,
@@ -43,10 +43,10 @@ must not treat the documented schema as exhaustive.
 
 Key scenarios:
 
-* **Telemetry** — subscribe to all network errors and forward the
+* **Telemetry** — subscribe to all network requests and forward the
   JSON details to your telemetry backend.
-* **Targeted monitoring** — filter to specific error codes, HTTP
-  methods, or profile names using the JSON filter.
+* **Targeted monitoring** — filter to specific error codes or HTTP
+  methods using the JSON filter.
 * **Multiple consumers** — create separate monitors for telemetry
   and a debug panel, each with independent filters.
 
@@ -61,7 +61,7 @@ the monitor stops all events and clears all filters automatically.
 ### Win32 C++
 
 The following example creates a `DiagnosticMonitor`, adds a filter
-for network errors, and subscribes to the `DiagnosticReceived`
+for network requests, and subscribes to the `DiagnosticReceived`
 event.
 
 ```cpp
@@ -110,11 +110,12 @@ void DiagnosticComponent::SetupDiagnostics()
     CHECK_FAILURE(
         m_environment->CreateDiagnosticMonitor(&m_monitor));
 
-    // Add a filter for NETWORK_ERROR. Pass "{}" to receive
-    // all network errors without field-level filtering.
+    // Add a filter for NETWORK_REQUEST. Pass "{}" to
+    // receive all network requests without field-level
+    // filtering.
     CHECK_FAILURE(
         m_monitor->SetDiagnosticFilter(
-            COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_ERROR,
+            COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST,
             L"{}"));
 
     // Subscribe to the diagnostic event.
@@ -175,11 +176,11 @@ public class DiagnosticComponent : IDisposable
         // Create a diagnostic monitor.
         _monitor = environment.CreateDiagnosticMonitor();
 
-        // Add a filter for NetworkError. Pass "{}" to
-        // receive all network errors without field-level
-        // filtering.
+        // Add a filter for NetworkRequest. Pass "{}" to
+        // receive all network requests without
+        // field-level filtering.
         _monitor.SetDiagnosticFilter(
-            CoreWebView2DiagnosticCategory.NetworkError,
+            CoreWebView2DiagnosticCategory.NetworkRequest,
             "{}");
 
         // Subscribe to the diagnostic event.
@@ -237,12 +238,11 @@ void DiagnosticComponent::SetupFilteredDiagnostics()
 
     // Only receive DNS (ERR_NAME_NOT_RESOLVED, -105)
     // and timeout (ERR_TIMED_OUT, -7) errors
-    // for GET/POST requests from the "Default" profile.
+    // for GET/POST requests.
     CHECK_FAILURE(
         m_monitor->SetDiagnosticFilter(
-            COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_ERROR,
+            COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST,
             LR"({
-              "profileName": "Default",
               "errorCode": [-105, -7],
               "httpMethod": ["GET", "POST"]
             })"));
@@ -273,12 +273,10 @@ private void SetupFilteredDiagnostics()
     _monitor = _environment.CreateDiagnosticMonitor();
 
     // Only DNS (ERR_NAME_NOT_RESOLVED, -105) and timeout
-    // (ERR_TIMED_OUT, -7) errors for GET/POST requests
-    // from the "Default" profile.
+    // (ERR_TIMED_OUT, -7) errors for GET/POST requests.
     _monitor.SetDiagnosticFilter(
-        CoreWebView2DiagnosticCategory.NetworkError,
+        CoreWebView2DiagnosticCategory.NetworkRequest,
         @"{
-            ""profileName"": ""Default"",
             ""errorCode"": [-105, -7],
             ""httpMethod"": [""GET"", ""POST""]
         }");
@@ -297,11 +295,21 @@ private void SetupFilteredDiagnostics()
 /// Specifies the category of diagnostic event.
 [v1_enum]
 typedef enum COREWEBVIEW2_DIAGNOSTIC_CATEGORY {
-  /// Network request failure including DNS resolution
-  /// errors, TLS handshake failures, connection timeouts,
-  /// HTTP error status codes (4xx/5xx), CORS violations,
-  /// and mixed-content blocked requests.
-  COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_ERROR,
+  /// Network request lifecycle signal. Fires once per
+  /// network request issued by any `CoreWebView2` created
+  /// from this environment, after the request completes —
+  /// including top-level navigations, sub-resource loads,
+  /// `fetch`/`XHR`, dedicated and shared worker requests,
+  /// and service-worker requests associated with one of
+  /// those WebViews. Does not include requests from other
+  /// host applications sharing the same user data folder,
+  /// nor CSP violation reports.
+  ///
+  /// The `errorCode` field on the details indicates the
+  /// outcome: `0` for success, non-zero for failure (see
+  /// `errorCode` in the details schema below for the
+  /// authoritative reference).
+  COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST,
 } COREWEBVIEW2_DIAGNOSTIC_CATEGORY;
 
 /// Specifies the scope that originated a diagnostic event.
@@ -337,16 +345,20 @@ interface ICoreWebView2DiagnosticReceivedEventArgs : IUnknown {
       [out, retval]
           COREWEBVIEW2_DIAGNOSTIC_SCOPE* value);
 
-  /// Monotonic timestamp in microseconds since an
-  /// unspecified epoch. You can use this value to order
-  /// events but should not convert it to wall-clock time.
+  /// The wall-clock time at which the runtime observed this
+  /// diagnostic event, as the number of seconds since the
+  /// UNIX epoch (1970-01-01T00:00:00Z, UTC). Use this value
+  /// to correlate diagnostic events with other timestamped
+  /// telemetry. The value is derived from the system clock
+  /// and may be affected by clock adjustments (for example,
+  /// NTP).
   [propget] HRESULT Timestamp(
-      [out, retval] INT64* value);
+      [out, retval] double* value);
 
   /// Returns category-specific diagnostic data as a JSON
   /// string.
   ///
-  /// For `COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_ERROR`
+  /// For `COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST`
   /// the JSON schema is:
   /// ```
   /// {
@@ -430,14 +442,12 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// field-level filtering.
   ///
   /// Pass a JSON object to apply field-level filtering.
-  /// The object's keys are detail field names.
-  /// `profileName` is a single string value; all other
-  /// fields are arrays of accepted values.
+  /// The object's keys are detail field names, each
+  /// mapped to an array of accepted values.
   ///
-  /// Example for `NETWORK_ERROR`:
+  /// Example for `NETWORK_REQUEST`:
   /// ```
   /// {
-  ///   "profileName": "Default",
   ///   "errorCode": [-105, -7],
   ///   "statusCode": [404, 500],
   ///   "uriPattern": ["https://*.contoso.com/*"],
@@ -445,13 +455,10 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// }
   /// ```
   ///
-  /// `profileName` is a single string that must match
-  /// the profile name exactly. All other fields are
-  /// arrays of accepted values. An event passes if it
-  /// matches any value in each specified field
-  /// (OR within a field, AND across fields). String
-  /// fields in `uriPattern` support wildcard patterns
-  /// using `*` and `?`.
+  /// An event passes if it matches any value in each
+  /// specified field (OR within a field, AND across
+  /// fields). String fields in `uriPattern` support
+  /// wildcard patterns using `*` and `?`.
   ///
   /// Calling this method again for the same category
   /// replaces the previous filter for that category.
@@ -531,9 +538,17 @@ namespace Microsoft.Web.WebView2.Core
     /// Specifies the category of diagnostic event.
     enum CoreWebView2DiagnosticCategory
     {
-        /// Network request failure (DNS, TLS, timeout,
-        /// HTTP error, CORS, mixed content).
-        NetworkError = 0,
+        /// Network request lifecycle signal. Fires once
+        /// per network request issued by any CoreWebView2
+        /// created from this environment, after the request
+        /// completes — including top-level navigations,
+        /// sub-resource loads, fetch/XHR, dedicated and
+        /// shared worker requests, and service-worker
+        /// requests associated with one of those WebViews.
+        /// Does not include requests from other host
+        /// applications sharing the same user data folder,
+        /// nor CSP violation reports.
+        NetworkRequest = 0,
     };
 
     /// Specifies the scope that originated a diagnostic
@@ -555,7 +570,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         CoreWebView2DiagnosticCategory Category { get; };
         CoreWebView2DiagnosticScope Scope { get; };
-        Int64 Timestamp { get; };
+        Windows.Foundation.DateTime Timestamp { get; };
 
         /// Returns category-specific data as a JSON
         /// string. The runtime may include additional
