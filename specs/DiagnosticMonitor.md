@@ -292,7 +292,11 @@ private void SetupFilteredDiagnostics()
 ## Win32 C++
 
 ```idl
-/// Specifies the category of diagnostic event.
+/// Specifies the category of diagnostic event. Each value
+/// defines its own JSON schemas for the filter accepted by
+/// `ICoreWebView2DiagnosticMonitor::SetDiagnosticFilter`
+/// and for the details returned by
+/// `ICoreWebView2DiagnosticReceivedEventArgs::DetailsAsJson`.
 [v1_enum]
 typedef enum COREWEBVIEW2_DIAGNOSTIC_CATEGORY {
   /// Network request lifecycle signal. Fires once per
@@ -305,10 +309,48 @@ typedef enum COREWEBVIEW2_DIAGNOSTIC_CATEGORY {
   /// host applications sharing the same user data folder,
   /// nor CSP violation reports.
   ///
-  /// The `errorCode` field on the details indicates the
-  /// outcome: `0` for success, non-zero for failure (see
-  /// `errorCode` in the details schema below for the
-  /// authoritative reference).
+  /// **Filter schema** (accepted by `SetDiagnosticFilter`):
+  /// Each key maps to an array of accepted values. An event
+  /// passes if it matches any value in each specified field
+  /// (OR within a field, AND across fields). `uriPattern`
+  /// supports `*` and `?` wildcards.
+  /// ```
+  /// {
+  ///   "errorCode":  [-105, -7],
+  ///   "statusCode": [404, 500],
+  ///   "uriPattern": ["https://*.contoso.com/*"],
+  ///   "httpMethod": ["GET", "POST"]
+  /// }
+  /// ```
+  ///
+  /// **Details schema** (returned by `DetailsAsJson`):
+  /// ```
+  /// {
+  ///   "errorCode":   -105,
+  ///   "statusCode":  404,
+  ///   "httpMethod":  "GET",
+  ///   "elapsedTime": 1234,
+  ///   "scheme":      "https",
+  ///   "uri":         "https://www.contoso.com/api/data"
+  /// }
+  /// ```
+  /// `errorCode` is the Chromium net error code (`0` =
+  /// success, non-zero = failure). The complete,
+  /// authoritative list of values is defined in
+  /// [net_error_list.h](https://source.chromium.org/chromium/chromium/src/+/main:net/base/net_error_list.h).
+  /// Values are stable across releases; new error codes may
+  /// be added over time, so consumers should treat unknown
+  /// codes as generic failures.
+  /// `statusCode` is the HTTP response status code (0 if
+  /// no response was received).
+  /// `httpMethod` is the HTTP method string.
+  /// `elapsedTime` is the request duration in milliseconds.
+  /// `scheme` is the URI scheme (for example, "https").
+  /// `uri` is the request URI.
+  ///
+  /// The runtime may include additional key-value pairs
+  /// beyond those listed above. Consumers should ignore
+  /// unknown keys.
   COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST,
 } COREWEBVIEW2_DIAGNOSTIC_CATEGORY;
 
@@ -356,40 +398,13 @@ interface ICoreWebView2DiagnosticReceivedEventArgs : IUnknown {
       [out, retval] double* value);
 
   /// Returns category-specific diagnostic data as a JSON
-  /// string.
-  ///
-  /// For `COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST`
-  /// the JSON schema is:
-  /// ```
-  /// {
-  ///   "errorCode": -105,
-  ///   "statusCode": 404,
-  ///   "httpMethod": "GET",
-  ///   "elapsedTime": 1234,
-  ///   "scheme": "https",
-  ///   "uri": "https://www.contoso.com/api/data"
-  /// }
-  /// ```
-  ///
-  /// `errorCode` is the Chromium net error code (a negative
-  /// integer). The complete, authoritative list of values and
-  /// their meanings is defined in
-  /// [net_error_list.h](https://source.chromium.org/chromium/chromium/src/+/main:net/base/net_error_list.h).
-  /// Values are stable across releases; new error codes may
-  /// be added over time, so consumers should treat unknown
-  /// codes as generic failures.
-  /// `statusCode` is the HTTP response status code
-  /// (integer, 0 if no response was received).
-  /// `httpMethod` is the HTTP method string.
-  /// `elapsedTime` is the request duration in
-  /// milliseconds (integer).
-  /// `scheme` is the URI scheme (e.g. "https").
-  /// `uri` is the request URI.
+  /// string. The schema for each category is documented on
+  /// the corresponding `COREWEBVIEW2_DIAGNOSTIC_CATEGORY`
+  /// enum value.
   ///
   /// The runtime may include additional key-value pairs
-  /// beyond the fields listed above. Consumers should
-  /// ignore unknown keys and must not treat the documented
-  /// schema as exhaustive.
+  /// beyond the documented fields. Consumers should ignore
+  /// unknown keys.
   ///
   /// Free the returned string with `CoTaskMemFree`.
   [propget] HRESULT DetailsAsJson(
@@ -434,37 +449,20 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// After this call, `DiagnosticReceived` will fire for
   /// events in this category that match the JSON criteria.
   ///
-  /// The filter JSON schema is defined and maintained as
-  /// part of the API contract.
+  /// The filter JSON schema is category-specific and is
+  /// documented on the corresponding
+  /// `COREWEBVIEW2_DIAGNOSTIC_CATEGORY` enum value.
   ///
   /// Pass `"{}"` or an empty string as `jsonFilter` to
   /// receive all events in the category without
   /// field-level filtering.
   ///
-  /// Pass a JSON object to apply field-level filtering.
-  /// The object's keys are detail field names, each
-  /// mapped to an array of accepted values.
-  ///
-  /// Example for `NETWORK_REQUEST`:
-  /// ```
-  /// {
-  ///   "errorCode": [-105, -7],
-  ///   "statusCode": [404, 500],
-  ///   "uriPattern": ["https://*.contoso.com/*"],
-  ///   "httpMethod": ["GET", "POST"]
-  /// }
-  /// ```
-  ///
-  /// An event passes if it matches any value in each
-  /// specified field (OR within a field, AND across
-  /// fields). String fields in `uriPattern` support
-  /// wildcard patterns using `*` and `?`.
-  ///
   /// Calling this method again for the same category
   /// replaces the previous filter for that category.
   ///
-  /// Returns `E_INVALIDARG` if the JSON is malformed.
-  /// On failure, the filter state is unchanged.
+  /// Returns `E_INVALIDARG` if the JSON is malformed or
+  /// does not match the category's filter schema. On
+  /// failure, the filter state is unchanged.
   HRESULT SetDiagnosticFilter(
       [in] COREWEBVIEW2_DIAGNOSTIC_CATEGORY category,
       [in] LPCWSTR jsonFilter);
@@ -535,7 +533,10 @@ interface ICoreWebView2Environment17
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    /// Specifies the category of diagnostic event.
+    /// Specifies the category of diagnostic event. Each
+    /// value defines its own JSON schemas for the filter
+    /// accepted by SetDiagnosticFilter and for the details
+    /// returned by DetailsAsJson.
     enum CoreWebView2DiagnosticCategory
     {
         /// Network request lifecycle signal. Fires once
@@ -548,6 +549,48 @@ namespace Microsoft.Web.WebView2.Core
         /// Does not include requests from other host
         /// applications sharing the same user data folder,
         /// nor CSP violation reports.
+        ///
+        /// Filter schema (accepted by SetDiagnosticFilter).
+        /// Each key maps to an array of accepted values.
+        /// An event passes if it matches any value in each
+        /// specified field (OR within a field, AND across
+        /// fields). `uriPattern` supports `*` and `?`
+        /// wildcards.
+        /// {
+        ///   "errorCode":  [-105, -7],
+        ///   "statusCode": [404, 500],
+        ///   "uriPattern": ["https://*.contoso.com/*"],
+        ///   "httpMethod": ["GET", "POST"]
+        /// }
+        ///
+        /// Details schema (returned by DetailsAsJson).
+        /// {
+        ///   "errorCode":   -105,
+        ///   "statusCode":  404,
+        ///   "httpMethod":  "GET",
+        ///   "elapsedTime": 1234,
+        ///   "scheme":      "https",
+        ///   "uri":         "https://www.contoso.com/api/data"
+        /// }
+        /// `errorCode` is the Chromium net error code
+        /// (0 = success, non-zero = failure). The complete,
+        /// authoritative list of values is defined in
+        /// net_error_list.h. Values are stable across
+        /// releases; new error codes may be added over
+        /// time, so consumers should treat unknown codes
+        /// as generic failures.
+        /// `statusCode` is the HTTP response status code
+        /// (0 if no response was received).
+        /// `httpMethod` is the HTTP method string.
+        /// `elapsedTime` is the request duration in
+        /// milliseconds.
+        /// `scheme` is the URI scheme (for example,
+        /// "https").
+        /// `uri` is the request URI.
+        ///
+        /// The runtime may include additional key-value
+        /// pairs beyond those listed above. Consumers
+        /// should ignore unknown keys.
         NetworkRequest = 0,
     };
 
@@ -573,9 +616,12 @@ namespace Microsoft.Web.WebView2.Core
         Windows.Foundation.DateTime Timestamp { get; };
 
         /// Returns category-specific data as a JSON
-        /// string. The runtime may include additional
-        /// key-value pairs beyond the documented fields;
-        /// consumers should ignore unknown keys.
+        /// string. The schema for each category is
+        /// documented on the corresponding
+        /// CoreWebView2DiagnosticCategory enum value. The
+        /// runtime may include additional key-value pairs
+        /// beyond the documented fields; consumers should
+        /// ignore unknown keys.
         String DetailsAsJson { get; };
     }
 
