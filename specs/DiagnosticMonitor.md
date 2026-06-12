@@ -143,7 +143,7 @@ void DiagnosticComponent::HandleDiagnosticEvent(
     CHECK_FAILURE(args->get_Scope(&scope));
 
     wil::unique_cotaskmem_string detailsJson;
-    CHECK_FAILURE(args->GetDetailsAsJson(&detailsJson));
+    CHECK_FAILURE(args->get_DetailsAsJson(&detailsJson));
 
     INT64 timestamp = 0;
     CHECK_FAILURE(args->get_Timestamp(&timestamp));
@@ -197,7 +197,7 @@ public class DiagnosticComponent : IDisposable
             args.Scope;
         long timestamp = args.Timestamp;
         string detailsJson =
-            args.GetDetailsAsJson();
+            args.DetailsAsJson;
 
         Debug.WriteLine(
             $"[Diagnostic] category={category} " +
@@ -309,7 +309,7 @@ typedef enum COREWEBVIEW2_DIAGNOSTIC_CATEGORY {
 typedef enum COREWEBVIEW2_DIAGNOSTIC_SCOPE {
   /// The diagnostic signal originated from a specific
   /// WebView instance.
-  COREWEBVIEW2_DIAGNOSTIC_SCOPE_WEB_VIEW,
+  COREWEBVIEW2_DIAGNOSTIC_SCOPE_WEBVIEW,
 
   /// The diagnostic signal originated from a profile
   /// but is not tied to a specific WebView.
@@ -354,20 +354,24 @@ interface ICoreWebView2DiagnosticReceivedEventArgs : IUnknown {
   ///   "statusCode": 404,
   ///   "httpMethod": "GET",
   ///   "elapsedTime": 1234,
-  ///   "protocol": "https",
+  ///   "scheme": "https",
   ///   "uri": "https://www.contoso.com/api/data"
   /// }
   /// ```
   ///
-  /// `errorCode` is the Chromium net error code (negative
-  /// integer). See the list at
+  /// `errorCode` is the Chromium net error code (a negative
+  /// integer). The complete, authoritative list of values and
+  /// their meanings is defined in
   /// [net_error_list.h](https://source.chromium.org/chromium/chromium/src/+/main:net/base/net_error_list.h).
+  /// Values are stable across releases; new error codes may
+  /// be added over time, so consumers should treat unknown
+  /// codes as generic failures.
   /// `statusCode` is the HTTP response status code
   /// (integer, 0 if no response was received).
   /// `httpMethod` is the HTTP method string.
   /// `elapsedTime` is the request duration in
   /// milliseconds (integer).
-  /// `protocol` is the protocol scheme (e.g. "https").
+  /// `scheme` is the URI scheme (e.g. "https").
   /// `uri` is the request URI.
   ///
   /// The runtime may include additional key-value pairs
@@ -375,11 +379,8 @@ interface ICoreWebView2DiagnosticReceivedEventArgs : IUnknown {
   /// ignore unknown keys and must not treat the documented
   /// schema as exhaustive.
   ///
-  /// For categories that the runtime does not yet populate,
-  /// this method returns `"{}"`.
-  ///
   /// Free the returned string with `CoTaskMemFree`.
-  HRESULT GetDetailsAsJson(
+  [propget] HRESULT DetailsAsJson(
       [out, retval] LPWSTR* value);
 }
 
@@ -487,6 +488,14 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// `add_DiagnosticReceived`.
   HRESULT remove_DiagnosticReceived(
       [in] EventRegistrationToken token);
+
+  /// Release the diagnostic subscription and any registered
+  /// handlers. The application should call this API when no
+  /// access to the monitor is needed any more, to ensure
+  /// that the underlying resources are released timely even
+  /// if the monitor object itself is not released due to
+  /// some leaked reference.
+  HRESULT Close();
 }
 
 interface ICoreWebView2Environment17
@@ -552,8 +561,7 @@ namespace Microsoft.Web.WebView2.Core
         /// string. The runtime may include additional
         /// key-value pairs beyond the documented fields;
         /// consumers should ignore unknown keys.
-        /// Returns "{}" for unrecognized categories.
-        String GetDetailsAsJson();
+        String DetailsAsJson { get; };
     }
 
     /// A diagnostic monitor that receives signals from
