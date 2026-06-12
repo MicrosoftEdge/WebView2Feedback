@@ -28,50 +28,50 @@ error-handling mechanism.
 
 # Description
 
-You create an `ICoreWebView2DiagnosticMonitor` from the environment
-using `CreateDiagnosticMonitor`. The monitor is strictly
-**observation-only** — it reports diagnostic signals but does not
-allow the host to intercept, modify, or respond to them. The
-monitor never expects a response and has no deferral mechanism.
-It exists to capture rich diagnostic data on demand for offline
-analysis, not to drive runtime decisions.
+`ICoreWebView2DiagnosticMonitor` is created from the environment
+via `ICoreWebView2Environment17::CreateDiagnosticMonitor`. The
+monitor is strictly **observation-only**: it reports diagnostic
+signals through a single `DiagnosticReceived` event. The host app
+cannot intercept, modify, or respond to a signal, and the event
+has no deferral mechanism. The API is intended for capturing
+diagnostic data on demand for offline analysis, not for driving
+runtime decisions.
 
-A monitor observes diagnostic signals across all WebViews,
-profiles, and the environment itself. You control which categories
-of events are delivered by calling `SetDiagnosticFilter` with a
-category and a JSON filter string; nothing is delivered until at
-least one filter is set. This keeps the monitor inert until a
-host explicitly turns it on — for example, in response to an
-external diagnostic trigger targeting a specific deployment.
+A monitor observes diagnostic signals from all WebViews,
+profiles, and the environment itself. The host app selects which
+categories of events are delivered by calling
+`SetDiagnosticFilter` with a category and a JSON filter string.
+A newly created monitor delivers no events until at least one
+filter is set, so a monitor remains inert until the host app
+explicitly turns it on — for example, in response to an external
+diagnostic trigger targeting a specific deployment.
 
-The API is **JSON-in / JSON-out by design**. Filters are expressed
-as JSON objects whose schema is defined per category and maintained
-as part of the API contract. Diagnostic details are returned as
-JSON strings whose schema is also documented per category, with a
-set of guaranteed fields; the runtime may include additional
-key-value pairs beyond the documented set, so consumers should
-ignore unknown keys and must not treat the documented schema as
-exhaustive. The JSON-in / JSON-out shape is intentional: it lets
-new categories and fields ship without breaking the API contract
-or requiring host-app updates, which matters for an API whose
-primary job is to collect diagnostic data from deployments that
-are already in the field.
+The API is **JSON-in / JSON-out by design**. Filters are JSON
+objects whose schema is defined per category. Diagnostic details
+are returned as JSON strings whose schema is also defined per
+category, with a set of guaranteed fields. The runtime may
+include additional key-value pairs beyond the documented set, so
+consumers must ignore unknown keys and must not treat the
+documented schema as exhaustive. This JSON-in / JSON-out shape
+allows new categories and fields to ship without breaking the API
+contract or requiring host-app updates, so that the API can
+collect diagnostic data from deployments already in the field.
 
 Typical scenarios:
 
-* **Targeted field diagnostics** — turn the monitor on for a
-  specific non-functioning deployment in response to an external
-  trigger, capture detailed diagnostic data, and turn it back
-  off.
-* **Telemetry** — subscribe to a category and forward the JSON
-  details to your telemetry backend.
-* **Multiple consumers** — create separate monitors for a
-  diagnostic capture session and a debug panel, each with
-  independent filters.
+* **Targeted field diagnostics** — the host app turns the
+  monitor on for a specific non-functioning deployment in
+  response to an external trigger, captures detailed diagnostic
+  data, and turns it back off.
+* **Telemetry** — the host app subscribes to a category and
+  forwards the JSON details to a telemetry backend.
+* **Multiple consumers** — separate monitors run independently
+  for a diagnostic capture session and a debug panel, each with
+  its own filters.
 
-The monitor is active from creation until it is released or
-Closed. Releasing or closing the monitor stops all events and
-clears all filters automatically.
+A monitor is active from creation until it is released or
+closed via `Close`. Either action stops all events and clears
+all filters automatically.
 
 
 # Examples
