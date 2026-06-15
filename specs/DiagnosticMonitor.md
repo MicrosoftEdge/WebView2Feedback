@@ -7,22 +7,24 @@ WebView2 host applications get deployed in diverse environments,
 and those environments occasionally surface problems that cannot
 be recovered from — or even diagnosed — by the normal in-app
 error paths. When that happens, the only recourse is detailed
-logging information from the affected WebView2 instance, often
-behind a security boundary that prevents the host app itself
-from collecting it inline.
+logging information from the affected WebView2 instance — but
+today the host app has no built-in way to collect this
+additional WebView2 logging data that is not available
+otherwise.
 
 None of today's WebView2 APIs cover this scenario. Existing
 error-handling APIs such as `ServerCertificateErrorDetected` are
-interactive, per-instance, and shaped around in-flow decisions —
-not around capturing rich, free-form diagnostic data from a
-misbehaving deployment after the fact.
+interactive, per-instance, and shaped around real-time
+decisions — not around capturing rich, varying diagnostic
+information that can be logged from a misbehaving deployment
+after the fact.
 
-The Diagnostic Monitor API addresses this gap. It is an
-**observation-only** surface that lets a host app opt in,
-typically by external trigger, to collect detailed diagnostic
-information from a specific non-functioning instance when the
-situation demands it. The API is complementary and tangential
-to regular error handling and is **not** intended as a general
+The Diagnostic Monitor API addresses this gap. It is a
+**logging** surface that lets a host app opt in, typically by
+external trigger, to collect detailed diagnostic information
+from a specific non-functioning instance when the situation
+demands it. The API is complementary and tangential to regular
+error handling and is **not** intended as a general
 error-handling mechanism.
 
 
@@ -30,14 +32,14 @@ error-handling mechanism.
 
 `ICoreWebView2DiagnosticMonitor` is created from the environment
 via `ICoreWebView2Environment17::CreateDiagnosticMonitor`. The
-monitor is strictly **observation-only**: it reports diagnostic
+monitor is strictly for **logging**: it reports diagnostic
 signals through a single `DiagnosticReceived` event. The host app
 cannot intercept, modify, or respond to a signal, and the event
 has no deferral mechanism. The API is intended for capturing
 diagnostic data on demand for offline analysis, not for driving
 runtime decisions.
 
-A monitor observes diagnostic signals from all WebViews,
+A monitor captures diagnostic signals from all WebViews,
 profiles, and the environment itself. The host app selects which
 categories of events are delivered by calling
 `SetDiagnosticFilter` with a category and a JSON filter string.
