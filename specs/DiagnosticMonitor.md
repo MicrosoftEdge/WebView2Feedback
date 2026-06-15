@@ -401,14 +401,14 @@ interface ICoreWebView2DiagnosticReceivedEventArgs : IUnknown {
           COREWEBVIEW2_DIAGNOSTIC_SCOPE* value);
 
   /// The wall-clock time at which the runtime observed this
-  /// diagnostic event, as the number of seconds since the
-  /// UNIX epoch (1970-01-01T00:00:00Z, UTC). Use this value
-  /// to correlate diagnostic events with other timestamped
-  /// telemetry. The value is derived from the system clock
-  /// and may be affected by clock adjustments (for example,
-  /// NTP).
+  /// diagnostic event, as the number of milliseconds since
+  /// the UNIX epoch (1970-01-01T00:00:00Z, UTC). Use this
+  /// value to correlate diagnostic events with other
+  /// timestamped telemetry. The value is derived from the
+  /// system clock and may be affected by clock adjustments
+  /// (for example, NTP).
   [propget] HRESULT Timestamp(
-      [out, retval] double* value);
+      [out, retval] INT64* value);
 
   /// Returns category-specific diagnostic data as a JSON
   /// string. The schema for each category is documented on
@@ -626,7 +626,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         CoreWebView2DiagnosticCategory Category { get; };
         CoreWebView2DiagnosticScope Scope { get; };
-        Windows.Foundation.DateTime Timestamp { get; };
+        Int64 Timestamp { get; };
 
         /// Returns category-specific data as a JSON
         /// string. The schema for each category is
