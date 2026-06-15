@@ -3,30 +3,21 @@ Diagnostic Monitor API
 
 # Background
 
-WebView2 host applications get deployed in diverse environments,
-and those environments occasionally surface problems that cannot
-be recovered from — or even diagnosed — by the normal in-app
-error paths. When that happens, the only recourse is detailed
-logging information from the affected WebView2 instance — but
-today the host app has no built-in way to collect this
-additional WebView2 logging data that is not available
-otherwise.
+WebView2 host applications are deployed in diverse environments, 
+which can occasionally expose issues that cannot be recovered 
+from—or even diagnosed—through normal in-app error paths. In 
+addition, certain internal code paths do not expose errors through 
+the public API by design. When these issues accumulate and lead to 
+failure, the only recourse is access to detailed diagnostic information 
+from the affected WebView2 instance. However, host applications 
+currently have no way to collect this additional logging data.
 
-None of today's WebView2 APIs cover this scenario. Existing
-error-handling APIs such as `ServerCertificateErrorDetected` are
-interactive, per-instance, and shaped around real-time
-decisions — not around capturing rich, varying diagnostic
-information that can be logged from a misbehaving deployment
-after the fact.
-
-The Diagnostic Monitor API addresses this gap. It is a
-**logging** surface that lets a host app opt in, typically by
-external trigger, to collect detailed diagnostic information
-from a specific non-functioning instance when the situation
-demands it. The API is complementary and tangential to regular
-error handling and is **not** intended as a general
-error-handling mechanism.
-
+The Diagnostic Monitor API addresses this gap. It provides a **logging** 
+surface that allows a host application to opt in—typically via an external 
+trigger such as a registry key or environment setting—to collect detailed 
+diagnostic information from a specific instance when needed. This API is 
+complementary to standard error handling and is **not** intended to serve as 
+a general-purpose error-handling mechanism.
 
 # Description
 
