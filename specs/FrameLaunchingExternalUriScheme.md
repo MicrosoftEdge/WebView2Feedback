@@ -49,10 +49,12 @@ event. The differences between these approaches are described in the Appendix.
 
 `CoreWebView2Frame` exposes a `LaunchingExternalUriScheme` event.
 
-The event is raised when content in a `CoreWebView2Frame`, or in a descendant
-iframe that does not have a closer tracked `CoreWebView2Frame` ancestor,
-attempts to launch an external URI scheme. The event `sender` is the
-`CoreWebView2Frame`, enabling direct attribution to the initiating iframe.
+The event is raised on a `CoreWebView2Frame` when content within it, or
+within one of its descendant iframes, attempts to launch an external URI
+scheme. When the launch originates from a nested iframe, the event is raised
+on the closest tracked `CoreWebView2Frame` ancestor. The event `sender` is
+that `CoreWebView2Frame`, enabling direct attribution to the initiating
+iframe.
 
 `CoreWebView2LaunchingExternalUriSchemeEventArgs` includes a `Handled`
 property.
@@ -240,10 +242,11 @@ interface ICoreWebView2LaunchingExternalUriSchemeEventArgs2;
 [uuid(0e3c31b7-bbca-5216-a2d1-40e7a211f0ab), object, pointer_default(unique)]
 interface ICoreWebView2ExperimentalFrame10 : IUnknown {
   /// Adds an event handler for the `LaunchingExternalUriScheme` event.
-  /// The event is raised when content in this `CoreWebView2Frame`, or in a
-  /// descendant iframe that does not have a closer tracked
-  /// `CoreWebView2Frame` ancestor, attempts to launch a URI registered
-  /// with the OS as an external scheme handler.
+  /// The event is raised when content in this `CoreWebView2Frame`, or in one
+  /// of its descendant iframes, attempts to launch a URI registered with the
+  /// OS as an external scheme handler. When the launch originates from a
+  /// nested iframe, the event is raised on the closest tracked
+  /// `CoreWebView2Frame` ancestor.
   ///
   /// This event corresponds to `CoreWebView2.LaunchingExternalUriScheme`.
   /// For iframe-initiated launches, `CoreWebView2Frame` handlers are
@@ -334,10 +337,11 @@ namespace Microsoft.Web.WebView2.Core
         {
             [doc_string(
                 "The LaunchingExternalUriScheme event is raised when "
-                "content in this CoreWebView2Frame, or in a descendant "
-                "iframe that does not have a closer tracked "
-                "CoreWebView2Frame ancestor, attempts to launch a URI "
-                "registered with the OS as an external scheme handler. "
+                "content in this CoreWebView2Frame, or in one of its "
+                "descendant iframes, attempts to launch a URI registered "
+                "with the OS as an external scheme handler. When the launch "
+                "originates from a nested iframe, the event is raised on the "
+                "closest tracked CoreWebView2Frame ancestor. "
                 "Frame-level handlers are invoked before CoreWebView2 "
                 "handlers. Set Handled to TRUE in the frame handler to "
                 "prevent CoreWebView2 handlers from being invoked.")]
