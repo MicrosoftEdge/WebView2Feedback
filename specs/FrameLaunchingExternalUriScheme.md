@@ -2,90 +2,64 @@
 
 ## Background
 
-WebView2 raises `LaunchingExternalUriScheme` on `CoreWebView2` when web
-content attempts to launch a URI scheme registered with the OS as an external
-handler (for example, `mailto:`, `tel:`, or a custom protocol). The host can
-intercept this event to suppress the default WebView2 dialog, present custom
-consent UI, and set `Cancel` to control whether the URI is launched.
+`CoreWebView2.LaunchingExternalUriScheme` is raised when web content attempts
+to launch a URI scheme handled by an external application (for example,
+`mailto:`, `tel:`, or a custom protocol). Hosts can handle this event to
+suppress the default WebView2 dialog, provide custom consent UI, and set
+`Cancel` to control whether the URI is launched.
 
-The event currently exposes `Uri`, `InitiatingOrigin`, `IsUserInitiated`, and
-`Cancel`. It does not identify the originating iframe. As a result, hosts that
-embed multiple sub-applications in iframes within a single WebView2—often
-served from a shared origin—cannot reliably attribute a launch to a specific
-iframe.
+The event arguments expose:
 
-This limitation impacts several scenarios:
+- `Uri`
+- `InitiatingOrigin`
+- `IsUserInitiated`
+- `Cancel`
 
-1. Multiple iframes may share the same origin, and the event exposes no
-   identifier beyond the origin.
-2. The same iframe content may be hosted in multiple surfaces (for example,
-   windows or panels), and the host cannot route consent UI to the correct
-   surface.
-3. Sandboxed and `srcdoc` iframes have opaque origins. The API reports the
-   parent origin, making the initiating iframe indistinguishable.
+This event does not identify the originating iframe. When multiple
+sub-applications are hosted within iframes, this can prevent reliable
+attribution of the request to a specific iframe, including:
 
-To enable iframe-level attribution, `LaunchingExternalUriScheme` is also
-raised on `CoreWebView2Frame`. This allows handlers to be registered per
-iframe and provides direct attribution through the iframe instance as the
-event sender.
-
-`CoreWebView2LaunchingExternalUriSchemeEventArgs` includes a `Handled`
-property that allows a frame-level handler to prevent the event from being
-raised on `CoreWebView2`.
-
-This design aligns with the per-frame event model used by:
-
-- [`ICoreWebView2Frame3::add_PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested)
-- [`ICoreWebView2PermissionRequestedEventArgs2::Handled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs2#put_handled)
-
-A related attribution mechanism exists in
-[`ICoreWebView2NewWindowRequestedEventArgs3::OriginalSourceFrameInfo`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2newwindowrequestedeventargs3#get_originalsourceframeinfo),
-which addresses the same attribution problem for the `NewWindowRequested`
-event. The differences between these approaches are described in the Appendix.
-
----
+- When multiple iframes share the same origin.
+- When the same content is hosted in multiple surfaces (for example, windows
+  or panels).
+- When sandboxed or `srcdoc` iframes report an opaque or inherited origin.
 
 ## Description
 
-`CoreWebView2Frame` exposes a `LaunchingExternalUriScheme` event.
+`LaunchingExternalUriScheme` is also raised on `CoreWebView2Frame`.
 
-The event is raised on a `CoreWebView2Frame` when content within it, or
-within one of its descendant iframes, attempts to launch an external URI
-scheme. When the launch originates from a nested iframe, the event is raised
-on the closest tracked `CoreWebView2Frame` ancestor. The event `sender` is
-that `CoreWebView2Frame`, enabling direct attribution to the initiating
-iframe.
+The event is raised when content in a frame, or in an iframe nested within it,
+attempts to launch an external URI scheme. When the launch originates from a
+nested iframe, the event is raised on the closest tracked `CoreWebView2Frame`
+ancestor. The event sender is that `CoreWebView2Frame`, enabling attribution to
+the initiating frame.
 
-`CoreWebView2LaunchingExternalUriSchemeEventArgs` includes a `Handled`
-property.
+`CoreWebView2LaunchingExternalUriSchemeEventArgs` adds a `Handled` property.
 
-By default, the event is raised on both `CoreWebView2Frame` and
-`CoreWebView2`. Frame-level handlers are invoked before webview-level
-handlers. If `Handled` is set to `TRUE` in a frame-level handler, the event is
-not raised on `CoreWebView2`, and its handlers are not invoked.
+By default, the event is raised on both `CoreWebView2Frame` and `CoreWebView2`.
+Frame-level handlers are invoked before WebView-level handlers. If a
+frame-level handler sets `Handled` to `TRUE`, the event is not raised on
+`CoreWebView2`, and its handlers are not invoked.
 
-Event args are shared between handler tiers. Properties set in the frame-level
-handler, including `Cancel` and `Handled`, are visible to webview-level
-handlers. A `Deferral` taken in either handler tier blocks the launch until
-the deferral is completed.
-
-If a deferral is taken, `Handled` must be set synchronously before taking the
-deferral to prevent `CoreWebView2`-level handlers from being invoked.
+The event arguments are shared between handler tiers. Properties set in a
+frame-level handler, including `Cancel` and `Handled`, are visible to
+WebView-level handlers. A `Deferral` taken in either handler tier delays the
+URI launch until the deferral is completed. To suppress the WebView-level
+handlers, set `Handled` before taking the deferral.
 
 `Cancel` controls whether the URI is launched. `Handled` controls whether
-webview-level handlers are invoked.
+WebView-level handlers are invoked.
 
 ### Nested iframes
 
 The event is raised on the closest tracked `CoreWebView2Frame` in the
-initiating iframe's ancestor chain. This matches the routing behavior of
+initiating iframe's ancestor chain. This behavior is consistent with
 [`CoreWebView2Frame.PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested).
 
 ### Same-origin and cross-origin iframes
 
-The event is raised regardless of origin. For cross-origin iframes without a
-user gesture, existing WebView2 behavior applies: the launch is blocked and
-the event is not raised, consistent with
+The event is raised regardless of origin. For cross-origin iframes without user
+activation, the launch is blocked and the event is not raised, consistent with
 [`CoreWebView2.LaunchingExternalUriScheme`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2_18#add_launchingexternalurischeme).
 
 ## Examples
@@ -94,7 +68,7 @@ the event is not raised, consistent with
 
 A host embedding multiple sub-applications in iframes can register a handler
 per iframe to attribute external URI launches and present iframe-specific
-consent UI. Setting `Handled = TRUE` prevents the webview-level handler from
+consent UI. Setting `Handled = TRUE` prevents the WebView-level handlers from
 being invoked.
 
 ### C++
@@ -354,31 +328,8 @@ namespace Microsoft.Web.WebView2.Core
 }
 ```
 
-# Appendix
+# Related APIs
 
-## Alternative considered: `OriginalSourceFrameInfo` on the webview-level args
-
-An alternative considered was surfacing the initiating frame on the existing
-webview-level event through an `OriginalSourceFrameInfo` property, mirroring
-the pattern shipped on
-[`ICoreWebView2NewWindowRequestedEventArgs3`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2newwindowrequestedeventargs3#get_originalsourceframeinfo).
-That approach delivers the iframe identity to a single webview-level handler.
-
-The frame-level event was chosen instead because it:
-
-- aligns with the per-frame model already shipped for
-  [`PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested)
-  and
-  [`ScreenCaptureStarting`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame6#add_screencapturestarting);
-- allows independent handler registration per iframe, decoupling default
-  webview-level policy from per-iframe rules;
-- exposes the iframe object directly as the event `sender`, removing the need
-  for a `QueryInterface` on the args; and
-- together with `Handled`, allows a frame-level handler to suppress the
-  webview-level handler, enabling allowlist and default-deny patterns where the
-  webview-level handler is the default policy and per-iframe handlers override
-  it.
-
-The two approaches are not mutually exclusive. `OriginalSourceFrameInfo` on the
-args could be added later if a single handler tier is preferred for some
-scenarios.
+- [`CoreWebView2Frame.PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested)
+- [`ICoreWebView2PermissionRequestedEventArgs2::Handled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs2#put_handled)
+- [`ICoreWebView2NewWindowRequestedEventArgs3::OriginalSourceFrameInfo`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2newwindowrequestedeventargs3#get_originalsourceframeinfo)
