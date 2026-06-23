@@ -327,9 +327,3 @@ namespace Microsoft.Web.WebView2.Core
     }
 }
 ```
-
-# Related APIs
-
-- [`CoreWebView2Frame.PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested)
-- [`ICoreWebView2PermissionRequestedEventArgs2::Handled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2permissionrequestedeventargs2#put_handled)
-- [`ICoreWebView2NewWindowRequestedEventArgs3::OriginalSourceFrameInfo`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2newwindowrequestedeventargs3#get_originalsourceframeinfo)
