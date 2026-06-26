@@ -30,11 +30,13 @@ attribution of the request to a specific iframe, including:
 
 The event is raised when content in a frame, or in an iframe nested within it,
 attempts to launch an external URI scheme. When the launch originates from a
-nested iframe, the event is raised on the closest tracked `CoreWebView2Frame`
-ancestor. The event sender is that `CoreWebView2Frame`, enabling attribution to
-the initiating frame.
+nested iframe, the event bubbles through each tracked `CoreWebView2Frame` in the
+initiating iframe's ancestor chain, starting with the closest (innermost)
+tracked frame and proceeding outward toward the top-level frame. The event
+sender for each invocation is the `CoreWebView2Frame` receiving the event,
+enabling attribution to the initiating frame.
 
-`CoreWebView2LaunchingExternalUriSchemeEventArgs` adds a `Handled` property.
+The `LaunchingExternalUriScheme` event arguments add a `Handled` property.
 
 By default, the event is raised on both `CoreWebView2Frame` and `CoreWebView2`.
 Frame-level handlers are invoked before WebView-level handlers. If a
@@ -52,8 +54,12 @@ WebView-level handlers are invoked.
 
 ### Nested iframes
 
-The event is raised on the closest tracked `CoreWebView2Frame` in the
-initiating iframe's ancestor chain. This behavior is consistent with
+When the launch originates from a nested iframe, the event bubbles outward
+through the tracked `CoreWebView2Frame` ancestors. It is raised first on the
+closest (innermost) tracked frame, then on each tracked ancestor frame in turn,
+and finally on `CoreWebView2`. If a handler at any tier sets `Handled` to
+`TRUE`, the event is not raised on the remaining ancestor frames or on
+`CoreWebView2`. This behavior is consistent with
 [`CoreWebView2Frame.PermissionRequested`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2frame3#add_permissionrequested).
 
 ### Same-origin and cross-origin iframes
@@ -95,16 +101,16 @@ void RegisterFrameLaunchingExternalUriSchemeHandler()
                 wil::com_ptr<ICoreWebView2Frame> webviewFrame;
                 CHECK_FAILURE(args->get_Frame(&webviewFrame));
 
-                auto frame10 = webviewFrame
-                    .try_query<ICoreWebView2ExperimentalFrame10>();
-                if (!frame10)
+                auto frame9 = webviewFrame
+                    .try_query<ICoreWebView2Frame9>();
+                if (!frame9)
                 {
                     return S_OK;
                 }
 
-                CHECK_FAILURE(frame10->add_LaunchingExternalUriScheme(
+                CHECK_FAILURE(frame9->add_LaunchingExternalUriScheme(
                     Callback<
-                        ICoreWebView2ExperimentalFrameLaunchingExternalUriSchemeEventHandler>(
+                        ICoreWebView2FrameLaunchingExternalUriSchemeEventHandler>(
                         [this](
                             ICoreWebView2Frame* frameSender,
                             ICoreWebView2LaunchingExternalUriSchemeEventArgs2*
@@ -204,8 +210,8 @@ void RegisterFrameLaunchingExternalUriSchemeHandler()
 ## Win32 (C++)
 
 ```cpp
-interface ICoreWebView2ExperimentalFrame10;
-interface ICoreWebView2ExperimentalFrameLaunchingExternalUriSchemeEventHandler;
+interface ICoreWebView2Frame9;
+interface ICoreWebView2FrameLaunchingExternalUriSchemeEventHandler;
 interface ICoreWebView2LaunchingExternalUriSchemeEventArgs2;
 
 /// Extends the `ICoreWebView2Frame` interface to expose the
@@ -213,21 +219,23 @@ interface ICoreWebView2LaunchingExternalUriSchemeEventArgs2;
 /// Host applications can subscribe on a per-frame basis to attribute
 /// external URI scheme launches to a specific iframe, even when multiple
 /// frames share the same origin.
-[uuid(0e3c31b7-bbca-5216-a2d1-40e7a211f0ab), object, pointer_default(unique)]
-interface ICoreWebView2ExperimentalFrame10 : IUnknown {
+[uuid(42ba2542-3391-59b3-9099-5954b6b44af9), object, pointer_default(unique)]
+interface ICoreWebView2Frame9 : IUnknown {
   /// Adds an event handler for the `LaunchingExternalUriScheme` event.
   /// The event is raised when content in this `CoreWebView2Frame`, or in one
   /// of its descendant iframes, attempts to launch a URI registered with the
   /// OS as an external scheme handler. When the launch originates from a
-  /// nested iframe, the event is raised on the closest tracked
-  /// `CoreWebView2Frame` ancestor.
+  /// nested iframe, the event bubbles outward through the tracked
+  /// `CoreWebView2Frame` ancestors, starting with the closest (innermost)
+  /// tracked frame and proceeding outward toward the top-level frame.
   ///
   /// This event corresponds to `CoreWebView2.LaunchingExternalUriScheme`.
   /// For iframe-initiated launches, `CoreWebView2Frame` handlers are
   /// invoked before `CoreWebView2` handlers. If the `Handled` property on
   /// `ICoreWebView2LaunchingExternalUriSchemeEventArgs2` is set to `TRUE`
-  /// within a `CoreWebView2Frame` handler, the event is not raised on
-  /// `CoreWebView2`, and its handlers are not invoked.
+  /// within a `CoreWebView2Frame` handler, the event is not raised on the
+  /// remaining ancestor frames or on `CoreWebView2`, and their handlers are
+  /// not invoked.
   ///
   /// If a deferral is not taken, the external URI scheme launch is blocked
   /// until the handler returns. If a deferral is taken, the launch remains
@@ -236,7 +244,7 @@ interface ICoreWebView2ExperimentalFrame10 : IUnknown {
   /// To prevent `CoreWebView2` handlers from being invoked, `Handled` must
   /// be set synchronously before taking a deferral.
   HRESULT add_LaunchingExternalUriScheme(
-      [in] ICoreWebView2ExperimentalFrameLaunchingExternalUriSchemeEventHandler*
+      [in] ICoreWebView2FrameLaunchingExternalUriSchemeEventHandler*
           eventHandler,
       [out] EventRegistrationToken* token);
 
@@ -248,8 +256,8 @@ interface ICoreWebView2ExperimentalFrame10 : IUnknown {
 
 /// Receives `LaunchingExternalUriScheme` events raised on
 /// `CoreWebView2Frame`.
-[uuid(8d0a4bee-a888-50bc-8088-a71678fd3af3), object, pointer_default(unique)]
-interface ICoreWebView2ExperimentalFrameLaunchingExternalUriSchemeEventHandler
+[uuid(9521c767-9916-5a5e-897c-7bfccebe4720), object, pointer_default(unique)]
+interface ICoreWebView2FrameLaunchingExternalUriSchemeEventHandler
     : IUnknown {
   /// Invoked when the corresponding event is raised.
   HRESULT Invoke(
@@ -259,7 +267,7 @@ interface ICoreWebView2ExperimentalFrameLaunchingExternalUriSchemeEventHandler
 
 /// Extends `ICoreWebView2LaunchingExternalUriSchemeEventArgs` with a
 /// `Handled` property.
-[uuid(126db12c-f6dc-51b7-afa4-3eecb5304b9f), object, pointer_default(unique)]
+[uuid(add51d52-f724-5ab6-b59a-fc032ee90416), object, pointer_default(unique)]
 interface ICoreWebView2LaunchingExternalUriSchemeEventArgs2
     : ICoreWebView2LaunchingExternalUriSchemeEventArgs {
   /// By default, the `LaunchingExternalUriScheme` event is raised on both
@@ -307,18 +315,21 @@ namespace Microsoft.Web.WebView2.Core
         // ...
 
         [interface_name(
-            "Microsoft.Web.WebView2.Core.ICoreWebView2ExperimentalFrame10")]
+            "Microsoft.Web.WebView2.Core.ICoreWebView2Frame9")]
         {
             [doc_string(
                 "The LaunchingExternalUriScheme event is raised when "
                 "content in this CoreWebView2Frame, or in one of its "
                 "descendant iframes, attempts to launch a URI registered "
                 "with the OS as an external scheme handler. When the launch "
-                "originates from a nested iframe, the event is raised on the "
-                "closest tracked CoreWebView2Frame ancestor. "
+                "originates from a nested iframe, the event bubbles outward "
+                "through the tracked CoreWebView2Frame ancestors, starting "
+                "with the closest (innermost) tracked frame and proceeding "
+                "outward toward the top-level frame. "
                 "Frame-level handlers are invoked before CoreWebView2 "
                 "handlers. Set Handled to TRUE in the frame handler to "
-                "prevent CoreWebView2 handlers from being invoked.")]
+                "prevent the remaining ancestor frame and CoreWebView2 "
+                "handlers from being invoked.")]
             event Windows.Foundation.TypedEventHandler<
                 CoreWebView2Frame,
                 CoreWebView2LaunchingExternalUriSchemeEventArgs>
