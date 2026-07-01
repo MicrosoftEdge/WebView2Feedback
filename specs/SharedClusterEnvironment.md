@@ -266,7 +266,6 @@ STDAPI GetCoreWebView2ClusterEnvironmentOptions(
 /// The options used to establish or attach to a shared cluster environment. Only
 /// options that can be shared process-wide across cooperating hosts are present;
 /// process-incompatible options are intentionally omitted.
-[uuid(2F3A6D1E-6B9C-4E2A-9A1B-4C0F2D8E7A10), object, pointer_default(unique)]
 interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
   /// The rendezvous name that identifies the cluster. All cooperating hosts agree
   /// on this value out of band. Must not be null or empty.
@@ -334,7 +333,6 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
 }
 
 /// Receives the result of `CreateOrJoinCoreWebView2ClusterEnvironment`.
-[uuid(6C4B0A72-1D8E-4F3B-8C2A-5E9D7B1A0C34), object, pointer_default(unique)]
 interface ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler : IUnknown {
   /// `errorCode` is:
   ///  * `S_OK` - `environment` is the shared cluster environment (freshly
