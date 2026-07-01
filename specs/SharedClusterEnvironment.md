@@ -34,10 +34,9 @@ cooperating hosts agree on). The mapping from `Id` to on-disk UDF path is a fixe
 function, so the same `Id` always resolves to the same layout and first-creator-wins
 applies to the on-disk layout, not just to the live process.
 
-This spec covers the **public API surface only**; storage, locking, and process
-management are implementation details summarized in the Appendix. Two alternative
-shapes that were considered (a `Create`/`Join` role split, and a single synchronous
-getter keyed on today's UDF) are described in the Appendix for reviewer context.
+This spec covers the **public API surface and behavior**. Two alternative shapes that
+were considered (a `Create`/`Join` role split, and a single synchronous getter keyed
+on today's UDF) are summarized in the Appendix for reviewer context.
 
 # Conceptual pages (How To)
 
