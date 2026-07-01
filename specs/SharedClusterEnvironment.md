@@ -72,9 +72,9 @@ race, at which point you re-`Get` the now-authoritative options and retry, or fa
 back to a private (non-shared) environment.
 
 Profile isolation in a cluster is **anti-misuse, not a security boundary**. The
-`PerExeProfileIsolation` option prevents *accidental* cross-app profile use; it does
-not encrypt or ACL profile data. Any app that knows the cluster `Id` and profile
-name can use a shared profile.
+`PerHostProfileIsolation` option prevents *accidental* cross-app profile use; it
+does not encrypt or ACL profile data. Any app that knows the cluster `Id` and
+profile name can use a shared profile.
 
 # Examples
 
@@ -239,6 +239,11 @@ STDAPI CreateCoreWebView2ClusterEnvironment(
 /// The value returned is a hint: it can be stale the instant it is read if another
 /// host pins a different set concurrently. `CreateCoreWebView2ClusterEnvironment`
 /// remains authoritative and validates against the live cluster.
+///
+/// State: the pinned options are persisted per cluster `Id` in the user data folder
+/// resolved from that `Id` (a per-`Id` record). The record survives after the
+/// cluster's browser process exits, so `Get` answers whether or not the cluster is
+/// currently running. See the Appendix for storage and lifetime details.
 STDAPI GetCoreWebView2ClusterEnvironmentOptions(
     [in] LPCWSTR id,
     [out] ICoreWebView2ClusterEnvironmentOptions** options);
@@ -287,11 +292,13 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
   [propput] HRESULT ChannelSearchKind([in] COREWEBVIEW2_CHANNEL_SEARCH_KIND value);
 
   /// When TRUE (the default), the effective profile name is namespaced per host
-  /// executable (`"<HostExe>_<ProfileName>"`) to prevent *accidental* cross-app
-  /// profile use. This is anti-misuse, not a security boundary.
-  [propget] HRESULT PerExeProfileIsolation([out, retval] BOOL* value);
-  /// Sets the `PerExeProfileIsolation` property.
-  [propput] HRESULT PerExeProfileIsolation([in] BOOL value);
+  /// application (`"<HostName>_<ProfileName>"`) to prevent *accidental* cross-app
+  /// profile use. This is anti-misuse, not a security boundary. The name is
+  /// deliberately OS-neutral: `<HostName>` is the host application identity on the
+  /// current platform (the executable name on Windows).
+  [propget] HRESULT PerHostProfileIsolation([out, retval] BOOL* value);
+  /// Sets the `PerHostProfileIsolation` property.
+  [propput] HRESULT PerHostProfileIsolation([in] BOOL value);
 
   /// Gets the custom scheme registrations that are part of the pinned set. The
   /// caller must free the returned array and release each element with
@@ -346,7 +353,7 @@ namespace Microsoft.Web.WebView2.Core
         Boolean EnableTrackingPrevention { get; set; };
         Boolean AreBrowserExtensionsEnabled { get; set; };
         CoreWebView2ChannelSearchKind ChannelSearchKind { get; set; };
-        Boolean PerExeProfileIsolation { get; set; };
+        Boolean PerHostProfileIsolation { get; set; };
         IVector<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
 
         // HRESULT of the options-mismatch failure, for callers that catch
@@ -438,6 +445,38 @@ remote-debugging port or logging) are process-wide and can hold only one value, 
 in a cluster they are pinned by the first creator and are not per host. A model for
 per-app overrides inside a shared cluster is an open question (below).
 
+## API-shape decisions for reviewers
+
+**New options type vs. extending `ICoreWebView2EnvironmentOptions`.** This spec adds
+a *new* `ICoreWebView2ClusterEnvironmentOptions` rather than reusing or extending the
+existing `ICoreWebView2EnvironmentOptions`. The tradeoff:
+
+- *New type (chosen).* Lets the surface expose *only* the options that are valid to
+  share process-wide, plus the cluster `Id`. Options that cannot hold a single value
+  across a shared process (see above) simply do not exist on the type, so a host
+  cannot set something that would silently be ignored. Cost: a parallel type that
+  duplicates several members already present on `ICoreWebView2EnvironmentOptions`,
+  and a small ongoing burden to keep the shared subset in sync as the existing
+  options type grows.
+- *Extend the existing type.* Would avoid duplication and let hosts reuse option-
+  building code (the getter-only alternative B does exactly this). Cost: the existing
+  type carries members that are meaningless or unsafe when shared, so the API would
+  have to document per-member "ignored in a cluster" behavior instead of omitting it.
+
+Reviewers should confirm the "omit what can't be shared" goal is worth the duplication
+before this is locked in; if not, the fallback is to accept an
+`ICoreWebView2EnvironmentOptions` plus a separate `Id` parameter.
+
+**How the mismatch surfaces in .NET/WinRT.** This spec projects the mismatch as a
+`COMException` whose `HResult` equals a static `OptionsMismatchHResult`, which is
+functional but not idiomatic for WinRT (callers must compare an HRESULT in a `catch`
+filter). An alternative worth considering is returning a result object or status
+enum from `CreateClusterEnvironmentAsync` (for example a
+`CoreWebView2ClusterEnvironmentCreateResult` with `Environment` and a `Status` of
+`Succeeded` / `OptionsMismatch`), so the mismatch is a normal return value rather
+than an exception. The COM handler already models this as a non-fault HRESULT, so
+either projection is possible.
+
 ## Open questions
 
 - **Get semantics when not running.** Whether `Get` should return the pinned options
@@ -445,7 +484,7 @@ per-app overrides inside a shared cluster is an open question (below).
   This spec recommends the latter (forward-stable record) so `Get` can answer with
   no browser spawned.
 - **Stronger profile-data security.** Real isolation (encryption with an app key, or
-  an OS-defined ACL) is out of scope; today `PerExeProfileIsolation` is anti-misuse
+  an OS-defined ACL) is out of scope; today `PerHostProfileIsolation` is anti-misuse
   only and profile data in RAM is unencrypted.
 - **Renderer-process sharing across apps.** Under memory pressure the browser can
   reduce site isolation and two hosts could share a renderer. Enterprise/vendor
