@@ -48,6 +48,10 @@ those hosts agree on out of band (for example a constant in a shared header). Al
 hosts that establish a cluster with the same `Id` run inside one browser process
 tree and one on-disk user data folder.
 
+Unlike `CreateCoreWebView2EnvironmentWithOptions`, you do **not** pass a user data
+folder. The runtime derives the folder from the cluster `Id` through a fixed
+mapping, so every host that uses the same `Id` resolves to the same on-disk layout.
+
 The **pinned options** are the `ICoreWebView2ClusterEnvironmentOptions` that the
 first host to establish the cluster supplied. Because a browser process tree is a
 single process-wide configuration, those options cannot differ per host, so the
@@ -104,9 +108,22 @@ void AppWindow::CreateSharedEnvironment()
     wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> pinned;
     HRESULT hr = GetCoreWebView2ClusterEnvironmentOptions(kClusterId, &pinned);
 
-    // Step 2 - reuse the pinned set if the cluster already exists, else offer my own.
-    wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> options =
-        (hr == HRESULT_FROM_WIN32(ERROR_NOT_FOUND)) ? BuildMyOptions() : pinned;
+    // Step 2 - reuse the pinned set if the cluster already exists; offer my own if
+    // nothing is pinned yet. Any other failure is a real error.
+    wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> options;
+    if (SUCCEEDED(hr))
+    {
+        options = pinned;
+    }
+    else if (hr == HRESULT_FROM_WIN32(ERROR_NOT_FOUND))
+    {
+        options = BuildMyOptions();
+    }
+    else
+    {
+        CHECK_FAILURE(hr);
+        return;
+    }
 
     // Step 3 - same symmetric create either way: establishes, or attaches to an
     // identical cluster.
@@ -240,9 +257,8 @@ STDAPI CreateCoreWebView2ClusterEnvironment(
 /// remains authoritative and validates against the live cluster.
 ///
 /// State: the pinned options are persisted per cluster `Id` in the user data folder
-/// resolved from that `Id` (a per-`Id` record). The record survives after the
-/// cluster's browser process exits, so `Get` answers whether or not the cluster is
-/// currently running. See the Appendix for the full behavior guarantees.
+/// resolved from that `Id`. The record survives after the cluster's browser process
+/// exits, so `Get` answers whether or not the cluster is currently running.
 STDAPI GetCoreWebView2ClusterEnvironmentOptions(
     [in] LPCWSTR id,
     [out] ICoreWebView2ClusterEnvironmentOptions** options);
@@ -254,6 +270,12 @@ STDAPI GetCoreWebView2ClusterEnvironmentOptions(
 interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
   /// The rendezvous name that identifies the cluster. All cooperating hosts agree
   /// on this value out of band. Must not be null or empty.
+  ///
+  /// Because the `Id` is mapped to an on-disk user data folder, it is treated as a
+  /// case-insensitive name and must be a valid file-system folder name: it cannot
+  /// contain path separators or characters that are invalid in a folder name, and
+  /// its length must fit within the platform path limit once combined with the
+  /// runtime's base path. An invalid `Id` fails the call with `E_INVALIDARG`.
   [propget] HRESULT Id([out, retval] LPWSTR* id);
   /// Sets the `Id` property.
   [propput] HRESULT Id([in] LPCWSTR id);
@@ -336,7 +358,10 @@ The two global functions are surfaced as static methods on `CoreWebView2Environm
 mirroring how `CreateCoreWebView2EnvironmentWithOptions` maps to
 `CoreWebView2Environment.CreateAsync`. `GetClusterEnvironmentOptions` is synchronous
 and returns `null` when nothing is pinned (rather than throwing), matching the
-`ERROR_NOT_FOUND` case of the COM API.
+`ERROR_NOT_FOUND` case of the COM API. It is deliberately synchronous even though it
+reads persisted state: the read is small and bounded, and the whole point of the
+pre-flight is to let a host decide *before* it begins the async create, without
+threading an extra `await` through startup code.
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
@@ -380,24 +405,6 @@ namespace Microsoft.Web.WebView2.Core
 
 # Appendix
 
-## Behavior guarantees
-
-The following are the observable guarantees a caller can rely on; the storage and
-locking that back them are runtime implementation details.
-
-- **First-creator-wins.** The first host to establish a cluster for an `Id` pins its
-  options. A later host with an identical set attaches; a host with a different set
-  gets `ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH`.
-- **`Get` works whether or not the cluster is running.** The pinned set is remembered
-  for the `Id` after the cluster's browser exits, so `Get` can answer with no browser
-  spawned. `Get` reads configuration, not liveness.
-- **The live cluster is authoritative.** `Get` is only a hint and can race; `Create`
-  validates against the running cluster, so a stale or absent pinned set is
-  self-healing (the next `Create` attaches if options match, or returns
-  `OPTIONS_MISMATCH` to re-read and retry). Concurrent creates never observe a
-  partially-established cluster or a half-written option set. Nothing needs a
-  background sweep.
-
 ## Alternatives considered
 
 Two other API shapes were evaluated and rejected in favor of this one.
@@ -411,64 +418,13 @@ Two other API shapes were evaluated and rejected in favor of this one.
   rendezvous and no lockable "establish" step. This model was chosen because it makes
   sharing explicit; the getter-only shape remains a smaller-surface fallback.
 
-## Why these options are process-wide
+## Relationship to existing options
 
-`ICoreWebView2ClusterEnvironmentOptions` deliberately excludes options that cannot
-hold a single value across a shared process tree. Some flags (for example the
-remote-debugging port or logging) are process-wide and can hold only one value, so
-in a cluster they are pinned by the first creator and are not per host. A model for
-per-app overrides inside a shared cluster is an open question (below).
+`ICoreWebView2ClusterEnvironmentOptions` is a new type rather than a reuse of
+`ICoreWebView2EnvironmentOptions`. It intentionally exposes only the options that can
+hold a single value across a shared browser process tree, plus the cluster `Id`.
+Options that cannot be shared process-wide (for example the remote-debugging port or
+logging, which the whole process can hold only one of) are omitted, so a host cannot
+set something on a cluster that would silently be ignored. The pinned set therefore
+belongs to the first creator and is not per host.
 
-## API-shape decisions for reviewers
-
-**New options type vs. extending `ICoreWebView2EnvironmentOptions`.** This spec adds
-a *new* `ICoreWebView2ClusterEnvironmentOptions` rather than reusing or extending the
-existing `ICoreWebView2EnvironmentOptions`. The tradeoff:
-
-- *New type (chosen).* Lets the surface expose *only* the options that are valid to
-  share process-wide, plus the cluster `Id`. Options that cannot hold a single value
-  across a shared process (see above) simply do not exist on the type, so a host
-  cannot set something that would silently be ignored. Cost: a parallel type that
-  duplicates several members already present on `ICoreWebView2EnvironmentOptions`,
-  and a small ongoing burden to keep the shared subset in sync as the existing
-  options type grows.
-- *Extend the existing type.* Would avoid duplication and let hosts reuse option-
-  building code (the getter-only alternative B does exactly this). Cost: the existing
-  type carries members that are meaningless or unsafe when shared, so the API would
-  have to document per-member "ignored in a cluster" behavior instead of omitting it.
-
-Reviewers should confirm the "omit what can't be shared" goal is worth the duplication
-before this is locked in; if not, the fallback is to accept an
-`ICoreWebView2EnvironmentOptions` plus a separate `Id` parameter.
-
-**How the mismatch surfaces in .NET/WinRT.** This spec projects the mismatch as a
-`COMException` whose `HResult` equals a static `OptionsMismatchHResult`, which is
-functional but not idiomatic for WinRT (callers must compare an HRESULT in a `catch`
-filter). An alternative worth considering is returning a result object or status
-enum from `CreateClusterEnvironmentAsync` (for example a
-`CoreWebView2ClusterEnvironmentCreateResult` with `Environment` and a `Status` of
-`Succeeded` / `OptionsMismatch`), so the mismatch is a normal return value rather
-than an exception. The COM handler already models this as a non-fault HRESULT, so
-either projection is possible.
-
-## Open questions
-
-- **Get semantics when not running.** Whether `Get` should return the pinned options
-  only while the cluster is running, or also when it is configured but not running.
-  This spec recommends the latter (forward-stable record) so `Get` can answer with
-  no browser spawned.
-- **Stronger profile-data security.** Real isolation (encryption with an app key, or
-  an OS-defined ACL) is out of scope; today `PerHostProfileIsolation` is anti-misuse
-  only and profile data in RAM is unencrypted.
-- **Renderer-process sharing across apps.** Under memory pressure the browser can
-  reduce site isolation and two hosts could share a renderer. Enterprise/vendor
-  renderers should be explicitly blocked from sharing.
-- **Per-app overrides in a shared cluster.** Process-wide flags can hold only one
-  value, so an override becomes per *cluster*, not per app; a per-app customization
-  model is unresolved.
-- **Coordinated option changes and shutdown.** Apps update on different timelines, so
-  a ready-to-restart or voting mechanism may be needed to apply an option change or
-  an upgrade consistently across a cluster. Today an option change lands on the next
-  app update or restart, and coordinating it is the apps' responsibility.
-- **Strict full-set equality is coarse.** An extensions-on vs extensions-off nuance
-  fails equality for both hosts; a finer compatibility model may be wanted later.
