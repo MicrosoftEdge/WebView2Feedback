@@ -171,6 +171,10 @@ void AppWindow::CreateSharedEnvironmentWithOptions(
 // A stable rendezvous name that all cooperating hosts agree on.
 const string ClusterId = "Contoso.Shell.Default";
 
+// HRESULT_FROM_WIN32(ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH). Matches the value
+// thrown as a COMException.HResult when the pinned set differs from ours.
+const int OptionsMismatchHResult = unchecked((int)0x8007139F);
+
 CoreWebView2ClusterEnvironmentOptions BuildMyOptions()
 {
     return new CoreWebView2ClusterEnvironmentOptions()
@@ -199,7 +203,8 @@ async Task CreateSharedEnvironmentAsync()
         OnSharedEnvironmentReady(environment);
     }
     catch (COMException ex) when
-        (ex.HResult == CoreWebView2ClusterEnvironmentOptions.OptionsMismatchHResult)
+        // The HRESULT of ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH.
+        (ex.HResult == OptionsMismatchHResult)
     {
         // A live browser pinned a different set since my Get. Re-read and retry, or
         // fall back to a private environment.
@@ -377,10 +382,6 @@ namespace Microsoft.Web.WebView2.Core
         CoreWebView2ChannelSearchKind ChannelSearchKind { get; set; };
         Boolean PerHostProfileIsolation { get; set; };
         IVector<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
-
-        // HRESULT of the options-mismatch failure, for callers that catch
-        // COMException from CreateOrJoinClusterEnvironmentAsync.
-        static Int32 OptionsMismatchHResult { get; };
     }
 
     runtimeclass CoreWebView2Environment
@@ -388,8 +389,9 @@ namespace Microsoft.Web.WebView2.Core
         // ...
 
         // Establishes, or attaches to, the shared cluster identified by
-        // options.Id. Throws a COMException with HResult == OptionsMismatchHResult
-        // when a cluster already exists for that Id with a different pinned set.
+        // options.Id. Throws a COMException whose HResult is
+        // HRESULT_FROM_WIN32(ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH) when a
+        // cluster already exists for that Id with a different pinned set.
         static Windows.Foundation.IAsyncOperation<CoreWebView2Environment>
             CreateOrJoinClusterEnvironmentAsync(CoreWebView2ClusterEnvironmentOptions options);
 
