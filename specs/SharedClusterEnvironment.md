@@ -20,7 +20,7 @@ than by accident.
 
 This spec proposes the **symmetric `Create` + synchronous `Get`** model:
 
-- Every host calls the same symmetric `CreateCoreWebView2ClusterEnvironment` with
+- Every host calls the same symmetric `CreateOrJoinCoreWebView2ClusterEnvironment` with
   its full desired options. The **first** host to establish a cluster with a given
   `Id` pins its options (first-creator-wins). A later host that passes an identical
   set attaches to the running cluster; a host that passes a different set gets a
@@ -65,7 +65,7 @@ The recommended usage pattern is **"Get, then Create"**:
    anything, is already pinned. This does not launch a browser.
 2. If something is pinned, reuse it (attach). If nothing is pinned yet, offer your
    own options (you become the pinner).
-3. Call `CreateCoreWebView2ClusterEnvironment` with the chosen options. You either
+3. Call `CreateOrJoinCoreWebView2ClusterEnvironment` with the chosen options. You either
    establish the cluster or attach to an identical one.
 
 `Get` is only a hint: it can race with another host that pins a different set the
@@ -133,9 +133,9 @@ void AppWindow::CreateSharedEnvironment()
 void AppWindow::CreateSharedEnvironmentWithOptions(
     ICoreWebView2ClusterEnvironmentOptions* options)
 {
-    CHECK_FAILURE(CreateCoreWebView2ClusterEnvironment(
+    CHECK_FAILURE(CreateOrJoinCoreWebView2ClusterEnvironment(
         options,
-        Microsoft::WRL::Callback<ICoreWebView2CreateClusterEnvironmentCompletedHandler>(
+        Microsoft::WRL::Callback<ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler>(
             [this](HRESULT result, ICoreWebView2Environment* environment) -> HRESULT
             {
                 if (result == HRESULT_FROM_WIN32(ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH))
@@ -195,7 +195,7 @@ async Task CreateSharedEnvironmentAsync()
     {
         // Step 3 - same symmetric create either way.
         CoreWebView2Environment environment =
-            await CoreWebView2Environment.CreateClusterEnvironmentAsync(options);
+            await CoreWebView2Environment.CreateOrJoinClusterEnvironmentAsync(options);
         OnSharedEnvironmentReady(environment);
     }
     catch (COMException ex) when
@@ -208,7 +208,7 @@ async Task CreateSharedEnvironmentAsync()
         if (authoritative != null && AcceptableForMe(authoritative))
         {
             CoreWebView2Environment environment =
-                await CoreWebView2Environment.CreateClusterEnvironmentAsync(authoritative);
+                await CoreWebView2Environment.CreateOrJoinClusterEnvironmentAsync(authoritative);
             OnSharedEnvironmentReady(environment);
         }
         else
@@ -239,13 +239,13 @@ async Task CreateSharedEnvironmentAsync()
 ///
 /// The mapping from `Id` to the on-disk user data folder is a fixed function, so
 /// the same `Id` always resolves to the same layout.
-STDAPI CreateCoreWebView2ClusterEnvironment(
+STDAPI CreateOrJoinCoreWebView2ClusterEnvironment(
     [in] ICoreWebView2ClusterEnvironmentOptions* options,
-    [in] ICoreWebView2CreateClusterEnvironmentCompletedHandler* handler);
+    [in] ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler* handler);
 
 /// Synchronously reads the pinned options for the cluster identified by `id`,
 /// without spawning a browser. Use this to pre-flight before calling
-/// `CreateCoreWebView2ClusterEnvironment`: read what is already pinned and decide
+/// `CreateOrJoinCoreWebView2ClusterEnvironment`: read what is already pinned and decide
 /// whether to reuse it or offer your own set.
 ///
 /// Returns `S_OK` and the pinned options when a set is pinned for `id`. Returns
@@ -253,7 +253,7 @@ STDAPI CreateCoreWebView2ClusterEnvironment(
 /// for `id` yet (the caller may create with its own options and become the pinner).
 ///
 /// The value returned is a hint: it can be stale the instant it is read if another
-/// host pins a different set concurrently. `CreateCoreWebView2ClusterEnvironment`
+/// host pins a different set concurrently. `CreateOrJoinCoreWebView2ClusterEnvironment`
 /// remains authoritative and validates against the live cluster.
 ///
 /// State: the pinned options are persisted per cluster `Id` in the user data folder
@@ -333,9 +333,9 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
       [in] const ICoreWebView2CustomSchemeRegistration** schemeRegistrations);
 }
 
-/// Receives the result of `CreateCoreWebView2ClusterEnvironment`.
+/// Receives the result of `CreateOrJoinCoreWebView2ClusterEnvironment`.
 [uuid(6C4B0A72-1D8E-4F3B-8C2A-5E9D7B1A0C34), object, pointer_default(unique)]
-interface ICoreWebView2CreateClusterEnvironmentCompletedHandler : IUnknown {
+interface ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler : IUnknown {
   /// `errorCode` is:
   ///  * `S_OK` - `environment` is the shared cluster environment (freshly
   ///    established, or attached to an identical running cluster).
@@ -381,7 +381,7 @@ namespace Microsoft.Web.WebView2.Core
         IVector<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
 
         // HRESULT of the options-mismatch failure, for callers that catch
-        // COMException from CreateClusterEnvironmentAsync.
+        // COMException from CreateOrJoinClusterEnvironmentAsync.
         static Int32 OptionsMismatchHResult { get; };
     }
 
@@ -393,7 +393,7 @@ namespace Microsoft.Web.WebView2.Core
         // options.Id. Throws a COMException with HResult == OptionsMismatchHResult
         // when a cluster already exists for that Id with a different pinned set.
         static Windows.Foundation.IAsyncOperation<CoreWebView2Environment>
-            CreateClusterEnvironmentAsync(CoreWebView2ClusterEnvironmentOptions options);
+            CreateOrJoinClusterEnvironmentAsync(CoreWebView2ClusterEnvironmentOptions options);
 
         // Synchronously reads the pinned options for the cluster id without
         // spawning a browser. Returns null when nothing is pinned for id yet.
