@@ -243,7 +243,7 @@ STDAPI CreateCoreWebView2ClusterEnvironment(
 /// State: the pinned options are persisted per cluster `Id` in the user data folder
 /// resolved from that `Id` (a per-`Id` record). The record survives after the
 /// cluster's browser process exits, so `Get` answers whether or not the cluster is
-/// currently running. See the Appendix for storage and lifetime details.
+/// currently running. See the Appendix for the full behavior guarantees.
 STDAPI GetCoreWebView2ClusterEnvironmentOptions(
     [in] LPCWSTR id,
     [out] ICoreWebView2ClusterEnvironmentOptions** options);
@@ -381,61 +381,36 @@ namespace Microsoft.Web.WebView2.Core
 
 # Appendix
 
-## Storage, concurrency, and lifetime
+## Behavior guarantees
 
-The pinned set lives in a per-`Id` record (for example a registry key such as
-`HKCU\Software\Microsoft\WebView2\SharedClusters\<Id>`) holding the serialized
-options plus the resolved UDF path. There is one named lock per cluster `Id`, and
-any host takes it while it establishes or attaches. The write happens inside the
-establish lock, only after the internal create succeeds:
+The following are the observable guarantees a caller can rely on; the storage and
+locking that back them are runtime implementation details.
 
-```text
-AcquireLock(Id)
-hr = <internal establish env for UDF(Id)>
-if SUCCEEDED(hr): WriteRecord(Id, options)   // still holding the lock
-ReleaseLock(Id)
-```
-
-Because both the create (which writes the pinned options) and `Get` (which reads
-them) coordinate through the same lock and record writes are atomic, a reader never
-sees a half-written set, and two creates racing when nothing exists yet cannot
-collide. Writing the caller's own options is authoritative because strict-equality
-means a success is either a fresh establish (this caller's options become the pinned
-set) or an attach whose options already equal the pinned set. The **live browser
-stays authoritative** on conflict, so a stale or missing record is self-healing: the
-next create attaches if options match, or returns
-`ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH` to re-read and retry. Lock acquisition
-must handle `WAIT_ABANDONED` so a crash while holding the lock does not wedge the
-next host.
-
-The per-`Id` record is kept as the forward-stable pinned set after the browser
-exits (it is a harmless, replayable recipe), which lets `Get` answer even when no
-browser is running. The pinned options a `Get` reads are configuration values, not
-liveness: the create path still decides liveness on the UDF, attaching if a shared
-browser is running and relaunching with the same options if the last host has
-exited. Nothing needs a background sweep.
+- **First-creator-wins.** The first host to establish a cluster for an `Id` pins its
+  options. A later host with an identical set attaches; a host with a different set
+  gets `ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH`.
+- **`Get` works whether or not the cluster is running.** The pinned set is remembered
+  for the `Id` after the cluster's browser exits, so `Get` can answer with no browser
+  spawned. `Get` reads configuration, not liveness.
+- **The live cluster is authoritative.** `Get` is only a hint and can race; `Create`
+  validates against the running cluster, so a stale or absent pinned set is
+  self-healing (the next `Create` attaches if options match, or returns
+  `OPTIONS_MISMATCH` to re-read and retry). Concurrent creates never observe a
+  partially-established cluster or a half-written option set. Nothing needs a
+  background sweep.
 
 ## Alternatives considered
 
 Two other API shapes were evaluated and rejected in favor of this one.
 
-**A. Create / Join role split.** One host `Create`s the cluster and pins options;
-everyone else `Join`s by name, passing no options, and `Join` hands back both the
-environment and the pinned options (so "learn the options" needs no separate read).
-Cleaner asymmetry, but it introduces a bootstrap race: if two hosts `Join` before
-anyone `Create`s, both get `NOT_FOUND` and need an extra rule (a designated creator,
-a `JoinOrCreate`, or bounded retry). The symmetric model in this spec avoids the
-"who creates first" race because every host runs the same create.
-
-**B. One synchronous getter, nothing else.** No cluster API at all: keep today's
-UDF-based sharing and only add
-`GetCoreWebView2EnvironmentOptions(userDataFolder, out options)` so a joiner can
-look before it leaps. Smallest possible surface and zero create-path change, but it
-does the least: attach still goes through today's create path and its existing
-errors, there is no named rendezvous, and there is no real "establish" step the
-runtime can guard with a lock. This spec's model was chosen because it makes shared
-behavior explicit and gives the runtime a lockable establish step; the getter-only
-shape remains a viable smaller-surface fallback if scope tightens.
+- **Create / Join role split.** One host `Create`s and pins options; others `Join` by
+  name and get the pinned set back. Cleaner asymmetry, but it has a bootstrap race
+  (two hosts `Join`ing before anyone `Create`s both get `NOT_FOUND`, needing an extra
+  rule). The symmetric model here avoids that because every host runs the same create.
+- **One synchronous getter, nothing else.** Keep today's UDF-based sharing and only add
+  a `Get` so a joiner can look before it leaps. Smallest surface, but no named
+  rendezvous and no lockable "establish" step. This model was chosen because it makes
+  sharing explicit; the getter-only shape remains a smaller-surface fallback.
 
 ## Why these options are process-wide
 
