@@ -6,8 +6,8 @@ Shared WebView2 Cluster Environment
 Today an application gets a WebView2 by calling
 [`CreateCoreWebView2EnvironmentWithOptions`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/webview2-idl#createcorewebview2environmentwithoptions)
 and passing a `UserDataFolder` (UDF). Two hosts that pass the *same* UDF already
-share a single browser process tree, which is how multiple WebView2 hosts save
-memory today. But that sharing is implicit: it is keyed entirely on the UDF path,
+share a single browser process tree. But that sharing is implicit: it is keyed
+entirely on the UDF path,
 the first launcher silently pins the environment options for everyone else, and a
 second host has no way to learn what those pinned options are before it attaches.
 If the second host's options disagree with the pinned set, it only finds out after
