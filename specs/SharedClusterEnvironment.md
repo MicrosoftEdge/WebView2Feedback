@@ -13,10 +13,9 @@ second host has no way to learn what those pinned options are before it attaches
 If the second host's options disagree with the pinned set, it only finds out after
 it has already paid to launch, and the failure surfaces as a generic create error.
 
-We want a first-class, *explicit* way for a set of cooperating host apps (for
-example, a shell and the widgets it hosts) to opt into one shared WebView2 browser
-process tree — a "cluster" — and to negotiate the shared options up front rather
-than by accident.
+We want a first-class, *explicit* way for a set of cooperating host apps to opt into
+one shared WebView2 environment — a "cluster" — and to agree on the shared options up
+front.
 
 This spec proposes the **symmetric `Create` + synchronous `Get`** model:
 
@@ -34,19 +33,12 @@ cooperating hosts agree on). The mapping from `Id` to on-disk UDF path is a fixe
 function, so the same `Id` always resolves to the same layout and first-creator-wins
 applies to the on-disk layout, not just to the live process.
 
-This spec covers the **public API surface and behavior**. Two alternative shapes that
-were considered (a `Create`/`Join` role split, and a single synchronous getter keyed
-on today's UDF) are summarized in the Appendix for reviewer context.
-
 # Conceptual pages (How To)
-
-_(This is conceptual documentation that will go to learn.microsoft.com "how to" page)_
 
 A **cluster environment** is a WebView2 environment that a group of cooperating
 host applications deliberately share, identified by a well-known `Id` string that
-those hosts agree on out of band (for example a constant in a shared header). All
-hosts that establish a cluster with the same `Id` run inside one browser process
-tree and one on-disk user data folder.
+those hosts agree on out of band. All hosts that establish a cluster with the same
+`Id` run inside one browser process tree and one on-disk user data folder.
 
 Unlike `CreateCoreWebView2EnvironmentWithOptions`, you do **not** pass a user data
 folder. The runtime derives the folder from the cluster `Id` through a fixed
