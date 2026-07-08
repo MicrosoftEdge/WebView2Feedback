@@ -229,63 +229,36 @@ async Task CreateSharedEnvironmentAsync()
 ## Win32 C++
 
 ```
-/// Establishes, or attaches to, a shared WebView2 cluster environment identified by
-/// the `Id` in `options`. This is the symmetric entry point every cooperating host
-/// calls with its full desired options.
-///
-/// The first host to establish a cluster for a given `Id` pins its options
-/// (first-creator-wins). A later host attaches when its options equal the pinned
-/// set (strict, full-set equality), and the completion handler receives the shared
-/// `ICoreWebView2Environment`. A host whose options differ from the pinned set does
-/// not attach: the completion handler is invoked with
-/// `ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH` and a null environment; that host
-/// should call `GetCoreWebView2ClusterEnvironmentOptions` to read the authoritative
-/// set and retry, or create a private (non-shared) environment instead.
-///
-/// The mapping from `Id` to the on-disk user data folder is a fixed function, so
-/// the same `Id` always resolves to the same layout.
+/// Establishes, or attaches to, the shared WebView2 cluster environment identified
+/// by the `Id` in `options`. If no cluster exists for the `Id`, this establishes
+/// one and the caller's options become the cluster's options. If a cluster already
+/// exists and the caller's options match it, the completion handler receives the
+/// shared `ICoreWebView2Environment`. If they do not match, the completion handler
+/// is invoked with `ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH` and a null
+/// environment.
 STDAPI CreateOrJoinCoreWebView2ClusterEnvironment(
     [in] ICoreWebView2ClusterEnvironmentOptions* options,
     [in] ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler* handler);
 
-/// Synchronously reads the pinned options for the cluster identified by `id`,
-/// without spawning a browser. Use this to pre-flight before calling
-/// `CreateOrJoinCoreWebView2ClusterEnvironment`: read what is already pinned and decide
-/// whether to reuse it or offer your own set.
-///
-/// Returns `S_OK` and the pinned options when a set is pinned for `id`. Returns
-/// `HRESULT_FROM_WIN32(ERROR_NOT_FOUND)` and null `options` when nothing is pinned
-/// for `id` yet (the caller may create with its own options and become the pinner).
-///
-/// The value returned is a hint: it can be stale the instant it is read if another
-/// host pins a different set concurrently. `CreateOrJoinCoreWebView2ClusterEnvironment`
-/// remains authoritative and validates against the live cluster.
-///
-/// State: the pinned options are persisted per cluster `Id` in the user data folder
-/// resolved from that `Id`. The record survives after the cluster's browser process
-/// exits, so `Get` answers whether or not the cluster is currently running.
+/// Synchronously reads the options of the cluster identified by `id` without
+/// creating or attaching to a cluster. Returns `S_OK` and the cluster's options
+/// when a cluster is configured for `id`, or `HRESULT_FROM_WIN32(ERROR_NOT_FOUND)`
+/// and null `options` when none is. The options are available whether or not the
+/// cluster is currently running.
 STDAPI GetCoreWebView2ClusterEnvironmentOptions(
     [in] LPCWSTR id,
     [out] ICoreWebView2ClusterEnvironmentOptions** options);
 
-/// The options used to establish or attach to a shared cluster environment. Only
-/// options that can be shared process-wide across cooperating hosts are present;
-/// process-incompatible options are intentionally omitted.
+/// The options used to establish or attach to a shared cluster environment.
 interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
-  /// The rendezvous name that identifies the cluster. All cooperating hosts agree
-  /// on this value out of band. Must not be null or empty.
-  ///
-  /// Because the `Id` is mapped to an on-disk user data folder, it is treated as a
-  /// case-insensitive name and must be a valid file-system folder name: it cannot
-  /// contain path separators or characters that are invalid in a folder name, and
-  /// its length must fit within the platform path limit once combined with the
-  /// runtime's base path. An invalid `Id` fails the call with `E_INVALIDARG`.
+  /// The name that identifies the cluster. All cooperating hosts use the same
+  /// value. Must not be null or empty. The `Id` is case-insensitive and must be a
+  /// valid file-system folder name; otherwise the call fails with `E_INVALIDARG`.
   [propget] HRESULT Id([out, retval] LPWSTR* id);
   /// Sets the `Id` property.
   [propput] HRESULT Id([in] LPCWSTR id);
 
-  /// Additional command-line switches passed to the shared browser process. Because
-  /// the process is shared, this value is part of the pinned set and is process-wide.
+  /// Additional command-line switches passed to the shared browser process.
   [propget] HRESULT AdditionalBrowserArguments([out, retval] LPWSTR* value);
   /// Sets the `AdditionalBrowserArguments` property.
   [propput] HRESULT AdditionalBrowserArguments([in] LPCWSTR value);
@@ -317,21 +290,20 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
   [propput] HRESULT ChannelSearchKind([in] COREWEBVIEW2_CHANNEL_SEARCH_KIND value);
 
   /// When TRUE (the default), the effective profile name is namespaced per host
-  /// application (`"<HostName>_<ProfileName>"`) to prevent *accidental* cross-app
-  /// profile use. This is anti-misuse, not a security boundary. The name is
-  /// deliberately OS-neutral: `<HostName>` is the host application identity on the
-  /// current platform (the executable name on Windows).
+  /// application (`"<HostName>_<ProfileName>"`, where `<HostName>` is the host
+  /// executable name on Windows) to prevent accidental cross-app profile use. This
+  /// is not a security boundary.
   [propget] HRESULT PerHostProfileIsolation([out, retval] BOOL* value);
   /// Sets the `PerHostProfileIsolation` property.
   [propput] HRESULT PerHostProfileIsolation([in] BOOL value);
 
-  /// Gets the custom scheme registrations that are part of the pinned set. The
-  /// caller must free the returned array and release each element with
+  /// Gets the custom scheme registrations for the shared environment. The caller
+  /// must free the returned array and release each element with
   /// `CoTaskMemFree` / `Release`.
   HRESULT GetCustomSchemeRegistrations(
       [out] UINT32* count,
       [out] ICoreWebView2CustomSchemeRegistration*** schemeRegistrations);
-  /// Sets the custom scheme registrations that are part of the pinned set.
+  /// Sets the custom scheme registrations for the shared environment.
   HRESULT SetCustomSchemeRegistrations(
       [in] UINT32 count,
       [in] const ICoreWebView2CustomSchemeRegistration** schemeRegistrations);
@@ -340,12 +312,10 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
 /// Receives the result of `CreateOrJoinCoreWebView2ClusterEnvironment`.
 interface ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler : IUnknown {
   /// `errorCode` is:
-  ///  * `S_OK` - `environment` is the shared cluster environment (freshly
-  ///    established, or attached to an identical running cluster).
+  ///  * `S_OK` - `environment` is the shared cluster environment, either freshly
+  ///    established or attached to an existing cluster with matching options.
   ///  * `ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH` - a cluster already exists for
-  ///    this `Id` with a different pinned set; `environment` is null. Call
-  ///    `GetCoreWebView2ClusterEnvironmentOptions` to read the authoritative set and
-  ///    retry, or create a private environment.
+  ///    this `Id` with different options; `environment` is null.
   HRESULT Invoke(
       [in] HRESULT errorCode,
       [in] ICoreWebView2Environment* environment);
@@ -360,11 +330,8 @@ interface ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler : IUnknown
 The two global functions are surfaced as static methods on `CoreWebView2Environment`,
 mirroring how `CreateCoreWebView2EnvironmentWithOptions` maps to
 `CoreWebView2Environment.CreateAsync`. `GetClusterEnvironmentOptions` is synchronous
-and returns `null` when nothing is pinned (rather than throwing), matching the
-`ERROR_NOT_FOUND` case of the COM API. It is deliberately synchronous even though it
-reads persisted state: the read is small and bounded, and the whole point of the
-pre-flight is to let a host decide *before* it begins the async create, without
-threading an extra `await` through startup code.
+and returns `null` when no cluster is configured, matching the `ERROR_NOT_FOUND` case
+of the COM API.
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
@@ -391,12 +358,12 @@ namespace Microsoft.Web.WebView2.Core
         // Establishes, or attaches to, the shared cluster identified by
         // options.Id. Throws a COMException whose HResult is
         // HRESULT_FROM_WIN32(ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH) when a
-        // cluster already exists for that Id with a different pinned set.
+        // cluster already exists for that Id with different options.
         static Windows.Foundation.IAsyncOperation<CoreWebView2Environment>
             CreateOrJoinClusterEnvironmentAsync(CoreWebView2ClusterEnvironmentOptions options);
 
-        // Synchronously reads the pinned options for the cluster id without
-        // spawning a browser. Returns null when nothing is pinned for id yet.
+        // Synchronously reads the options of the cluster identified by id. Returns
+        // null when no cluster is configured for id.
         static CoreWebView2ClusterEnvironmentOptions GetClusterEnvironmentOptions(
             String id);
     }
