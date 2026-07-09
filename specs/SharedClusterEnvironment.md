@@ -7,17 +7,17 @@ Today an application gets a WebView2 by calling
 [`CreateCoreWebView2EnvironmentWithOptions`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/webview2-idl#createcorewebview2environmentwithoptions)
 and passing a `UserDataFolder` (UDF). Two hosts that pass the *same* UDF already
 share a single browser process tree. But that sharing is implicit: it is keyed
-entirely on the UDF path,
-the first launcher silently pins the environment options for everyone else, and a
-second host has no way to learn what those pinned options are before it attaches.
-If the second host's options disagree with the pinned set, it only finds out after
-it has already paid to launch, and the failure surfaces as a generic create error.
+entirely on the UDF path, the first launcher silently pins the environment options
+for everyone else, and a second host has no way to learn what those pinned options
+are before it attaches. If the second host's options disagree with the pinned set,
+it only finds out after it has already paid to launch, and the failure surfaces as a
+generic create error.
 
 We want a first-class, *explicit* way for a set of cooperating host apps to opt into
 one shared WebView2 environment — a "cluster" — and to agree on the shared options up
 front.
 
-This spec proposes the **symmetric `Create` + synchronous `Get`** model:
+This spec proposes the **symmetric create-or-join + synchronous `Get`** model:
 
 - Every host calls the same symmetric `CreateOrJoinCoreWebView2ClusterEnvironment` with
   its full desired options. The **first** host to establish a cluster with a given
@@ -58,7 +58,7 @@ The recommended usage pattern is **"Get, then Create"**:
 2. If something is pinned, reuse it (attach). If nothing is pinned yet, offer your
    own options (you become the pinner).
 3. Call `CreateOrJoinCoreWebView2ClusterEnvironment` with the chosen options. You either
-   establish the cluster or attach to an identical one.
+   establish the cluster or attach to one with matching options.
 
 `Get` is only a hint: it can race with another host that pins a different set the
 instant after you read. The live browser stays authoritative, so `Create` still
@@ -77,8 +77,8 @@ profile name can use a shared profile.
 
 The example shows the recommended "Get, then Create" flow: read the pinned options
 for a well-known cluster id, reuse them if the cluster already exists, otherwise
-offer your own; then create (which either establishes the cluster or attaches to an
-identical one). On a mismatch, re-read the authoritative options and retry.
+offer your own; then create (which either establishes the cluster or attaches to one
+with matching options). On a mismatch, re-read the authoritative options and retry.
 
 ```cpp
 // A stable rendezvous name that all cooperating hosts agree on (e.g. in a shared header).
@@ -117,8 +117,8 @@ void AppWindow::CreateSharedEnvironment()
         return;
     }
 
-    // Step 3 - same symmetric create either way: establishes, or attaches to an
-    // identical cluster.
+    // Step 3 - same symmetric create either way: establishes, or attaches to a
+    // cluster with matching options.
     CreateSharedEnvironmentWithOptions(options.get());
 }
 
@@ -149,7 +149,7 @@ void AppWindow::CreateSharedEnvironmentWithOptions(
                 }
                 CHECK_FAILURE(result);
 
-                // Established the cluster, or attached to an identical one.
+                // Established the cluster, or attached to one with matching options.
                 OnSharedEnvironmentReady(environment);
                 return S_OK;
             })
@@ -194,9 +194,7 @@ async Task CreateSharedEnvironmentAsync()
             await CoreWebView2Environment.CreateOrJoinClusterEnvironmentAsync(options);
         OnSharedEnvironmentReady(environment);
     }
-    catch (COMException ex) when
-        // The HRESULT of ERROR_CLUSTER_ENVIRONMENT_OPTIONS_MISMATCH.
-        (ex.HResult == OptionsMismatchHResult)
+    catch (COMException ex) when (ex.HResult == OptionsMismatchHResult)
     {
         // A live browser pinned a different set since my Get. Re-read and retry, or
         // fall back to a private environment.
@@ -364,10 +362,4 @@ namespace Microsoft.Web.WebView2.Core
 meaningful for a shared cluster. Every option on it is process-wide: it takes a
 single value for the whole browser process, supplied by the first host to establish
 the cluster and shared by every host that attaches. There is no per-host override.
-
-This first iteration intentionally omits the options that select or locate the
-WebView2 Runtime itself, such as `BrowserExecutableFolder`,
-`TargetCompatibleBrowserVersion`, and the release-channel options (`ReleaseChannels`
-and `ChannelSearchKind`). These can be added later on a derived options interface
-without breaking compatibility.
 
