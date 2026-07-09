@@ -275,12 +275,6 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
   /// Sets the `AreBrowserExtensionsEnabled` property.
   [propput] HRESULT AreBrowserExtensionsEnabled([in] BOOL value);
 
-  /// The channel search kind used to locate the WebView2 Runtime.
-  [propget] HRESULT ChannelSearchKind(
-      [out, retval] COREWEBVIEW2_CHANNEL_SEARCH_KIND* value);
-  /// Sets the `ChannelSearchKind` property.
-  [propput] HRESULT ChannelSearchKind([in] COREWEBVIEW2_CHANNEL_SEARCH_KIND value);
-
   /// When TRUE (the default), the effective profile name is namespaced per host
   /// application (`"<HostName>_<ProfileName>"`, where `<HostName>` is the host
   /// executable name on Windows) to prevent accidental cross-app profile use. This
@@ -338,7 +332,6 @@ namespace Microsoft.Web.WebView2.Core
         Boolean AllowSingleSignOnUsingOSPrimaryAccount { get; set; };
         Boolean EnableTrackingPrevention { get; set; };
         Boolean AreBrowserExtensionsEnabled { get; set; };
-        CoreWebView2ChannelSearchKind ChannelSearchKind { get; set; };
         Boolean PerHostProfileIsolation { get; set; };
         IVector<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
     }
