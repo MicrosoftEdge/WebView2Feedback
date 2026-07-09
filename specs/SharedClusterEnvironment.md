@@ -364,19 +364,6 @@ namespace Microsoft.Web.WebView2.Core
 
 # Appendix
 
-## Alternatives considered
-
-Two other API shapes were evaluated and rejected in favor of this one.
-
-- **Create / Join role split.** One host `Create`s and pins options; others `Join` by
-  name and get the pinned set back. Cleaner asymmetry, but it has a bootstrap race
-  (two hosts `Join`ing before anyone `Create`s both get `NOT_FOUND`, needing an extra
-  rule). The symmetric model here avoids that because every host runs the same create.
-- **One synchronous getter, nothing else.** Keep today's UDF-based sharing and only add
-  a `Get` so a joiner can look before it leaps. Smallest surface, but no named
-  rendezvous and no lockable "establish" step. This model was chosen because it makes
-  sharing explicit; the getter-only shape remains a smaller-surface fallback.
-
 ## Relationship to existing options
 
 `ICoreWebView2ClusterEnvironmentOptions` is a new type rather than a reuse of
