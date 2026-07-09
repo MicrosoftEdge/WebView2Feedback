@@ -360,10 +360,14 @@ namespace Microsoft.Web.WebView2.Core
 ## Relationship to existing options
 
 `ICoreWebView2ClusterEnvironmentOptions` is a new type rather than a reuse of
-`ICoreWebView2EnvironmentOptions`. It intentionally exposes only the options that can
-hold a single value across a shared browser process tree, plus the cluster `Id`.
-Options that cannot be shared process-wide (for example the remote-debugging port or
-logging, which the whole process can hold only one of) are omitted, so a host cannot
-set something on a cluster that would silently be ignored. The pinned set therefore
-belongs to the first creator and is not per host.
+`ICoreWebView2EnvironmentOptions`, so its surface exposes only the options that are
+meaningful for a shared cluster. Every option on it is process-wide: it takes a
+single value for the whole browser process, supplied by the first host to establish
+the cluster and shared by every host that attaches. There is no per-host override.
+
+This first iteration intentionally omits the options that select or locate the
+WebView2 Runtime itself, such as `BrowserExecutableFolder`,
+`TargetCompatibleBrowserVersion`, and the release-channel options (`ReleaseChannels`
+and `ChannelSearchKind`). These can be added later on a derived options interface
+without breaking compatibility.
 
