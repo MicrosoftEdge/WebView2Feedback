@@ -142,19 +142,25 @@ void AppWindow::CreateSharedEnvironmentWithOptions(
     HRESULT hr = CreateOrJoinCoreWebView2ClusterEnvironment(
         options,
         Microsoft::WRL::Callback<ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler>(
-            [this](HRESULT errorCode, COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS status,
-                   ICoreWebView2Environment* environment) -> HRESULT
+            [this](HRESULT errorCode,
+                   ICoreWebView2ClusterEnvironmentCreateResult* result) -> HRESULT
             {
                 // A failing errorCode is an unexpected failure (for example the
                 // runtime could not be found). Handle it as usual.
                 CHECK_FAILURE(errorCode);
 
+                COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS status;
+                CHECK_FAILURE(result->get_Status(&status));
                 switch (status)
                 {
                 case COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_SUCCEEDED:
+                {
                     // Established the cluster, or attached to one with matching options.
-                    OnSharedEnvironmentReady(environment);
+                    wil::com_ptr<ICoreWebView2Environment> environment;
+                    CHECK_FAILURE(result->get_Environment(&environment));
+                    OnSharedEnvironmentReady(environment.get());
                     break;
+                }
 
                 case COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH:
                 {
@@ -227,7 +233,7 @@ async Task CreateSharedEnvironmentAsync()
         if (result.Status == CoreWebView2ClusterEnvironmentStatus.OptionsMismatch)
         {
             // A live cluster has different options than ours. Re-read the
-            // authoritative options and retry once with them.
+            // authoritative options and retry with them.
             CoreWebView2ClusterEnvironmentOptions authoritative =
                 CoreWebView2Environment.GetClusterEnvironmentOptions(ClusterId);
             if (authoritative != null && AcceptableForMe(authoritative))
@@ -365,21 +371,32 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
       [in] const ICoreWebView2CustomSchemeRegistration** schemeRegistrations);
 }
 
+/// The result of `CreateOrJoinCoreWebView2ClusterEnvironment`, provided to the
+/// completion handler when its `errorCode` is `S_OK`.
+interface ICoreWebView2ClusterEnvironmentCreateResult : IUnknown {
+  /// The outcome of the create-or-join operation.
+  [propget] HRESULT Status(
+      [out, retval] COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS* value);
+
+  /// The shared cluster environment. This is non-null only when `Status` is
+  /// `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_SUCCEEDED`; otherwise it is null.
+  [propget] HRESULT Environment([out, retval] ICoreWebView2Environment** value);
+}
+
 /// Receives the result of `CreateOrJoinCoreWebView2ClusterEnvironment`.
 interface ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler : IUnknown {
-  /// When `errorCode` is `S_OK`, `status` describes the outcome:
-  ///  * `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_SUCCEEDED` - `environment` is the
-  ///    shared cluster environment.
+  /// When `errorCode` is `S_OK`, `result` describes the outcome via its `Status`:
+  ///  * `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_SUCCEEDED` - `result.Environment`
+  ///    is the shared cluster environment.
   ///  * `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH` - a cluster
-  ///    already exists for this `Id` with different options; `environment` is null.
+  ///    already exists for this `Id` with different options; `result.Environment`
+  ///    is null.
   ///
   /// When `errorCode` is a failing `HRESULT`, the operation failed for another reason
-  /// (for example, the WebView2 Runtime could not be found), `status` is not
-  /// meaningful, and `environment` is null.
+  /// (for example, the WebView2 Runtime could not be found) and `result` is null.
   HRESULT Invoke(
       [in] HRESULT errorCode,
-      [in] COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS status,
-      [in] ICoreWebView2Environment* environment);
+      [in] ICoreWebView2ClusterEnvironmentCreateResult* result);
 }
 ```
 
