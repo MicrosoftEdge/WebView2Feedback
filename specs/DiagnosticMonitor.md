@@ -123,15 +123,11 @@ void DiagnosticComponent::SetupDiagnostics()
     CHECK_FAILURE(
         m_environment->CreateDiagnosticMonitor(&m_monitor));
 
-    // Add a filter for NETWORK_REQUEST. Pass "{}" to
-    // receive all network requests without field-level
-    // filtering.
-    CHECK_FAILURE(
-        m_monitor->SetDiagnosticFilter(
-            COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST,
-            L"{}"));
-
-    // Subscribe to the diagnostic event.
+    // Subscribe to the diagnostic event *before* setting a
+    // filter. A monitor delivers no events until a filter
+    // is set, so subscribing first guarantees no event can
+    // fire in the window between setting the filter and
+    // registering the handler.
     CHECK_FAILURE(m_monitor->add_DiagnosticReceived(
         Microsoft::WRL::Callback<
             ICoreWebView2DiagnosticReceivedEventHandler>(
@@ -145,6 +141,15 @@ void DiagnosticComponent::SetupDiagnostics()
             })
             .Get(),
         &m_diagnosticToken));
+
+    // Add a filter for NETWORK_REQUEST. Pass "{}" to
+    // receive all network requests without field-level
+    // filtering. Events begin flowing to the handler
+    // registered above once this filter is set.
+    CHECK_FAILURE(
+        m_monitor->SetDiagnosticFilter(
+            COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST,
+            L"{}"));
 }
 
 void DiagnosticComponent::HandleDiagnosticEvent(
@@ -189,16 +194,23 @@ public class DiagnosticComponent : IDisposable
         // Create a diagnostic monitor.
         _monitor = environment.CreateDiagnosticMonitor();
 
+        // Subscribe to the diagnostic event *before*
+        // setting a filter. A monitor delivers no events
+        // until a filter is set, so subscribing first
+        // guarantees no event can fire in the window
+        // between setting the filter and registering the
+        // handler.
+        _monitor.DiagnosticReceived +=
+            OnDiagnosticReceived;
+
         // Add a filter for NetworkRequest. Pass "{}" to
         // receive all network requests without
-        // field-level filtering.
+        // field-level filtering. Events begin flowing to
+        // the handler registered above once this filter
+        // is set.
         _monitor.SetDiagnosticFilter(
             CoreWebView2DiagnosticCategory.NetworkRequest,
             "{}");
-
-        // Subscribe to the diagnostic event.
-        _monitor.DiagnosticReceived +=
-            OnDiagnosticReceived;
     }
 
     private void OnDiagnosticReceived(
@@ -241,6 +253,16 @@ all events in that category. A non-empty JSON object applies field-level
 matching. Calling the method again for the same category replaces
 the previous filter.
 
+Field-level criteria let an app collect only the diagnostic
+events it cares about instead of everything in a category. This
+keeps event volume low, so collection can be left running over an
+extended period, which is useful when the condition of interest is
+intermittent and only shows up occasionally. A typical pattern is
+to enable a filter on demand (for example, in response to an
+external trigger on an affected deployment), capture the matching
+JSON details for offline analysis or forwarding to a telemetry
+backend, and remove the filter when done.
+
 ### Win32 C++
 
 ```cpp
@@ -249,9 +271,20 @@ void DiagnosticComponent::SetupFilteredDiagnostics()
     CHECK_FAILURE(
         m_environment->CreateDiagnosticMonitor(&m_monitor));
 
-    // Only receive DNS (ERR_NAME_NOT_RESOLVED, -105)
-    // and timeout (ERR_TIMED_OUT, -7) errors
-    // for GET/POST requests.
+    // Contoso field diagnostics: collect only network
+    // *failures* so the monitor can run for 2-3 days,
+    // waiting for an intermittent, hard-to-reproduce issue
+    // to recur without flooding telemetry with successful
+    // requests. The failure may originate from Contoso's
+    // own setup (for example a custom proxy or a
+    // WebResourceRequested handler) or from the
+    // deployment's network; capturing it in the field is
+    // what makes the cause diagnosable.
+    // Here we capture DNS resolution failures
+    // (ERR_NAME_NOT_RESOLVED, -105) and request timeouts
+    // (ERR_TIMED_OUT, -7) for GET/POST requests. Add more
+    // error codes (for example proxy errors) to widen the
+    // capture.
     CHECK_FAILURE(
         m_monitor->SetDiagnosticFilter(
             COREWEBVIEW2_DIAGNOSTIC_CATEGORY_NETWORK_REQUEST,
@@ -285,8 +318,20 @@ private void SetupFilteredDiagnostics()
 {
     _monitor = _environment.CreateDiagnosticMonitor();
 
-    // Only DNS (ERR_NAME_NOT_RESOLVED, -105) and timeout
-    // (ERR_TIMED_OUT, -7) errors for GET/POST requests.
+    // Contoso field diagnostics: collect only network
+    // *failures* so the monitor can run for 2-3 days,
+    // waiting for an intermittent, hard-to-reproduce issue
+    // to recur without flooding telemetry with successful
+    // requests. The failure may originate from Contoso's
+    // own setup (for example a custom proxy or a
+    // WebResourceRequested handler) or from the
+    // deployment's network; capturing it in the field is
+    // what makes the cause diagnosable.
+    // Here we capture DNS resolution failures
+    // (ERR_NAME_NOT_RESOLVED, -105) and request timeouts
+    // (ERR_TIMED_OUT, -7) for GET/POST requests. Add more
+    // error codes (for example proxy errors) to widen the
+    // capture.
     _monitor.SetDiagnosticFilter(
         CoreWebView2DiagnosticCategory.NetworkRequest,
         @"{
@@ -466,16 +511,16 @@ interface ICoreWebView2DiagnosticMonitor : IUnknown {
   /// documented on the corresponding
   /// `COREWEBVIEW2_DIAGNOSTIC_CATEGORY` enum value.
   ///
-  /// Pass `"{}"` or an empty string as `jsonFilter` to
-  /// receive all events in the category without
-  /// field-level filtering.
+  /// Pass `"{}"` as `jsonFilter` to receive all events in
+  /// the category without field-level filtering.
   ///
   /// Calling this method again for the same category
   /// replaces the previous filter for that category.
   ///
-  /// Returns `E_INVALIDARG` if the JSON is malformed or
-  /// does not match the category's filter schema. On
-  /// failure, the filter state is unchanged.
+  /// Returns `E_INVALIDARG` if `jsonFilter` is an empty
+  /// string, is malformed JSON, or does not match the
+  /// category's filter schema. On failure, the filter
+  /// state is unchanged.
   HRESULT SetDiagnosticFilter(
       [in] COREWEBVIEW2_DIAGNOSTIC_CATEGORY category,
       [in] LPCWSTR jsonFilter);
