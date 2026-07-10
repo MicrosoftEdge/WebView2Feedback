@@ -31,9 +31,8 @@ This spec proposes the **symmetric create-or-join + synchronous `Get`** model:
   pre-flight: read what the cluster already uses, decide whether it likes it, then create.
 
 Sharing intent is expressed by an `Id` (a stable rendezvous name that all
-cooperating hosts agree on). The mapping from `Id` to on-disk UDF path is a fixed
-function, so the same `Id` always resolves to the same layout and first-creator-wins
-applies to the on-disk layout, not just to the live process.
+cooperating hosts agree on). The mapping from `Id` to on-disk user data folder is a
+fixed function, so the same `Id` always resolves to the same folder.
 
 # Conceptual pages (How To)
 
@@ -49,12 +48,10 @@ A cluster occupies its own user data folder namespace: it never joins or collide
 with an environment created by `CreateCoreWebView2EnvironmentWithOptions`.
 
 The **cluster options** are the `ICoreWebView2ClusterEnvironmentOptions` that the
-first host to establish the cluster supplied. Because a shared browser process is a
-single process-wide configuration, those options cannot differ per host, so the
-first establishing caller's set becomes authoritative for the lifetime of the
-cluster. Options that cannot be shared process-wide are intentionally absent from
-`ICoreWebView2ClusterEnvironmentOptions`.
-
+first host to establish the cluster supplied. They apply to the whole shared browser
+process and are shared by every host that attaches, so the first establishing
+caller's set is authoritative for the lifetime of the cluster; there is no per-host
+override. This type intentionally exposes only a subset of the environment options.
 The recommended usage pattern is **"Get, then Create"**:
 
 1. Synchronously `GetCoreWebView2ClusterEnvironmentOptions(id)` to see what options,
@@ -69,7 +66,9 @@ different options the instant after you read. The live browser stays authoritati
 so `Create` still validates and reports a status of
 `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH` if you lost the race, at
 which point you re-`Get` the now-authoritative options and retry, or fall back to a
-private (non-shared) environment.
+private environment. A private environment is an ordinary environment created with
+your own user data folder through `CreateCoreWebView2EnvironmentWithOptions`; it has
+its own separate data and does not share with the cluster.
 
 Profile isolation in a cluster is **anti-misuse, not a security boundary**. When
 `PerHostProfileIsolation` is TRUE (the default), profile names are namespaced per
@@ -472,8 +471,7 @@ namespace Microsoft.Web.WebView2.Core
 ## Relationship to existing options
 
 `ICoreWebView2ClusterEnvironmentOptions` is a new type rather than a reuse of
-`ICoreWebView2EnvironmentOptions`, so its surface exposes only the options that are
-meaningful for a shared cluster. Every option on it is process-wide: it takes a
-single value for the whole browser process, supplied by the first host to establish
-the cluster and shared by every host that attaches. There is no per-host override.
-
+`ICoreWebView2EnvironmentOptions`. Every option on it applies to the whole shared
+browser process, supplied by the first host to establish the cluster and shared by
+every host that attaches; there is no per-host override. The type intentionally
+exposes only a subset of the environment options.
