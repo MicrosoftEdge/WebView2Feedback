@@ -219,7 +219,7 @@ interface ICoreWebView2LaunchingExternalUriSchemeEventArgs2;
 /// Host applications can subscribe on a per-frame basis to attribute
 /// external URI scheme launches to a specific iframe, even when multiple
 /// frames share the same origin.
-[uuid(42ba2542-3391-59b3-9099-5954b6b44af9), object, pointer_default(unique)]
+[uuid(0e3c31b7-bbca-5216-a2d1-40e7a211f0ab), object, pointer_default(unique)]
 interface ICoreWebView2Frame9 : IUnknown {
   /// Adds an event handler for the `LaunchingExternalUriScheme` event.
   /// The event is raised when content in this `CoreWebView2Frame`, or in one
@@ -241,8 +241,9 @@ interface ICoreWebView2Frame9 : IUnknown {
   /// until the handler returns. If a deferral is taken, the launch remains
   /// blocked until the deferral is completed.
   ///
-  /// To prevent `CoreWebView2` handlers from being invoked, `Handled` must
-  /// be set synchronously before taking a deferral.
+  /// To prevent `CoreWebView2` handlers from being invoked when a deferral
+  /// is taken, set `Handled` to `TRUE` synchronously before taking the
+  /// deferral.
   HRESULT add_LaunchingExternalUriScheme(
       [in] ICoreWebView2FrameLaunchingExternalUriSchemeEventHandler*
           eventHandler,
@@ -256,7 +257,7 @@ interface ICoreWebView2Frame9 : IUnknown {
 
 /// Receives `LaunchingExternalUriScheme` events raised on
 /// `CoreWebView2Frame`.
-[uuid(9521c767-9916-5a5e-897c-7bfccebe4720), object, pointer_default(unique)]
+[uuid(8d0a4bee-a888-50bc-8088-a71678fd3af3), object, pointer_default(unique)]
 interface ICoreWebView2FrameLaunchingExternalUriSchemeEventHandler
     : IUnknown {
   /// Invoked when the corresponding event is raised.
@@ -276,9 +277,9 @@ interface ICoreWebView2LaunchingExternalUriSchemeEventArgs2
   /// `CoreWebView2Frame` handler to prevent the event from being raised on
   /// `CoreWebView2`.
   ///
-  /// If a deferral is taken, this property must be set to `TRUE`
-  /// synchronously before taking the deferral to prevent
-  /// `CoreWebView2` handlers from being invoked.
+  /// To prevent `CoreWebView2` handlers from being invoked when a deferral
+  /// is taken, set `Handled` to `TRUE` synchronously before taking the
+  /// deferral.
   [propget] HRESULT Handled([out, retval] BOOL* value);
 
   /// Sets the `Handled` property.
@@ -299,13 +300,14 @@ namespace Microsoft.Web.WebView2.Core
             "Microsoft.Web.WebView2.Core.ICoreWebView2LaunchingExternalUriSchemeEventArgs2")]
         {
             [doc_string(
-                "Set this property to TRUE to prevent the "
-                "LaunchingExternalUriScheme event from being raised on "
-                "CoreWebView2. By default, the event is raised on both "
-                "CoreWebView2Frame and CoreWebView2, with frame-level "
-                "handlers invoked first. If a deferral is taken, this "
-                "property must be set to TRUE synchronously before "
-                "taking the deferral.")]
+                "By default, the LaunchingExternalUriScheme event is "
+                "raised on both CoreWebView2Frame and CoreWebView2, with "
+                "frame-level handlers invoked first. Set this property to "
+                "TRUE within a CoreWebView2Frame handler to prevent the "
+                "event from being raised on CoreWebView2. To prevent "
+                "CoreWebView2 handlers from being invoked when a deferral "
+                "is taken, set Handled to TRUE synchronously before taking "
+                "the deferral.")]
             Boolean Handled { get; set; };
         }
     }
@@ -328,7 +330,7 @@ namespace Microsoft.Web.WebView2.Core
                 "outward toward the top-level frame. "
                 "Frame-level handlers are invoked before CoreWebView2 "
                 "handlers. Set Handled to TRUE in the frame handler to "
-                "prevent the remaining ancestor frame and CoreWebView2 "
+                "prevent the remaining ancestor frames and CoreWebView2 "
                 "handlers from being invoked.")]
             event Windows.Foundation.TypedEventHandler<
                 CoreWebView2Frame,
