@@ -48,10 +48,15 @@ such as a sandboxed AppContainer process (for example a UWP app), is not
 supported and the operation fails with `ERROR_NOT_SUPPORTED`.
 
 Unlike `CreateCoreWebView2EnvironmentWithOptions`, you do **not** pass a user data
-folder. The runtime derives the folder from the cluster `Id` through a fixed
-mapping, so every host that uses the same `Id` resolves to the same on-disk layout.
-A cluster occupies its own user data folder namespace: it never joins or collides
-with an environment created by `CreateCoreWebView2EnvironmentWithOptions`.
+folder. The runtime derives the folder from the cluster `Id`, so every host that uses
+the same `Id` resolves to the same on-disk location. The folder is created under a
+per-user cluster root, `%LOCALAPPDATA%\Microsoft\WebView2Clusters\<Id>`, with the
+`Id` as the leaf folder name (this is why the `Id` must be a valid folder name). A
+cluster occupies its own user data folder namespace: folders under this root are
+reachable only through the cluster API. Even if a caller passes a cluster folder path
+explicitly to `CreateCoreWebView2EnvironmentWithOptions`, that call is rejected and
+does not join the cluster, so a cluster never joins or collides with an environment
+created through the ordinary create path.
 
 The **cluster options** are the `ICoreWebView2ClusterEnvironmentOptions` that the
 first host to establish the cluster supplied. They apply to the whole shared browser
