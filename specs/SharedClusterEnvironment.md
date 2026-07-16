@@ -35,12 +35,17 @@ Sharing intent is expressed by an `Id` (a stable rendezvous name that all
 cooperating hosts agree on). The mapping from `Id` to on-disk user data folder is a
 fixed function, so the same `Id` always resolves to the same folder.
 
-# Conceptual pages (How To)
+# Description
 
 A **cluster environment** is a WebView2 environment that a group of cooperating
 host applications deliberately share, identified by a well-known `Id` string that
 those hosts agree on out of band. All hosts that establish a cluster with the same
 `Id` run inside one shared browser process and one on-disk user data folder.
+
+Cluster environments are supported only for Win32 desktop host processes in this
+initial version. A host that cannot share or access the cluster's user data folder,
+such as a sandboxed AppContainer process (for example a UWP app), is not
+supported and the operation fails with `ERROR_NOT_SUPPORTED`.
 
 Unlike `CreateCoreWebView2EnvironmentWithOptions`, you do **not** pass a user data
 folder. The runtime derives the folder from the cluster `Id` through a fixed
@@ -51,8 +56,11 @@ with an environment created by `CreateCoreWebView2EnvironmentWithOptions`.
 The **cluster options** are the `ICoreWebView2ClusterEnvironmentOptions` that the
 first host to establish the cluster supplied. They apply to the whole shared browser
 process and are shared by every host that attaches, so the first establishing
-caller's set is authoritative for the lifetime of the cluster; there is no per-host
-override. This type intentionally exposes only a subset of the environment options.
+caller's set is authoritative for as long as the cluster's browser process is
+running; there is no per-host override. A cluster exists only while its browser
+process is running: once that process exits, the cluster no longer exists, and the
+next host to create may supply a different set of options. This type intentionally
+exposes only a subset of the environment options.
 
 The recommended usage pattern is **"Get, then Create"**:
 
@@ -65,19 +73,30 @@ The recommended usage pattern is **"Get, then Create"**:
 
 `Get` is only a hint: it can race with another host that establishes a cluster with
 different options the instant after you read. The live browser stays authoritative,
-so `Create` still validates and reports a status of
-`COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH` if you lost the race, at
-which point you re-`Get` the now-authoritative options and retry, or fall back to a
+so `Create` still validates. If it reports a status of
+`COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH`, re-`Get` the
+now-authoritative options and retry, or fall back to a private environment. If it
+fails with `ERROR_NOT_SUPPORTED` (this host cannot use a cluster environment), use a
 private environment. A private environment is an ordinary environment created with
 your own user data folder through `CreateCoreWebView2EnvironmentWithOptions`; it has
 its own separate data and does not share with the cluster.
 
+Options **match** when every option on `ICoreWebView2ClusterEnvironmentOptions`
+except `Id` is equal: each scalar and boolean option is equal, `AdditionalBrowserArguments`
+is the same string (compared exactly, with no normalization of whitespace or switch
+order), and the custom scheme registrations are the same in the same order. `Id`
+identifies the cluster and is not part of this comparison.
+
 Profile isolation in a cluster is **anti-misuse, not a security boundary**. When
 `PerHostProfileIsolation` is TRUE (the default), profile names are namespaced per
-host application, so two different apps that happen to use the same profile name do
-not accidentally end up sharing one profile. This is not a security boundary: it
-does not encrypt or ACL profile data, and apps that deliberately use the same host
-identity and profile name can still share a profile.
+host application, so two different applications that happen to use the same profile
+name do not accidentally end up sharing one profile. This is not a security boundary:
+it does not encrypt or ACL profile data, and applications that deliberately use the
+same host identity and profile name can still share a profile.
+
+Because a cluster shares one browser process, environment-wide process diagnostics
+can expose frame names and last-committed URLs for frames owned by other hosts in the
+cluster. Cluster members must trust one another with this metadata.
 
 # Examples
 
@@ -108,11 +127,17 @@ void AppWindow::CreateSharedEnvironment()
     wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> existing;
     HRESULT hr = GetCoreWebView2ClusterEnvironmentOptions(kClusterId, &existing);
 
-    // Step 2 - reuse the cluster's options if it already exists; offer my own if none
-    // exists yet. If cluster environments are not supported in this host, go private.
+    // Step 2 - if a cluster already exists, decide whether its options are acceptable
+    // before attaching; if not, use a private environment. Offer my own options if no
+    // cluster exists yet, or go private if cluster environments are not supported here.
     wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> options;
     if (SUCCEEDED(hr))
     {
+        if (!AcceptableForMe(existing.get()))
+        {
+            UsePrivateEnvironment();
+            return;
+        }
         options = existing;
     }
     else if (hr == HRESULT_FROM_WIN32(ERROR_NOT_FOUND))
@@ -121,7 +146,7 @@ void AppWindow::CreateSharedEnvironment()
     }
     else if (hr == HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED))
     {
-        // Sandboxed or low-integrity process (for example a UWP app) that cannot
+        // Sandboxed AppContainer process (for example a UWP app) that cannot
         // share or access the cluster's user data folder.
         UsePrivateEnvironment();
         return;
@@ -146,8 +171,10 @@ void AppWindow::CreateSharedEnvironmentWithOptions(
             [this](HRESULT errorCode,
                    ICoreWebView2ClusterEnvironmentCreateResult* result) -> HRESULT
             {
-                // A failing errorCode is an unexpected failure (for example the
-                // runtime could not be found). Handle it as usual.
+                // A failing errorCode means the environment could not be created (for
+                // example the WebView2 Runtime could not be found). Handle it the same
+                // way as a failure from CreateCoreWebView2EnvironmentWithOptions (for
+                // example, surface an error and stop).
                 CHECK_FAILURE(errorCode);
 
                 COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS status;
@@ -188,7 +215,7 @@ void AppWindow::CreateSharedEnvironmentWithOptions(
     if (hr == HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED))
     {
         // This host cannot share or access the cluster's user data folder (for
-        // example a sandboxed or low-integrity process such as a UWP app). Cluster
+        // example a sandboxed AppContainer process such as a UWP app). Cluster
         // environments are unavailable here; use a private environment instead.
         UsePrivateEnvironment();
         return;
@@ -222,12 +249,20 @@ async Task CreateSharedEnvironmentAsync()
         CoreWebView2ClusterEnvironmentOptions existing =
             CoreWebView2Environment.GetClusterEnvironmentOptions(ClusterId);
 
-        // Step 2 - reuse the cluster's options, or offer my own if none exists yet.
+        // Step 2 - if a cluster already exists, decide whether its options are
+        // acceptable before attaching; if not, use a private environment. Offer my
+        // own options if no cluster exists yet.
+        if (existing != null && !AcceptableForMe(existing))
+        {
+            UsePrivateEnvironment();
+            return;
+        }
         CoreWebView2ClusterEnvironmentOptions options = existing ?? BuildClusterOptions();
 
-        // Step 3 - same symmetric create either way. A failing create (for example
-        // the runtime could not be found, or cluster environments are not supported
-        // in this host) throws an exception; the expected outcomes come back as Status.
+        // Step 3 - same symmetric create either way. If the environment cannot be
+        // created (for example the WebView2 Runtime could not be found, or cluster
+        // environments are not supported in this host) the call throws, the same as
+        // CreateAsync; the expected outcomes come back as Status.
         CoreWebView2ClusterEnvironmentCreateResult result =
             await CoreWebView2Environment.CreateOrJoinClusterEnvironmentAsync(options);
 
@@ -256,7 +291,7 @@ async Task CreateSharedEnvironmentAsync()
         }
     }
     // HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED). This host cannot share or access the
-    // cluster's user data folder (for example a sandboxed or low-integrity process
+    // cluster's user data folder (for example a sandboxed AppContainer process
     // such as a UWP app); use a private environment instead.
     catch (COMException ex) when (ex.HResult == unchecked((int)0x80070032))
     {
@@ -297,7 +332,7 @@ async Task CreateSharedEnvironmentAsync()
 ///                                              `handler` is not invoked.
 ///   HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED) -> the host cannot share or access the
 ///                                              cluster's user data folder (for
-///                                              example a sandboxed or low-integrity
+///                                              example a sandboxed AppContainer
 ///                                              process such as a UWP app); `handler`
 ///                                              is not invoked.
 /// When the return value is any failing `HRESULT`, `handler` is not invoked.
@@ -306,14 +341,14 @@ STDAPI CreateOrJoinCoreWebView2ClusterEnvironment(
     [in] ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler* handler);
 
 /// Reads the options of the cluster identified by its `Id` without creating or
-/// attaching to a cluster. Returns `S_OK` and the cluster's options when a cluster
-/// exists for that `Id`, or `HRESULT_FROM_WIN32(ERROR_NOT_FOUND)` and `nullptr`
-/// `options` when no cluster exists for that `Id`. The options are available
-/// whether or not the cluster is currently running.
+/// attaching to a cluster. A cluster exists only while its browser process is
+/// running. Returns `S_OK` and the cluster's options when a cluster is running for
+/// that `Id`, or `HRESULT_FROM_WIN32(ERROR_NOT_FOUND)` and `nullptr` `options` when
+/// no cluster is running for that `Id`.
 ///
 /// Returns `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)` and `nullptr` `options` in hosts
-/// that cannot share or access the cluster's user data folder, for example a
-/// sandboxed or low-integrity process such as a UWP app.
+/// that cannot share or access the cluster's user data folder, such as a sandboxed
+/// AppContainer process (for example a UWP app).
 STDAPI GetCoreWebView2ClusterEnvironmentOptions(
     [in] LPCWSTR id,
     [out] ICoreWebView2ClusterEnvironmentOptions** options);
@@ -360,9 +395,23 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
   /// Sets the `PerHostProfileIsolation` property.
   [propput] HRESULT PerHostProfileIsolation([in] BOOL value);
 
-  /// Gets the custom scheme registrations for the shared environment. The caller
-  /// must free the returned array and release each element with
-  /// `CoTaskMemFree` / `Release`.
+  /// The release channels the shared environment creation searches for, as a mask
+  /// of one or more `COREWEBVIEW2_RELEASE_CHANNELS`. Because the browser process is
+  /// shared, this selects the channel of the shared browser. The default is a mask
+  /// of all channels.
+  [propget] HRESULT ReleaseChannels([out, retval] COREWEBVIEW2_RELEASE_CHANNELS* value);
+  /// Sets the `ReleaseChannels` property.
+  [propput] HRESULT ReleaseChannels([in] COREWEBVIEW2_RELEASE_CHANNELS value);
+
+  /// The order that release channels are searched for during shared environment
+  /// creation. The default is `COREWEBVIEW2_CHANNEL_SEARCH_KIND_MOST_STABLE`.
+  [propget] HRESULT ChannelSearchKind([out, retval] COREWEBVIEW2_CHANNEL_SEARCH_KIND* value);
+  /// Sets the `ChannelSearchKind` property.
+  [propput] HRESULT ChannelSearchKind([in] COREWEBVIEW2_CHANNEL_SEARCH_KIND value);
+
+  /// Gets the custom scheme registrations for the shared environment. The returned
+  /// `ICoreWebView2CustomSchemeRegistration` pointers must be released, and the array
+  /// itself must be deallocated with `CoTaskMemFree`.
   HRESULT GetCustomSchemeRegistrations(
       [out] UINT32* count,
       [out] ICoreWebView2CustomSchemeRegistration*** schemeRegistrations);
@@ -394,7 +443,9 @@ interface ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler : IUnknown
   ///    is `nullptr`.
   ///
   /// When `errorCode` is a failing `HRESULT`, the operation failed for another reason
-  /// (for example, the WebView2 Runtime could not be found) and `result` is `nullptr`.
+  /// and `result` is `nullptr`. This is the same set of failures that
+  /// `CreateCoreWebView2EnvironmentWithOptions` can report (for example, the WebView2
+  /// Runtime could not be found).
   HRESULT Invoke(
       [in] HRESULT errorCode,
       [in] ICoreWebView2ClusterEnvironmentCreateResult* result);
@@ -409,7 +460,7 @@ mirroring how `CreateCoreWebView2EnvironmentWithOptions` maps to
 `CoreWebView2ClusterEnvironmentCreateResult` carrying the `Status` and, on success,
 the `Environment`. When the operation cannot be started or fails, it throws; in
 particular a host that cannot share or access the cluster's user data folder (for
-example a sandboxed or low-integrity process such as a UWP app) throws a
+example a sandboxed AppContainer process such as a UWP app) throws a
 `COMException` whose `HResult` is `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`.
 `GetClusterEnvironmentOptions` returns `null` when no cluster exists for the id,
 matching the `ERROR_NOT_FOUND` case of the COM API.
@@ -441,6 +492,8 @@ namespace Microsoft.Web.WebView2.Core
         Boolean EnableTrackingPrevention { get; set; };
         Boolean AreBrowserExtensionsEnabled { get; set; };
         Boolean PerHostProfileIsolation { get; set; };
+        CoreWebView2ReleaseChannels ReleaseChannels { get; set; };
+        CoreWebView2ChannelSearchKind ChannelSearchKind { get; set; };
         IVector<CoreWebView2CustomSchemeRegistration> CustomSchemeRegistrations { get; };
     }
 
@@ -453,8 +506,8 @@ namespace Microsoft.Web.WebView2.Core
         // Environment is non-null only when Status is Succeeded. Throws when the
         // operation cannot be started or fails, including
         // HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED) when the host cannot share or
-        // access the cluster's user data folder (for example a sandboxed or
-        // low-integrity process such as a UWP app).
+        // access the cluster's user data folder (for example a sandboxed
+        // AppContainer process such as a UWP app).
         static Windows.Foundation.IAsyncOperation<CoreWebView2ClusterEnvironmentCreateResult>
             CreateOrJoinClusterEnvironmentAsync(CoreWebView2ClusterEnvironmentOptions options);
 
