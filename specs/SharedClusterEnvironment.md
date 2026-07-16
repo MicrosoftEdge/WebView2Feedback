@@ -217,7 +217,7 @@ async Task CreateSharedEnvironmentAsync()
 {
     try
     {
-        // Step 1 - synchronously read the cluster's options for this id. No browser
+        // Step 1 - read the cluster's options for this `Id`. No browser
         // spawn. Returns null when no cluster exists yet.
         CoreWebView2ClusterEnvironmentOptions existing =
             CoreWebView2Environment.GetClusterEnvironmentOptions(ClusterId);
@@ -269,7 +269,7 @@ async Task CreateSharedEnvironmentAsync()
 
 ## Win32 C++
 
-```
+```cpp
 /// The outcome of `CreateOrJoinCoreWebView2ClusterEnvironment`, reported to the
 /// completion handler when its `errorCode` is `S_OK`.
 [v1_enum] typedef enum COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS {
@@ -287,28 +287,28 @@ async Task CreateSharedEnvironmentAsync()
 /// by the `Id` in `options`. If no cluster exists for the `Id`, this establishes
 /// one and the caller's options become the cluster's options. If a cluster already
 /// exists and the caller's options match it, the caller attaches to it. The outcome
-/// is reported to the completion handler as a `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS`.
+/// is reported to `handler` as a `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS`.
 ///
-/// The synchronous return value reports whether the asynchronous operation could be
-/// started:
-///   S_OK                                    -> operation started; the completion
-///                                              handler will be invoked with the result.
-///   E_INVALIDARG                            -> `options` or its `Id` is invalid.
+/// The return value reports whether `CreateOrJoinCoreWebView2ClusterEnvironment`
+/// could start:
+///   S_OK                                    -> started; `handler` will be invoked
+///                                              with the result.
+///   E_INVALIDARG                            -> `options` or its `Id` is invalid;
+///                                              `handler` is not invoked.
 ///   HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED) -> the host cannot share or access the
 ///                                              cluster's user data folder (for
 ///                                              example a sandboxed or low-integrity
-///                                              process such as a UWP app); the
-///                                              completion handler is not invoked.
-/// When the return value is a failing `HRESULT`, the completion handler is not
-/// invoked.
+///                                              process such as a UWP app); `handler`
+///                                              is not invoked.
+/// When the return value is any failing `HRESULT`, `handler` is not invoked.
 STDAPI CreateOrJoinCoreWebView2ClusterEnvironment(
     [in] ICoreWebView2ClusterEnvironmentOptions* options,
     [in] ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler* handler);
 
-/// Synchronously reads the options of the cluster identified by `id` without
-/// creating or attaching to a cluster. Returns `S_OK` and the cluster's options
-/// when a cluster exists for `id`, or `HRESULT_FROM_WIN32(ERROR_NOT_FOUND)`
-/// and `nullptr` `options` when no cluster exists for `id`. The options are available
+/// Reads the options of the cluster identified by its `Id` without creating or
+/// attaching to a cluster. Returns `S_OK` and the cluster's options when a cluster
+/// exists for that `Id`, or `HRESULT_FROM_WIN32(ERROR_NOT_FOUND)` and `nullptr`
+/// `options` when no cluster exists for that `Id`. The options are available
 /// whether or not the cluster is currently running.
 ///
 /// Returns `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)` and `nullptr` `options` in hosts
@@ -458,8 +458,8 @@ namespace Microsoft.Web.WebView2.Core
         static Windows.Foundation.IAsyncOperation<CoreWebView2ClusterEnvironmentCreateResult>
             CreateOrJoinClusterEnvironmentAsync(CoreWebView2ClusterEnvironmentOptions options);
 
-        // Synchronously reads the options of the cluster identified by id. Returns
-        // null when no cluster exists for id. Throws a COMException whose
+        // Reads the options of the cluster identified by its Id. Returns
+        // null when no cluster exists for that Id. Throws a COMException whose
         // HResult is HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED) when the host cannot
         // share or access the cluster's user data folder.
         static CoreWebView2ClusterEnvironmentOptions GetClusterEnvironmentOptions(
