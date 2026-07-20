@@ -17,7 +17,7 @@ failure surfaces as a generic create error.
 We want a first-class, *explicit* way for a set of cooperating host applications to
 opt into one shared WebView2 environment—a "cluster"—and to agree on the shared
 options up front. Cooperating host applications trust one
-another and agree on a shared cluster `Id` in advance; sharing is by convention, and
+another and agree on a shared `ClusterName` in advance; sharing is by convention, and
 the WebView2 Runtime does not restrict which applications may join a cluster.
 
 This spec proposes a symmetric create-or-join model and a companion operation that reads a
@@ -25,24 +25,24 @@ cluster's options:
 
 - Every host calls the same symmetric `CreateOrJoinCoreWebView2ClusterEnvironment` with
   its full desired options. The **first** host to establish a cluster with a given
-  `Id` determines the cluster's options (first-creator-wins). A later host that passes
+  `ClusterName` determines the cluster's options. A later host that passes
   matching options attaches to the running cluster; a host that passes different
   options receives a completion status of
   `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH`.
 - A separate `GetCoreWebView2ClusterEnvironmentOptions` reads the cluster's options
-  for an `Id` without launching the shared browser process, so a host can read a
+  for a `ClusterName` without launching the shared browser process, so a host can read a
   cluster's current options before the host calls the create-or-join operation.
 
-Sharing intent is expressed by an `Id` (a stable rendezvous name that all
-cooperating hosts agree on). The mapping from `Id` to on-disk user data folder is a
-fixed function, so the same `Id` always resolves to the same folder.
+Sharing intent is expressed by a `ClusterName` (a stable rendezvous name that all
+cooperating hosts agree on). The mapping from `ClusterName` to on-disk user data folder is a
+fixed function, so the same `ClusterName` always resolves to the same folder.
 
 # Description
 
 A **cluster environment** is a WebView2 environment that a group of cooperating
-host applications deliberately share, identified by a well-known `Id` string that
+host applications deliberately share, identified by a well-known `ClusterName` string that
 those hosts agree on out of band. All hosts that establish a cluster with the same
-`Id` run inside one shared browser process and one on-disk user data folder.
+`ClusterName` run inside one shared browser process and one on-disk user data folder.
 
 A host process must be able to create and share the cluster's per-user user data
 folder. A host that cannot, such as a sandboxed AppContainer process (for example, a
@@ -57,12 +57,12 @@ standard WebView2 versioning guidance and fall back to a private environment whe
 is absent.
 
 Unlike `CreateCoreWebView2EnvironmentWithOptions`, you do **not** pass a user data
-folder. The runtime derives the folder from the cluster `Id`, so every host that uses
-the same `Id` resolves to the same on-disk location. `Id` comparison is
-case-insensitive, so `Id` values that differ only in case refer to the same cluster.
+folder. The runtime derives the folder from the `ClusterName`, so every host that uses
+the same `ClusterName` resolves to the same on-disk location. `ClusterName` comparison is
+case-insensitive, so `ClusterName` values that differ only in case refer to the same cluster.
 The folder is created under a per-user cluster root,
-`%LOCALAPPDATA%\Microsoft\WebView2Clusters\<Id>`, with the `Id` as the leaf folder
-name (this is why the `Id` must be a valid folder name). A cluster occupies its own
+`%LOCALAPPDATA%\Microsoft\WebView2Clusters\<ClusterName>`, with the `ClusterName` as the leaf folder
+name (this is why the `ClusterName` must be a valid folder name). A cluster occupies its own
 user data folder namespace: folders under this root are reachable only through the
 cluster API. Even if a caller passes a cluster folder path explicitly to
 `CreateCoreWebView2EnvironmentWithOptions`, that call is rejected and does not join the
@@ -80,7 +80,7 @@ exposes only a subset of the environment options.
 
 The recommended usage pattern is **"Get, then create or join"**:
 
-1. Call `GetCoreWebView2ClusterEnvironmentOptions(id)` to see what options, if any,
+1. Call `GetCoreWebView2ClusterEnvironmentOptions(clusterName)` to see what options, if any,
    the cluster already uses. This does not launch the shared browser process.
 2. If a cluster already exists, reuse its options and attach to it. If none exists
    yet, provide your own options, which become the cluster's options.
@@ -101,12 +101,12 @@ your own user data folder through `CreateCoreWebView2EnvironmentWithOptions`; it
 its own data and does not share with the cluster.
 
 Options **match** when every option on `ICoreWebView2ClusterEnvironmentOptions`
-except `Id` is equal: each scalar and boolean option is equal, `AdditionalBrowserArguments`
+except `ClusterName` is equal: each scalar and boolean option is equal, `AdditionalBrowserArguments`
 is the same string (compared exactly, with no normalization of whitespace or switch
 order), and the custom scheme registrations are the same in the same order. The
 release-channel options (`ReleaseChannels` and `ChannelSearchKind`) are part of this
 comparison, so a host requesting a different channel than the running cluster receives
-a mismatch. `Id` identifies the cluster and is not part of this comparison.
+a mismatch. `ClusterName` identifies the cluster and is not part of this comparison.
 
 Profile isolation in a cluster is **anti-misuse, not a security boundary**. When
 `PerHostProfileIsolation` is TRUE (the default), profile names are namespaced per
@@ -117,18 +117,20 @@ derives to distinguish apps), compared case-insensitively. This is not a
 security boundary: it does not encrypt profile data or apply access control lists to
 it, the host identity is not authenticated, and applications that run from an
 executable with the same file name, or that deliberately use the same host identity and
-profile name, can still share a profile. 
+profile name, can still share a profile. Do not rely on it to isolate mutually
+distrusting code.
+
 Because a cluster shares one browser process, environment-wide process diagnostics
 can expose frame names and last-committed URLs for frames owned by other hosts in the
 cluster. Cluster members must trust one another with this metadata.
 
-Joining a cluster is controlled only by the `Id`. In this initial version there is no
+Joining a cluster is controlled only by the `ClusterName`. In this initial version there is no
 authentication or admission control: any process running as the same user that supplies
-a matching `Id` (and resolves the same runtime) attaches to the cluster, and matching
-`Id` values are the only requirement to join. The runtime does not verify the identity
-of the joining host. Treat the `Id` as a shared capability agreed among cooperating
+a matching `ClusterName` (and resolves the same runtime) attaches to the cluster, and matching
+`ClusterName` values are the only requirement to join. The runtime does not verify the identity
+of the joining host. Treat the `ClusterName` as a shared capability agreed among cooperating
 hosts, and do not use a cluster to share data across trust boundaries. If it matters
-that untrusted code on the machine cannot join, choose an `Id` that such code cannot
+that untrusted code on the machine cannot join, choose a `ClusterName` that such code cannot
 predict; the per-user cluster root still scopes clusters to a single user.
 
 A cluster is scoped to a single user and a single logon session: its user data folder
@@ -147,19 +149,19 @@ elevation with `CreateCoreWebView2EnvironmentWithOptions`.
 ## Win32 C++
 
 The example shows the recommended "Get, then create or join" flow: read the cluster's options
-for a well-known cluster ID, reuse them if the cluster already exists, otherwise
+for a well-known cluster name, reuse them if the cluster already exists, otherwise
 offer your own; then create (which either establishes the cluster or attaches to one
 with matching options). On a mismatch, re-read the authoritative options and retry.
 
 ```cpp
 // A stable rendezvous name that all cooperating hosts agree on.
-constexpr PCWSTR kClusterId = L"Contoso.Shell.Default";
+constexpr PCWSTR kClusterName = L"Contoso.Shell.Default";
 
 // Build the options this host would use if it is the first to establish the cluster.
 wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> BuildClusterOptions()
 {
     auto options = Microsoft::WRL::Make<CoreWebView2ClusterEnvironmentOptions>();
-    CHECK_FAILURE(options->put_Id(kClusterId));
+    CHECK_FAILURE(options->put_ClusterName(kClusterName));
     CHECK_FAILURE(options->put_Language(L"en-US"));
     CHECK_FAILURE(options->put_AreBrowserExtensionsEnabled(FALSE));
     return options;
@@ -170,7 +172,7 @@ void AppWindow::CreateSharedEnvironment()
     // Step 1 - synchronously ask what options the cluster already uses. This call
     // does not start a browser process.
     wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> existing;
-    HRESULT hr = GetCoreWebView2ClusterEnvironmentOptions(kClusterId, &existing);
+    HRESULT hr = GetCoreWebView2ClusterEnvironmentOptions(kClusterName, &existing);
 
     // Step 2 - if a cluster already exists, decide whether its options are acceptable
     // before attaching; if not, use a private environment. Offer this host's options if no
@@ -246,7 +248,7 @@ void AppWindow::CreateSharedEnvironmentWithOptions(
                     wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> authoritative;
                     if (allowRetry &&
                         SUCCEEDED(GetCoreWebView2ClusterEnvironmentOptions(
-                            kClusterId, &authoritative)) &&
+                            kClusterName, &authoritative)) &&
                         AcceptableForMe(authoritative.get()))
                     {
                         CreateSharedEnvironmentWithOptions(
@@ -279,13 +281,13 @@ void AppWindow::CreateSharedEnvironmentWithOptions(
 
 ```c#
 // A stable rendezvous name that all cooperating hosts agree on.
-const string ClusterId = "Contoso.Shell.Default";
+const string SharedClusterName = "Contoso.Shell.Default";
 
 CoreWebView2ClusterEnvironmentOptions BuildClusterOptions()
 {
     return new CoreWebView2ClusterEnvironmentOptions()
     {
-        Id = ClusterId,
+        ClusterName = SharedClusterName,
         Language = "en-US",
         AreBrowserExtensionsEnabled = false,
     };
@@ -295,10 +297,10 @@ async Task CreateSharedEnvironmentAsync()
 {
     try
     {
-        // Step 1 - read the cluster's options for this `Id`. This call does not start a
+        // Step 1 - read the cluster's options for this `ClusterName`. This call does not start a
         // browser process. Returns null when no cluster exists yet.
         CoreWebView2ClusterEnvironmentOptions existing =
-            CoreWebView2Environment.GetClusterEnvironmentOptions(ClusterId);
+            CoreWebView2Environment.GetClusterEnvironmentOptions(SharedClusterName);
 
         // Step 2 - if a cluster already exists, decide whether its options are
         // acceptable before attaching; if not, use a private environment. Offer this host's
@@ -322,7 +324,7 @@ async Task CreateSharedEnvironmentAsync()
             // The live cluster's options differ from the requested options. Re-read the
             // authoritative options and retry with them.
             CoreWebView2ClusterEnvironmentOptions authoritative =
-                CoreWebView2Environment.GetClusterEnvironmentOptions(ClusterId);
+                CoreWebView2Environment.GetClusterEnvironmentOptions(SharedClusterName);
             if (authoritative != null && AcceptableForMe(authoritative))
             {
                 result = await CoreWebView2Environment
@@ -362,7 +364,7 @@ async Task CreateSharedEnvironmentAsync()
   /// The shared cluster environment is ready, either freshly established or attached
   /// to an existing cluster with matching options.
   COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_SUCCEEDED,
-  /// A cluster already exists for this `Id` with different options. No environment is
+  /// A cluster already exists for this `ClusterName` with different options. No environment is
   /// provided; read the cluster's options with
   /// `GetCoreWebView2ClusterEnvironmentOptions` and retry, or use a private
   /// (non-shared) environment.
@@ -370,7 +372,7 @@ async Task CreateSharedEnvironmentAsync()
 } COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS;
 
 /// Establishes or attaches to the shared WebView2 cluster environment identified
-/// by the `Id` in `options`. If no cluster exists for the `Id`, this establishes
+/// by the `ClusterName` in `options`. If no cluster exists for the `ClusterName`, this establishes
 /// one and the caller's options become the cluster's options. If a cluster already
 /// exists and the caller's options match it, the caller attaches to it. The outcome
 /// is reported to `handler` as a `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS`.
@@ -379,7 +381,7 @@ async Task CreateSharedEnvironmentAsync()
 /// could start:
 ///   S_OK                                     -> started; `handler` will be invoked
 ///                                               with the result.
-///   E_INVALIDARG                             -> `options` or its `Id` is invalid;
+///   E_INVALIDARG                             -> `options` or its `ClusterName` is invalid;
 ///                                               `handler` is not invoked.
 ///   HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)  -> the host cannot use cluster
 ///                                               environments (for
@@ -394,7 +396,7 @@ async Task CreateSharedEnvironmentAsync()
 ///
 /// `handler` is invoked on the thread that called this function (which must pump a
 /// message loop), the same delivery model as `CreateCoreWebView2EnvironmentWithOptions`.
-/// Concurrent calls for the same `Id`, whether from this or another cooperating host,
+/// Concurrent calls for the same `ClusterName`, whether from this or another cooperating host,
 /// are serialized: the first to establish the cluster fixes its options, and each
 /// later call either attaches (matching options) or reports
 /// `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH`.
@@ -402,11 +404,12 @@ STDAPI CreateOrJoinCoreWebView2ClusterEnvironment(
     [in] ICoreWebView2ClusterEnvironmentOptions* options,
     [in] ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler* handler);
 
-/// Reads the options of the cluster identified by its `Id` without creating or
+/// Reads the options of the cluster identified by its `ClusterName` without creating or
 /// attaching to a cluster. A cluster exists only while its browser process is
 /// running. Returns `S_OK` and the cluster's options when a cluster is running for
-/// that `Id`, or `HRESULT_FROM_WIN32(ERROR_NOT_FOUND)` and `nullptr` `options` when
-/// no cluster is running for that `Id`. Returns `E_INVALIDARG` for an invalid `Id`.
+/// that `ClusterName`, or `HRESULT_FROM_WIN32(ERROR_NOT_FOUND)` and `nullptr` `options`
+/// when no cluster is running for that `ClusterName`. Returns `E_INVALIDARG` for an
+/// invalid `ClusterName`.
 ///
 /// The returned object is a detached snapshot of the cluster's options at the time
 /// of the call. Modifying it does not affect the running cluster; to change a
@@ -416,7 +419,7 @@ STDAPI CreateOrJoinCoreWebView2ClusterEnvironment(
 /// that cannot use cluster environments, such as a sandboxed
 /// AppContainer process (for example, a UWP app).
 STDAPI GetCoreWebView2ClusterEnvironmentOptions(
-    [in] LPCWSTR id,
+    [in] LPCWSTR clusterName,
     [out] ICoreWebView2ClusterEnvironmentOptions** options);
 
 /// Provides the options used to establish or attach to a shared cluster environment.
@@ -424,12 +427,12 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
   /// The name that identifies the cluster. All cooperating hosts use the same
   /// value. Use a stable, descriptive name your applications agree on (for example,
   /// `"Contoso.Shell.Default"`); it does not need to be a GUID. Must not be `nullptr`
-  /// or empty. The `Id` is case-insensitive and must be a valid file-system folder
+  /// or empty. The `ClusterName` is case-insensitive and must be a valid file-system folder
   /// name; otherwise the call fails with `E_INVALIDARG`. The returned string is
   /// allocated with `CoTaskMemAlloc`; the caller must free it with `CoTaskMemFree`.
-  [propget] HRESULT Id([out, retval] LPWSTR* id);
-  /// Sets the `Id` property.
-  [propput] HRESULT Id([in] LPCWSTR id);
+  [propget] HRESULT ClusterName([out, retval] LPWSTR* value);
+  /// Sets the `ClusterName` property.
+  [propput] HRESULT ClusterName([in] LPCWSTR value);
 
   /// Specifies additional command-line switches to pass to the shared browser
   /// process. The default is an empty string. The returned string is allocated with
@@ -513,13 +516,13 @@ interface ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler : IUnknown
   ///  * `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_SUCCEEDED` - `result.Environment`
   ///    is the shared cluster environment.
   ///  * `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH` - a cluster
-  ///    already exists for this `Id` with different options; `result.Environment`
+  ///    already exists for this `ClusterName` with different options; `result.Environment`
   ///    is `nullptr`.
   ///
   /// When `errorCode` is a failing `HRESULT`, the operation started but then failed
   /// after start (for example, the browser process could not be launched), and
   /// `result` is `nullptr`. Failures detected before the operation starts, such as an
-  /// invalid `Id` or a missing WebView2 Runtime, are reported through the synchronous
+  /// invalid `ClusterName` or a missing WebView2 Runtime, are reported through the synchronous
   /// return value of `CreateOrJoinCoreWebView2ClusterEnvironment` and do not invoke
   /// this handler.
   HRESULT Invoke(
@@ -536,10 +539,10 @@ mirroring how `CreateCoreWebView2EnvironmentWithOptions` maps to
 `CoreWebView2ClusterEnvironmentCreateResult` that contains the `Status` and, on success,
 the `Environment`. When the operation cannot be started or fails, the method throws an exception; in
 particular a host that cannot use cluster environments (for
-example a sandboxed AppContainer process such as a UWP app) throws a
+example, a sandboxed AppContainer process such as a UWP app) throws a
 `COMException` whose `HResult` is `HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED)`.
-`GetClusterEnvironmentOptions` returns `null` when no cluster exists for the ID,
-matching the `ERROR_NOT_FOUND` case of the COM API.
+`GetClusterEnvironmentOptions` returns `null` when no cluster exists for the given
+`ClusterName`, matching the `ERROR_NOT_FOUND` case of the COM API.
 
 ```c#
 namespace Microsoft.Web.WebView2.Core
@@ -561,7 +564,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         CoreWebView2ClusterEnvironmentOptions();
 
-        String Id { get; set; };
+        String ClusterName { get; set; };
         String AdditionalBrowserArguments { get; set; };
         String Language { get; set; };
         Boolean AllowSingleSignOnUsingOSPrimaryAccount { get; set; };
@@ -577,7 +580,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         // ...
 
-        // Establishes or attaches to the shared cluster identified by options.Id.
+        // Establishes or attaches to the shared cluster identified by options.ClusterName.
         // The result's Status reports the outcome (Succeeded or OptionsMismatch);
         // Environment is non-null only when Status is Succeeded. Throws when the
         // operation cannot be started or fails, including
@@ -587,12 +590,12 @@ namespace Microsoft.Web.WebView2.Core
         static Windows.Foundation.IAsyncOperation<CoreWebView2ClusterEnvironmentCreateResult>
             CreateOrJoinClusterEnvironmentAsync(CoreWebView2ClusterEnvironmentOptions options);
 
-        // Reads the options of the cluster identified by its Id. Returns
-        // null when no cluster exists for that Id. Throws a COMException whose
+        // Reads the options of the cluster identified by its ClusterName. Returns
+        // null when no cluster exists for that ClusterName. Throws a COMException whose
         // HResult is HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED) when the host cannot
         // use cluster environments.
         static CoreWebView2ClusterEnvironmentOptions GetClusterEnvironmentOptions(
-            String id);
+            String clusterName);
     }
 }
 ```
