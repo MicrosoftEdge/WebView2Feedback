@@ -44,12 +44,12 @@ host applications deliberately share, identified by a well-known `ClusterName` s
 those hosts agree on out of band. All hosts that establish a cluster with the same
 `ClusterName` run inside one shared browser process and one on-disk user data folder.
 
-A host process must be able to create and share the cluster's per-user user data
-folder. A host that cannot, such as a sandboxed AppContainer process (for example, a
-UWP app), fails with `ERROR_NOT_SUPPORTED`. A transient failure to access an
-otherwise-supported cluster's user data folder (for example, an access-denied or
-sharing violation) is not reported as `ERROR_NOT_SUPPORTED`; it surfaces as an ordinary
-create failure.
+Cluster environments are supported for standard desktop host processes: non-sandboxed,
+non-containerized applications running at medium or high integrity level. Applications
+that cannot create or share the cluster's per-user user data folder fail with
+`ERROR_NOT_SUPPORTED`. A transient failure to access an otherwise-supported cluster's
+user data folder (for example, an access-denied or sharing violation) is not reported
+as `ERROR_NOT_SUPPORTED`; it surfaces as an ordinary create failure.
 
 These entry points exist only in WebView2 Runtime versions that implement them. On an
 older runtime they are unavailable, so a host should feature-detect the API using the
@@ -350,6 +350,54 @@ async Task CreateSharedEnvironmentAsync()
     {
         UsePrivateEnvironment();
     }
+}
+```
+
+## Deleting a cluster's user data folder
+
+WebView2 does not delete a cluster's user data folder automatically, even after the
+cluster's browser process exits. Cleaning it up is the cooperating applications' shared
+responsibility. Because several applications can use the same cluster, no single
+application should delete the folder while another might still use it. When the last
+cooperating application is being uninstalled, that application should delete the folder
+so it is not left behind on disk.
+
+Before deleting, the application must confirm that no other cooperating application is
+still using the cluster and that the cluster is not running (a cluster exists only
+while its browser process is running, and the folder cannot be deleted while it is in
+use). How an application tracks the remaining cooperating applications, for example a
+shared install registration or reference count, is app-specific and outside the scope
+of this API.
+
+```cpp
+// Called during uninstall of a cooperating application.
+void AppWindow::DeleteClusterUserDataFolderOnUninstall()
+{
+    // 1. App-specific check: proceed only if this is the last cooperating
+    //    application, so no other application is still using this cluster.
+    if (OtherClusterAppsStillInstalled(kClusterName))
+        return;
+
+    // 2. Read the cluster's user data folder path from the environment this
+    //    application joined.
+    wil::unique_cotaskmem_string userDataFolder;
+    CHECK_FAILURE(m_clusterEnvironment->get_UserDataFolder(&userDataFolder));
+
+    // 3. The folder cannot be deleted while the shared browser process is running, so
+    //    delete it once BrowserProcessExited reports that the process has fully exited,
+    //    then release all references to let it exit. This is the same pattern used to
+    //    delete an ordinary user data folder.
+    std::wstring folder = userDataFolder.get();
+    CHECK_FAILURE(m_clusterEnvironment->add_BrowserProcessExited(
+        Microsoft::WRL::Callback<ICoreWebView2BrowserProcessExitedEventHandler>(
+            [folder](ICoreWebView2Environment*,
+                     ICoreWebView2BrowserProcessExitedEventArgs*) -> HRESULT
+            {
+                DeleteDirectoryRecursive(folder.c_str());
+                return S_OK;
+            }).Get(),
+        nullptr));
+    m_clusterEnvironment.reset();
 }
 ```
 
