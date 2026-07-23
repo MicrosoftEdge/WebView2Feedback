@@ -401,6 +401,34 @@ void AppWindow::DeleteClusterUserDataFolderOnUninstall()
 }
 ```
 
+The .NET equivalent uses the `UserDataFolder` property and the `BrowserProcessExited`
+event in the same way:
+
+```c#
+// Called during uninstall of a cooperating application.
+void DeleteClusterUserDataFolderOnUninstall()
+{
+    // 1. App-specific check: proceed only if this is the last cooperating
+    //    application, so no other application is still using this cluster.
+    if (OtherClusterAppsStillInstalled(SharedClusterName))
+        return;
+
+    // 2. Read the cluster's user data folder path from the environment this
+    //    application joined.
+    string userDataFolder = m_clusterEnvironment.UserDataFolder;
+
+    // 3. The folder cannot be deleted while the shared browser process is running, so
+    //    delete it once BrowserProcessExited reports that the process has fully exited,
+    //    then release all references to let it exit. This is the same pattern used to
+    //    delete an ordinary user data folder.
+    m_clusterEnvironment.BrowserProcessExited += (sender, args) =>
+    {
+        Directory.Delete(userDataFolder, recursive: true);
+    };
+    m_clusterEnvironment = null;
+}
+```
+
 # API Details
 
 ## Win32 C++
@@ -448,6 +476,24 @@ void AppWindow::DeleteClusterUserDataFolderOnUninstall()
 /// are serialized: the first to establish the cluster fixes its options, and each
 /// later call either attaches (matching options) or reports
 /// `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH`.
+///
+/// Only the options on `ICoreWebView2ClusterEnvironmentOptions` participate in the
+/// match. Some options resolve against the host process or machine rather than being a
+/// fixed value; in that case the first host to establish the cluster fixes the effective
+/// behavior for every host that attaches. For example, an empty `Language` resolves to
+/// the first host's OS display language, so a later host with a different OS locale uses
+/// that same language. Cooperating hosts that want a predictable result should set such
+/// options explicitly.
+///
+/// State that is not an option is not part of the match and does not produce
+/// `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH`. Loader overrides such as
+/// `WEBVIEW2_BROWSER_EXECUTABLE_FOLDER` are host-determined, and the first host's
+/// resolution governs the cluster. The host process's DPI awareness is likewise not an
+/// option; as when sharing a user data folder through
+/// `CreateCoreWebView2EnvironmentWithOptions`, DPI awareness is negotiated with the
+/// shared browser process when a WebView is created on a window, so a later host whose
+/// DPI awareness is incompatible with the running shared browser can fail when it creates
+/// a WebView rather than here.
 STDAPI CreateOrJoinCoreWebView2ClusterEnvironment(
     [in] ICoreWebView2ClusterEnvironmentOptions* options,
     [in] ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler* handler);
