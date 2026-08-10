@@ -395,79 +395,48 @@ async Task CreateSharedEnvironmentAsync()
 
 ## Deleting a cluster's user data folder
 
-WebView2 does not delete a cluster's user data folder automatically, even after the
-cluster's browser process exits. Cleaning it up is the cooperating applications' shared
-responsibility. Because several applications can use the same cluster, no single
-application should delete the folder while another might still use it. When the last
-cooperating application is being uninstalled, that application should delete the folder
-so it is not left behind on disk.
+WebView2 does not delete a cluster's user data folder automatically. Cleaning it up is
+the cooperating applications' shared responsibility. Because several applications can
+use the same cluster, the folder must not be deleted until every cooperating application
+has been uninstalled.
 
-Before deleting, the application must confirm that no other cooperating application is
-still using the cluster and that the cluster is not running (a cluster exists only
-while its browser process is running, and the folder cannot be deleted while it is in
-use). How an application tracks the remaining cooperating applications, for example a
-shared install registration or reference count, is app-specific and outside the scope
-of this API.
+### Save the folder path when the cluster is created
+
+The folder path can only be read from a live environment, and by uninstall time there is
+no environment left to ask. Each application should therefore read `UserDataFolder` when
+it first creates or joins the cluster and persist the path somewhere that outlives the
+application's installation.
 
 ```cpp
-// Called during uninstall of a cooperating application.
-void AppWindow::DeleteClusterUserDataFolderOnUninstall()
-{
-    // 1. App-specific check: proceed only if this is the last cooperating
-    //    application, so no other application is still using this cluster.
-    if (OtherClusterAppsStillInstalled(kClusterName))
-        return;
-
-    // 2. Read the cluster's user data folder path from the environment this
-    //    application joined.
-    wil::unique_cotaskmem_string userDataFolder;
-    CHECK_FAILURE(m_clusterEnvironment->get_UserDataFolder(&userDataFolder));
-
-    // 3. The folder cannot be deleted while the shared browser process is running, so
-    //    delete it once BrowserProcessExited reports that the process has fully exited,
-    //    then release all references to let it exit. This is the same pattern used to
-    //    delete an ordinary user data folder.
-    std::wstring folder = userDataFolder.get();
-    CHECK_FAILURE(m_clusterEnvironment->add_BrowserProcessExited(
-        Microsoft::WRL::Callback<ICoreWebView2BrowserProcessExitedEventHandler>(
-            [folder](ICoreWebView2Environment*,
-                     ICoreWebView2BrowserProcessExitedEventArgs*) -> HRESULT
-            {
-                DeleteDirectoryRecursive(folder.c_str());
-                return S_OK;
-            }).Get(),
-        nullptr));
-    m_clusterEnvironment.reset();
-}
+// After CreateOrJoinClusterEnvironment succeeds.
+wil::unique_cotaskmem_string userDataFolder;
+CHECK_FAILURE(m_clusterEnvironment->get_UserDataFolder(&userDataFolder));
+SaveClusterUserDataFolderPath(userDataFolder.get());
 ```
-
-The .NET equivalent uses the `UserDataFolder` property and the `BrowserProcessExited`
-event in the same way:
 
 ```c#
-// Called during uninstall of a cooperating application.
-void DeleteClusterUserDataFolderOnUninstall()
-{
-    // 1. App-specific check: proceed only if this is the last cooperating
-    //    application, so no other application is still using this cluster.
-    if (OtherClusterAppsStillInstalled(SharedClusterName))
-        return;
-
-    // 2. Read the cluster's user data folder path from the environment this
-    //    application joined.
-    string userDataFolder = m_clusterEnvironment.UserDataFolder;
-
-    // 3. The folder cannot be deleted while the shared browser process is running, so
-    //    delete it once BrowserProcessExited reports that the process has fully exited,
-    //    then release all references to let it exit. This is the same pattern used to
-    //    delete an ordinary user data folder.
-    m_clusterEnvironment.BrowserProcessExited += (sender, args) =>
-    {
-        Directory.Delete(userDataFolder, recursive: true);
-    };
-    m_clusterEnvironment = null;
-}
+// After CreateOrJoinClusterEnvironmentAsync succeeds.
+SaveClusterUserDataFolderPath(m_clusterEnvironment.UserDataFolder);
 ```
+
+### Delete the folder once the last application is uninstalled
+
+Deleting the folder requires that no cooperating application remains installed and that
+the cluster is not running. A cluster exists only while its browser process is running,
+and the folder cannot be deleted while it is in use. How an application determines that
+the other cooperating applications have been uninstalled is app-specific and outside the
+scope of this API.
+
+How the deletion is triggered depends on the installer technology:
+
+- **MSI**: perform the check and delete the saved folder path from an uninstall custom
+  action or uninstall script.
+- **MSIX**: packages cannot run code on uninstall, so an application cannot delete the
+  folder as part of its own removal. Instead, register a scheduled task that runs
+  independently of the package, checks whether all cooperating applications, including
+  the one that registered the task, have been uninstalled, and deletes the saved folder
+  path once they have. The task should remove itself after it has cleaned up so it does
+  not remain registered indefinitely.
 
 # API Details
 
