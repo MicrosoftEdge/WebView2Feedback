@@ -68,6 +68,8 @@ Unlike `CreateCoreWebView2EnvironmentWithOptions`, you do **not** pass a user da
 folder. The runtime derives the folder from the `ClusterName`, so every host that uses
 the same `ClusterName` resolves to the same on-disk location. `ClusterName` comparison is
 case-insensitive, so `ClusterName` values that differ only in case refer to the same cluster.
+A different `ClusterName` gives a different cluster, with its own folder and its own
+browser process.
 The folder is created under a per-user cluster root,
 `%LOCALAPPDATA%\Microsoft\WebView2Clusters\<ClusterName>`, with the `ClusterName` as the leaf folder
 name (this is why the `ClusterName` must be a valid folder name). A cluster occupies its own
@@ -756,7 +758,7 @@ process it connects to, cooperating hosts must resolve the **same** runtime. The
 host to establish the cluster launches the shared browser process from whatever runtime
 its loader resolved; a later host that resolves a different runtime (for example, because
 it has a loader override set that the first host did not) would load a mismatched client
-DLL and fail to attach cleanly to the running cluster. It is therefore the developer's
+DLL and fail to join the running cluster. It is therefore the developer's
 responsibility to ensure every host that shares a cluster resolves the same runtime,
 ideally by not setting loader overrides for these apps, or by setting them identically
 across all cooperating hosts.
