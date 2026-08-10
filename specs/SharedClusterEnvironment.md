@@ -198,7 +198,7 @@ void AppWindow::CreateSharedEnvironment()
 
     // Step 1 - synchronously ask what options the cluster already uses. This call
     // does not start a browser process. `existing` is null when no cluster is
-    // running for this name, which is an expected result rather than an error.
+    // running for this name.
     wil::com_ptr<ICoreWebView2ClusterEnvironmentOptions> existing;
     CHECK_FAILURE(GetCoreWebView2ClusterEnvironmentOptions(kClusterName, &existing));
 
@@ -317,18 +317,29 @@ CoreWebView2ClusterEnvironmentOptions BuildClusterOptions()
 async Task CreateSharedEnvironmentAsync()
 {
     // Step 0 - check that the installed WebView2 Runtime is new enough to support
-    // cluster environments. If it is not, use a private environment.
-    string availableVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
-    if (availableVersion == null ||
-        CoreWebView2Environment.CompareBrowserVersions(
+    // cluster environments. If it is not, use a private environment. A missing
+    // Runtime throws, the same as CreateAsync.
+    string availableVersion;
+    try
+    {
+        availableVersion = CoreWebView2Environment.GetAvailableBrowserVersionString();
+    }
+    catch (WebView2RuntimeNotFoundException)
+    {
+        UsePrivateEnvironment();
+        return;
+    }
+
+    if (CoreWebView2Environment.CompareBrowserVersions(
             availableVersion, MinClusterRuntimeVersion) < 0)
     {
         UsePrivateEnvironment();
         return;
     }
 
-    // Step 1 - read the cluster's options for this `ClusterName`. This call does not start a
-    // browser process. Returns null when no cluster exists yet.
+    // Step 1 - synchronously ask what options the cluster already uses. This call
+    // does not start a browser process. `existing` is null when no cluster is
+    // running for this name.
     CoreWebView2ClusterEnvironmentOptions existing =
         CoreWebView2Environment.GetClusterEnvironmentOptions(SharedClusterName);
 
@@ -342,10 +353,19 @@ async Task CreateSharedEnvironmentAsync()
     }
     CoreWebView2ClusterEnvironmentOptions options = existing ?? BuildClusterOptions();
 
-    // Step 3 - use the same create operation in either case. The expected outcomes,
-    // including this host not being able to use cluster environments, come back as
-    // Status. Runtime discovery failures, such as no compatible WebView2 Runtime
-    // being installed, throw the same as CreateAsync.
+    // Step 3 - use the same create operation in either case: it establishes or
+    // attaches to a cluster with matching options.
+    await CreateSharedEnvironmentWithOptionsAsync(options);
+}
+
+async Task CreateSharedEnvironmentWithOptionsAsync(
+    CoreWebView2ClusterEnvironmentOptions options, bool allowRetry = true)
+{
+    // The expected outcomes, including this host not being able to use cluster
+    // environments, come back as Status. Failures throw the same as CreateAsync,
+    // whether the operation could not start (for example, no compatible WebView2
+    // Runtime is installed) or started and then failed (for example, the browser
+    // process could not be launched).
     CoreWebView2ClusterEnvironmentCreateResult result =
         await CoreWebView2Environment.CreateOrJoinClusterEnvironmentAsync(options);
 
@@ -357,27 +377,25 @@ async Task CreateSharedEnvironmentAsync()
             break;
 
         case CoreWebView2ClusterEnvironmentStatus.OptionsMismatch:
+        {
             // The live cluster's options differ from the requested options. Re-read
             // the authoritative options and retry once with them; if it still does
-            // not work out, go private. Retrying only once (rather than looping)
-            // bounds the work if the cluster keeps changing.
+            // not work out, go private.
             CoreWebView2ClusterEnvironmentOptions authoritative =
                 CoreWebView2Environment.GetClusterEnvironmentOptions(SharedClusterName);
-            if (authoritative != null && AcceptableForMe(authoritative))
+            if (allowRetry &&
+                authoritative != null &&
+                AcceptableForMe(authoritative))
             {
-                result = await CoreWebView2Environment
-                    .CreateOrJoinClusterEnvironmentAsync(authoritative);
-            }
-
-            if (result.Status == CoreWebView2ClusterEnvironmentStatus.Succeeded)
-            {
-                OnSharedEnvironmentReady(result.Environment);
+                await CreateSharedEnvironmentWithOptionsAsync(
+                    authoritative, allowRetry: false);
             }
             else
             {
                 UsePrivateEnvironment();
             }
             break;
+        }
 
         case CoreWebView2ClusterEnvironmentStatus.NotSupported:
             // This host cannot use cluster environments, for example a sandboxed
@@ -515,8 +533,7 @@ STDAPI CreateOrJoinCoreWebView2ClusterEnvironment(
 /// attaching to a cluster. A cluster exists only while its browser process is
 /// running. Returns `S_OK` and the cluster's options when a cluster is running for
 /// that `ClusterName`, or `S_OK` and `nullptr` `options` when no cluster is running for
-/// that `ClusterName`. No cluster for a given `ClusterName` is an expected result rather
-/// than an error, so check `options` for `nullptr` instead of checking for a failing
+/// that `ClusterName`. Check `options` for `nullptr` rather than for a failing
 /// `HRESULT`. Returns `E_INVALIDARG` for an invalid `ClusterName`.
 ///
 /// The returned object is a detached snapshot of the cluster's options at the time
