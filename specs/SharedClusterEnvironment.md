@@ -51,12 +51,13 @@ those hosts agree on out of band. All hosts that establish a cluster with the sa
 `ClusterName` run inside one shared browser process and one on-disk user data folder.
 
 Cluster environments are supported for standard desktop host processes: non-sandboxed,
-non-containerized applications running at medium or high integrity level. Applications
-that cannot create or share the cluster's per-user user data folder are reported with a
-status of `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_NOT_SUPPORTED` rather than as a
-failure of the call. A transient failure to access an otherwise-supported cluster's
-user data folder (for example, an access-denied or sharing violation) is not reported
-that way; it surfaces as an ordinary create failure.
+non-containerized applications running at medium or high integrity level. For an
+application that cannot create or share the cluster's per-user user data folder, the
+outcome is reported with a status of
+`COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_NOT_SUPPORTED` rather than as a failure of the
+call. A transient failure to access an otherwise-supported cluster's user data folder
+(for example, an access-denied or sharing violation) is not reported that way; it
+surfaces as an ordinary create failure.
 
 These entry points exist only in WebView2 Runtime versions that implement them. On an
 older runtime they are unavailable, so a host should feature-detect the API using the
@@ -103,10 +104,10 @@ immediately after `Get` returns. The running browser process remains authoritati
 retry, or fall back to a private environment. If
 `CreateOrJoinCoreWebView2ClusterEnvironment` reports
 `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_NOT_SUPPORTED` (this host cannot use a cluster
-environment), use a
-private environment. A private environment is an ordinary environment created with
-your own user data folder through `CreateCoreWebView2EnvironmentWithOptions`; it has
-its own data and does not share with the cluster.
+environment), use a private environment. A private environment is an ordinary
+environment created with its own user data folder through
+`CreateCoreWebView2EnvironmentWithOptions`; it has its own data and does not share with
+the cluster.
 
 Options **match** when every option on `ICoreWebView2ClusterEnvironmentOptions`
 except `ClusterName` is equal: each scalar and boolean option is equal, `AdditionalBrowserArguments`
@@ -120,14 +121,13 @@ Profile isolation in a cluster is **anti-misuse, not a security boundary**. When
 `PerHostProfileIsolation` is TRUE (the default), the Edge browser profile names used
 within the cluster's shared user data folder are namespaced per host application, so
 two different host applications that use the same profile name do not accidentally end
-up sharing one profile. Here a "host application" is
-identified by its main executable file name (the same host identity WebView2 already
-derives to distinguish apps), compared case-insensitively. This is not a
-security boundary: it does not encrypt profile data or apply access control lists to
-it, the host identity is not authenticated, and applications that run from an
-executable with the same file name, or that deliberately use the same host identity and
-profile name, can still share a profile. Do not rely on it to isolate mutually
-distrusting code.
+up sharing one profile. Here a "host application" is identified by its main executable
+file name (the same host identity WebView2 already derives to distinguish apps),
+compared case-insensitively. This is not a security boundary: it does not encrypt
+profile data or apply access control lists to it, the host identity is not
+authenticated, and applications that run from an executable with the same file name, or
+that deliberately use the same host identity and profile name, can still share a
+profile. Do not rely on it to isolate mutually distrusting code.
 
 Because a cluster shares one browser process, environment-wide process diagnostics
 can expose frame names and last-committed URLs for frames owned by other hosts in the
@@ -577,7 +577,8 @@ interface ICoreWebView2ClusterEnvironmentOptions : IUnknown {
   /// Sets the `AreBrowserExtensionsEnabled` property.
   [propput] HRESULT AreBrowserExtensionsEnabled([in] BOOL value);
 
-  /// When TRUE (the default), profile names are isolated per host application to
+  /// When TRUE (the default), the Edge browser profile names used within the
+  /// cluster's shared user data folder are namespaced per host application, to
   /// prevent accidental cross-app profile use. This is not a security boundary.
   [propget] HRESULT PerHostProfileIsolation([out, retval] BOOL* value);
   /// Sets the `PerHostProfileIsolation` property.
@@ -629,6 +630,8 @@ interface ICoreWebView2CreateOrJoinClusterEnvironmentCompletedHandler : IUnknown
   ///  * `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_OPTIONS_MISMATCH` - a cluster
   ///    already exists for this `ClusterName` with different options; `result.Environment`
   ///    is `nullptr`.
+  ///  * `COREWEBVIEW2_CLUSTER_ENVIRONMENT_STATUS_NOT_SUPPORTED` - this host cannot
+  ///    use cluster environments; `result.Environment` is `nullptr`.
   ///
   /// When `errorCode` is a failing `HRESULT`, the operation started but then failed
   /// after start (for example, the browser process could not be launched), and
