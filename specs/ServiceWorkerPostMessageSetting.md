@@ -1,4 +1,4 @@
-Service Worker PostMessage Setting
+WebView2 Script APIs for Service Workers
 ===
 # Background
 
@@ -7,7 +7,7 @@ worker script.
 
 # Description
 
-We propose adding the `AreWebViewScriptApisEnabledForServiceWorkers` setting 
+We propose adding the `AreWebViewScriptApisEnabledForServiceWorkers` setting
 API to control the exposure of WebView2-specific JavaScript APIs in service 
 worker scripts. When enabled, developers can use WebView2's service worker 
 postmessage APIs to communicate directly between service worker scripts and 
@@ -37,24 +37,24 @@ void ToggleServiceWorkerJsApiSetting()
         L"});",
         nullptr);
 
-    wil::com_ptr<ICoreWebView2Settings> webViewSettings;
-    CHECK_FAILURE(m_webView->get_Settings(&webViewSettings));
-    auto webViewSettingsStaging =
-        webViewSettings.try_query<ICoreWebView2StagingSettings>();
+    wil::com_ptr<ICoreWebView2Profile> webView2Profile;
+    CHECK_FAILURE(webView2_13->get_Profile(&webView2Profile));
+    auto webViewProfile9 =
+        webView2Profile.try_query<ICoreWebView2Profile9>();
 
-    if (webViewSettingsStaging)
+    if (webViewProfile9)
     {
         // Toggle the service worker post message setting.
         BOOL isEnabled;
-        CHECK_FAILURE(webViewSettingsStaging->get_IsWebViewScriptApisForServiceWorkerEnabled(&isEnabled));
-        CHECK_FAILURE(webViewSettingsStaging->put_IsWebViewScriptApisForServiceWorkerEnabled(!isEnabled));
+        CHECK_FAILURE(webViewProfile9->get_AreWebViewScriptApisForServiceWorkerEnabled(&isEnabled));
+        CHECK_FAILURE(webViewProfile9->put_AreWebViewScriptApisForServiceWorkerEnabled(!isEnabled));
         
         MessageBox(
             reinterpret_cast<HWND>(m_appWindow.Id().Value),
-            (std::wstring(L"Service Worker JS API setting has been ") +
+            (std::wstring(L"Service Worker JS API has been ") +
              (!isEnabled ? L"enabled." : L"disabled."))
                 .c_str(),
-            L"Service Worker JS API Setting", MB_OK);
+            L"Service Worker JS API", MB_OK);
     }
 }
 
@@ -178,7 +178,7 @@ void SetUpEventsAndNavigate()
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Worker Post Message Setting</title>
+    <title>Service Worker JS API Availability</title>
     <script>
         "use strict";
         
@@ -211,7 +211,7 @@ void SetUpEventsAndNavigate()
     </script>
 </head>
 <body>
-    <h1>Service Worker Post Message Setting</h1>
+    <h1>Service Worker JS API Availability</h1>
     <p>This page registers a service worker, posts a message to it, and listens for responses.</p>
 </body>
 </html>
@@ -248,12 +248,12 @@ private void ToggleServiceWorkerJsApiSetting()
         });");
 
     // Toggle the service worker post message setting.
-    var settings = webView.CoreWebView2.Settings;
-    settings.AreWebViewScriptApisEnabledForServiceWorkers = !settings.AreWebViewScriptApisEnabledForServiceWorkers;
+    var profile = webView.CoreWebView2.Profile;
+    profile.AreWebViewScriptApisEnabledForServiceWorkers = !profile.AreWebViewScriptApisEnabledForServiceWorkers;
 
     MessageBox.Show(this, 
-        $"AreWebViewScriptApisEnabledForServiceWorkers is now set to: {settings.AreWebViewScriptApisEnabledForServiceWorkers}",
-        "Service Worker JS API Setting", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        $"AreWebViewScriptApisEnabledForServiceWorkers is now set to: {profile.AreWebViewScriptApisEnabledForServiceWorkers}",
+        "Service Worker JS API", MessageBoxButtons.OK, MessageBoxIcon.Information);
 }
 
 private void SetupEventsOnServiceWorker(CoreWebView2ServiceWorker serviceWorker)
@@ -318,15 +318,16 @@ private void SetUpEventsAndNavigate()
 
 ## Win32 C++
 ```cpp
-interface ICoreWebView2Settings10 : ICoreWebView2Settings9 {
+interface ICoreWebView2Profile9 : ICoreWebView2Profile8 {
   /// Gets the `AreWebViewScriptApisEnabledForServiceWorkers` property.
   [propget] HRESULT AreWebViewScriptApisEnabledForServiceWorkers([out, retval] BOOL* value);
 
-  /// Enables or disables webview2 specific Service Worker JS APIs in the WebView2.
-  /// When set to `TRUE`, chrome and webview objects are available in Service Workers .
-  /// chrome.webview exposes APIs to interact with the WebView from Service Workers.
-  /// The default value is `FALSE`.
-  /// When enabled, this setting takes effect for all the newly installed Service Workers.
+  /// Enables or disables webview2 specific Service Worker JS APIs in the
+  /// WebView2s associated with this Profile. When set to `TRUE`, chrome and
+  /// webview objects are available in Service Workers. chrome.webview exposes
+  /// APIs to interact with the WebView from Service Workers. The default value
+  /// is `FALSE`. This setting applies to all newly installed Service Workers
+  /// within the profile and is not persisted across WebView2 sessions.
   [propput] HRESULT AreWebViewScriptApisEnabledForServiceWorkers([in] BOOL value)
 }
 
@@ -336,9 +337,9 @@ interface ICoreWebView2Settings10 : ICoreWebView2Settings9 {
 ```c#
 namespace Microsoft.Web.WebView2.Core
 {
-    runtimeclass CoreWebView2Settings 
+    runtimeclass CoreWebView2Profile
     {
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Settings10")]
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile9")]
         {
             Boolean AreWebViewScriptApisEnabledForServiceWorkers { get; set; };
         }
