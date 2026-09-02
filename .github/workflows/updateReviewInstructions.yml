@@ -1,0 +1,154 @@
+name: Update review instructions from PR learnings
+
+on:
+  schedule:
+    - cron: '0 1 * * 1' # Every Monday at 1 AM UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  collect-learnings:
+    runs-on: ubuntu-latest
+    name: Collect review learnings and open issue
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Fetch merged PRs with API Proposal Review label
+        id: fetch-prs
+        run: |
+          SINCE_DATE=$(date -d '7 days ago' +%Y-%m-%d)
+          echo "Looking for PRs merged since $SINCE_DATE with label 'API Proposal Review'..."
+
+          PRS=$(gh pr list \
+            --repo "$GITHUB_REPOSITORY" \
+            --label "API Proposal Review" \
+            --state merged \
+            --search "merged:>=${SINCE_DATE}" \
+            --json number,title,url,mergedAt \
+            --limit 50)
+
+          PR_COUNT=$(echo "$PRS" | jq length)
+          echo "Found $PR_COUNT merged PR(s)."
+
+          echo "pr_count=$PR_COUNT" >> "$GITHUB_OUTPUT"
+
+          # Save PR list for next steps
+          echo "$PRS" > /tmp/prs.json
+
+      - name: Extract review comments
+        if: steps.fetch-prs.outputs.pr_count != '0'
+        id: extract-comments
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+
+          echo "# Review Learnings" > /tmp/learnings.md
+          echo "" >> /tmp/learnings.md
+          echo "## PRs Processed" >> /tmp/learnings.md
+          echo "" >> /tmp/learnings.md
+
+          jq -r '.[] | "- [#\(.number) \(.title)](\(.url)) (merged \(.mergedAt))"' \
+            /tmp/prs.json >> /tmp/learnings.md
+          echo "" >> /tmp/learnings.md
+
+          for PR_NUMBER in $(jq -r '.[].number' /tmp/prs.json); do
+            PR_TITLE=$(jq -r ".[] | select(.number == $PR_NUMBER) | .title" /tmp/prs.json)
+            echo "Processing PR #$PR_NUMBER: $PR_TITLE"
+
+            echo "---" >> /tmp/learnings.md
+            echo "## PR #$PR_NUMBER — $PR_TITLE" >> /tmp/learnings.md
+            echo "" >> /tmp/learnings.md
+
+            # Fetch review bodies (top-level review summaries), exclude bot authors
+            echo "### Review Summaries" >> /tmp/learnings.md
+            echo "" >> /tmp/learnings.md
+
+            REVIEWS=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews" \
+              --paginate \
+              --jq '.[] | select(.body != "" and .body != null) | select(.user.type != "Bot") | "**\(.user.login)** (\(.state)):\n\(.body)\n"' \
+              2>/dev/null || echo "")
+
+            if [ -n "$REVIEWS" ]; then
+              echo "$REVIEWS" >> /tmp/learnings.md
+            else
+              echo "_No review summaries found._" >> /tmp/learnings.md
+            fi
+            echo "" >> /tmp/learnings.md
+
+            # Fetch review comments (inline comments on code), exclude bot authors
+            echo "### Inline Review Comments" >> /tmp/learnings.md
+            echo "" >> /tmp/learnings.md
+
+            COMMENTS=$(gh api "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments" \
+              --paginate \
+              --jq '.[] | select(.user.type != "Bot") | "**\(.user.login)** on `\(.path)`:\n> \(.body)\n"' \
+              2>/dev/null || echo "")
+
+            if [ -n "$COMMENTS" ]; then
+              echo "$COMMENTS" >> /tmp/learnings.md
+            else
+              echo "_No inline review comments found._" >> /tmp/learnings.md
+            fi
+            echo "" >> /tmp/learnings.md
+          done
+
+          echo "Learnings collected."
+
+      - name: Create issue with learnings
+        if: steps.fetch-prs.outputs.pr_count != '0'
+        run: |
+          WEEK_OF=$(date +%Y-%m-%d)
+          SINCE_DATE=$(date -d '7 days ago' +%Y-%m-%d)
+
+          # Build the issue body
+          {
+            echo "## Action Required: Update copilot-instructions.md"
+            echo ""
+            echo "This is an automated weekly digest of review comments from PRs"
+            echo "labeled **API Proposal Review** that merged in the past week."
+            echo ""
+            echo "### Instructions"
+            echo "Please review the learnings below and update"
+            echo "\`.github/copilot-instructions.md\` with any new:"
+            echo "- **Rules** — recurring reviewer feedback that should become a rule"
+            echo "- **Precedents** — specific PR comments that illustrate a rule"
+            echo "- **Naming conventions** — new naming patterns identified"
+            echo "- **Design patterns** — API design decisions worth codifying"
+            echo ""
+            echo "When adding a new precedent, use the format:"
+            echo '```'
+            echo '> **Precedent (short label):** PR #XXXX — @reviewer: *"quoted comment"*'
+            echo '```'
+            echo ""
+            echo "Ensure new rules are placed in the correct section of the"
+            echo "instruction file (Naming, Samples, API Design, etc.)."
+            echo ""
+            echo "---"
+            echo ""
+          } > /tmp/issue_body.md
+
+          # Append the collected learnings
+          cat /tmp/learnings.md >> /tmp/issue_body.md
+
+          # Try to assign to copilot; fall back to unassigned
+          ASSIGNEE_FLAG="--assignee copilot"
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Weekly: Update copilot-instructions.md with review learnings (week of $WEEK_OF)" \
+            --body-file /tmp/issue_body.md \
+            $ASSIGNEE_FLAG 2>/dev/null \
+          || gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Weekly: Update copilot-instructions.md with review learnings (week of $WEEK_OF)" \
+            --body-file /tmp/issue_body.md
+
+          echo "Issue created successfully."
+
+      - name: Skip — no PRs found
+        if: steps.fetch-prs.outputs.pr_count == '0'
+        run: |
+          echo "No merged PRs with 'API Proposal Review' label found in the past 7 days. Skipping."
