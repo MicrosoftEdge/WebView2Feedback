@@ -45,8 +45,10 @@ all other context menu items. No separate execution method is needed.
 webView->add_ContextMenuRequested(
     Callback<ICoreWebView2ContextMenuRequestedEventHandler>(
         [this](ICoreWebView2* sender,
-               ICoreWebView2ContextMenuRequestedEventArgs* args) -> HRESULT
+               ICoreWebView2ContextMenuRequestedEventArgs* eventArgs) -> HRESULT
         {
+            wil::com_ptr<ICoreWebView2ContextMenuRequestedEventArgs> args =
+                eventArgs;
             wil::com_ptr<ICoreWebView2ContextMenuTarget> target;
             CHECK_FAILURE(args->get_ContextMenuTarget(&target));
 
@@ -81,6 +83,7 @@ webView->add_ContextMenuRequested(
                         if (SUCCEEDED(errorCode) && suggestions)
                             suggestions->get_Count(&count);
 
+                        HMENU hPopupMenu = CreatePopupMenu();
                         for (UINT32 i = 0; i < count; i++)
                         {
                             wil::com_ptr<ICoreWebView2SpellCheckSuggestion>
@@ -90,13 +93,18 @@ webView->add_ContextMenuRequested(
                             suggestion->get_SuggestionText(&suggestionText);
                             INT32 cmdId;
                             suggestion->get_CommandId(&cmdId);
-                            // ... add to custom menu using suggestionText
-                            // and cmdId ...
+                            AppendMenu(
+                                hPopupMenu, MF_STRING,
+                                static_cast<UINT_PTR>(cmdId),
+                                suggestionText.get());
                         }
 
-                        // Apply selection via unified commanding.
+                        // Show hPopupMenu with TrackPopupMenu. Its return value
+                        // is the selected suggestion's CommandId.
+                        // INT32 selectedCmdId = TrackPopupMenu(...);
                         // args->put_SelectedCommandId(selectedCmdId);
 
+                        DestroyMenu(hPopupMenu);
                         deferral->Complete();
                         return S_OK;
                     })
