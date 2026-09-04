@@ -1,0 +1,11 @@
+# Tool outputs
+duplicate-issues.json
+duplicate-issues.txt
+test-duplicates.json
+test-duplicates.txt
+*.pyc
+__pycache__/
+.pytest_cache/
+
+# Issue cache
+issues-cache.json

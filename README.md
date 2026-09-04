@@ -6,6 +6,7 @@ This is a place for all developers of the [Microsoft Edge WebView2](https://aka.
 
 - 🐞 [How to report a bug](#-how-to-report-a-bug)
 - 💡 [How to request a feature](#-how-to-request-a-feature)
+- 🔍 [Find duplicate issues](DUPLICATE_DETECTION.md) - Help identify and close duplicate bugs
 - ❓ [Ask a question about WebView2](https://github.com/MicrosoftEdge/WebView2Feedback/discussions/new?category=q-a)
 - 💬 [Discuss WebView2 with other developers](https://github.com/MicrosoftEdge/WebView2Feedback/discussions)
 - 📣 [Subscribe to WebView2Announcements for news, API proposals and SDK Release announcements](https://github.com/MicrosoftEdge/WebView2Announcements)
