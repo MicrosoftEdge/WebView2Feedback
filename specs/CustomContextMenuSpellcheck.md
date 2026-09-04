@@ -20,18 +20,15 @@ This new interface provides:
 - **`HasSpellingError`** — Read-only BOOL property indicating whether the context menu target
   contains a spelling error. This is always available synchronously when the event fires.
 - **`GetSpellCheckSuggestions(handler)`** — Asynchronously retrieves spell check suggestions as
-  `ICoreWebView2ContextMenuItem` objects. Each suggestion has a `Label` (display text) and
-  `CommandId` (opaque identifier).
+  read-only `ICoreWebView2SpellCheckSuggestion` objects. Each suggestion has a `SuggestionText`
+  and `CommandId` (opaque identifier).
 
 **Runtime version detection:** If `QueryInterface` (QI) for `Target2` returns `E_NOINTERFACE`, the host
 is running on an older runtime that does not support this feature.
 
-**Why async?** Spell check suggestions are resolved asynchronously by the platform spell checker
-(e.g., Windows `ISpellChecker`). When `ContextMenuRequested` fires, suggestions may not yet be
-available. `GetSpellCheckSuggestions` handles this transparently — it invokes the handler
-immediately if suggestions are ready, or waits for the platform spell checker to deliver them.
-If the platform spell checker does not respond within an internal timeout, the handler is invoked
-with an empty collection.
+**Why async?** When `ContextMenuRequested` fires, spell check suggestions may not yet be available.
+`GetSpellCheckSuggestions` handles this transparently — the handler may be invoked before the
+method returns if suggestions are ready, or later when they become available.
 
 **Commanding model:** The host applies a suggestion by passing its `CommandId` to
 `put_SelectedCommandId` on the EventArgs — the same execution path used for Cut, Copy, Paste, and
@@ -45,8 +42,10 @@ all other context menu items. No separate execution method is needed.
 webView->add_ContextMenuRequested(
     Callback<ICoreWebView2ContextMenuRequestedEventHandler>(
         [this](ICoreWebView2* sender,
-               ICoreWebView2ContextMenuRequestedEventArgs* args) -> HRESULT
+               ICoreWebView2ContextMenuRequestedEventArgs* eventArgs) -> HRESULT
         {
+            wil::com_ptr<ICoreWebView2ContextMenuRequestedEventArgs> args =
+                eventArgs;
             wil::com_ptr<ICoreWebView2ContextMenuTarget> target;
             CHECK_FAILURE(args->get_ContextMenuTarget(&target));
 
@@ -73,28 +72,36 @@ webView->add_ContextMenuRequested(
                     ICoreWebView2GetSpellCheckSuggestionsCompletedHandler>(
                     [args, deferral](
                         HRESULT errorCode,
-                        ICoreWebView2ContextMenuItemCollection*
+                        ICoreWebView2SpellCheckSuggestionCollectionView*
                             suggestions) -> HRESULT
                     {
-                        // Enumerate suggestions — each has Label and CommandId.
+                        // Enumerate suggestions.
                         UINT32 count = 0;
                         if (SUCCEEDED(errorCode) && suggestions)
                             suggestions->get_Count(&count);
 
+                        HMENU hPopupMenu = CreatePopupMenu();
                         for (UINT32 i = 0; i < count; i++)
                         {
-                            wil::com_ptr<ICoreWebView2ContextMenuItem> item;
-                            suggestions->GetValueAtIndex(i, &item);
-                            wil::unique_cotaskmem_string label;
-                            item->get_Label(&label);
+                            wil::com_ptr<ICoreWebView2SpellCheckSuggestion>
+                                suggestion;
+                            suggestions->GetValueAtIndex(i, &suggestion);
+                            wil::unique_cotaskmem_string suggestionText;
+                            suggestion->get_SuggestionText(&suggestionText);
                             INT32 cmdId;
-                            item->get_CommandId(&cmdId);
-                            // ... add to custom menu using label and cmdId ...
+                            suggestion->get_CommandId(&cmdId);
+                            AppendMenu(
+                                hPopupMenu, MF_STRING,
+                                static_cast<UINT_PTR>(cmdId),
+                                suggestionText.get());
                         }
 
-                        // Apply selection via unified commanding.
+                        // Show hPopupMenu with TrackPopupMenu. Its return value
+                        // is the selected suggestion's CommandId.
+                        // INT32 selectedCmdId = TrackPopupMenu(...);
                         // args->put_SelectedCommandId(selectedCmdId);
 
+                        DestroyMenu(hPopupMenu);
                         deferral->Complete();
                         return S_OK;
                     })
@@ -121,14 +128,14 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
     args.Handled = true;
 
     // Asynchronously retrieve spell check suggestions.
-    IReadOnlyList<CoreWebView2ContextMenuItem> suggestions =
+    IReadOnlyList<CoreWebView2SpellCheckSuggestion> suggestions =
         await target.GetSpellCheckSuggestionsAsync();
 
     // Build custom menu with suggestions.
     var contextMenu = new ContextMenuStrip();
     foreach (var suggestion in suggestions)
     {
-        var item = new ToolStripMenuItem(suggestion.Label);
+        var item = new ToolStripMenuItem(suggestion.SuggestionText);
         var capturedId = suggestion.CommandId;
         item.Click += (_, _) =>
         {
@@ -160,7 +167,7 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 /// the context menu was invoked on a misspelled word, then call
 /// `GetSpellCheckSuggestions` to asynchronously retrieve spelling corrections.
 ///
-/// To apply a suggestion, pass the selected item's `CommandId` to
+/// To apply a suggestion, pass the selected suggestion's `CommandId` to
 /// `ICoreWebView2ContextMenuRequestedEventArgs::put_SelectedCommandId`.
 [uuid(f7a3b8c1-2d4e-5f6a-8b9c-0d1e2f3a4b5c), object, pointer_default(unique)]
 interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
@@ -169,14 +176,14 @@ interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
   /// spelling correction suggestions asynchronously.
   [propget] HRESULT HasSpellingError([out, retval] BOOL* value);
 
-  /// Asynchronously retrieves spell check suggestion options as a collection
-  /// of context menu items. The handler is invoked immediately if suggestions
-  /// are already available, or when they become available from the platform
-  /// spell check engine. Each item's `Label` is the suggestion text and its
+  /// Asynchronously retrieves spell check suggestions as a read-only
+  /// collection. The handler is invoked immediately if suggestions are already
+  /// available, or when they become available from the platform spell check
+  /// engine. Each suggestion's `SuggestionText` is the correction text and its
   /// `CommandId` can be passed to `put_SelectedCommandId` to apply the
-  /// correction. The handler receives an empty collection if no suggestions
-  /// are available, if `HasSpellingError` is FALSE, or if the underlying
-  /// spell check service does not respond within an internal timeout.
+  /// correction. The handler receives an empty collection if no suggestions are
+  /// available, if `HasSpellingError` is FALSE, or if the underlying spell
+  /// check service does not respond within an internal timeout.
   /// Multiple concurrent calls are supported; each handler will be invoked
   /// with the same result when suggestions become available.
   /// Returns `E_POINTER` if `handler` is null.
@@ -184,18 +191,39 @@ interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
       [in] ICoreWebView2GetSpellCheckSuggestionsCompletedHandler* handler);
 }
 
+/// Represents a spelling correction that can be applied through
+/// `ICoreWebView2ContextMenuRequestedEventArgs::put_SelectedCommandId`.
+/// UUID will be generated after the API shape is approved.
+interface ICoreWebView2SpellCheckSuggestion : IUnknown {
+  /// Gets the spelling correction text.
+  /// The caller must free the returned string with `CoTaskMemFree`.
+  [propget] HRESULT SuggestionText([out, retval] LPWSTR* value);
+
+  /// Gets the opaque command ID used to apply this correction.
+  [propget] HRESULT CommandId([out, retval] INT32* value);
+}
+
+/// Represents a read-only collection of spell check suggestions.
+/// UUID will be generated after the API shape is approved.
+interface ICoreWebView2SpellCheckSuggestionCollectionView : IUnknown {
+  /// Gets the number of suggestions in the collection.
+  [propget] HRESULT Count([out, retval] UINT32* value);
+
+  /// Gets the suggestion at the specified index.
+  HRESULT GetValueAtIndex(
+      [in] UINT32 index,
+      [out, retval] ICoreWebView2SpellCheckSuggestion** value);
+}
+
 /// Receives the result of the `GetSpellCheckSuggestions` method.
 [uuid(d73832f9-d05b-438d-bb6d-6441245221e3), object, pointer_default(unique)]
 interface ICoreWebView2GetSpellCheckSuggestionsCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
-  /// Each item in the `suggestions` collection is an
-  /// `ICoreWebView2ContextMenuItem` whose `Label` is the suggestion text
-  /// and whose `CommandId` uniquely identifies it. To apply a suggestion,
-  /// pass the selected item's `CommandId` to
+  /// To apply a suggestion, pass its `CommandId` to
   /// `ICoreWebView2ContextMenuRequestedEventArgs.put_SelectedCommandId`.
   HRESULT Invoke(
       [in] HRESULT errorCode,
-      [in] ICoreWebView2ContextMenuItemCollection* suggestions);
+      [in] ICoreWebView2SpellCheckSuggestionCollectionView* suggestions);
 }
 ```
 
@@ -204,6 +232,19 @@ interface ICoreWebView2GetSpellCheckSuggestionsCompletedHandler : IUnknown {
 ```csharp
 namespace Microsoft.Web.WebView2.Core
 {
+    runtimeclass CoreWebView2SpellCheckSuggestion
+    {
+        /// <summary>
+        /// Gets the spelling correction text.
+        /// </summary>
+        String SuggestionText { get; };
+
+        /// <summary>
+        /// Gets the opaque command ID used to apply this correction.
+        /// </summary>
+        Int32 CommandId { get; };
+    }
+
     runtimeclass CoreWebView2ContextMenuTarget
     {
         // Existing members unchanged.
@@ -216,10 +257,11 @@ namespace Microsoft.Web.WebView2.Core
             Boolean HasSpellingError { get; };
 
             /// <summary>
-            /// Asynchronously retrieves spell check suggestions. Each item's
-            /// CommandId can be passed to SelectedCommandId to apply the correction.
+            /// Asynchronously retrieves a read-only collection of spell check
+            /// suggestions. Each suggestion's CommandId can be passed to
+            /// SelectedCommandId to apply the correction.
             /// </summary>
-            Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2ContextMenuItem>>
+            Windows.Foundation.IAsyncOperation<IVectorView<CoreWebView2SpellCheckSuggestion>>
                 GetSpellCheckSuggestionsAsync();
         }
     }
@@ -236,36 +278,17 @@ namespace Microsoft.Web.WebView2.Core
 | 2 | Read `HasSpellingError` | `TRUE` → spelling error present; `FALSE` → no spelling error |
 | 3 | Call `GetSpellCheckSuggestions(handler)` | Handler invoked when suggestions are available |
 
-## Suggestion Item Properties
-
-Each `ICoreWebView2ContextMenuItem` returned by `GetSpellCheckSuggestions` has:
-
-| Property | Value |
-|----------|-------|
-| `Label` | Suggestion text (e.g., "the") |
-| `CommandId` | WebView2-allocated opaque ID (e.g., 50001) |
-| `Name` | `"spellCheckSuggestion"` |
-| `Kind` | `COREWEBVIEW2_CONTEXT_MENU_ITEM_KIND_COMMAND` |
-| `IsEnabled` | true |
-| `IsChecked` | false |
-| `Icon` | null |
-| `ShortcutKeyDescription` | empty string |
-| `Children` | null |
-
 ## Async Timing
 
-Spell check suggestions are resolved asynchronously by the platform spell checker in the browser
-process. When `ContextMenuRequested` fires, the suggestions may be:
+When `ContextMenuRequested` fires, the suggestions may be:
 
 | State | Meaning | `GetSpellCheckSuggestions` behavior |
 |-------|---------|-------------------------------------|
-| **Ready** | Suggestions already resolved before the event fired | Handler invoked immediately |
-| **Not Ready** | Platform spell checker still working | Handler stored; invoked when browser delivers results via IPC, or after internal timeout with empty collection |
+| **Ready** | Suggestions are available | Handler may be invoked before the method returns |
+| **Not Ready** | Suggestions are still being retrieved | Handler is invoked when suggestions become available |
 
 The host does **not** need to check readiness — `GetSpellCheckSuggestions` handles both cases
-transparently. In the typical case, the platform spell checker responds within a few milliseconds.
-The internal timeout is a conservative safeguard for rare scenarios where the platform spell checker
-is slow or unresponsive.
+transparently.
 
 ### Host Patterns
 
@@ -293,27 +316,30 @@ ContextMenuRequested → put_Handled(TRUE) + GetDeferral → show menu with plac
     → [user selects] → complete deferral
 ```
 
-Either pattern is valid. Pattern 1 is recommended for most hosts because the delay is typically
-imperceptible (suggestions often resolve before the event fires or within a few milliseconds
-after). Pattern 2 is appropriate for hosts that require guaranteed instant menu appearance.
+Either pattern is valid. Pattern 1 is recommended for most hosts because it is simpler. Pattern 2
+is appropriate for hosts that require guaranteed instant menu appearance.
 
 # Appendix
 
 ## Planned Spell Check Extensions
 
-The following actions will be added as additional `ICoreWebView2ContextMenuItem` entries in the
-collection returned by `GetSpellCheckSuggestions`. No new interfaces or methods are required:
+The dedicated suggestion type does not preclude future spell check actions. Ignore and Add to
+Dictionary are outside the scope of this proposal, but could be exposed through explicitly named
+members on an additive API rather than mixed into the `CoreWebView2SpellCheckSuggestion`
+collection. The collection would continue to contain only spelling corrections.
 
-| Action | `Name` value |
-|--------|-------------|
-| Add to Dictionary | `"spellCheckAddToDictionary"` |
-| Ignore (session) | `"spellCheckIgnore"` |
+Under the current design, future capabilities would be added as follows:
 
-These follow the same commanding model: the host renders them like any other item and applies via
-`SelectedCommandId`. A `Language` property (BCP-47 tag of the dictionary that flagged the misspelling)
-may also be added to `ICoreWebView2ContextMenuTarget2` in a follow-up version. Profile-level
-spell check configuration (`IsSpellCheckEnabled`, `SpellCheckLanguages`) is tracked as a separate
-follow-up.
+| Future capability | Additive API shape |
+|-------------------|--------------------|
+| Ignore | Explicitly named action on a future context menu target interface |
+| Add to Dictionary | Explicitly named action on a future context menu target interface |
+| Dictionary language | Read-only `Language` property containing the BCP-47 language tag on a future context menu target interface |
+| Profile spell check configuration | Separate profile-level settings APIs such as `IsSpellCheckEnabled` and `SpellCheckLanguages` |
+
+If Ignore or Add to Dictionary is represented by an opaque command ID, the host would apply it
+through the existing `SelectedCommandId` path. These actions would not be represented as
+`CoreWebView2SpellCheckSuggestion` objects.
 
 ## Relationship to Existing APIs
 
@@ -321,7 +347,7 @@ follow-up.
 |-------------|-------------|
 | `EventArgs.MenuItems` | Synchronous snapshot of menu items |
 | `EventArgs.SelectedCommandId` | Execution path — now also used for spell check suggestions |
-| `ContextMenuItem.CommandId` | Already used for all items — spell check items join this pool |
-| `ContextMenuItem.Label` | Display text — spell check suggestions use this for the suggestion word |
+| `SpellCheckSuggestion.CommandId` | Opaque command ID used to apply a spelling correction |
+| `SpellCheckSuggestion.SuggestionText` | Browser-provided spell check suggestion |
 | `EventArgs.GetDeferral()` | Must be held across the async `GetSpellCheckSuggestions` gap |
 | `ContextMenuTarget` | Base target — QI to `Target2` for spell check support |
