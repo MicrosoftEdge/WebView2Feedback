@@ -21,17 +21,14 @@ This new interface provides:
   contains a spelling error. This is always available synchronously when the event fires.
 - **`GetSpellCheckSuggestions(handler)`** — Asynchronously retrieves spell check suggestions as
   read-only `ICoreWebView2SpellCheckSuggestion` objects. Each suggestion has a `SuggestionText`
-  (display text) and `CommandId` (opaque identifier).
+  and `CommandId` (opaque identifier).
 
 **Runtime version detection:** If `QueryInterface` (QI) for `Target2` returns `E_NOINTERFACE`, the host
 is running on an older runtime that does not support this feature.
 
-**Why async?** Spell check suggestions are resolved asynchronously by the platform spell checker
-(e.g., Windows `ISpellChecker`). When `ContextMenuRequested` fires, suggestions may not yet be
-available. `GetSpellCheckSuggestions` handles this transparently — it invokes the handler
-immediately if suggestions are ready, or waits for the platform spell checker to deliver them.
-If the platform spell checker does not respond within an internal timeout, the handler is invoked
-with an empty collection.
+**Why async?** When `ContextMenuRequested` fires, spell check suggestions may not yet be available.
+`GetSpellCheckSuggestions` handles this transparently — the handler may be invoked before the
+method returns if suggestions are ready, or later when they become available.
 
 **Commanding model:** The host applies a suggestion by passing its `CommandId` to
 `put_SelectedCommandId` on the EventArgs — the same execution path used for Cut, Copy, Paste, and
@@ -281,29 +278,17 @@ namespace Microsoft.Web.WebView2.Core
 | 2 | Read `HasSpellingError` | `TRUE` → spelling error present; `FALSE` → no spelling error |
 | 3 | Call `GetSpellCheckSuggestions(handler)` | Handler invoked when suggestions are available |
 
-## Suggestion Properties
-
-Each `ICoreWebView2SpellCheckSuggestion` returned by `GetSpellCheckSuggestions` has:
-
-| Property | Value |
-|----------|-------|
-| `SuggestionText` | Suggestion text (e.g., "the") |
-| `CommandId` | WebView2-allocated opaque ID (e.g., 50001) |
-
 ## Async Timing
 
-Spell check suggestions are resolved asynchronously by the platform spell checker in the browser
-process. When `ContextMenuRequested` fires, the suggestions may be:
+When `ContextMenuRequested` fires, the suggestions may be:
 
 | State | Meaning | `GetSpellCheckSuggestions` behavior |
 |-------|---------|-------------------------------------|
-| **Ready** | Suggestions already resolved before the event fired | Handler invoked immediately |
-| **Not Ready** | Platform spell checker still working | Handler stored; invoked when browser delivers results via IPC, or after internal timeout with empty collection |
+| **Ready** | Suggestions are available | Handler may be invoked before the method returns |
+| **Not Ready** | Suggestions are still being retrieved | Handler is invoked when suggestions become available |
 
 The host does **not** need to check readiness — `GetSpellCheckSuggestions` handles both cases
-transparently. In the typical case, the platform spell checker responds within a few milliseconds.
-The internal timeout is a conservative safeguard for rare scenarios where the platform spell checker
-is slow or unresponsive.
+transparently.
 
 ### Host Patterns
 
@@ -331,22 +316,10 @@ ContextMenuRequested → put_Handled(TRUE) + GetDeferral → show menu with plac
     → [user selects] → complete deferral
 ```
 
-Either pattern is valid. Pattern 1 is recommended for most hosts because the delay is typically
-imperceptible (suggestions often resolve before the event fires or within a few milliseconds
-after). Pattern 2 is appropriate for hosts that require guaranteed instant menu appearance.
+Either pattern is valid. Pattern 1 is recommended for most hosts because it is simpler. Pattern 2
+is appropriate for hosts that require guaranteed instant menu appearance.
 
 # Appendix
-
-## Planned Spell Check Extensions
-
-Ignore and Add to Dictionary are outside the scope of this proposal. If those actions are added,
-they will be exposed through explicitly named members on an additive API rather than mixed into
-the suggestion collection. The suggestion collection will continue to contain only spelling
-corrections.
-
-A `Language` property (BCP-47 tag of the dictionary that flagged the misspelling) may also be
-added to `ICoreWebView2ContextMenuTarget2` in a follow-up version. Profile-level spell check
-configuration (`IsSpellCheckEnabled`, `SpellCheckLanguages`) is tracked as a separate follow-up.
 
 ## Relationship to Existing APIs
 
@@ -355,6 +328,6 @@ configuration (`IsSpellCheckEnabled`, `SpellCheckLanguages`) is tracked as a sep
 | `EventArgs.MenuItems` | Synchronous snapshot of menu items |
 | `EventArgs.SelectedCommandId` | Execution path — now also used for spell check suggestions |
 | `SpellCheckSuggestion.CommandId` | Opaque command ID used to apply a spelling correction |
-| `SpellCheckSuggestion.SuggestionText` | Display text for the spelling correction |
+| `SpellCheckSuggestion.SuggestionText` | Browser-provided spell check suggestion |
 | `EventArgs.GetDeferral()` | Must be held across the async `GetSpellCheckSuggestions` gap |
 | `ContextMenuTarget` | Base target — QI to `Target2` for spell check support |
