@@ -321,6 +321,26 @@ is appropriate for hosts that require guaranteed instant menu appearance.
 
 # Appendix
 
+## Planned Spell Check Extensions
+
+The dedicated suggestion type does not preclude future spell check actions. Ignore and Add to
+Dictionary are outside the scope of this proposal, but could be exposed through explicitly named
+members on an additive API rather than mixed into the `CoreWebView2SpellCheckSuggestion`
+collection. The collection would continue to contain only spelling corrections.
+
+Under the current design, future capabilities would be added as follows:
+
+| Future capability | Additive API shape |
+|-------------------|--------------------|
+| Ignore | Explicitly named action on a future context menu target interface |
+| Add to Dictionary | Explicitly named action on a future context menu target interface |
+| Dictionary language | Read-only `Language` property containing the BCP-47 language tag on a future context menu target interface |
+| Profile spell check configuration | Separate profile-level settings APIs such as `IsSpellCheckEnabled` and `SpellCheckLanguages` |
+
+If Ignore or Add to Dictionary is represented by an opaque command ID, the host would apply it
+through the existing `SelectedCommandId` path. These actions would not be represented as
+`CoreWebView2SpellCheckSuggestion` objects.
+
 ## Relationship to Existing APIs
 
 | Existing API | This Feature |
