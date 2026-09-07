@@ -70,17 +70,20 @@ webView->add_ContextMenuRequested(
             CHECK_FAILURE(target2->GetSpellCheckSuggestions(
                 Callback<
                     ICoreWebView2GetSpellCheckSuggestionsCompletedHandler>(
-                    [args, deferral](
+                    [this, args, deferral](
                         HRESULT errorCode,
                         ICoreWebView2SpellCheckSuggestionCollectionView*
                             suggestions) -> HRESULT
                     {
-                        // Enumerate suggestions.
-                        UINT32 count = 0;
-                        if (SUCCEEDED(errorCode) && suggestions)
-                            suggestions->get_Count(&count);
+                        if (FAILED(errorCode))
+                        {
+                            deferral->Complete();
+                            return S_OK;
+                        }
 
                         HMENU hPopupMenu = CreatePopupMenu();
+                        UINT32 count = 0;
+                        CHECK_FAILURE(suggestions->get_Count(&count));
                         for (UINT32 i = 0; i < count; i++)
                         {
                             wil::com_ptr<ICoreWebView2SpellCheckSuggestion>
@@ -96,10 +99,37 @@ webView->add_ContextMenuRequested(
                                 suggestionText.get());
                         }
 
-                        // Show hPopupMenu with TrackPopupMenu. Its return value
-                        // is the selected suggestion's CommandId.
-                        // INT32 selectedCmdId = TrackPopupMenu(...);
-                        // args->put_SelectedCommandId(selectedCmdId);
+                        HWND parentWindow;
+                        CHECK_FAILURE(
+                            m_controller->get_ParentWindow(&parentWindow));
+                        RECT parentBounds;
+                        GetClientRect(parentWindow, &parentBounds);
+                        POINT parentOrigin{
+                            parentBounds.left, parentBounds.top};
+                        ClientToScreen(parentWindow, &parentOrigin);
+
+                        POINT menuLocation;
+                        CHECK_FAILURE(args->get_Location(&menuLocation));
+                        RECT webViewBounds;
+                        CHECK_FAILURE(
+                            m_controller->get_Bounds(&webViewBounds));
+                        double scale;
+                        CHECK_FAILURE(
+                            m_controller3->get_RasterizationScale(&scale));
+
+                        INT32 selectedCmdId = TrackPopupMenu(
+                            hPopupMenu,
+                            TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD,
+                            parentOrigin.x + webViewBounds.left +
+                                static_cast<int>(menuLocation.x * scale),
+                            parentOrigin.y + webViewBounds.top +
+                                static_cast<int>(menuLocation.y * scale),
+                            0, parentWindow,
+                            nullptr);
+                        // A zero return value means the menu was canceled.
+                        if (selectedCmdId != 0)
+                            CHECK_FAILURE(args->put_SelectedCommandId(
+                                selectedCmdId));
 
                         DestroyMenu(hPopupMenu);
                         deferral->Complete();
@@ -177,15 +207,14 @@ interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
   [propget] HRESULT HasSpellingError([out, retval] BOOL* value);
 
   /// Asynchronously retrieves spell check suggestions as a read-only
-  /// collection. The handler is invoked immediately if suggestions are already
-  /// available, or when they become available from the platform spell check
-  /// engine. Each suggestion's `SuggestionText` is the correction text and its
-  /// `CommandId` can be passed to `put_SelectedCommandId` to apply the
-  /// correction. The handler receives an empty collection if no suggestions are
-  /// available, if `HasSpellingError` is FALSE, or if the underlying spell
-  /// check service does not respond within an internal timeout.
-  /// Multiple concurrent calls are supported; each handler will be invoked
-  /// with the same result when suggestions become available.
+  /// collection. If suggestions are already available, the handler may be
+  /// invoked before this method returns; otherwise, it is invoked when
+  /// retrieval completes. Each suggestion's `SuggestionText` is the correction
+  /// text and its `CommandId` can be passed to `put_SelectedCommandId` to apply
+  /// the correction. When the handler is invoked with `S_OK`, it receives a
+  /// non-null collection, which is empty if there is no spelling error or no
+  /// suggestions are available. Multiple concurrent calls are supported; each
+  /// handler receives an equivalent result when its call completes.
   /// Returns `E_POINTER` if `handler` is null.
   HRESULT GetSpellCheckSuggestions(
       [in] ICoreWebView2GetSpellCheckSuggestionsCompletedHandler* handler);
@@ -193,7 +222,11 @@ interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
 
 /// Represents a spelling correction that can be applied through
 /// `ICoreWebView2ContextMenuRequestedEventArgs::put_SelectedCommandId`.
+/// The object remains readable while retained. Its `CommandId` is valid only
+/// for the originating context-menu request and must be assigned before that
+/// request's deferral is completed.
 /// UUID will be generated after the API shape is approved.
+[object, pointer_default(unique)]
 interface ICoreWebView2SpellCheckSuggestion : IUnknown {
   /// Gets the spelling correction text.
   /// The caller must free the returned string with `CoTaskMemFree`.
@@ -205,6 +238,7 @@ interface ICoreWebView2SpellCheckSuggestion : IUnknown {
 
 /// Represents a read-only collection of spell check suggestions.
 /// UUID will be generated after the API shape is approved.
+[object, pointer_default(unique)]
 interface ICoreWebView2SpellCheckSuggestionCollectionView : IUnknown {
   /// Gets the number of suggestions in the collection.
   [propget] HRESULT Count([out, retval] UINT32* value);
@@ -219,6 +253,8 @@ interface ICoreWebView2SpellCheckSuggestionCollectionView : IUnknown {
 [uuid(d73832f9-d05b-438d-bb6d-6441245221e3), object, pointer_default(unique)]
 interface ICoreWebView2GetSpellCheckSuggestionsCompletedHandler : IUnknown {
   /// Provides the result of the corresponding asynchronous method.
+  /// When `errorCode` is `S_OK`, `suggestions` is non-null and may be empty.
+  /// When `errorCode` indicates failure, `suggestions` is null.
   /// To apply a suggestion, pass its `CommandId` to
   /// `ICoreWebView2ContextMenuRequestedEventArgs.put_SelectedCommandId`.
   HRESULT Invoke(
@@ -289,6 +325,13 @@ When `ContextMenuRequested` fires, the suggestions may be:
 
 The host does **not** need to check readiness — `GetSpellCheckSuggestions` handles both cases
 transparently.
+
+Successful completion supplies a non-null collection. The collection is empty if there is no
+spelling error or no suggestions are available. On failure, the collection is null.
+
+Suggestion objects are immutable snapshots and remain readable while retained. A suggestion's
+`CommandId` can be used only for the originating context-menu request and must be assigned to
+`SelectedCommandId` before that request's deferral is completed.
 
 ### Host Patterns
 
