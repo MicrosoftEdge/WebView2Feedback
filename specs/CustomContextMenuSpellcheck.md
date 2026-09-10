@@ -200,7 +200,7 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 /// To apply a suggestion, pass the selected suggestion's `CommandId` to
 /// `ICoreWebView2ContextMenuRequestedEventArgs::put_SelectedCommandId`.
 [uuid(f7a3b8c1-2d4e-5f6a-8b9c-0d1e2f3a4b5c), object, pointer_default(unique)]
-interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
+interface ICoreWebView2ContextMenuTarget2 : IUnknown {
   /// Returns TRUE if the context menu target contains a spelling error.
   /// When TRUE, call `GetSpellCheckSuggestions` to retrieve the available
   /// spelling correction suggestions asynchronously.
@@ -228,12 +228,12 @@ interface ICoreWebView2ContextMenuTarget2 : ICoreWebView2ContextMenuTarget {
 /// UUID will be generated after the API shape is approved.
 [object, pointer_default(unique)]
 interface ICoreWebView2SpellCheckSuggestion : IUnknown {
+  /// Gets the opaque command ID used to apply this correction.
+  [propget] HRESULT CommandId([out, retval] INT32* value);
+
   /// Gets the spelling correction text.
   /// The caller must free the returned string with `CoTaskMemFree`.
   [propget] HRESULT SuggestionText([out, retval] LPWSTR* value);
-
-  /// Gets the opaque command ID used to apply this correction.
-  [propget] HRESULT CommandId([out, retval] INT32* value);
 }
 
 /// Represents a read-only collection of spell check suggestions.
