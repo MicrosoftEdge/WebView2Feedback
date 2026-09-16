@@ -12,14 +12,14 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             
-            - uses: actions-ecosystem/action-regex-match@v2
+            - uses: actions-ecosystem/action-regex-match@9e6c4fb3d5e898f505be7a1fb6e7b0a278f6665b # v2.0.2
               id: regex-match
               with:
                 text: ${{ github.event.issue.title }} ${{ github.event.issue.body }}
                 regex: '\bcrash\b'
                 flags: i
 
-            - uses: actions-ecosystem/action-create-comment@v1
+            - uses: actions-ecosystem/action-create-comment@e23bc59fbff7aac7f9044bd66c2dc0fe1286f80b # v1.0.2
               if: ${{ steps.regex-match.outputs.match != '' }}
               with:
                 github_token: ${{ secrets.GITHUB_TOKEN }}
