@@ -34,6 +34,11 @@ method returns if suggestions are ready, or later when they become available.
 `put_SelectedCommandId` on the EventArgs — the same execution path used for Cut, Copy, Paste, and
 all other context menu items. No separate execution method is needed.
 
+Suggestion command IDs are opaque and valid only for the originating context-menu request. The
+host must not assume that any numeric range or value is reserved. Host-owned menu commands should
+use the host's own identifiers and be handled by the host; they should not be passed to
+`put_SelectedCommandId`.
+
 # Examples
 
 ## Win32 C++
@@ -61,13 +66,15 @@ webView->add_ContextMenuRequested(
             if (!hasSpellingError)
                 return S_OK;
 
+            CHECK_FAILURE(args->put_Handled(true));
+
             // Take deferral — menu will be shown after async callback.
             wil::com_ptr<ICoreWebView2Deferral> deferral;
             CHECK_FAILURE(args->GetDeferral(&deferral));
-            CHECK_FAILURE(args->put_Handled(true));
 
             // Asynchronously retrieve spell check suggestions.
-            CHECK_FAILURE(target2->GetSpellCheckSuggestions(
+            HRESULT getSuggestionsResult =
+                target2->GetSpellCheckSuggestions(
                 Callback<
                     ICoreWebView2GetSpellCheckSuggestionsCompletedHandler>(
                     [this, args, deferral](
@@ -77,65 +84,110 @@ webView->add_ContextMenuRequested(
                     {
                         if (FAILED(errorCode))
                         {
-                            deferral->Complete();
+                            CHECK_FAILURE(deferral->Complete());
                             return S_OK;
                         }
 
-                        HMENU hPopupMenu = CreatePopupMenu();
-                        UINT32 count = 0;
-                        CHECK_FAILURE(suggestions->get_Count(&count));
-                        for (UINT32 i = 0; i < count; i++)
-                        {
-                            wil::com_ptr<ICoreWebView2SpellCheckSuggestion>
-                                suggestion;
-                            suggestions->GetValueAtIndex(i, &suggestion);
-                            wil::unique_cotaskmem_string suggestionText;
-                            suggestion->get_SuggestionText(&suggestionText);
-                            INT32 cmdId;
-                            suggestion->get_CommandId(&cmdId);
-                            AppendMenu(
-                                hPopupMenu, MF_STRING,
-                                static_cast<UINT_PTR>(cmdId),
-                                suggestionText.get());
-                        }
+                        wil::com_ptr<
+                            ICoreWebView2SpellCheckSuggestionCollectionView>
+                            retainedSuggestions = suggestions;
 
-                        HWND parentWindow;
-                        CHECK_FAILURE(
-                            m_controller->get_ParentWindow(&parentWindow));
-                        RECT parentBounds;
-                        GetClientRect(parentWindow, &parentBounds);
-                        POINT parentOrigin{
-                            parentBounds.left, parentBounds.top};
-                        ClientToScreen(parentWindow, &parentOrigin);
+                        // Run the blocking menu outside the WebView2 callback.
+                        m_sampleWindow->RunAsync(
+                            [this, args, deferral, retainedSuggestions]()
+                            {
+                                // Complete the deferral on every exit path.
+                                auto complete = wil::scope_exit([&]
+                                {
+                                    deferral->Complete();
+                                });
 
-                        POINT menuLocation;
-                        CHECK_FAILURE(args->get_Location(&menuLocation));
-                        RECT webViewBounds;
-                        CHECK_FAILURE(
-                            m_controller->get_Bounds(&webViewBounds));
-                        double scale;
-                        CHECK_FAILURE(
-                            m_controller3->get_RasterizationScale(&scale));
+                                HMENU hPopupMenu = CreatePopupMenu();
+                                auto destroyMenu = wil::scope_exit(
+                                    [&] { DestroyMenu(hPopupMenu); });
 
-                        INT32 selectedCmdId = TrackPopupMenu(
-                            hPopupMenu,
-                            TPM_TOPALIGN | TPM_LEFTALIGN | TPM_RETURNCMD,
-                            parentOrigin.x + webViewBounds.left +
-                                static_cast<int>(menuLocation.x * scale),
-                            parentOrigin.y + webViewBounds.top +
-                                static_cast<int>(menuLocation.y * scale),
-                            0, parentWindow,
-                            nullptr);
-                        // A zero return value means the menu was canceled.
-                        if (selectedCmdId != 0)
-                            CHECK_FAILURE(args->put_SelectedCommandId(
-                                selectedCmdId));
+                                // Native menu IDs belong to the host. Map them
+                                // back to the opaque WebView2 command IDs.
+                                std::vector<INT32> suggestionCommandIds;
+                                UINT32 count = 0;
+                                CHECK_FAILURE(
+                                    retainedSuggestions->get_Count(&count));
+                                suggestionCommandIds.reserve(count);
+                                for (UINT32 i = 0; i < count; i++)
+                                {
+                                    wil::com_ptr<
+                                        ICoreWebView2SpellCheckSuggestion>
+                                        suggestion;
+                                    CHECK_FAILURE(
+                                        retainedSuggestions->GetValueAtIndex(
+                                            i, &suggestion));
+                                    wil::unique_cotaskmem_string suggestionText;
+                                    CHECK_FAILURE(
+                                        suggestion->get_SuggestionText(
+                                            &suggestionText));
+                                    INT32 commandId;
+                                    CHECK_FAILURE(
+                                        suggestion->get_CommandId(&commandId));
+                                    suggestionCommandIds.push_back(commandId);
+                                    AppendMenu(
+                                        hPopupMenu, MF_STRING,
+                                        static_cast<UINT_PTR>(i + 1),
+                                        suggestionText.get());
+                                }
 
-                        DestroyMenu(hPopupMenu);
-                        deferral->Complete();
+                                HWND parentWindow;
+                                CHECK_FAILURE(
+                                    m_controller->get_ParentWindow(
+                                        &parentWindow));
+                                RECT parentBounds;
+                                GetClientRect(parentWindow, &parentBounds);
+                                POINT parentOrigin{
+                                    parentBounds.left, parentBounds.top};
+                                ClientToScreen(parentWindow, &parentOrigin);
+
+                                POINT menuLocation;
+                                CHECK_FAILURE(
+                                    args->get_Location(&menuLocation));
+                                RECT webViewBounds;
+                                CHECK_FAILURE(
+                                    m_controller->get_Bounds(&webViewBounds));
+                                double scale;
+                                CHECK_FAILURE(
+                                    m_controller3->get_RasterizationScale(
+                                        &scale));
+
+                                UINT selectedMenuId = TrackPopupMenu(
+                                    hPopupMenu,
+                                    TPM_TOPALIGN | TPM_LEFTALIGN |
+                                        TPM_RETURNCMD,
+                                    parentOrigin.x + webViewBounds.left +
+                                        static_cast<int>(
+                                            menuLocation.x * scale),
+                                    parentOrigin.y + webViewBounds.top +
+                                        static_cast<int>(
+                                            menuLocation.y * scale),
+                                    0, parentWindow,
+                                    nullptr);
+                                // A zero return value means the menu was
+                                // canceled.
+                                if (selectedMenuId != 0 &&
+                                    selectedMenuId <=
+                                        suggestionCommandIds.size())
+                                {
+                                    CHECK_FAILURE(
+                                        args->put_SelectedCommandId(
+                                            suggestionCommandIds[
+                                                selectedMenuId - 1]));
+                                }
+                            });
                         return S_OK;
                     })
-                    .Get()));
+                    .Get());
+            if (FAILED(getSuggestionsResult))
+            {
+                deferral->Complete();
+                return getSuggestionsResult;
+            }
             return S_OK;
         })
         .Get(),
@@ -199,7 +251,7 @@ webView.CoreWebView2.ContextMenuRequested += async (sender, args) =>
 ///
 /// To apply a suggestion, pass the selected suggestion's `CommandId` to
 /// `ICoreWebView2ContextMenuRequestedEventArgs::put_SelectedCommandId`.
-[uuid(f7a3b8c1-2d4e-5f6a-8b9c-0d1e2f3a4b5c), object, pointer_default(unique)]
+[uuid(8e38779e-0061-5a88-924e-ac096471840a), object, pointer_default(unique)]
 interface ICoreWebView2ContextMenuTarget2 : IUnknown {
   /// Returns TRUE if the context menu target contains a spelling error.
   /// When TRUE, call `GetSpellCheckSuggestions` to retrieve the available
@@ -223,12 +275,15 @@ interface ICoreWebView2ContextMenuTarget2 : IUnknown {
 /// Represents a spelling correction that can be applied through
 /// `ICoreWebView2ContextMenuRequestedEventArgs::put_SelectedCommandId`.
 /// The object remains readable while retained. Its `CommandId` is valid only
-/// for the originating context-menu request and must be assigned before that
-/// request's deferral is completed.
+/// for the originating context-menu request. To apply the correction, pass the
+/// `CommandId` to
+/// `ICoreWebView2ContextMenuRequestedEventArgs::put_SelectedCommandId` before
+/// that request's deferral is completed.
 /// UUID will be generated after the API shape is approved.
 [object, pointer_default(unique)]
 interface ICoreWebView2SpellCheckSuggestion : IUnknown {
-  /// Gets the opaque command ID used to apply this correction.
+  /// Gets the opaque, request-scoped command ID used to apply this correction.
+  /// Do not infer reserved values or ranges from this ID.
   [propget] HRESULT CommandId([out, retval] INT32* value);
 
   /// Gets the spelling correction text.
@@ -276,7 +331,8 @@ namespace Microsoft.Web.WebView2.Core
         String SuggestionText { get; };
 
         /// <summary>
-        /// Gets the opaque command ID used to apply this correction.
+        /// Gets the opaque, request-scoped command ID used to apply this
+        /// correction. Do not infer reserved values or ranges from this ID.
         /// </summary>
         Int32 CommandId { get; };
     }
@@ -330,8 +386,9 @@ Successful completion supplies a non-null collection. The collection is empty if
 spelling error or no suggestions are available. On failure, the collection is null.
 
 Suggestion objects are immutable snapshots and remain readable while retained. A suggestion's
-`CommandId` can be used only for the originating context-menu request and must be assigned to
-`SelectedCommandId` before that request's deferral is completed.
+`CommandId` can be used only for the originating context-menu request. To apply the correction,
+pass the `CommandId` to `SelectedCommandId` before that request's deferral is completed. Command IDs
+are opaque; hosts must not infer reserved values or numeric ranges from them.
 
 ### Host Patterns
 
@@ -390,7 +447,7 @@ through the existing `SelectedCommandId` path. These actions would not be repres
 |-------------|-------------|
 | `EventArgs.MenuItems` | Synchronous snapshot of menu items |
 | `EventArgs.SelectedCommandId` | Execution path — now also used for spell check suggestions |
-| `SpellCheckSuggestion.CommandId` | Opaque command ID used to apply a spelling correction |
+| `SpellCheckSuggestion.CommandId` | Opaque, request-scoped command ID used to apply a spelling correction |
 | `SpellCheckSuggestion.SuggestionText` | Browser-provided spell check suggestion |
 | `EventArgs.GetDeferral()` | Must be held across the async `GetSpellCheckSuggestions` gap |
 | `ContextMenuTarget` | Base target — QI to `Target2` for spell check support |
