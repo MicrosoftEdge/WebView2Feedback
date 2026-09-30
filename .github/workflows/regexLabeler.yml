@@ -12,18 +12,18 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
-    - uses: github/issue-labeler@v3.2
+    - uses: github/issue-labeler@98b5412841f6c4b0b3d9c29d53c13fad16bd7de2 # v3.2
       with:
         configuration-path: .github/labeler.yml
         enable-versioned-regex: 0
         include-title: 1
         repo-token: ${{ github.token }}
-    - uses: wow-actions/auto-assign@v3
+    - uses: wow-actions/auto-assign@67fafa03df61d7e5f201734a2fa60d1ab111880d # v3.0.2
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         assignees: ambikakunnath
         includeLabels: bluescreen
-    - uses: wow-actions/auto-assign@v3
+    - uses: wow-actions/auto-assign@67fafa03df61d7e5f201734a2fa60d1ab111880d # v3.0.2
       with:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         assignees: ambikakunnath
@@ -32,7 +32,7 @@ jobs:
     # Check if the issue now has the regression label (added by labeler above)
     - name: Check for regression label
       id: check_regression
-      uses: actions/github-script@v7
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
       with:
         script: |
           const labels = await github.rest.issues.listLabelsOnIssue({
@@ -46,7 +46,7 @@ jobs:
     # Sync regression issues to ADO directly (syncAdo.yml won't trigger from workflow-added labels)
     - name: Azure login
       if: steps.check_regression.outputs.has_regression == 'true'
-      uses: azure/login@v2
+      uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
