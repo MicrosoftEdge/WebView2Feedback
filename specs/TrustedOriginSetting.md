@@ -62,6 +62,7 @@ This specification introduces the following interfaces:
 
     - AccentColor 
     - EnhancedSecurityMode
+    - ReputationChecking
 
 # Example
 
@@ -88,10 +89,17 @@ void SetOriginFeatures()
         COREWEBVIEW2_ORIGIN_FEATURE_STATE_ENABLED,
         &enhancedSecuritySetting));
 
+    wil::com_ptr<ICoreWebView2StagingOriginFeatureSetting> reputationCheckingSetting;
+    CHECK_FAILURE(stagingProfile3->CreateOriginFeatureSetting(
+        COREWEBVIEW2_ORIGIN_FEATURE_REPUTATION_CHECKING,
+        COREWEBVIEW2_ORIGIN_FEATURE_STATE_DISABLED,
+        &reputationCheckingSetting));
+
     // Set features for origin patterns
     ICoreWebView2StagingOriginFeatureSetting* features[] = {
         accentColorSetting.get(),
-        enhancedSecuritySetting.get()
+        enhancedSecuritySetting.get(),
+        reputationCheckingSetting.get(),
     };
 
     LPCWSTR origins[] = { L"https://*.contoso.com" };
@@ -154,6 +162,7 @@ public void SetOriginFeatures()
     {
         { CoreWebView2OriginFeature.AccentColor, CoreWebView2OriginFeatureState.Enabled },
         { CoreWebView2OriginFeature.EnhancedSecurityMode, CoreWebView2OriginFeatureState.Enabled },
+        { CoreWebView2OriginFeature.ReputationChecking, CoreWebView2OriginFeatureState.Disabled },
     };
 
     // Set features for origin patterns
@@ -203,6 +212,19 @@ typedef enum COREWEBVIEW2_ORIGIN_FEATURE {
   /// For more information about Enhanced Security Mode, see:
   /// https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/security
   COREWEBVIEW2_ORIGIN_FEATURE_ENHANCED_SECURITY_MODE,
+  /// Specifies per-origin reputation checking settings.
+  /// Reputation checking protects users from phishing and malware by checking
+  /// navigated URLs and downloaded files against a cloud-based reputation service.
+  /// Setting this feature to `Disabled` for an origin will skip reputation
+  /// checks for navigations and downloads from that origin, effectively
+  /// allow-listing it. If reputation checking is not configured for an origin,
+  /// the [IsReputationCheckingRequired](https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2settings.isreputationcheckingrequired)
+  /// setting will apply.
+  /// 
+  /// Warning: Disabling reputation checking for an origin bypasses phishing and
+  /// malware reputation checks. Only disable for fully trusted, app-controlled
+  /// origins where the content is known to be safe.
+  COREWEBVIEW2_ORIGIN_FEATURE_REPUTATION_CHECKING,
 } COREWEBVIEW2_ORIGIN_FEATURE;
 
 /// Specifies the state of the origin feature.
@@ -233,8 +255,8 @@ interface ICoreWebView2StagingProfile3 : IUnknown {
 
   /// Configures one or more feature settings for the specified origins. 
   /// 
-  /// This method applies feature configurations—such as accent color support, 
-  /// or enhanced security mode—to origins. Origins 
+  /// This method applies feature configurations (such as accent color support, 
+  /// enhanced security mode, or reputation checking) to origins. Origins 
   /// may be provided as exact origin strings or as wildcard patterns. 
   /// 
   /// The origin pattern can be an exact origin string or a wildcard pattern.
@@ -336,6 +358,7 @@ namespace Microsoft.Web.WebView2.Core
     {
         AccentColor = 0,
         EnhancedSecurityMode = 1,
+        ReputationChecking = 2,
     };
 
     runtimeclass CoreWebView2OriginFeatureSetting
