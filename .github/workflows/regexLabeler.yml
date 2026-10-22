@@ -54,7 +54,7 @@ jobs:
 
     - name: Sync regression to ADO
       if: steps.check_regression.outputs.has_regression == 'true'
-      uses: Navdeep-ss/github-actions-issue-to-work-item@37f3bf20cfbbf639380f37eb83fb1fad853c720d # 1.5
+      uses: Navdeep-ss/github-actions-issue-to-work-item@d65d05fada06aef1ea4f5c964ca5107d8ac7973b # simple-sync-azurecli
       env:
         github_token: ${{ secrets.GITHUB_TOKEN }}
       with:
