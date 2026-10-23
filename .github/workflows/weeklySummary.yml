@@ -10,18 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     name: get summary
     steps:
-    - uses: shangminx/Auto-Digest@main
+    - uses: shangminx/Auto-Digest@2956c2883226beff6373aa432671a66c59043e7d # main
       id: getsummary
       with:
         daily_or_weekly: 'weekly'
-    - uses: shangminx/Auto-Digest/sendEmail@main
+    - uses: shangminx/Auto-Digest/sendEmail@2956c2883226beff6373aa432671a66c59043e7d # main
       id: sendEmail
       with: 
         email_password: ${{ secrets.EMAIL_PASSWORD }}
         sender_email:  ${{secrets.SENDER_EMAIL}}
         recipient_email: ${{secrets.RECIPIENT_EMAIL}}
         report_data: ${{ steps.getsummary.outputs.dailysummary }}
-    - uses: plantree/github-actions-issue-notify-teams@main
+    - uses: plantree/github-actions-issue-notify-teams@db8dd4dcb9a75296bc9dbe3371777352e140758c # main
       with:
         type: weekly-report
         message: ${{ steps.getsummary.outputs.dailysummary }}

@@ -11,14 +11,14 @@ jobs:
     steps: 
     - name: filter issue by keyword and send email
       id: script
-      uses: ElyssaJyu/GH-Auto-Digest-Bot@main
+      uses: ElyssaJyu/GH-Auto-Digest-Bot@f197416d7ef4e7936f2c83fab558b329d134e4ad # main
       with: 
         email_password: ${{ secrets.EMAIL_PASSWORD }}
         sender_email:  ${{secrets.SENDER_EMAIL}}
         recipient_email: ${{secrets.RECIPIENT_EMAIL}}
     - name: need send to teams
       if: ${{ steps.script.outputs.need_attention == 'true'}}
-      uses: plantree/github-actions-issue-notify-teams@main
+      uses: plantree/github-actions-issue-notify-teams@db8dd4dcb9a75296bc9dbe3371777352e140758c # main
       with:
           type: new-issue
           message: ${{ steps.script.outputs.issue_info}}

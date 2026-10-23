@@ -15,13 +15,13 @@ jobs:
     name: Syncing to Azure DevOps
     steps:
     - name: Azure login
-      uses: azure/login@v2
+      uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     - name: Sync tracked bugs to ADO
-      uses: Navdeep-ss/github-actions-issue-to-work-item@simple-sync-azurecli
+      uses: Navdeep-ss/github-actions-issue-to-work-item@d65d05fada06aef1ea4f5c964ca5107d8ac7973b # simple-sync-azurecli
       env:
         github_token: "${{ secrets.GITHUB_TOKEN }}"
       with:
@@ -32,7 +32,7 @@ jobs:
         ado_tags: 'WV2_GitHub'
         ado_gh_closed_tag: 'WV2_GitHub_Closed'
     - name: Sync Regressions to ADO
-      uses: Navdeep-ss/github-actions-issue-to-work-item@simple-sync-azurecli
+      uses: Navdeep-ss/github-actions-issue-to-work-item@d65d05fada06aef1ea4f5c964ca5107d8ac7973b # simple-sync-azurecli
       env:
         github_token: "${{ secrets.GITHUB_TOKEN }}"
       with:

@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     name: get summary
     steps:
-    - uses: shangminx/Auto-Digest@main
+    - uses: shangminx/Auto-Digest@2956c2883226beff6373aa432671a66c59043e7d # main
       id: getsummary
       with:
         daily_or_weekly: 'daily'
-    - uses: plantree/github-actions-issue-notify-teams@main
+    - uses: plantree/github-actions-issue-notify-teams@db8dd4dcb9a75296bc9dbe3371777352e140758c # main
       with:
         type: daily-report
         message: ${{ steps.getsummary.outputs.dailysummary }}
