@@ -54,12 +54,12 @@ time.
 ## Win32 C++
 
 ```cpp
-CHECK_FAILURE(m_webView->add_ProcessFailed(
+auto processFailedHandler =
     Callback<ICoreWebView2ProcessFailedEventHandler>(
         [this](ICoreWebView2* sender,
                ICoreWebView2ProcessFailedEventArgs* argsRaw) -> HRESULT
         {
-            wil::com_ptr<ICoreWebView2ProcessFailedEventArgs5> args;
+            wil::com_ptr<ICoreWebView2ProcessFailedEventArgs4> args;
             CHECK_FAILURE(argsRaw->QueryInterface(IID_PPV_ARGS(&args)));
 
             wil::com_ptr<ICoreWebView2CrashReport> crashReport;
@@ -101,8 +101,9 @@ CHECK_FAILURE(m_webView->add_ProcessFailed(
             // (e.g., normal exit, hang, or external kill). Use ProcessFailedKind
             // and Reason to decide how to handle the failure.
             return S_OK;
-        })
-        .Get(),
+        });
+CHECK_FAILURE(m_webView->add_ProcessFailed(
+    processFailedHandler.Get(),
     &m_processFailedToken));
 ```
 
@@ -121,7 +122,7 @@ webView.CoreWebView2.ProcessFailed += (sender, args) =>
             report.FaultingModuleVersion,
             report.FaultOffset,
             report.BucketId,
-            report.ReportTime); // Windows.Foundation.DateTime (DateTimeOffset in C#)
+            report.ReportTime); // UInt64 FILETIME (ulong in C#); 0 if unavailable
     }
     // report is null when the failure did not produce a crash report
     // (e.g., normal exit, hang, or external kill).
@@ -132,61 +133,53 @@ webView.CoreWebView2.ProcessFailed += (sender, args) =>
 
 ## COM
 
+The caller must free each returned string with `CoTaskMemFree`.
+
 ```
 /// Provides crash signature data captured at the moment of process failure.
-/// Accessed via ICoreWebView2ProcessFailedEventArgs5.CrashReport.
+/// Accessed via ICoreWebView2ProcessFailedEventArgs4.CrashReport.
 ///
 /// CrashReport is null when the failure did not produce a crash report
 /// (normal exit, external kill, launch failure, hang).
-[uuid(7c3a1b40-9f1e-4a5d-8b2e-2e0e7c1f3a55), object, pointer_default(unique)]
+[uuid(74128fe8-5080-5f46-941d-fb747b0bcd62), object, pointer_default(unique)]
 interface ICoreWebView2CrashReport : IUnknown {
+    /// Crash bucket identifier assigned by Microsoft's crash telemetry service.
+    /// Returned as a 32-character hex string. Empty when crash data was not
+    /// uploaded or no response was received from the telemetry service.
+    [propget] HRESULT BucketId([out, retval] LPWSTR* value);
+
     /// A stable identifier for this crash report. Use this to locate the
     /// corresponding dump file in `FailureReportFolderPath`.
-    // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT CrashReportId([out, retval] LPWSTR* value);
 
     /// The Windows exception code for the failure, e.g. 0xC0000005 for
-    /// STATUS_ACCESS_VIOLATION, or 0xe0000008 for an out-of-memory termination.
-    // MSOWNERS: core (wvcore@microsoft.com)
+    /// STATUS_ACCESS_VIOLATION. Zero if unavailable.
     [propget] HRESULT ExceptionCode([out, retval] UINT32* value);
 
+    /// Relative virtual address (RVA) of the faulting instruction within
+    /// `FaultingModuleName`. Zero if unavailable.
+    [propget] HRESULT FaultOffset([out, retval] UINT64* value);
+
     /// Basename of the module containing the faulting instruction,
-    /// e.g. "v8.dll". Never a full path.
-    // MSOWNERS: core (wvcore@microsoft.com)
+    /// e.g. "renderer.dll". Never a full path.
     [propget] HRESULT FaultingModuleName([out, retval] LPWSTR* value);
 
     /// Version of the faulting module, e.g. "128.0.2739.42".
-    // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT FaultingModuleVersion([out, retval] LPWSTR* value);
-
-    /// Relative virtual address (RVA) of the faulting instruction within
-    /// `FaultingModuleName`.
-    // MSOWNERS: core (wvcore@microsoft.com)
-    [propget] HRESULT FaultOffset([out, retval] UINT64* value);
-
-    /// Crash bucket identifier assigned by Microsoft's crash telemetry service,
-    /// if available at event-fire time. Returned as a 32-character hex string.
-    /// Empty when no bucket was assigned: crash data was not uploaded to
-    /// Microsoft's telemetry service (custom crash reporting enabled), or the
-    /// assignment was not yet received (network throttled/unavailable).
-    // MSOWNERS: core (wvcore@microsoft.com)
-    [propget] HRESULT BucketId([out, retval] LPWSTR* value);
 
     /// Time the crash report was recorded, as a Windows FILETIME value
     /// (100-nanosecond intervals since Jan 1 1601 UTC). Zero if unavailable.
-    // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT ReportTime([out, retval] UINT64* value);
 }
 
-/// A continuation of the ICoreWebView2ProcessFailedEventArgs4 interface
+/// A continuation of the ICoreWebView2ProcessFailedEventArgs3 interface
 /// for getting the crash report associated with the process failure.
-[uuid(1d8e2f4a-3c6b-4f7d-9a1e-5b8c2d3e4f60), object, pointer_default(unique)]
-interface ICoreWebView2ProcessFailedEventArgs5
-    : ICoreWebView2ProcessFailedEventArgs4 {
+[uuid(e00e3c7f-d6d3-5e64-b7ab-581b6316b227), object, pointer_default(unique)]
+interface ICoreWebView2ProcessFailedEventArgs4
+    : ICoreWebView2ProcessFailedEventArgs3 {
     /// The crash report for this process failure, or null if no crash report
     /// is available for this failure (normal exit, external kill, launch
     /// failure, hang, or crash-type failure that produced no report).
-    // MSOWNERS: core (wvcore@microsoft.com)
     [propget] HRESULT CrashReport(
         [out, retval] ICoreWebView2CrashReport** value);
 }
@@ -207,8 +200,8 @@ namespace Microsoft.Web.WebView2.Core
             String   FaultingModuleVersion { get; };
             UInt64   FaultOffset           { get; };
             String   BucketId              { get; };
-            // Projected from the COM FILETIME (UINT64).
-            Windows.Foundation.DateTime ReportTime { get; };
+            // FILETIME: 100-nanosecond intervals since Jan 1 1601 UTC.
+            UInt64   ReportTime            { get; };
         }
     }
 
@@ -230,7 +223,7 @@ namespace Microsoft.Web.WebView2.Core
 
 | API | Purpose |
 | --- | --- |
-| `ProcessFailedEventArgs5.CrashReport` _(this API)_ | Crash identity and signature at failure time. |
+| `ICoreWebView2ProcessFailedEventArgs4.CrashReport` _(this API)_ | Crash identity and signature at failure time. |
 | [`ProcessFailed`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2#add_processfailed) | Real-time recovery signal (kind, reason, exit code). |
 | [`BrowserProcessExited`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environment5#add_browserprocessexited) | Browser process exit notification (lifecycle, no CrashReport). |
 | [`IsCustomCrashReportingEnabled`](https://learn.microsoft.com/microsoft-edge/webview2/reference/win32/icorewebview2environmentoptions3#get_iscustomcrashreportingenabled) | Disables upload to Microsoft's telemetry service. Crash dump is still written locally; `CrashReport` is populated but `BucketId` will be empty. |
