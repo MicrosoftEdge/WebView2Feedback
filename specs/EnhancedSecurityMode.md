@@ -2,471 +2,144 @@ Enhanced Security Mode
 ===
 
 # Background
-The WebView2 team has been asked for an API to toggle the Enhanced Security Mode (ESM) feature, 
-control levels of ESM, and also to manage ESM enforce and bypass lists.
 
-We are proposing 4 APIs as follows: 
+Enhanced Security Mode (ESM) adds protection against memory-related
+vulnerabilities by disabling JavaScript Just-in-Time (JIT) compilation and
+enabling additional operating system protections. These protections can reduce
+JavaScript performance.
 
-`CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled` - this API allows developers to 
-enable/disable ESM. The default value is false. When this property is set to true, the level of 
-ESM is controlled by the `CoreWebView2Profile.PreferredEnhancedSecurityModeLevel` property. 
+The `CoreWebView2Profile.EnhancedSecurityModeState` property lets applications
+enable or disable ESM for all WebView2 instances sharing a profile.
 
-`CoreWebView2Profile.PreferredEnhancedSecurityModeLevel` - this API allows developers to control 
-levels of ESM for WebView2 which are associated with a profile and persisted in the user data folder. 
-However, the level is not respected if ESM is disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. 
-That means, when developers set the property when ESM is disabled, it will be updated and persisted, 
-but will not take effect until the feature is enabled. We will offer 2 levels: Off and Strict. 
+# Description
 
-For reference, in the screenshot below, this API sets the levels of ESM as a WebView2 API.
+`EnhancedSecurityModeState` has two values:
 
-![image](https://github.com/MicrosoftEdge/WebView2Feedback/assets/82386753/35977716-e46c-4257-82da-906b0c6f833e)
+- `Disabled` (the default): Enhanced Security Mode is disabled.
+- `Enabled`: Enhanced Security Mode is enabled.
 
-`CoreWebView2Profile.EnhancedSecurityModeBypassList` - this API allows developers to view and add a 
-URI filter from the ESM bypass list. If a site is in the bypass list, the ESM level for the site 
-will always be set to Off when a user navigates to it, regardless of the value of 
-`CoreWebView2Profile.PreferredEnhancedSecurityModeLevel`. However, this is not respected if ESM is 
-disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. That means, when developers 
-set the property when ESM is disabled, it will be updated and persisted, but will not take effect 
-until the feature is enabled.  
+The setting is not persisted to the user data folder. It resets to `Disabled`
+when the profile is destroyed and recreated. Changes apply to new navigations;
+existing pages require a reload for the change to take effect.
 
-`CoreWebView2Profile.EnhancedSecurityModeEnforceList` - this API allows developers to view and add a 
-URI filter from the ESM enforce list. If a site is in the enforce list, the ESM level for the site will 
-always be set to Strict when a user navigates to it, regardless of the value of 
-`CoreWebView2Profile.PreferredEnhancedSecurityModeLevel`. However, similar to the allow list, this is not 
-respected if ESM is disabled in `CoreWebView2EnvironmentOptions.IsEnhancedSecurityModeEnabled`. 
+Applications can configure exceptions for specific origins using
+`CoreWebView2Profile.SetOriginFeatures` with
+`CoreWebView2OriginFeature.EnhancedSecurityMode`. An origin without an explicit
+configuration uses the profile's `EnhancedSecurityModeState`. See
+[Origin Feature Configuration][origins] for origin patterns,
+precedence, and resetting origin settings.
 
-For reference, in the screenshot below, this API allows you to manage the Enforce and Bypass List of ESM as a WebView2API.
-![image](https://github.com/MicrosoftEdge/WebView2Feedback/assets/82386753/98085785-bfae-4de0-bb39-c85e85913e1f)
+Only disable ESM for fully trusted, app-controlled content where the
+compatibility or performance trade-off is understood.
 
 # Examples
-## IsEnhancedSecurityModeEnabled
-```c#
-Create WebView Environment with option that enables the Enhanced Security Mode feature.
 
-void CreateEnvironmentWithOption()
-{
-    CoreWebView2EnvironmentOptions options = new CoreWebView2EnvironmentOptions();
-    // if we want to increase security, we can enable Enhanced Security Mode 
-    options.IsEnhancedSecurityModeEnabled = true;
-    CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(BrowserExecutableFolder, UserDataFolder, options);
-}
-```
+The following examples enable ESM for a profile, then disable it for a known,
+trusted application origin that requires JIT compilation. Configure the profile
+before navigating to the content.
+
+## Win32 C++
+
 ```cpp
-void AppWindow::InitializeWebView()
+HRESULT ConfigureEnhancedSecurityMode(ICoreWebView2Profile* profile)
 {
-    auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
-    Microsoft::WRL::ComPtr<ICoreWebView2StagingEnvironmentOptions9> optionsStaging9;
-    if (options.As(&optionsStaging9) == S_OK)
-    {
-        // if we want to increase security, we can enable Enhanced Security Mode
-        CHECK_FAILURE(optionsStaging9->put_EnableTrackingPrevention(TRUE));
-    }
-    // ... other option properties
+    wil::com_ptr<ICoreWebView2ExperimentalProfile17> esmProfile;
+    RETURN_IF_FAILED(profile->QueryInterface(IID_PPV_ARGS(&esmProfile)));
 
-    HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(
-        subFolder, m_userDataFolder.c_str(), options.Get(),
-        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            this, &AppWindow::OnCreateEnvironmentCompleted)
-            .Get());
+    wil::com_ptr<ICoreWebView2ExperimentalProfile16> originProfile;
+    RETURN_IF_FAILED(profile->QueryInterface(IID_PPV_ARGS(&originProfile)));
+
+    RETURN_IF_FAILED(esmProfile->put_EnhancedSecurityModeState(
+        COREWEBVIEW2_ENHANCED_SECURITY_MODE_STATE_ENABLED));
+
+    wil::com_ptr<ICoreWebView2ExperimentalOriginFeatureSetting> setting;
+    RETURN_IF_FAILED(originProfile->CreateOriginFeatureSetting(
+        COREWEBVIEW2_ORIGIN_FEATURE_ENHANCED_SECURITY_MODE,
+        COREWEBVIEW2_ORIGIN_FEATURE_STATE_DISABLED,
+        &setting));
+
+    LPCWSTR origins[] = {L"https://app.contoso.com"};
+    ICoreWebView2ExperimentalOriginFeatureSetting* features[] = {setting.get()};
+    RETURN_IF_FAILED(originProfile->SetOriginFeatures(
+        ARRAYSIZE(origins), origins, ARRAYSIZE(features), features));
+    return S_OK;
 }
 ```
-## PreferredEnhancedSecurityModeLevel
+
+[origins]: https://github.com/MicrosoftEdge/WebView2Feedback/blob/main/specs/TrustedOriginSetting.md
+
+## .NET and WinRT
+
 ```c#
-void SetEnhancedSecurityModeLevel(CoreWebView2EnhancedSecurityModeLevel value)
+void ConfigureEnhancedSecurityMode(CoreWebView2Profile profile)
 {
-    WebViewProfile.PreferredEnhancedSecurityModeLevel = value;
-    MessageBox.Show(this, "Enhanced security mode level is set successfully", "Enhanced Security Mode Level");
-}
-```
-```cpp
-void SettingsComponent::SetEnhancedSecurityModeLevel(
-    COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL value)
-{
-    wil::com_ptr<ICoreWebView2_13> webView2_13;
-    webView2_13 = m_webView.try_query<ICoreWebView2_13>();
+    profile.EnhancedSecurityModeState =
+        CoreWebView2EnhancedSecurityModeState.Enabled;
 
-    if (webView2_13)
-    {
-        wil::com_ptr<ICoreWebView2Profile> profile;
-        CHECK_FAILURE(webView2_13->get_Profile(&profile));
-
-        auto profileStaging2 = profile.try_query<ICoreWebView2StagingProfile2>();
-        if (profileStaging2)
+    var features =
+        new Dictionary<CoreWebView2OriginFeature, CoreWebView2OriginFeatureState>
         {
-            CHECK_FAILURE(profileStaging2->put_PreferredEnhancedSecurityModeLevel(value));
-            MessageBox(
-                nullptr, L"Enhanced security mode level is set successfully",
-                L"Enhanced Security Mode Level", MB_OK);
-        }
-    }
-}
-```
-## EnhancedSecurityModeBypassList
-```c#
-void EnhancedSecurityModeGetBypassListCommandExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    List<string> uris = WebViewProfile.EnhancedSecurityModeBypassList;
-    uint counts = (uint)uris.Count;
-
-    string urisAsOneString = string.Join(";\n", uris);
-
-    MessageBox.Show(urisAsOneString, "Enhanced Security Mode Bypass List");
-}
-
-void EnhancedSecurityModeSetBypassListCommandExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    var dialog = new TextInputDialog(
-        title: "Add to Enhanced Security Mode Bypass List",
-        description: "Enter URI filters to bypass, separated by semicolons.",
-        defaultInput: "");
-    if (dialog.ShowDialog() == true)
-    {
-        List<string> uris = WebViewProfile.EnhancedSecurityModeBypassList;
-        List<string> inputList = dialog.Input.Text.Split(";").ToList();
-
-        foreach(string uri in inputList)
-        {
-            uris.Add(uri);
-        }
-                
-        MessageBox.Show("Enhanced Security Mode Bypass List is updated successfully",
-            "Enhanced Security Mode Bypass List", MessageBoxButtons.OK);
-    }
-}
-```
-```cpp
-void SettingsComponent::GetEnhancedSecurityModeBypassList() 
-{
-    wil::com_ptr<ICoreWebView2_13> webView2_13;
-    webView2_13 = m_webView.try_query<ICoreWebView2_13>();
-
-    if (webView2_13)
-    {
-        wil::com_ptr<ICoreWebView2Profile> profile;
-        CHECK_FAILURE(webView2_13->get_Profile(&profile));
-
-        auto profileStaging2 = profile.try_query<ICoreWebView2StagingProfile2>();
-        if (profileStaging2)
-        {
-            UINT32 counts = 0;
-            LPWSTR* uris;
-            profileStaging2->GetEnhancedSecurityModeBypassList(&counts, &uris);
-            std::wstring s = L""; 
-            for (unsigned int i = 0; i < counts; ++i)
             {
-               s += uris[i];
-               s += L"\n";
-            }
-
-            m_appWindow->AsyncMessageBox(s.c_str(), L"Enhanced Security Mode Bypass List");
-        }
-    }
-}
-
-void SettingsComponent::SetEnhancedSecurityModeBypassList()
-{
-    wil::com_ptr<ICoreWebView2_13> webView2_13;
-    webView2_13 = m_webView.try_query<ICoreWebView2_13>();
-
-    if (webView2_13)
-    {
-        wil::com_ptr<ICoreWebView2Profile> profile;
-        CHECK_FAILURE(webView2_13->get_Profile(&profile));
-
-        auto profileStaging2 = profile.try_query<ICoreWebView2StagingProfile2>();
-        if (profileStaging2)
-        {
-            TextInputDialog dialog(
-                m_appWindow->GetMainWindow(), L"Add to Enhanced Security Mode Bypass List", L"List:",
-                L"Enter URI filters to bypass, separated by semicolons.", L"");
-            if (dialog.confirmed) {                
-                // forming array
-                std::wstringstream ss(dialog.input);
-                std::wstring uri;
-                std::vector<std::wstring> uris;
- 
-                while (std::getline(ss, uri, L';')) {
-                    uris.push_back(uri);
-                }
- 
-                std::vector<LPCWSTR> uris_cstr;
-                for (const auto& uri : uris) {
-                    uris_cstr.push_back(uri.c_str());
-                }
-
-                CHECK_FAILURE(profileStaging2->SetEnhancedSecurityModeBypassList(
-                    static_cast<uint32_t>(uris_cstr.size()), uris_cstr.data()));
-                MessageBox(nullptr, L"Enhanced Security Mode Bypass List is updated successfully",
-                    L"Enhanced Security Mode Bypass List", MB_OK);
-            }
-        }
-    }
-}
-```
-
-## EnhancedSecurityModeEnforceList
-```c#
-void EnhancedSecurityModeGetEnforceListCommandExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    List<string> uris = WebViewProfile.EnhancedSecurityModeEnforceList;
-    uint counts = (uint)uris.Count;
-
-    string urisAsOneString = string.Join(";\n", uris);
-
-    MessageBox.Show(urisAsOneString, "Enhanced Security Mode Enforce List");
-}
-
-void EnhancedSecurityModeSetEnforceListCommandExecuted(object target, ExecutedRoutedEventArgs e)
-{
-    var dialog = new TextInputDialog(
-        title: "Add to Enhanced Security Mode Enforce List",
-        description: "Enter URI filters to enforce, separated by semicolons.",
-        defaultInput: "");
-    if (dialog.ShowDialog() == true)
-    {
-        List<string> uris = WebViewProfile.EnhancedSecurityModeEnforceList;
-        List<string> inputList = dialog.Input.Text.Split(";").ToList();
-
-        foreach(string uri in inputList)
-        {
-            uris.Add(uri);
-        }
-                
-        MessageBox.Show("Enhanced Security Mode Enforce List is updated successfully",
-            "Enhanced Security Mode Enforce List", MessageBoxButtons.OK);
-    } 
-}
-```
-```cpp
-void SettingsComponent::GetEnhancedSecurityModeEnforceList() 
-{
-    wil::com_ptr<ICoreWebView2_13> webView2_13;
-    webView2_13 = m_webView.try_query<ICoreWebView2_13>();
-
-    if (webView2_13)
-    {
-        wil::com_ptr<ICoreWebView2Profile> profile;
-        CHECK_FAILURE(webView2_13->get_Profile(&profile));
-
-        auto profileStaging2 = profile.try_query<ICoreWebView2StagingProfile2>();
-        if (profileStaging2)
-        {
-            UINT32 counts = 0;
-            LPWSTR* uris;
-            profileStaging2->GetEnhancedSecurityModeEnforceList(&counts, &uris);
-            std::wstring s = L""; 
-            for (unsigned int i = 0; i < counts; ++i)
-            {
-               s += uris[i];
-               s += L"\n";
-            }
-
-            m_appWindow->AsyncMessageBox(s.c_str(), L"Enhanced Security Mode Enforce List");
-        }
-    }
-}
-
-void SettingsComponent::SetEnhancedSecurityModeEnforceList()
-{
-    wil::com_ptr<ICoreWebView2_13> webView2_13;
-    webView2_13 = m_webView.try_query<ICoreWebView2_13>();
-
-    if (webView2_13)
-    {
-        wil::com_ptr<ICoreWebView2Profile> profile;
-        CHECK_FAILURE(webView2_13->get_Profile(&profile));
-
-        auto profileStaging2 = profile.try_query<ICoreWebView2StagingProfile2>();
-        if (profileStaging2)
-        {
-            TextInputDialog dialog(
-                m_appWindow->GetMainWindow(), L"Add to Enhanced Security Mode Enforce List", L"List:",
-                L"Enter URI filters to enforce, separated by semicolons.", L"");
-            if (dialog.confirmed) {
-                // forming array
-                std::wstringstream ss(dialog.input);
-                std::wstring uri;
-                std::vector<std::wstring> uris;
- 
-                while (std::getline(ss, uri, L';')) {
-                    uris.push_back(uri);
-                }
- 
-                std::vector<LPCWSTR> uris_cstr;
-                for (const auto& uri : uris) {
-                    uris_cstr.push_back(uri.c_str());
-                }
-
-                CHECK_FAILURE(profileStaging2->SetEnhancedSecurityModeEnforceList(
-                    static_cast<uint32_t>(uris_cstr.size()), uris_cstr.data()));
-                MessageBox(nullptr, L"Enhanced Security Mode Enforce List is updated successfully",
-                    L"Enhanced Security Mode Enforce List", MB_OK);
-            }
-        }
-    }
+                CoreWebView2OriginFeature.EnhancedSecurityMode,
+                CoreWebView2OriginFeatureState.Disabled
+            },
+        };
+    profile.SetOriginFeatures(new[] { "https://app.contoso.com" }, features);
 }
 ```
 
 # API Details
-```
-/// Enhanced security mode levels
+
+## COM
+
+```cpp
+/// Enhanced Security Mode state.
 [v1_enum]
-typedef enum COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL {
-  /// Enhanced security mode is turned off.
-  COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL_OFF,
-  /// The most restrictive level. This adds an extra layer of protection 
-  /// on all sites.
-  /// 
-  /// Not recommended for most users as it requires some level of configuration
-  /// to complete daily tasks and can cause slowdowns.
-  COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL_STRICT,
-} COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL;
+typedef enum COREWEBVIEW2_ENHANCED_SECURITY_MODE_STATE {
+  /// Enhanced Security Mode is disabled.
+  COREWEBVIEW2_ENHANCED_SECURITY_MODE_STATE_DISABLED,
+  /// Disables JavaScript JIT compilation and enables additional operating
+  /// system protections. This may reduce JavaScript performance.
+  COREWEBVIEW2_ENHANCED_SECURITY_MODE_STATE_ENABLED,
+} COREWEBVIEW2_ENHANCED_SECURITY_MODE_STATE;
 
-/// Additional options used to create WebView2 Environment to manage enhanced security mode.
-/// 
-[uuid(6b6ddf57-459d-55b9-a6ae-6eb2313417df), object, pointer_default(unique)]
-interface ICoreWebView2StagingEnvironmentOptions9 : IUnknown {
-  /// Gets the `IsEnhancedSecurityModeEnabled` property.
-  [propget] HRESULT IsEnhancedSecurityModeEnabled([out, retval] BOOL* value);
-  ///
-  /// The `IsEnhancedSecurityModeEnabled` property is used to toggle the enhanced security mode(ESM) feature in WebView2.
-  /// This property enables or disables ESM for all WebView2s created in the same environment.
-  /// By default this feature is disabled to reduce its impact on performance.
-  /// 
-  /// ESM protects users from memory-related vulnerabilities by disabling just-in-time (JIT)
-  /// JavaScript compilation and enabling additional operating system protections from the browser.
-  /// 
-  /// See https://learn.microsoft.com/en-us/DeployEdge/microsoft-edge-security-browse-safer for more details.
-  /// 
-  [propput] HRESULT IsEnhancedSecurityModeEnabled([in] BOOL value);
-}
+/// Controls the Enhanced Security Mode state for a profile.
+[uuid(9e84633f-4631-51a1-9197-b3a469a4246a), object, pointer_default(unique)]
+interface ICoreWebView2ExperimentalProfile17 : IUnknown {
+  /// Gets the EnhancedSecurityModeState property.
+  [propget] HRESULT EnhancedSecurityModeState(
+      [out, retval] COREWEBVIEW2_ENHANCED_SECURITY_MODE_STATE* value);
 
-/// This is an extension of the ICoreWebView2StagingProfile interface to control levels, allowlist, and denylist
-/// of enhanced security mode.
-/// 
-[uuid(d5b781db-0a75-5f9c-85b1-40fa814fcea7), object, pointer_default(unique)]
-interface ICoreWebView2StagingProfile2 : IUnknown {
-  /// Gets the `PreferredEnhancedSecurityModeLevel` property.
-  [propget] HRESULT PreferredEnhancedSecurityModeLevel([out, retval] COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL* value);
+  /// Enables or disables Enhanced Security Mode for all WebViews sharing
+  /// the profile. The default is Disabled.
   ///
-  /// The PreferredEnhancedSecurityModeLevel property allows you to control levels of ESM for WebView2 
-  /// which are associated with a profile. This level would apply to the context of the profile. That is, all
-  /// WebView2s sharing the same profile will be affected. The value is also persisted in the user data folder.
-  /// 
-  /// See CoreWebView2EnhancedSecurityModeLevel for descriptions of levels currently offered.
-  /// 
-  /// There is ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled property to enable/disable ESM
-  /// for all the WebView2's created in the same environment. If enabled, PreferredEnhancedSecurityModeLevel is
-  /// set to CoreWebView2EnhancedSecurityModeLevel.Strict by default or whatever value was last changed/persisted 
-  /// to the profile. 
-  /// 
-  /// If disabled, PreferredEnhancedSecurityModeLevel is not respected by WebView2. If PreferredEnhancedSecurityModeLevel
-  /// is set when the feature is disabled, the property value gets changed and persisted but it will take effect only when
-  /// ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled is set to true. 
-  /// 
-  /// See ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled for more details.
-  /// \snippet SettingsComponent.cpp SetEnhancedSecurityModeLevel
-  /// 
-  [propput] HRESULT PreferredEnhancedSecurityModeLevel([in] COREWEBVIEW2_ENHANCED_SECURITY_MODE_LEVEL value);
+  /// The setting is not persisted to the user data folder and resets when
+  /// the profile is recreated.
   ///
-  /// The EnhancedSecurityModeBypassList method allows you to add URI filters to the bypass list which are associated
-  /// with a profile. This method would apply to the context of the profile. That is, all
-  /// WebView2s sharing the same profile will be affected. The value is also persisted in the user data folder.
-  /// 
-  /// This means that if a site is in the bypass list, the ESM level for that site will always be set to Off, regardless of 
-  /// the value of PreferredEnhancedSecurityModeLevel. However, this is not respected if 
-  /// ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled is set to false. This means that when
-  /// you update the list when ESM is disabled, it will be updated and persisted, but will not take effect until the
-  /// feature is enabled. 
-  /// 
-  /// See ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled for more details.
-  /// 
-  /// The uris parameter is a list of uri filters. It can also take wildcard strings and matches against the navigation uri.
-  /// See https://www.chromium.org/administrators/url-blocklist-filter-format/ for more details.
-  /// 
-  /// Some examples of allowed strings are as follows:
-  /// | URI filter in list      | URI to navigate          | ESM applied? |
-  /// |___________________________________________________________________|
-  /// | *://example.com         | www.example.com          | yes          |
-  /// | *://example.com         | www.example2.com         | no           |
-  /// | https://www.example.com | www.example.com/hi       | yes          |
-  /// | https://sample.com      | www.sample.com           | no           |
-  /// | https://*               | https://www.example.com  | yes          |
-  /// | example.com             | https://www.example.com  | yes          |
-  /// | *                       | https://www.example.com  | yes          | 
-  /// 
-  /// 
-  HRESULT GetEnhancedSecurityModeBypassList(
-      [out] UINT32* listCounts,
-      [out] LPWSTR** uriFilters
-  );
-  ///
-  /// Set the array of URIs in the allow list.
-  /// 
-  HRESULT SetEnhancedSecurityModeBypassList(
-      [in] UINT32 listCounts,
-      [in] LPCWSTR* uriFilters
-  );
-  ///
-  /// The EnhancedSecurityModeEnforceList property allows you to add URI filters to the enforce list which are associated
-  /// with a profile. This property would apply to the context of the profile. That is, all
-  /// WebView2s sharing the same profile will be affected. The value is also persisted in the user data folder.
-  /// 
-  /// This means that if a site is in the enforce list, the ESM level for that site will always be set to Strict,
-  /// regardless of the value of PreferredEnhancedSecurityModeLevel. However, this is not respected if 
-  /// ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled is set to false. This means that when you
-  /// update the list when ESM is disabled, it will be updated and persisted, but will not take effect until the feature
-  /// is enabled. 
-  /// See ICoreWebView2StagingEnvironmentOptions9::IsEnhancedSecurityModeEnabled for more details.
-  /// 
-  /// The enforce list takes precedence over any other list. That is, if a site URL is both in the enforce and bypass
-  /// list, its ESM level will be set to Strict.
-  /// 
-  /// 
-  HRESULT GetEnhancedSecurityModeEnforceList(
-      [out] UINT32* listCounts,
-      [out] LPWSTR** uriFilters
-  );
-  ///
-  /// Set the array of URIs in the enforce list.
-  /// 
-  HRESULT SetEnhancedSecurityModeEnforceList(
-      [in] UINT32 listCounts,
-      [in] LPCWSTR* uriFilters
-  );
+  /// Changes apply to new navigations. Existing pages require a reload.
+  [propput] HRESULT EnhancedSecurityModeState(
+      [in] COREWEBVIEW2_ENHANCED_SECURITY_MODE_STATE value);
 }
 ```
+
+## WinRT and .NET
 
 ```c# (but really MIDL3)
 namespace Microsoft.Web.WebView2.Core
 {
-    enum CoreWebView2EnhancedSecurityModeLevel
+    enum CoreWebView2EnhancedSecurityModeState
     {
-        Off = 0,
-        Strict = 1,
+        Disabled = 0,
+        Enabled = 1,
     };
-
-    // ...
-    runtimeclass CoreWebView2EnvironmentOptions
-    {
-        // ...
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions9")]
-        {
-            // ICoreWebView2EnvironmentOptions9 members
-            Boolean IsEnhancedSecurityModeEnabled { get; set; };
-        }
-    }
-
 
     runtimeclass CoreWebView2Profile
     {
-        // ...
-        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile9")]
+        // ... existing members ...
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Profile14")]
         {
-            // ICoreWebView2Profile9 members
-            CoreWebView2EnhancedSecurityModeLevel PreferredEnhancedSecurityModeLevel { get; set; };
-            List<string> EnhancedSecurityModeBypassList { get; };
-            List<string> EnhancedSecurityModeEnforceList { get; };  
+            CoreWebView2EnhancedSecurityModeState EnhancedSecurityModeState
+                { get; set; };
         }
     }
 }
