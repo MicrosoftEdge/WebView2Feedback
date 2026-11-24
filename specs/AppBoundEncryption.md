@@ -8,9 +8,9 @@ Windows Data Protection API (DPAPI) bound to the current Windows user account. W
 protects data against other Windows user accounts on the same machine, any process running under
 the same Windows user account shares those user DPAPI credentials.
 
-Packaged desktop host applications that handle sensitive authenticated sessions need stronger local
-isolation so that another application or process running as the same Windows user cannot decrypt
-cookies stored in the host application's user data folder.
+If your packaged desktop application handles sensitive authenticated sessions, you may need
+stronger local isolation so that another application or process running as the same Windows user
+cannot decrypt cookies stored in your application's user data folder.
 
 Application-Bound Encryption (ABE) lets you bind encryption of sensitive user data folder cookies
 to your host application's Windows package identity (Package Family Name and Application User Model
@@ -140,26 +140,11 @@ public class AppBoundEncryptionSample
 
 using namespace Microsoft::WRL;
 
-/// Creates a WebView2 environment configured for host-owned application-bound
-/// encryption using `userDataFolder`, `isFirstLaunchEnrollment`, and
-/// `completedHandler`.
-HRESULT CreateAppBoundWebViewEnvironment(
-    PCWSTR userDataFolder,
-    bool isFirstLaunchEnrollment,
-    ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler* completedHandler)
+void AppWindow::InitializeAppBoundWebView(bool isFirstLaunchEnrollment)
 {
-    auto options = Make<CoreWebView2EnvironmentOptions>();
-    if (!options)
-    {
-        return E_OUTOFMEMORY;
-    }
-
-    wil::com_ptr_nothrow<ICoreWebView2EnvironmentOptions11> options11;
-    HRESULT hr = options.As(&options11);
-    if (FAILED(hr))
-    {
-        return hr;
-    }
+    auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+    wil::com_ptr<ICoreWebView2EnvironmentOptions11> options11;
+    CHECK_FAILURE(options.As(&options11));
 
     if (isFirstLaunchEnrollment)
     {
@@ -172,33 +157,28 @@ HRESULT CreateAppBoundWebViewEnvironment(
             encryptionKey,
             sizeof(encryptionKey),
             BCRYPT_USE_SYSTEM_PREFERRED_RNG);
-        if (!BCRYPT_SUCCESS(status))
-        {
-            return HRESULT_FROM_NT(status);
-        }
+        CHECK_FAILURE(HRESULT_FROM_NT(status));
 
-        hr = options11->SetAppBoundEncryptionKey(
+        HRESULT hr = options11->SetAppBoundEncryptionKey(
             sizeof(encryptionKey), encryptionKey);
         ::SecureZeroMemory(encryptionKey, sizeof(encryptionKey));
-        if (FAILED(hr))
-        {
-            return hr;
-        }
+        CHECK_FAILURE(hr);
     }
     else
     {
         // On subsequent launches of an already-enrolled user data folder,
         // enable application-bound encryption so WebView2 unwraps the key
         // persisted in the user data folder.
-        hr = options11->put_IsAppBoundEncryptionEnabled(TRUE);
-        if (FAILED(hr))
-        {
-            return hr;
-        }
+        CHECK_FAILURE(options11->put_IsAppBoundEncryptionEnabled(TRUE));
     }
 
-    return CreateCoreWebView2EnvironmentWithOptions(
-        nullptr, userDataFolder, options.Get(), completedHandler);
+    CHECK_FAILURE(CreateCoreWebView2EnvironmentWithOptions(
+        nullptr,
+        m_userDataFolder.c_str(),
+        options.Get(),
+        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            this, &AppWindow::OnCreateEnvironmentCompleted)
+            .Get()));
 }
 ```
 
@@ -267,8 +247,16 @@ namespace Microsoft.Web.WebView2.Core
 
         [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2EnvironmentOptions11")]
         {
+            // ICoreWebView2EnvironmentOptions11 members
             Boolean IsAppBoundEncryptionEnabled { get; set; };
+
+            // Supplies the 32-byte key (or null/empty array to clear any
+            // in-memory key and reset IsAppBoundEncryptionEnabled to false).
+            // Throws ArgumentException for any other length.
             void SetAppBoundEncryptionKey(UInt8[] key);
+
+            // Returns the 32-byte key currently stored on this options
+            // instance, or throws ArgumentException if no key is set.
             UInt8[] GetAppBoundEncryptionKey();
         }
     }
