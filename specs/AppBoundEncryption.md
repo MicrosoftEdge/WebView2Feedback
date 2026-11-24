@@ -24,7 +24,9 @@ launches, only your packaged host application can unwrap the persisted key throu
 # Conceptual pages (How To)
 
 You can configure host-owned Application-Bound Encryption (ABE) on `CoreWebView2EnvironmentOptions`
-before creating a `CoreWebView2Environment` for a user data folder.
+before creating a `CoreWebView2Environment` for a user data folder, and query whether the
+environment acknowledged the request via
+`CoreWebView2Environment.IsHostOwnedAppBoundEncryptionRequested`.
 
 ## Prerequisites
 
@@ -39,6 +41,9 @@ the following requirements:
   the WebView2 `ElevationService` (`MicrosoftEdgeWebViewElevationService`). Fixed Version WebView2
   Runtime distributions do not register this system service.
 
+If `IsAppBoundEncryptionEnabled` is `TRUE` and your host process or selected runtime does not meet
+these prerequisites, creating the `CoreWebView2Environment` fails with `E_ACCESSDENIED`.
+
 ## Scope and lifetime
 
 `IsAppBoundEncryptionEnabled` and the key configured via `SetAppBoundEncryptionKey` are immutable
@@ -51,7 +56,9 @@ or `CoreWebView2Environment.CreateAsync` has no effect on an already-created
 All `CoreWebView2Controller` and `CoreWebView2` instances created from the same
 `CoreWebView2Environment` share the user data folder's application-bound encryption state. When
 multiple processes share a user data folder, all cooperating processes must belong to the same
-Windows package identity and use matching `IsAppBoundEncryptionEnabled` settings.
+Windows package identity and use matching `IsAppBoundEncryptionEnabled` settings; attaching to an
+existing browser process with a mismatched `IsAppBoundEncryptionEnabled` configuration fails with
+`HRESULT_FROM_WIN32(ERROR_INVALID_STATE)`.
 
 ## First launch vs. subsequent launches
 
@@ -59,10 +66,12 @@ Windows package identity and use matching `IsAppBoundEncryptionEnabled` settings
   random key using a platform CSPRNG (such as `BCryptGenRandom` in C++ or
   `RandomNumberGenerator.Fill` in C#) and pass it to `SetAppBoundEncryptionKey`. Calling
   `SetAppBoundEncryptionKey` with a valid 32-byte key automatically sets
-  `IsAppBoundEncryptionEnabled` to `TRUE`. During initialization, WebView2 binds the 32-byte key to
-  your host application's package identity via the WebView2 `ElevationService`, persists the
-  wrapped key in the user data folder, and zeroes the in-memory plaintext key cached for the
-  handshake.
+  `IsAppBoundEncryptionEnabled` to `TRUE`. During controller initialization, WebView2 retrieves the
+  key once on the environment creation thread, binds the 32-byte key to your host application's
+  package identity via the WebView2 `ElevationService`, and persists the wrapped key in the user
+  data folder. If `IsAppBoundEncryptionEnabled` is `TRUE` on a fresh user data folder without a
+  32-byte key set via `SetAppBoundEncryptionKey`, controller initialization fails with
+  `E_INVALIDARG`.
 - **Subsequent launches on an already-enrolled user data folder:** Set
   `IsAppBoundEncryptionEnabled` to `TRUE` (either directly or by calling
   `SetAppBoundEncryptionKey`). When the user data folder already contains a persisted
@@ -71,8 +80,8 @@ Windows package identity and use matching `IsAppBoundEncryptionEnabled` settings
   existing encrypted cookies remain readable.
 - **Mismatch or unauthorized package access:** If a different application package attempts to open
   an already-enrolled user data folder, the WebView2 `ElevationService` denies key unwrapping
-  because the caller's package identity does not match the enrolled owner, preventing decryption of
-  application-bound cookies.
+  because the caller's package identity does not match the enrolled owner, failing controller
+  initialization with `E_ACCESSDENIED` and preventing decryption of application-bound cookies.
 
 # Examples
 
@@ -195,7 +204,8 @@ interface ICoreWebView2EnvironmentOptions11 : IUnknown {
   /// The default value is `FALSE`. This option is applied when creating the
   /// `CoreWebView2Environment` for a user data folder and requires the host
   /// application to have Windows package identity (MSIX or sparse package) and
-  /// the WebView2 `ElevationService` installed.
+  /// the WebView2 `ElevationService` installed; otherwise environment creation
+  /// fails with `E_ACCESSDENIED`.
   /// Returns `E_POINTER` if `value` is `nullptr`.
   [propget] HRESULT IsAppBoundEncryptionEnabled([out, retval] BOOL* value);
   /// Sets the `IsAppBoundEncryptionEnabled` property.
@@ -236,6 +246,20 @@ interface ICoreWebView2EnvironmentOptions11 : IUnknown {
       [out, size_is(keySize)] BYTE* key
   );
 }
+
+/// Continuation of the `ICoreWebView2Environment` interface for querying
+/// whether host-owned application-bound encryption was requested.
+[uuid(9662d13d-74c2-5ee0-96ee-82bf26d956a1), object, pointer_default(unique)]
+interface ICoreWebView2Environment17 : ICoreWebView2Environment16 {
+  /// Indicates that this WebView2 environment acknowledged the host-owned
+  /// application-bound encryption request. Runtime authorization and durable
+  /// enrollment in `Local State` are verified during controller
+  /// initialization.
+  /// Returns `E_POINTER` if `value` is `nullptr`.
+  [propget] HRESULT IsHostOwnedAppBoundEncryptionRequested(
+      [out, retval] BOOL* value
+  );
+}
 ```
 
 ```c# (but really MIDL3)
@@ -258,6 +282,17 @@ namespace Microsoft.Web.WebView2.Core
             // Returns the 32-byte key currently stored on this options
             // instance, or throws ArgumentException if no key is set.
             UInt8[] GetAppBoundEncryptionKey();
+        }
+    }
+
+    runtimeclass CoreWebView2Environment
+    {
+        // ...
+
+        [interface_name("Microsoft.Web.WebView2.Core.ICoreWebView2Environment17")]
+        {
+            // ICoreWebView2Environment17 members
+            Boolean IsHostOwnedAppBoundEncryptionRequested { get; };
         }
     }
 }
