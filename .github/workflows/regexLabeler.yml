@@ -44,19 +44,12 @@ jobs:
           core.setOutput('has_regression', hasRegression.toString());
 
     # Sync regression issues to ADO directly (syncAdo.yml won't trigger from workflow-added labels)
-    - name: Azure login
-      if: steps.check_regression.outputs.has_regression == 'true'
-      uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
     - name: Sync regression to ADO
       if: steps.check_regression.outputs.has_regression == 'true'
-      uses: Navdeep-ss/github-actions-issue-to-work-item@d65d05fada06aef1ea4f5c964ca5107d8ac7973b # simple-sync-azurecli
+      uses: Navdeep-ss/github-actions-issue-to-work-item@2220c6a44723f6e46a9bccded3e2c68452867d96 # master
       env:
         github_token: ${{ secrets.GITHUB_TOKEN }}
+        ado_sync_function_url: ${{ secrets.ADO_SYNC_FUNCTION_URL }}
       with:
         label: 'regression'
         ado_organization: 'microsoft'
