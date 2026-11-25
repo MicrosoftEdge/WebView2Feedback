@@ -14,18 +14,19 @@ same Windows user account cannot decrypt it.
 # Conceptual pages (How To)
 
 Configure Application-Bound Encryption on `CoreWebView2EnvironmentOptions` before creating a
-`CoreWebView2Environment`. Your host application must have Windows package identity (such as an
-MSIX or sparse package) and use the Evergreen WebView2 Runtime; otherwise environment creation
-fails with `E_ACCESSDENIED`.
+`CoreWebView2Environment`. Application-Bound Encryption requires Windows package identity (such as
+an MSIX or sparse package) and the Evergreen WebView2 Runtime; otherwise WebView2 falls back to
+default user-scoped encryption.
 
 - **First launch (fresh user data folder):** Pass a 32-byte cryptographically random key to
   `SetAppBoundEncryptionKey`, which also sets `IsAppBoundEncryptionEnabled` to `TRUE`. If
   `IsAppBoundEncryptionEnabled` is `TRUE` on a fresh user data folder without a 32-byte key,
-  initialization fails with `E_INVALIDARG`.
+  WebView2 falls back to default user-scoped encryption.
 - **Subsequent launches (enrolled user data folder):** Set `IsAppBoundEncryptionEnabled` to `TRUE`
   to use the existing key for the user data folder. Any new key passed to
-  `SetAppBoundEncryptionKey` is ignored. If a different package attempts to open an enrolled user
-  data folder, initialization fails with `E_ACCESSDENIED`.
+  `SetAppBoundEncryptionKey` is ignored. If a different application opens an enrolled user data
+  folder, data encrypted by the original package cannot be decrypted, and new data falls back to
+  default user-scoped encryption.
 
 These options are read when creating the `CoreWebView2Environment`. Modifying
 `CoreWebView2EnvironmentOptions` afterward has no effect, and all `CoreWebView2` instances in the
@@ -129,8 +130,8 @@ interface ICoreWebView2EnvironmentOptions11 : IUnknown {
   /// WebView2 environment.
   ///
   /// The default value is `FALSE`. Requires Windows package identity and the
-  /// Evergreen WebView2 Runtime; otherwise environment creation fails with
-  /// `E_ACCESSDENIED`. Returns `E_POINTER` if `value` is `nullptr`.
+  /// Evergreen WebView2 Runtime; otherwise WebView2 falls back to default
+  /// user-scoped encryption. Returns `E_POINTER` if `value` is `nullptr`.
   [propget] HRESULT IsAppBoundEncryptionEnabled([out, retval] BOOL* value);
   /// Sets the `IsAppBoundEncryptionEnabled` property.
   [propput] HRESULT IsAppBoundEncryptionEnabled([in] BOOL value);
