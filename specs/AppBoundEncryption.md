@@ -11,7 +11,7 @@ Application-Bound Encryption (ABE) lets a packaged desktop application bind encr
 user data folder data to its Windows package identity so that other applications running under the
 same Windows user account cannot decrypt it.
 
-# Conceptual pages (How To)
+# Description
 
 Configure Application-Bound Encryption on `CoreWebView2EnvironmentOptions` before creating a
 `CoreWebView2Environment`. Application-Bound Encryption requires Windows package identity (such as
@@ -34,44 +34,7 @@ environment share the setting.
 
 # Examples
 
-```c#
-using System.Security.Cryptography;
-using System.Threading.Tasks;
-using Microsoft.Web.WebView2.Core;
-
-public class AppBoundEncryptionSample
-{
-    public static async Task<CoreWebView2Environment> CreateEnvironmentAsync(
-        string userDataFolder,
-        bool isFirstLaunch)
-    {
-        var options = new CoreWebView2EnvironmentOptions();
-
-        if (isFirstLaunch)
-        {
-            byte[] encryptionKey = new byte[32];
-            RandomNumberGenerator.Fill(encryptionKey);
-            try
-            {
-                options.SetAppBoundEncryptionKey(encryptionKey);
-            }
-            finally
-            {
-                CryptographicOperations.ZeroMemory(encryptionKey);
-            }
-        }
-        else
-        {
-            options.IsAppBoundEncryptionEnabled = true;
-        }
-
-        return await CoreWebView2Environment.CreateAsync(
-            browserExecutableFolder: null,
-            userDataFolder: userDataFolder,
-            options: options);
-    }
-}
-```
+## Win32 C++
 
 ```cpp
 #include <windows.h>
@@ -119,9 +82,52 @@ void AppWindow::InitializeAppBoundWebView(bool isFirstLaunch)
 }
 ```
 
+## .NET, WinRT
+
+```c#
+using System.Security.Cryptography;
+using System.Threading.Tasks;
+using Microsoft.Web.WebView2.Core;
+
+public class AppBoundEncryptionSample
+{
+    public static async Task<CoreWebView2Environment> CreateEnvironmentAsync(
+        string userDataFolder,
+        bool isFirstLaunch)
+    {
+        var options = new CoreWebView2EnvironmentOptions();
+
+        if (isFirstLaunch)
+        {
+            byte[] encryptionKey = new byte[32];
+            RandomNumberGenerator.Fill(encryptionKey);
+            try
+            {
+                options.SetAppBoundEncryptionKey(encryptionKey);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(encryptionKey);
+            }
+        }
+        else
+        {
+            options.IsAppBoundEncryptionEnabled = true;
+        }
+
+        return await CoreWebView2Environment.CreateAsync(
+            browserExecutableFolder: null,
+            userDataFolder: userDataFolder,
+            options: options);
+    }
+}
+```
+
 # API Details
 
-```
+## Win32 C++
+
+```IDL
 /// Additional options used to create a WebView2 Environment to configure
 /// application-bound encryption.
 [uuid(5df2ef84-51a6-5727-a502-6c7a4e406694), object, pointer_default(unique)]
@@ -163,7 +169,9 @@ interface ICoreWebView2EnvironmentOptions11 : IUnknown {
 }
 ```
 
-```c# (but really MIDL3)
+## .NET, WinRT
+
+```c#
 namespace Microsoft.Web.WebView2.Core
 {
     runtimeclass CoreWebView2EnvironmentOptions
