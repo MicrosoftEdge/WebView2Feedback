@@ -12,7 +12,7 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
-    - uses: github/issue-labeler@98b5412841f6c4b0b3d9c29d53c13fad16bd7de2 # v3.2
+    - uses: github/issue-labeler@ccca1e16fcb66762200e616fc29b57b940c1cb67 # v3.5
       with:
         configuration-path: .github/labeler.yml
         enable-versioned-regex: 0
@@ -32,7 +32,7 @@ jobs:
     # Check if the issue now has the regression label (added by labeler above)
     - name: Check for regression label
       id: check_regression
-      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
         script: |
           const labels = await github.rest.issues.listLabelsOnIssue({
